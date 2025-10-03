@@ -32,4 +32,5 @@ Thumbs.db
 .env.*
 database/database.sqlite
 tests/Fixtures/*.xlsx
+!tests/Fixtures/個人住民税vol23.xlsx
 !.gitattributes

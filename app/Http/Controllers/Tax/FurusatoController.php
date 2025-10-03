@@ -24,10 +24,21 @@ final class FurusatoController extends Controller
             w17: (int)$req->input('w17'),
             w18: (int)$req->input('w18'),
             ab6: (int)$req->input('ab6'),
-            ab56: max(1, (int)$req->input('ab56')) // 0除算防止
+            ab56: max(1, (int)$req->input('ab56')),
+            v6: (int)$req->input('v6', 0),
+            w6: (int)$req->input('w6', 0),
+            x6: (int)$req->input('x6', 0),
         );
         $out = $svc->calcUpperLimit($in);
-        if ($req->wantsJson()) return response()->json($out);
-        return view('tax.furusato.input', compact('out'));
+        if ($req->wantsJson()) {
+            return response()->json($out);
+        }
+
+        $dataId = $req->integer('data_id') ?: null;
+
+        return view('tax.furusato.input', [
+            'out' => $out,
+            'dataId' => $dataId,
+        ]);
     }
 }

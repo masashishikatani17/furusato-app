@@ -24,6 +24,33 @@
       <label class="form-label">AB6</label>
       <input type="number" class="form-control" name="ab6" value="{{ old('ab6', 300000) }}" required>
     </div>
+    <div class="col-md-4">
+      <label class="form-label">V6（モードA）</label>
+      <select class="form-select" name="v6">
+        @foreach([0, 1, 2] as $option)
+          <option value="{{ $option }}" @selected((string)old('v6', 0) === (string)$option)>{{ $option }}</option>
+        @endforeach
+      </select>
+      <div class="form-text">Excel「計算結果!V6」の選択（0/1/2）。</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">W6（モードB）</label>
+      <select class="form-select" name="w6">
+        @foreach([0, 1, 2] as $option)
+          <option value="{{ $option }}" @selected((string)old('w6', 0) === (string)$option)>{{ $option }}</option>
+        @endforeach
+      </select>
+      <div class="form-text">Excel「計算結果!W6」の選択（0/1/2）。</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">X6（モードC）</label>
+      <select class="form-select" name="x6">
+        @foreach([0, 1, 2] as $option)
+          <option value="{{ $option }}" @selected((string)old('x6', 0) === (string)$option)>{{ $option }}</option>
+        @endforeach
+      </select>
+      <div class="form-text">Excel「計算結果!X6」の選択（0/1/2）。</div>
+    </div>
     <div class="col-12">
       <button class="btn btn-primary">計算する</button>
     </div>
@@ -42,6 +69,14 @@
       <tr><th>B17</th><td>{{ number_format($out['b17']) }}</td></tr>
     </tbody>
   </table>
+  <h6>入力モード確認</h6>
+  <table class="table table-sm table-bordered w-auto">
+    <tbody>
+      <tr><th>V6</th><td>{{ $out['flags']['v6'] }}</td></tr>
+      <tr><th>W6</th><td>{{ $out['flags']['w6'] }}</td></tr>
+      <tr><th>X6</th><td>{{ $out['flags']['x6'] }}</td></tr>
+    </tbody>
+  </table>  
   @endisset
 </div>
 @endsection

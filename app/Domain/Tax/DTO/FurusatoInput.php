@@ -8,5 +8,8 @@ final class FurusatoInput
         public int $w18,   // 計算結果!W18
         public int $ab6,   // 計算結果!AB6
         public int $ab56,  // 計算結果!AB56（vol23）
+        public int $v6 = 0, // 計算結果!V6（モードA）
+        public int $w6 = 0, // 計算結果!W6（モードB）
+        public int $x6 = 0, // 計算結果!X6（モードC）
     ) {}
 }

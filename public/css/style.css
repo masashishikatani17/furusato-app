@@ -1,0 +1,187 @@
+/* ==========================================================================
+   furusato style.css (Essential Set)
+   - Based on 「ビル」から“必須セット”のみ抽出・再構成
+   - Bootstrap の基本クラス (.btn, .table, .form-control 等) は上書きしない
+   - data_master / data_create / data_copy で即時効果が出るものに限定
+   ========================================================================== */
+
+/* --------------------------------------
+ * レイアウト補助
+ * ------------------------------------ */
+.wrapper {
+  width: 95%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Alpine.js 初期化前のちらつき防止 */
+[x-cloak] { display: none !important; }
+
+/* --------------------------------------
+ * 下部ボタン帯（“ビル”と同じ構造）
+ * data_master 下部で使用
+ * ------------------------------------ */
+.table-s-bottom {
+  background-color: #666666;
+  color: #ffffff;
+  text-align: right;
+  height: 40px;
+  width: 100%;
+  border-bottom: 1px solid #999;
+}
+.table-s-bottom td {
+  padding: 8px;
+  text-align: right;
+  border-bottom: 1px solid #ddd;
+}
+
+/* --------------------------------------
+ * ボタン（独自クラス）
+ * Bootstrapの .btn とは別に運用
+ * ------------------------------------ */
+.btn-base {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: normal;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  color: #000;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.btn-base-blue {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: normal;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+  border: 1px solid #ccc;
+  background-color: #e9eff7;
+  color: #000;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.btn-base-red {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: normal;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+  border: 1px solid #ccc;
+  background-color: #e9eff7;
+  color: #d90000;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.btn-base-low {
+  display: inline-block;
+  height: 22px;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: normal;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  color: #000;
+  cursor: pointer;
+}
+
+/* 非活性リンク風（クリック不可） */
+.btn-disabled {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 13px;
+  font-weight: normal;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 5px;
+  transition: all 0.3s ease;
+  border: 1px solid #ccc;
+  background-color: #ddd !important;
+  color: #666 !important;
+  line-height: 1.2;
+}
+.btn-disabled-link { pointer-events: none; opacity: 0.4; }
+.disabled-link     { pointer-events: none; opacity: 0.2; }
+
+/* ボタングループ（ラベル付）の縦並び補助 */
+.btn-vgroup { display: inline-flex; flex-direction: column; align-items: flex-start; }
+.btn-group-label {
+  min-width: 88px;
+  padding: 0 3px;
+  text-align: center;
+  font-size: 13px;
+  display: inline-block;
+  height: 18px;
+}
+.btn-group-label.create { background: #999999; color: #fff; }
+.btn-group-label.delete { background: #999999; color: #d90000; }
+/* 2行ボタン用（改行許可） */
+.btn-change { white-space: normal; line-height: 1.15; }
+
+/* --------------------------------------
+ * テーブル（軽量／選択／スクロール）
+ * Bootstrap の .table は上書きしない
+ * ------------------------------------ */
+
+/* 選択系の軽量テーブル（行間詰め、左寄せ） */
+.table-m-sentaku {
+  background-color: #fff;
+  color: #000;
+  padding: 2px;
+  margin: 3px auto;
+  border-bottom: 1px solid #999;
+}
+.table-m-sentaku td {
+  vertical-align: middle !important;
+  text-align: left;
+  padding-left: 10px;
+}
+
+/* コンパクト化ユーティリティ */
+.table-compact td,
+.table-compact th {
+  padding: 1px 4px !important;
+}
+
+/* 偶数ストライプ/ホバーを無効化（他所の指定がある場合に打消し） */
+.no-stripe tbody tr:nth-child(even),
+.no-stripe tbody tr:hover {
+  background-color: transparent !important;
+}
+
+/* 固定ヘッダ＋tbodyスクロール（表幅を揃える構成） */
+.scroll-body-table thead tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+.scroll-body-table tbody {
+  display: block;
+  max-height: var(--scroll-height, 420px);
+  overflow-y: auto;
+}
+.scroll-body-table tbody tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}

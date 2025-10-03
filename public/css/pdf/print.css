@@ -1,0 +1,17 @@
+/* 最小限の印刷スタイル（A4縦） */
+/* 用紙サイズ・余白の既定（個別帳票で @page を上書きOK） */
+@page { size: A4 portrait; margin: 14mm; }
+html, body { padding: 0; margin: 0; }
+/* フォント指定は layout 側に集約。ここではサイズと色のみ */
+body { font-size: 11pt; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+.page { page-break-after: always; }
+.sheet { width: 100%; }
+.title { font-size: 16pt; margin: 0 0 8px 0; }
+.meta { font-size: 10pt; margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.muted { color: #666; }
+
+.table { width: 100%; border-collapse: collapse; }
+.table.simple th, .table.simple td { border: 1px solid #888; padding: 4px 6px; }
+.table.simple th { background: #eee; }
+.num { text-align: right; }

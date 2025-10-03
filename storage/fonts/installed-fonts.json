@@ -1,0 +1,12 @@
+{
+    "ipaexg": {
+        "normal": "\/home\/ec2-user\/environment\/furusato\/app\/storage\/fonts\/ipaexg_normal_65bf81f1fa6ff1c88dddcd962bb0838d",
+        "bold": "\/home\/ec2-user\/environment\/furusato\/app\/storage\/fonts\/ipaexg_bold_65bf81f1fa6ff1c88dddcd962bb0838d",
+        "italic": "ipaexg_italic_65bf81f1fa6ff1c88dddcd962bb0838d"
+    },
+    "ipaexm": {
+        "normal": "\/home\/ec2-user\/environment\/furusato\/app\/storage\/fonts\/ipaexm_normal_8332671ee8014c5a8ee3113d002e85e5",
+        "bold": "\/home\/ec2-user\/environment\/furusato\/app\/storage\/fonts\/ipaexm_bold_8332671ee8014c5a8ee3113d002e85e5",
+        "italic": "ipaexm_italic_8332671ee8014c5a8ee3113d002e85e5"
+    }
+}

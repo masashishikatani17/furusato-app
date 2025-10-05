@@ -1,7 +1,18 @@
 @extends('layouts.min')
+
 @section('content')
 <div class="container" style="min-width: 960px; max-width: 1080px;">
-  <h5 class="mb-3">ふるさと納税：上限簡易試算（Excel vol23 ベース）</h5>
+  <h5 class="mb-3">ふるさと納税：インプット表（v0.4）</h5>
+
+  @if ($errors->any())
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        @foreach ($errors->all() as $error)
+          <li>{{ $error }}</li>
+        @endforeach
+      </ul>
+    </div>
+  @endif
 
   <form method="POST" action="{{ route('furusato.calc') }}" class="row g-3">
     @csrf
@@ -11,365 +22,242 @@
 
     <div class="col-12">
       <div class="card mb-4">
-        <div class="card-header">基礎計算入力（計算結果シート）</div>
-        <div class="card-body row g-3">
-          <div class="col-md-3">
-            <label class="form-label">W17</label>
-            <input type="number" class="form-control" name="w17" value="{{ old('w17', 2000000) }}" required>
-            <div class="form-text">計算結果!W17（給与所得等）</div>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">W18</label>
-            <input type="number" class="form-control" name="w18" value="{{ old('w18', 3000000) }}" required>
-            <div class="form-text">計算結果!W18（合算控除後所得）</div>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">AB56</label>
-            <input type="number" class="form-control" name="ab56" min="1" value="{{ old('ab56', 10000) }}" required>
-            <div class="form-text">計算結果!AB56（控除割合の母数）</div>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">AB6</label>
-            <input type="number" class="form-control" name="ab6" value="{{ old('ab6', 300000) }}" required>
-            <div class="form-text">計算結果!AB6（寄付予定額）</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-12">
-      <div class="card mb-4">
-        <div class="card-header">基本情報（インプット表・世帯情報）</div>
-        <div class="card-body row g-3">
-          <div class="col-md-3">
-            <label class="form-label">世帯区分（A2）</label>
-            @php($householdOptions = [1 => '単身', 2 => '夫婦のみ', 3 => '夫婦＋扶養'])
-            <select class="form-select" name="household_composition">
-              @foreach($householdOptions as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('household_composition', 1) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">配偶者の有無（B4）</label>
-            <select class="form-select" name="spouse_status">
-              @foreach([0 => 'なし', 1 => 'あり'] as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('spouse_status', 0) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">配偶者所得区分（B5）</label>
-            @php($spouseIncomeOptions = [0 => '未設定', 1 => '103万円以下', 2 => '201万円以下', 3 => '201万円超'])
-            <select class="form-select" name="spouse_income_class">
-              @foreach($spouseIncomeOptions as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('spouse_income_class', 0) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">納税者年齢区分（B6）</label>
-            @php($ageOptions = [1 => '一般（〜64）', 2 => '65〜74歳', 3 => '75歳以上'])
-            <select class="form-select" name="taxpayer_age_category">
-              @foreach($ageOptions as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('taxpayer_age_category', 1) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">配偶者年齢区分（B7）</label>
-            @php($spouseAgeOptions = [0 => '配偶者なし', 1 => '一般', 2 => '65歳以上'])
-            <select class="form-select" name="spouse_age_category">
-              @foreach($spouseAgeOptions as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('spouse_age_category', 0) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">扶養親族数（C4）</label>
-            <input type="number" min="0" class="form-control" name="num_dependents" value="{{ old('num_dependents', 0) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">16歳未満扶養数（C5）</label>
-            <input type="number" min="0" class="form-control" name="num_minor_dependents" value="{{ old('num_minor_dependents', 0) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">老人扶養数（C6）</label>
-            <input type="number" min="0" class="form-control" name="num_elder_dependents" value="{{ old('num_elder_dependents', 0) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">特定扶養数（C7）</label>
-            <input type="number" min="0" class="form-control" name="num_special_dependents" value="{{ old('num_special_dependents', 0) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">障害者扶養数（C8）</label>
-            <input type="number" min="0" class="form-control" name="num_disabled_dependents" value="{{ old('num_disabled_dependents', 0) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">居住都道府県コード（D4）</label>
-            @php($prefectureOptions = [13 => '13：東京都', 14 => '14：神奈川県', 27 => '27：大阪府'])
-            <select class="form-select" name="prefecture_code">
-              @foreach($prefectureOptions as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('prefecture_code', 13) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">市区町村コード（D5）</label>
-            @php($municipalityOptions = [13101 => '13101：千代田区', 14100 => '14100：横浜市', 27100 => '27100：大阪市'])
-            <select class="form-select" name="municipality_code">
-              @foreach($municipalityOptions as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('municipality_code', 13101) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">居住形態（D6）</label>
-            @php($residenceOptions = [1 => '持家', 2 => '賃貸', 3 => '社宅'])
-            <select class="form-select" name="residence_type">
-              @foreach($residenceOptions as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('residence_type', 1) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">特別徴収（E4）</label>
-            <select class="form-select" name="is_special_collection">
-              @foreach([0 => 'いいえ', 1 => 'はい'] as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('is_special_collection', 1) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-            <div class="form-text">特別徴収：給与天引き設定</div>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">青色申告（E5）</label>
-            <select class="form-select" name="is_blue_return">
-              @foreach([0 => 'いいえ', 1 => 'はい'] as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('is_blue_return', 0) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">転入1年目（E6）</label>
-            <select class="form-select" name="is_new_resident">
-              @foreach([0 => 'いいえ', 1 => 'はい'] as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('is_new_resident', 0) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-12">
-      <div class="card mb-4">
-        <div class="card-header">収入・所得（インプット表 S列想定）</div>
-        <div class="card-body row g-3">
-          @php($incomeFields = [
-            'salary_income' => '給与収入',
-            'bonus_income' => '賞与収入',
-            'business_income' => '事業所得',
-            'real_estate_income' => '不動産所得',
-            'pension_income' => '年金所得',
-            'dividend_income' => '配当所得',
-            'interest_income' => '利子所得',
-            'capital_gain_income' => '譲渡所得',
-            'temporary_income' => '一時所得',
-            'other_income' => 'その他所得',
-          ])
-          @foreach($incomeFields as $name => $label)
-            <div class="col-md-3">
-              <label class="form-label">{{ $label }}</label>
-              <input type="number" min="0" class="form-control" name="{{ $name }}" value="{{ old($name, 0) }}">
-            </div>
-          @endforeach
-        </div>
-      </div>
-    </div>
-
-    <div class="col-12">
-      <div class="card mb-4">
-        <div class="card-header">所得控除（インプット表 T列想定）</div>
-        <div class="card-body row g-3">
-          @php($deductionFields = [
-            'social_insurance_premium' => '社会保険料控除',
-            'life_insurance_premium' => '生命保険料控除',
-            'earthquake_insurance_premium' => '地震保険料控除',
-            'medical_expense_deduction' => '医療費控除',
-            'small_enterprise_mutual_aid' => '小規模企業共済控除',
-            'spouse_deduction_amount' => '配偶者控除',
-            'special_spouse_deduction_amount' => '配偶者特別控除',
-            'dependent_deduction_amount' => '扶養控除',
-            'disability_deduction_amount' => '障害者控除',
-            'widow_widower_deduction_amount' => '寡婦（夫）控除',
-            'single_parent_deduction_amount' => 'ひとり親控除',
-            'working_student_deduction_amount' => '勤労学生控除',
-            'basic_deduction_amount' => '基礎控除',
-            'donation_deduction_amount' => '寄附金控除',
-            'housing_loan_deduction_amount' => '住宅ローン控除',
-          ])
-          @foreach($deductionFields as $name => $label)
-            <div class="col-md-3">
-              <label class="form-label">{{ $label }}</label>
-              <input type="number" min="0" class="form-control" name="{{ $name }}" value="{{ old($name, 0) }}">
-            </div>
-          @endforeach
-        </div>
-      </div>
-    </div>
-
-    <div class="col-12">
-      <div class="card mb-4">
-        <div class="card-header">寄付関連設定（インプット表 Q列）</div>
-        <div class="card-body row g-3">
-          <div class="col-md-3">
-            <label class="form-label">Q2（住民税基本分割合）</label>
-            <input type="number" step="0.001" class="form-control" name="q2" value="{{ old('q2', $donation['rows'][0]['q'] ?? 0.30) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Q3（住民税特例分割合）</label>
-            <input type="number" step="0.001" class="form-control" name="q3" value="{{ old('q3', $donation['rows'][1]['q'] ?? 0.25) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Q4（所得税控除割合）</label>
-            <input type="number" step="0.001" class="form-control" name="q4" value="{{ old('q4', $donation['rows'][2]['q'] ?? 0.20) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">Q5（その他控除割合）</label>
-            <input type="number" step="0.001" class="form-control" name="q5" value="{{ old('q5', $donation['rows'][3]['q'] ?? 0.15) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">ふるさと寄附合計（P8）</label>
-            <input type="number" min="0" class="form-control" name="furusato_donation_total" value="{{ old('furusato_donation_total', 0) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">その他寄附金合計（P9）</label>
-            <input type="number" min="0" class="form-control" name="other_donation_total" value="{{ old('other_donation_total', 0) }}">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-12">
-      <div class="card mb-4">
-        <div class="card-header">住民税設定（インプット表 V/X列）</div>
-        <div class="card-body row g-3">
-          <div class="col-md-3">
-            <label class="form-label">課税方式（V5）</label>
-            @php($taxationOptions = [0 => '標準', 1 => '普通徴収', 2 => '特別徴収変更'])
-            <select class="form-select" name="taxation_method">
-              @foreach($taxationOptions as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('taxation_method', 0) === (string)$value)>{{ $label }}</option>
-              @endforeach
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">都道府県均等割額</label>
-            <input type="number" min="0" class="form-control" name="prefectural_equal_share" value="{{ old('prefectural_equal_share', 0) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">市町村均等割額</label>
-            <input type="number" min="0" class="form-control" name="municipal_equal_share" value="{{ old('municipal_equal_share', 0) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">都道府県所得割率</label>
-            <input type="number" step="0.001" class="form-control" name="prefectural_income_tax_rate" value="{{ old('prefectural_income_tax_rate', 0.04) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">市町村所得割率</label>
-            <input type="number" step="0.001" class="form-control" name="municipal_income_tax_rate" value="{{ old('municipal_income_tax_rate', 0.06) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">V6（モードA）</label>
-            <select class="form-select" name="v6">
-              @foreach([0, 1, 2] as $option)
-                <option value="{{ $option }}" @selected((string)old('v6', 0) === (string)$option)>{{ $option }}</option>
-              @endforeach
-            </select>
-            <div class="form-text">Excel「計算結果!V6」の選択（0/1/2）。</div>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">W6（モードB）</label>
-            <select class="form-select" name="w6">
-              @foreach([0, 1, 2] as $option)
-                <option value="{{ $option }}" @selected((string)old('w6', 0) === (string)$option)>{{ $option }}</option>
-              @endforeach
-            </select>
-            <div class="form-text">Excel「計算結果!W6」の選択（0/1/2）。</div>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">X6（モードC）</label>
-            <select class="form-select" name="x6">
-              @foreach([0, 1, 2] as $option)
-                <option value="{{ $option }}" @selected((string)old('x6', 0) === (string)$option)>{{ $option }}</option>
-              @endforeach
-            </select>
-            <div class="form-text">Excel「計算結果!X6」の選択（0/1/2）。</div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="col-12">
-      <div class="card mb-4">
-        <div class="card-header">備考・メモ</div>
+        <div class="card-header">所得金額（損益通算前）</div>
         <div class="card-body">
-          <label class="form-label" for="notes">将来追加用メモ欄</label>
-          <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="自由記入">{{ old('notes') }}</textarea>
-          <div class="form-text">インプット表の予備欄。将来 Translator で利用予定。</div>
+          @php($incomeLabels = [
+            'jiryo_eigyo' => '事業所得（営業等）',
+            'jiryo_nogyo' => '事業所得（農業）',
+            'fudosan' => '不動産所得',
+            'haito' => '配当所得',
+            'kyuyo' => '給与所得',
+            'zatsu_nenkin' => '雑所得（公的年金等）',
+            'zatsu_gyomu' => '雑所得（業務）',
+            'zatsu_sonota' => '雑所得（その他）',
+            'sogo_joto_tanki' => '総合譲渡所得（短期）',
+            'sogo_joto_choki' => '総合譲渡所得（長期）',
+            'ichiji' => '一時所得',
+            'bunri_tanki_ippan' => '分離課税短期譲渡所得金額 一般',
+            'bunri_tanki_keigen' => '分離課税短期譲渡所得金額 軽減',
+            'bunri_choki_ippan' => '分離課税長期譲渡所得金額 一般',
+            'bunri_choki_tokutei' => '分離課税長期譲渡所得金額 特定',
+            'bunri_choki_keika' => '分離課税長期譲渡所得金額 軽課',
+            'ippan_kabu_joto' => '一般株式等に係る譲渡所得等の金額',
+            'jojo_kabu_joto' => '上場株式等に係る譲渡所得の金額',
+            'jojo_kabu_haito' => '上場株式等に係る配当所得等の金額',
+            'sakimono_zatsu' => '先物取引に係る雑所得等の金額',
+            'sanrin' => '山林所得金額',
+            'taishoku' => '退職所得金額',
+          ])
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 45%">項目</th>
+                  <th style="width: 27%">前期</th>
+                  <th style="width: 28%">当期</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach ($incomeLabels as $key => $label)
+                  <tr>
+                    <th scope="row">{{ $label }}</th>
+                    <td>
+                      <input type="number" class="form-control" name="{{ $key }}_prev" min="0" required value="{{ old($key.'_prev', $out['inputs'][$key.'_prev'] ?? 0) }}">
+                    </td>
+                    <td>
+                      <input type="number" class="form-control" name="{{ $key }}_curr" min="0" required value="{{ old($key.'_curr', $out['inputs'][$key.'_curr'] ?? 0) }}">
+                    </td>
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="col-12 text-end mb-2">
-      <button class="btn btn-primary">計算する</button>
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header">控除・人数入力</div>
+        <div class="card-body">
+          <h6 class="mb-3">保険・共済等控除</h6>
+          <div class="row g-3 mb-4">
+            @php($deductions = [
+              'shakaihoken_kojo_curr' => '社会保険料控除',
+              'shokibo_kyosai_kojo_curr' => '小規模企業共済等掛金控除',
+              'seimei_hoken_kojo_curr' => '生命保険料控除',
+              'jishin_hoken_kojo_curr' => '地震保険料控除',
+            ])
+            @foreach ($deductions as $name => $label)
+              <div class="col-md-3">
+                <label class="form-label">{{ $label }}</label>
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
+              </div>
+            @endforeach
+          </div>
+
+          <h6 class="mb-3">フラグ控除</h6>
+          <div class="row g-3 mb-4">
+            @php($flagOptions = ['0' => 'いいえ', '1' => 'はい'])
+            @foreach ([
+              'kafu_kojo_flag' => '寡婦控除',
+              'hitori_oya_kojo_flag' => 'ひとり親控除',
+              'kinro_gakusei_kojo_flag' => '勤労学生控除',
+            ] as $name => $label)
+              <div class="col-md-3">
+                <label class="form-label">{{ $label }}</label>
+                <select class="form-select" name="{{ $name }}" required>
+                  @foreach ($flagOptions as $value => $text)
+                    <option value="{{ $value }}" @selected(old($name, (string)($out['inputs'][$name] ?? '0')) === $value)>{{ $text }}</option>
+                  @endforeach
+                </select>
+              </div>
+            @endforeach
+          </div>
+
+          <h6 class="mb-3">障害者控除（人数）</h6>
+          <div class="row g-3 mb-4">
+            @foreach ([
+              'shogaisha_count' => '障害者',
+              'tokubetsu_shogaisha_count' => '特別障害者',
+              'dokyo_tokubetsu_shogaisha_count' => '同居特別障害者',
+            ] as $name => $label)
+              <div class="col-md-3">
+                <label class="form-label">{{ $label }}</label>
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
+              </div>
+            @endforeach
+          </div>
+
+          <h6 class="mb-3">配偶者関連</h6>
+          <div class="row g-3 mb-4">
+            @foreach ([
+              'haigusha_kojo_kingaku' => '配偶者控除（金額）',
+              'haigusha_tokubetsu_kojo_kingaku' => '配偶者特別控除（金額）',
+            ] as $name => $label)
+              <div class="col-md-3">
+                <label class="form-label">{{ $label }}</label>
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
+              </div>
+            @endforeach
+          </div>
+
+          <h6 class="mb-3">扶養控除（人数）</h6>
+          <div class="row g-3 mb-4">
+            @foreach ([
+              'fuyo_ippan_count' => '一般',
+              'fuyo_tokutei_count' => '特定扶養親族',
+              'fuyo_rojin_count' => '老人扶養親族',
+              'fuyo_dokyo_rojin_count' => '同居老人扶養親族',
+              'tokutei_shinzoku_tokubetsu_count' => '特定親族特別控除 対象人数',
+            ] as $name => $label)
+              <div class="col-md-3">
+                <label class="form-label">{{ $label }}</label>
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
+              </div>
+            @endforeach
+          </div>
+
+          <h6 class="mb-3">その他の所得控除</h6>
+          <div class="row g-3">
+            @foreach ([
+              'zasson_kojo_kingaku' => '雑損控除',
+              'iryo_hi_kojo_kingaku' => '医療費控除',
+            ] as $name => $label)
+              <div class="col-md-3">
+                <label class="form-label">{{ $label }}</label>
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
+              </div>
+            @endforeach
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header">寄付金控除（内訳）</div>
+        <div class="card-body">
+          <div class="row g-3">
+            @foreach ([
+              'tokutei_kifukin_kingaku' => '特定寄付金',
+              'furusato_nozei_kingaku' => 'ふるさと納税',
+              'seitotou_kifukin_kingaku' => '政党等寄付金',
+              'nintei_npo_kifukin_kingaku' => '認定NPO法人寄付金',
+              'koueki_shadan_kifukin_kingaku' => '公益社団法人等寄付金',
+              'kyobo_nisseki_kifukin_kingaku' => '共同募金・日赤',
+              'jorei_npo_kifukin_kingaku' => '条例指定NPO',
+            ] as $name => $label)
+              <div class="col-md-3">
+                <label class="form-label">{{ $label }}</label>
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
+              </div>
+            @endforeach
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="card mb-4">
+        <div class="card-header">その他</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">ワンストップ適用フラグ</label>
+              <select class="form-select" name="one_stop_flag" required>
+                @foreach ($flagOptions as $value => $text)
+                  <option value="{{ $value }}" @selected(old('one_stop_flag', (string)($out['inputs']['one_stop_flag'] ?? '0')) === $value)>{{ $text }}</option>
+                @endforeach
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">特別税額控除</label>
+              <input type="number" class="form-control" name="tokubetsu_zeigaku_kojo_kingaku" min="0" required value="{{ old('tokubetsu_zeigaku_kojo_kingaku', $out['inputs']['tokubetsu_zeigaku_kojo_kingaku'] ?? 0) }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">源泉徴収税額</label>
+              <input type="number" class="form-control" name="gensen_choshu_zeigaku" min="0" required value="{{ old('gensen_choshu_zeigaku', $out['inputs']['gensen_choshu_zeigaku'] ?? 0) }}">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">指定都市区分</label>
+              <select class="form-select" name="shitei_toshi_flag" required>
+                <option value="0" @selected(old('shitei_toshi_flag', (string)($out['inputs']['shitei_toshi_flag'] ?? '0')) === '0')>指定都市以外</option>
+                <option value="1" @selected(old('shitei_toshi_flag', (string)($out['inputs']['shitei_toshi_flag'] ?? '0')) === '1')>指定都市</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 text-end">
+      <button type="submit" class="btn btn-primary">送信</button>
     </div>
   </form>
 
-  @isset($out)
-  <hr>
-  <h6>結果（Excelセル対応・確認用）</h6>
-  <table class="table table-sm table-bordered w-auto">
-    <tbody>
-      <tr><th>B8</th><td>{{ number_format($out['b8']) }}</td></tr>
-      <tr><th>B9</th><td>{{ number_format($out['b9']) }}</td></tr>
-      <tr><th>B12</th><td>{{ number_format($out['b12']) }}</td></tr>
-      <tr><th>B13</th><td>{{ number_format($out['b13']) }}</td></tr>
-      <tr><th>B16</th><td>{{ number_format($out['b16']) }}</td></tr>
-      <tr><th>B17</th><td>{{ number_format($out['b17']) }}</td></tr>
-    </tbody>
-  </table>
-  <h6>入力モード確認</h6>
-  <table class="table table-sm table-bordered w-auto">
-    <tbody>
-      <tr><th>V6</th><td>{{ $out['flags']['v6'] }}</td></tr>
-      <tr><th>W6</th><td>{{ $out['flags']['w6'] }}</td></tr>
-      <tr><th>X6</th><td>{{ $out['flags']['x6'] }}</td></tr>
-    </tbody>
-  </table>  
-  @endisset
-  @isset($donation)
-  <h6>寄付控除計算概要（行2〜5）</h6>
-  <table class="table table-sm table-bordered w-auto">
-    <thead>
-      <tr>
-        <th>行</th>
-        <th>Q</th>
-        <th>S</th>
-        <th>U</th>
-      </tr>
-    </thead>
-    <tbody>
-      @foreach($donation['rows'] as $row)
-        <tr>
-          <th>{{ $row['row'] }}</th>
-          <td>{{ number_format($row['q'], 4) }}</td>
-          <td>{{ number_format($row['s'], 4) }}</td>
-          <td>{{ number_format($row['u'], 4) }}</td>
-        </tr>
-      @endforeach
-    </tbody>
-  </table>
+  @isset($out['inputs'])
+    <div class="card mt-4">
+      <div class="card-header">送信内容（デバッグ表示）</div>
+      <div class="card-body table-responsive">
+        <table class="table table-striped">
+          <thead class="table-light">
+            <tr>
+              <th>キー</th>
+              <th>値</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach ($out['inputs'] as $key => $value)
+              <tr>
+                <td>{{ $key }}</td>
+                <td>{{ $value }}</td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+    </div>
   @endisset
 </div>
 @endsection

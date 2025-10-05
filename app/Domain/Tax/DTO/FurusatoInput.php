@@ -1,68 +1,174 @@
 <?php
+
 namespace App\Domain\Tax\DTO;
 
 final class FurusatoInput
 {
-    public function __construct(
-        public int $w17,   // 計算結果!W17
-        public int $w18,   // 計算結果!W18
-        public int $ab6,   // 計算結果!AB6
-        public int $ab56,  // 計算結果!AB56（vol23）
-        public int $v6 = 0, // 計算結果!V6（モードA）
-        public int $w6 = 0, // 計算結果!W6（モードB）
-        public int $x6 = 0, // 計算結果!X6（モードC）
-        public int $householdComposition = 0,
-        public int $spouseStatus = 0,
-        public int $spouseIncomeClass = 0,
-        public int $taxpayerAgeCategory = 0,
-        public int $spouseAgeCategory = 0,
-        public int $numDependents = 0,
-        public int $numMinorDependents = 0,
-        public int $numElderDependents = 0,
-        public int $numSpecialDependents = 0,
-        public int $numDisabledDependents = 0,
-        public int $prefectureCode = 0,
-        public int $municipalityCode = 0,
-        public int $residenceType = 0,
-        public bool $isSpecialCollection = false,
-        public bool $isBlueReturn = false,
-        public bool $isNewResident = false,
-        public int $salaryIncome = 0,
-        public int $bonusIncome = 0,
-        public int $businessIncome = 0,
-        public int $realEstateIncome = 0,
-        public int $pensionIncome = 0,
-        public int $dividendIncome = 0,
-        public int $interestIncome = 0,
-        public int $capitalGainIncome = 0,
-        public int $temporaryIncome = 0,
-        public int $otherIncome = 0,
-        public int $socialInsurancePremium = 0,
-        public int $lifeInsurancePremium = 0,
-        public int $earthquakeInsurancePremium = 0,
-        public int $medicalExpenseDeduction = 0,
-        public int $smallEnterpriseMutualAid = 0,
-        public int $spouseDeductionAmount = 0,
-        public int $specialSpouseDeductionAmount = 0,
-        public int $dependentDeductionAmount = 0,
-        public int $disabilityDeductionAmount = 0,
-        public int $widowWidowerDeductionAmount = 0,
-        public int $singleParentDeductionAmount = 0,
-        public int $workingStudentDeductionAmount = 0,
-        public int $basicDeductionAmount = 0,
-        public int $donationDeductionAmount = 0,
-        public int $housingLoanDeductionAmount = 0,
-        public int $furusatoDonationTotal = 0,
-        public int $otherDonationTotal = 0,
-        public float $prefecturalIncomeTaxRate = 0.0,
-        public float $municipalIncomeTaxRate = 0.0,
-        public int $prefecturalEqualShare = 0,
-        public int $municipalEqualShare = 0,
-        public int $taxationMethod = 0,
-        public string $notes = '',
-        public float $q2 = 0.0,
-        public float $q3 = 0.0,
-        public float $q4 = 0.0,
-        public float $q5 = 0.0,
-    ) {}
+    public int $jiryo_eigyo_prev;
+    public int $jiryo_eigyo_curr;
+    public int $jiryo_nogyo_prev;
+    public int $jiryo_nogyo_curr;
+    public int $fudosan_prev;
+    public int $fudosan_curr;
+    public int $haito_prev;
+    public int $haito_curr;
+    public int $kyuyo_prev;
+    public int $kyuyo_curr;
+    public int $zatsu_nenkin_prev;
+    public int $zatsu_nenkin_curr;
+    public int $zatsu_gyomu_prev;
+    public int $zatsu_gyomu_curr;
+    public int $zatsu_sonota_prev;
+    public int $zatsu_sonota_curr;
+    public int $sogo_joto_tanki_prev;
+    public int $sogo_joto_tanki_curr;
+    public int $sogo_joto_choki_prev;
+    public int $sogo_joto_choki_curr;
+    public int $ichiji_prev;
+    public int $ichiji_curr;
+    public int $bunri_tanki_ippan_prev;
+    public int $bunri_tanki_ippan_curr;
+    public int $bunri_tanki_keigen_prev;
+    public int $bunri_tanki_keigen_curr;
+    public int $bunri_choki_ippan_prev;
+    public int $bunri_choki_ippan_curr;
+    public int $bunri_choki_tokutei_prev;
+    public int $bunri_choki_tokutei_curr;
+    public int $bunri_choki_keika_prev;
+    public int $bunri_choki_keika_curr;
+    public int $ippan_kabu_joto_prev;
+    public int $ippan_kabu_joto_curr;
+    public int $jojo_kabu_joto_prev;
+    public int $jojo_kabu_joto_curr;
+    public int $jojo_kabu_haito_prev;
+    public int $jojo_kabu_haito_curr;
+    public int $sakimono_zatsu_prev;
+    public int $sakimono_zatsu_curr;
+    public int $sanrin_prev;
+    public int $sanrin_curr;
+    public int $taishoku_prev;
+    public int $taishoku_curr;
+    public int $shakaihoken_kojo_curr;
+    public int $shokibo_kyosai_kojo_curr;
+    public int $seimei_hoken_kojo_curr;
+    public int $jishin_hoken_kojo_curr;
+    public int $kafu_kojo_flag;
+    public int $hitori_oya_kojo_flag;
+    public int $kinro_gakusei_kojo_flag;
+    public int $shogaisha_count;
+    public int $tokubetsu_shogaisha_count;
+    public int $dokyo_tokubetsu_shogaisha_count;
+    public int $haigusha_kojo_kingaku;
+    public int $haigusha_tokubetsu_kojo_kingaku;
+    public int $fuyo_ippan_count;
+    public int $fuyo_tokutei_count;
+    public int $fuyo_rojin_count;
+    public int $fuyo_dokyo_rojin_count;
+    public int $tokutei_shinzoku_tokubetsu_count;
+    public int $zasson_kojo_kingaku;
+    public int $iryo_hi_kojo_kingaku;
+    public int $tokutei_kifukin_kingaku;
+    public int $furusato_nozei_kingaku;
+    public int $seitotou_kifukin_kingaku;
+    public int $nintei_npo_kifukin_kingaku;
+    public int $koueki_shadan_kifukin_kingaku;
+    public int $kyobo_nisseki_kifukin_kingaku;
+    public int $jorei_npo_kifukin_kingaku;
+    public int $one_stop_flag;
+    public int $tokubetsu_zeigaku_kojo_kingaku;
+    public int $gensen_choshu_zeigaku;
+    public int $shitei_toshi_flag;
+
+    private const FIELD_NAMES = [
+        'jiryo_eigyo_prev',
+        'jiryo_eigyo_curr',
+        'jiryo_nogyo_prev',
+        'jiryo_nogyo_curr',
+        'fudosan_prev',
+        'fudosan_curr',
+        'haito_prev',
+        'haito_curr',
+        'kyuyo_prev',
+        'kyuyo_curr',
+        'zatsu_nenkin_prev',
+        'zatsu_nenkin_curr',
+        'zatsu_gyomu_prev',
+        'zatsu_gyomu_curr',
+        'zatsu_sonota_prev',
+        'zatsu_sonota_curr',
+        'sogo_joto_tanki_prev',
+        'sogo_joto_tanki_curr',
+        'sogo_joto_choki_prev',
+        'sogo_joto_choki_curr',
+        'ichiji_prev',
+        'ichiji_curr',
+        'bunri_tanki_ippan_prev',
+        'bunri_tanki_ippan_curr',
+        'bunri_tanki_keigen_prev',
+        'bunri_tanki_keigen_curr',
+        'bunri_choki_ippan_prev',
+        'bunri_choki_ippan_curr',
+        'bunri_choki_tokutei_prev',
+        'bunri_choki_tokutei_curr',
+        'bunri_choki_keika_prev',
+        'bunri_choki_keika_curr',
+        'ippan_kabu_joto_prev',
+        'ippan_kabu_joto_curr',
+        'jojo_kabu_joto_prev',
+        'jojo_kabu_joto_curr',
+        'jojo_kabu_haito_prev',
+        'jojo_kabu_haito_curr',
+        'sakimono_zatsu_prev',
+        'sakimono_zatsu_curr',
+        'sanrin_prev',
+        'sanrin_curr',
+        'taishoku_prev',
+        'taishoku_curr',
+        'shakaihoken_kojo_curr',
+        'shokibo_kyosai_kojo_curr',
+        'seimei_hoken_kojo_curr',
+        'jishin_hoken_kojo_curr',
+        'kafu_kojo_flag',
+        'hitori_oya_kojo_flag',
+        'kinro_gakusei_kojo_flag',
+        'shogaisha_count',
+        'tokubetsu_shogaisha_count',
+        'dokyo_tokubetsu_shogaisha_count',
+        'haigusha_kojo_kingaku',
+        'haigusha_tokubetsu_kojo_kingaku',
+        'fuyo_ippan_count',
+        'fuyo_tokutei_count',
+        'fuyo_rojin_count',
+        'fuyo_dokyo_rojin_count',
+        'tokutei_shinzoku_tokubetsu_count',
+        'zasson_kojo_kingaku',
+        'iryo_hi_kojo_kingaku',
+        'tokutei_kifukin_kingaku',
+        'furusato_nozei_kingaku',
+        'seitotou_kifukin_kingaku',
+        'nintei_npo_kifukin_kingaku',
+        'koueki_shadan_kifukin_kingaku',
+        'kyobo_nisseki_kifukin_kingaku',
+        'jorei_npo_kifukin_kingaku',
+        'one_stop_flag',
+        'tokubetsu_zeigaku_kojo_kingaku',
+        'gensen_choshu_zeigaku',
+        'shitei_toshi_flag',
+    ];
+
+    public static function fromArray(array $values): self
+    {
+        $instance = new self();
+
+        foreach (self::FIELD_NAMES as $field) {
+            $instance->{$field} = (int) ($values[$field] ?? 0);
+        }
+
+        return $instance;
+    }
+
+    public function toArray(): array
+    {
+        return get_object_vars($this);
+    }
 }

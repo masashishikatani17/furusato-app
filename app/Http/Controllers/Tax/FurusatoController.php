@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Tax;
 
 use App\Domain\Tax\Services\FurusatoCalcService;
-use App\Domain\Tax\Support\FurusatoMasterCatalog;
+use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tax\FurusatoInputRequest;
 use App\Models\Data;
@@ -80,7 +80,6 @@ final class FurusatoController extends Controller
     public function master(Request $request)
     {
         $dataId = (int) ($request->query('data_id') ?? 0);
-
         if ($dataId <= 0) {
             return redirect()->route('furusato.index');
         }
@@ -89,8 +88,7 @@ final class FurusatoController extends Controller
 
         return view('tax.furusato.master', [
             'dataId' => $data->id,
-            'columns' => FurusatoMasterCatalog::columns(),
-            'records' => FurusatoMasterCatalog::all(),
+            'grid'   => FurusatoMasterSheet::grid(), // そのまま表現（A1:AA20）
         ]);
     }
 

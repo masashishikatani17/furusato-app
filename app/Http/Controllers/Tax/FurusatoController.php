@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Tax;
 
 use App\Domain\Tax\Services\FurusatoCalcService;
+use App\Domain\Tax\Support\FurusatoMasterCatalog;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tax\FurusatoInputRequest;
 use App\Models\Data;
@@ -76,6 +77,23 @@ final class FurusatoController extends Controller
         return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
     }
 
+    public function master(Request $request)
+    {
+        $dataId = (int) ($request->query('data_id') ?? 0);
+
+        if ($dataId <= 0) {
+            return redirect()->route('furusato.index');
+        }
+
+        $data = $this->resolveCompanyScopedDataOrFail($request);
+
+        return view('tax.furusato.master', [
+            'dataId' => $data->id,
+            'columns' => FurusatoMasterCatalog::columns(),
+            'records' => FurusatoMasterCatalog::all(),
+        ]);
+    }
+
     private function resolveAuthorizedDataOrFail(Request $request): Data
     {
         $id = (int) ($request->input('data_id') ?? $request->query('data_id'));
@@ -94,6 +112,23 @@ final class FurusatoController extends Controller
         $isOwnerOrRegistrar = (method_exists($me, 'isOwner') && $me->isOwner()) || in_array($role, ['owner', 'registrar'], true);
 
         if (! $isOwnerOrRegistrar && (int) $data->group_id !== (int) ($me->group_id ?? 0)) {
+            abort(403);
+        }
+
+        return $data;
+    }
+
+    private function resolveCompanyScopedDataOrFail(Request $request): Data
+    {
+        $id = (int) ($request->input('data_id') ?? $request->query('data_id'));
+        abort_unless($id > 0, 422, 'data_id が指定されていません。');
+
+        $data = Data::with('guest')->findOrFail($id);
+        $me = $request->user();
+
+        abort_unless($me, 401);
+
+        if ((int) $data->company_id !== (int) ($me->company_id ?? 0)) {
             abort(403);
         }
 

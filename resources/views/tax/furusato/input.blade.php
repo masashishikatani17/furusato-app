@@ -2,7 +2,10 @@
 
 @section('content')
 <div class="container" style="min-width: 960px; max-width: 1080px;">
-  <h5 class="mb-3">ふるさと納税：インプット表（v0.4）</h5>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">ふるさと納税：インプット表（v0.4）</h5>
+    <a href="{{ route('furusato.master', $dataId ? ['data_id' => $dataId] : [], false) }}" class="btn btn-outline-secondary btn-sm">マスター</a>
+  </div>
 
   @if (session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>

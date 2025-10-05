@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Tax;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Domain\Tax\Services\FurusatoCalcService;
-use App\Domain\Tax\DTO\FurusatoInput;
+use App\Http\Requests\FurusatoInputRequest;
 
 final class FurusatoController extends Controller
 {
@@ -18,16 +18,25 @@ final class FurusatoController extends Controller
         return view('tax.furusato.input', ['dataId' => $dataId]);
     }
 
-    public function calc(Request $req, FurusatoCalcService $svc)
+    public function calc(FurusatoInputRequest $req, FurusatoCalcService $svc)
     {
-        $in = new FurusatoInput(
-            w17: (int)$req->input('w17'),
-            w18: (int)$req->input('w18'),
-            ab6: (int)$req->input('ab6'),
-            ab56: max(1, (int)$req->input('ab56')) // 0除算防止
-        );
-        $out = $svc->calcUpperLimit($in);
-        if ($req->wantsJson()) return response()->json($out);
-        return view('tax.furusato.input', compact('out'));
+        $dataId = $req->integer('data_id') ?: null;
+        $in = $req->toDto();
+        $upper = $svc->calcUpperLimit($in);
+        $donation = $svc->calcDonationOverview($in);
+        if ($req->wantsJson()) {
+            return response()->json([
+                'upper' => $upper,
+                'donation' => $donation,
+            ]);
+        }
+
+        session()->flash('_old_input', $req->except(['_token']));
+
+        return view('tax.furusato.input', [
+            'out' => $upper,
+            'donation' => $donation,
+            'dataId' => $dataId,
+        ]);
     }
 }

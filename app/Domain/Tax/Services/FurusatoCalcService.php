@@ -39,4 +39,28 @@ final class FurusatoCalcService
             ],
         ];
     }
+
+    public function calcDonationOverview(FurusatoInput $in): array
+    {
+        $rows = [];
+
+        foreach ([
+            2 => $in->q2,
+            3 => $in->q3,
+            4 => $in->q4,
+            5 => $in->q5,
+        ] as $row => $q) {
+            $s = $q * 1.021;
+            $u = 1.0 - 0.10 - $s;
+
+            $rows[] = [
+                'row' => $row,
+                'q' => (float) $q,
+                's' => (float) $s,
+                'u' => (float) $u,
+            ];
+        }
+
+        return ['rows' => $rows];
+    }
 }

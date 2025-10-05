@@ -14,16 +14,18 @@ final class FurusatoMasterViewTest extends TestCase
     /** @test */
     public function it_allows_company_user_to_view_master(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->create();
+        // SQLite の users テーブルに company_id 等は無い前提 → 非永続で属性を持たせる
+        $user->forceFill([
             'company_id' => 1001,
-            'group_id' => 2001,
-            'role' => 'member',
+            'group_id'  => 2001,
+            'role'      => 'member',
         ]);
 
         $data = Data::create([
             'guest_id' => null,
             'company_id' => 1001,
-            'group_id' => 3001,
+            'group_id'   => 3001,
             'user_id' => $user->id,
             'owner_user_id' => $user->id,
             'kihu_year' => 2024,
@@ -41,23 +43,25 @@ final class FurusatoMasterViewTest extends TestCase
     /** @test */
     public function it_forbids_other_company_to_view_master(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->create();
+        $user->forceFill([
             'company_id' => 2002,
-            'group_id' => 2003,
-            'role' => 'registrar',
+            'group_id'  => 2003,
+            'role'      => 'registrar',
         ]);
 
-        $otherUser = User::factory()->create([
+        $otherUser = User::factory()->create();
+        $otherUser->forceFill([
             'company_id' => 9999,
-            'group_id' => 1003,
-            'role' => 'owner',
+            'group_id'  => 1003,
+            'role'      => 'owner',
         ]);
 
         $data = Data::create([
             'guest_id' => null,
-            'company_id' => 9999,
-            'group_id' => 1003,
-            'user_id' => $otherUser->id,
+            'company_id'   => 9999,
+            'group_id'     => 1003,
+            'user_id'      => $otherUser->id,
             'owner_user_id' => $otherUser->id,
             'kihu_year' => 2024,
             'visibility' => 'private',
@@ -73,16 +77,17 @@ final class FurusatoMasterViewTest extends TestCase
     /** @test */
     public function it_keeps_same_data_id_on_back_link(): void
     {
-        $user = User::factory()->create([
+        $user = User::factory()->create();
+        $user->forceFill([
             'company_id' => 4500,
-            'group_id' => 4600,
-            'role' => 'owner',
+            'group_id'  => 4600,
+            'role'      => 'owner',
         ]);
 
         $data = Data::create([
             'guest_id' => null,
             'company_id' => 4500,
-            'group_id' => 4601,
+            'group_id'   => 4601,
             'user_id' => $user->id,
             'owner_user_id' => $user->id,
             'kihu_year' => 2024,

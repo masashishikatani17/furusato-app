@@ -8,23 +8,22 @@
   </div>
 
   <div class="table-responsive">
-    <table class="table table-sm table-bordered align-middle">
-      <thead class="table-light">
+    <table class="table table-sm table-bordered align-middle" style="white-space:nowrap;">
+      @foreach ($grid as $rIdx => $row)
         <tr>
-          @foreach ($columns as $key => $label)
-            <th scope="col">{{ $label }}</th>
+          @foreach ($row as $cIdx => $cell)
+            @php
+              // 1行目を見出し扱い（ExcelのA1〜AA1）。必要に応じて調整可
+              $isHeader = ($rIdx === 0);
+            @endphp
+            @if ($isHeader)
+              <th class="table-light">{{ $cell }}</th>
+            @else
+              <td>{{ $cell }}</td>
+            @endif
           @endforeach
         </tr>
-      </thead>
-      <tbody>
-        @foreach ($records as $record)
-          <tr>
-            @foreach ($columns as $key => $label)
-              <td>{{ $record[$key] ?? '' }}</td>
-            @endforeach
-          </tr>
-        @endforeach
-      </tbody>
+      @endforeach
     </table>
   </div>
 </div>

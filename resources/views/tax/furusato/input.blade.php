@@ -62,10 +62,10 @@
                   <tr>
                     <th scope="row">{{ $label }}</th>
                     <td>
-                      <input type="number" class="form-control" name="{{ $key }}_prev" min="0" value="{{ old($key.'_prev', $out['inputs'][$key.'_prev'] ?? null) }}">
+                      <input type="number" class="form-control" name="{{ $key }}_prev" min="0" required value="{{ old($key.'_prev', $out['inputs'][$key.'_prev'] ?? 0) }}">
                     </td>
                     <td>
-                      <input type="number" class="form-control" name="{{ $key }}_curr" min="0" value="{{ old($key.'_curr', $out['inputs'][$key.'_curr'] ?? null) }}">
+                      <input type="number" class="form-control" name="{{ $key }}_curr" min="0" required value="{{ old($key.'_curr', $out['inputs'][$key.'_curr'] ?? 0) }}">
                     </td>
                   </tr>
                 @endforeach
@@ -91,7 +91,7 @@
             @foreach ($deductions as $name => $label)
               <div class="col-md-3">
                 <label class="form-label">{{ $label }}</label>
-                <input type="number" class="form-control" name="{{ $name }}" min="0" value="{{ old($name, $out['inputs'][$name] ?? null) }}">
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
               </div>
             @endforeach
           </div>
@@ -106,10 +106,9 @@
             ] as $name => $label)
               <div class="col-md-3">
                 <label class="form-label">{{ $label }}</label>
-                @php($selectedValue = (string) old($name, $out['inputs'][$name] ?? 0))
                 <select class="form-select" name="{{ $name }}" required>
                   @foreach ($flagOptions as $value => $text)
-                    <option value="{{ $value }}" @selected($selectedValue === $value)>{{ $text }}</option>
+                    <option value="{{ $value }}" @selected(old($name, (string)($out['inputs'][$name] ?? '0')) === $value)>{{ $text }}</option>
                   @endforeach
                 </select>
               </div>
@@ -125,7 +124,7 @@
             ] as $name => $label)
               <div class="col-md-3">
                 <label class="form-label">{{ $label }}</label>
-                <input type="number" class="form-control" name="{{ $name }}" min="0" value="{{ old($name, $out['inputs'][$name] ?? null) }}">
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
               </div>
             @endforeach
           </div>
@@ -138,7 +137,7 @@
             ] as $name => $label)
               <div class="col-md-3">
                 <label class="form-label">{{ $label }}</label>
-                <input type="number" class="form-control" name="{{ $name }}" min="0" value="{{ old($name, $out['inputs'][$name] ?? null) }}">
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
               </div>
             @endforeach
           </div>
@@ -154,7 +153,7 @@
             ] as $name => $label)
               <div class="col-md-3">
                 <label class="form-label">{{ $label }}</label>
-                <input type="number" class="form-control" name="{{ $name }}" min="0" value="{{ old($name, $out['inputs'][$name] ?? null) }}">
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
               </div>
             @endforeach
           </div>
@@ -167,7 +166,7 @@
             ] as $name => $label)
               <div class="col-md-3">
                 <label class="form-label">{{ $label }}</label>
-                <input type="number" class="form-control" name="{{ $name }}" min="0" value="{{ old($name, $out['inputs'][$name] ?? null) }}">
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
               </div>
             @endforeach
           </div>
@@ -191,7 +190,7 @@
             ] as $name => $label)
               <div class="col-md-3">
                 <label class="form-label">{{ $label }}</label>
-                <input type="number" class="form-control" name="{{ $name }}" min="0" value="{{ old($name, $out['inputs'][$name] ?? null) }}">
+                <input type="number" class="form-control" name="{{ $name }}" min="0" required value="{{ old($name, $out['inputs'][$name] ?? 0) }}">
               </div>
             @endforeach
           </div>
@@ -206,27 +205,25 @@
           <div class="row g-3">
             <div class="col-md-3">
               <label class="form-label">ワンストップ適用フラグ</label>
-              @php($oneStop = (string) old('one_stop_flag', $out['inputs']['one_stop_flag'] ?? 0))
               <select class="form-select" name="one_stop_flag" required>
                 @foreach ($flagOptions as $value => $text)
-                  <option value="{{ $value }}" @selected($oneStop === $value)>{{ $text }}</option>
+                  <option value="{{ $value }}" @selected(old('one_stop_flag', (string)($out['inputs']['one_stop_flag'] ?? '0')) === $value)>{{ $text }}</option>
                 @endforeach
               </select>
             </div>
             <div class="col-md-3">
               <label class="form-label">特別税額控除</label>
-              <input type="number" class="form-control" name="tokubetsu_zeigaku_kojo_kingaku" min="0" value="{{ old('tokubetsu_zeigaku_kojo_kingaku', $out['inputs']['tokubetsu_zeigaku_kojo_kingaku'] ?? null) }}">
+              <input type="number" class="form-control" name="tokubetsu_zeigaku_kojo_kingaku" min="0" required value="{{ old('tokubetsu_zeigaku_kojo_kingaku', $out['inputs']['tokubetsu_zeigaku_kojo_kingaku'] ?? 0) }}">
             </div>
             <div class="col-md-3">
               <label class="form-label">源泉徴収税額</label>
-              <input type="number" class="form-control" name="gensen_choshu_zeigaku" min="0" value="{{ old('gensen_choshu_zeigaku', $out['inputs']['gensen_choshu_zeigaku'] ?? null) }}">
+              <input type="number" class="form-control" name="gensen_choshu_zeigaku" min="0" required value="{{ old('gensen_choshu_zeigaku', $out['inputs']['gensen_choshu_zeigaku'] ?? 0) }}">
             </div>
             <div class="col-md-3">
               <label class="form-label">指定都市区分</label>
-              @php($shiteiToshi = (string) old('shitei_toshi_flag', $out['inputs']['shitei_toshi_flag'] ?? 0))
               <select class="form-select" name="shitei_toshi_flag" required>
-                <option value="0" @selected($shiteiToshi === '0')>指定都市以外</option>
-                <option value="1" @selected($shiteiToshi === '1')>指定都市</option>
+                <option value="0" @selected(old('shitei_toshi_flag', (string)($out['inputs']['shitei_toshi_flag'] ?? '0')) === '0')>指定都市以外</option>
+                <option value="1" @selected(old('shitei_toshi_flag', (string)($out['inputs']['shitei_toshi_flag'] ?? '0')) === '1')>指定都市</option>
               </select>
             </div>
           </div>

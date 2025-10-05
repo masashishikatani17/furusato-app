@@ -15,7 +15,7 @@ final class FurusatoInputRequest extends FormRequest
     public function rules(): array
     {
         $rules = [
-            'data_id' => ['bail', 'nullable', 'integer', 'min:1'],
+            'data_id' => ['nullable', 'integer', 'min:1'],
         ];
 
         $incomeFields = [
@@ -44,8 +44,8 @@ final class FurusatoInputRequest extends FormRequest
         ];
 
         foreach (array_keys($incomeFields) as $field) {
-            $rules[sprintf('%s_prev', $field)] = ['bail', 'nullable', 'integer', 'min:0'];
-            $rules[sprintf('%s_curr', $field)] = ['bail', 'nullable', 'integer', 'min:0'];
+            $rules[sprintf('%s_prev', $field)] = ['required', 'integer', 'min:0'];
+            $rules[sprintf('%s_curr', $field)] = ['required', 'integer', 'min:0'];
         }
 
         $intFields = [
@@ -77,7 +77,7 @@ final class FurusatoInputRequest extends FormRequest
         ];
 
         foreach ($intFields as $field) {
-            $rules[$field] = ['bail', 'nullable', 'integer', 'min:0'];
+            $rules[$field] = ['required', 'integer', 'min:0'];
         }
 
         $flagFields = [
@@ -89,7 +89,7 @@ final class FurusatoInputRequest extends FormRequest
         ];
 
         foreach ($flagFields as $field) {
-            $rules[$field] = ['bail', 'required', 'integer', 'in:0,1'];
+            $rules[$field] = ['required', 'in:0,1'];
         }
 
         return $rules;

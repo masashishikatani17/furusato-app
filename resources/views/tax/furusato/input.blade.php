@@ -134,26 +134,26 @@
           </div>
           <div class="col-md-3">
             <label class="form-label">特別徴収（E4）</label>
-            <select class="form-select" name="is_special_collection">
+            <select class="form-select" name="special_collection_flag" required>
               @foreach([0 => 'いいえ', 1 => 'はい'] as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('is_special_collection', 1) === (string)$value)>{{ $label }}</option>
+                <option value="{{ $value }}" @selected((string)old('special_collection_flag', 1) === (string)$value)>{{ $label }}</option>
               @endforeach
             </select>
             <div class="form-text">特別徴収：給与天引き設定</div>
           </div>
           <div class="col-md-3">
             <label class="form-label">青色申告（E5）</label>
-            <select class="form-select" name="is_blue_return">
+            <select class="form-select" name="blue_return_flag" required>
               @foreach([0 => 'いいえ', 1 => 'はい'] as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('is_blue_return', 0) === (string)$value)>{{ $label }}</option>
+                <option value="{{ $value }}" @selected((string)old('blue_return_flag', 0) === (string)$value)>{{ $label }}</option>
               @endforeach
             </select>
           </div>
           <div class="col-md-3">
             <label class="form-label">転入1年目（E6）</label>
-            <select class="form-select" name="is_new_resident">
+            <select class="form-select" name="new_resident_flag" required>
               @foreach([0 => 'いいえ', 1 => 'はい'] as $value => $label)
-                <option value="{{ $value }}" @selected((string)old('is_new_resident', 0) === (string)$value)>{{ $label }}</option>
+                <option value="{{ $value }}" @selected((string)old('new_resident_flag', 0) === (string)$value)>{{ $label }}</option>
               @endforeach
             </select>
           </div>
@@ -237,14 +237,6 @@
           <div class="col-md-3">
             <label class="form-label">Q5（その他控除割合）</label>
             <input type="number" step="0.001" class="form-control" name="q5" value="{{ old('q5', $donation['rows'][3]['q'] ?? 0.15) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">ふるさと寄附合計（P8）</label>
-            <input type="number" min="0" class="form-control" name="furusato_donation_total" value="{{ old('furusato_donation_total', 0) }}">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label">その他寄附金合計（P9）</label>
-            <input type="number" min="0" class="form-control" name="other_donation_total" value="{{ old('other_donation_total', 0) }}">
           </div>
         </div>
       </div>

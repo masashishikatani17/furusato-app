@@ -285,8 +285,8 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
       const sel = Number(this.yearSelected)||0;
       if(!this.targetRow?.id || !sel){ alert('年度を選択してください。'); return; }
       if(cur === sel){
-        // 既存へ遷移（furusato）
-        window.location.href = `/furusato?data_id=${this.targetRow.id}`;
+        // 既存データの処理メニューへ遷移
+        window.location.href = `/furusato/syori?data_id=${this.targetRow.id}`;
         return;
       }
       // 複製 → 年度置換 → 新IDで遷移
@@ -315,7 +315,8 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
       .then(json => {
         const newId = json?.id;
         if(!newId){ throw new Error('新規IDの取得に失敗しました。'); }
-        window.location.href = `/furusato?data_id=${newId}`;
+        // 複製後の処理メニューへ遷移
+        window.location.href = `/furusato/syori?data_id=${newId}`;
       })
       .catch(e => alert(e.message))
       .finally(() => { this.showYearModal=false; });

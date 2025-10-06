@@ -99,7 +99,9 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                </td>
                 {!! $renderInputs('syunyu_fudosan') !!}
               </tr>
               <tr>
@@ -193,7 +195,9 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                </td>
                 {!! $renderInputs('shotoku_fudosan') !!}
               </tr>
               <tr>
@@ -297,7 +301,9 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                </td>
                 {!! $renderInputs('kojo_seimei') !!}
               </tr>
               <tr>
@@ -305,7 +311,9 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                </td>
                 {!! $renderInputs('kojo_jishin') !!}
               </tr>
               <tr>
@@ -337,7 +345,9 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                </td>
                 {!! $renderInputs('kojo_shogaisha') !!}
               </tr>
               <tr>
@@ -345,7 +355,9 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                </td>
                 {!! $renderInputs('kojo_haigusha') !!}
               </tr>
               <tr>
@@ -353,7 +365,9 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                </td>
                 {!! $renderInputs('kojo_haigusha_tokubetsu') !!}
               </tr>
               <tr>
@@ -361,7 +375,9 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                </td>
                 {!! $renderInputs('kojo_fuyo') !!}
               </tr>
               <tr>

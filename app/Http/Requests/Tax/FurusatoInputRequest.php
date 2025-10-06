@@ -92,6 +92,78 @@ final class FurusatoInputRequest extends FormRequest
             $rules[$field] = ['required', 'in:0,1'];
         }
 
+        $sheetFieldGroups = [
+            'syunyu' => [
+                'jigyo_eigyo',
+                'jigyo_nogyo',
+                'fudosan',
+                'haito',
+                'kyuyo',
+                'zatsu_nenkin',
+                'zatsu_gyomu',
+                'zatsu_sonota',
+                'joto_tanki',
+                'joto_choki',
+                'ichiji',
+            ],
+            'shotoku' => [
+                'jigyo_eigyo',
+                'jigyo_nogyo',
+                'fudosan',
+                'rishi',
+                'haito',
+                'kyuyo',
+                'zatsu_nenkin',
+                'zatsu_gyomu',
+                'zatsu_sonota',
+                'joto_tanki',
+                'joto_choki',
+                'ichiji',
+                'gokei',
+            ],
+            'kojo' => [
+                'shakaihoken',
+                'shokibo',
+                'seimei',
+                'jishin',
+                'kafu',
+                'hitorioya',
+                'kinrogakusei',
+                'shogaisha',
+                'haigusha',
+                'haigusha_tokubetsu',
+                'fuyo',
+                'kiso',
+                'shokei',
+                'zasson',
+                'iryo',
+                'kifukin',
+                'gokei',
+            ],
+            'tax' => [
+                'kazeishotoku',
+                'zeigaku',
+                'haito',
+                'jutaku',
+                'seito',
+                'sashihiki',
+                'tokubetsu_R6',
+                'kijun',
+                'fukkou',
+                'gokei',
+            ],
+        ];
+
+        foreach ($sheetFieldGroups as $group => $fields) {
+            foreach ($fields as $field) {
+                foreach (['shotoku', 'jumin'] as $tax) {
+                    foreach (['prev', 'curr'] as $period) {
+                        $rules[sprintf('%s_%s_%s_%s', $group, $field, $tax, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                    }
+                }
+            }
+        }
+
         return $rules;
     }
 

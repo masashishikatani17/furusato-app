@@ -4,7 +4,10 @@
 <div class="container" style="min-width: 960px; max-width: 1080px;">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h5 class="mb-0">ふるさと納税：インプット表（v0.4）</h5>
-    <a href="{{ route('furusato.master', $dataId ? ['data_id' => $dataId] : [], false) }}" class="btn btn-outline-secondary btn-sm">マスター</a>
+    <div class="d-flex gap-2">
+      <button type="button" class="btn btn-outline-secondary btn-sm" form="furusato-input-form" id="furusato-back-to-syori" formnovalidate>戻る</button>
+      <a href="{{ route('furusato.master', $dataId ? ['data_id' => $dataId] : [], false) }}" class="btn btn-outline-secondary btn-sm">マスター</a>
+    </div>
   </div>
 
   @if (session('success'))
@@ -24,6 +27,7 @@
   <form method="POST" action="{{ route('furusato.save') }}" class="row g-3" id="furusato-input-form">
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId ?? '' }}">
+    <input type="hidden" name="redirect_to" value="">
 
     <div class="col-12">
       <div class="card mb-4">
@@ -239,8 +243,8 @@
     </div>
 
     <div class="col-12 d-flex flex-column flex-md-row justify-content-end gap-2">
-      <button type="submit" class="btn btn-success" formnovalidate>保存</button>
-      <button type="submit" class="btn btn-primary" formaction="{{ route('furusato.calc') }}">送信</button>
+      <button type="submit" class="btn btn-success" formnovalidate onclick="this.form.redirect_to.value='';">保存</button>
+      <button type="submit" class="btn btn-primary" formaction="{{ route('furusato.calc') }}" onclick="this.form.redirect_to.value='';">送信</button>
     </div>
   </form>
 
@@ -269,3 +273,17 @@
   @endisset
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.getElementById('furusato-back-to-syori')?.addEventListener('click', function (event) {
+  event.preventDefault();
+  const form = document.getElementById('furusato-input-form');
+  if (!form) {
+    return;
+  }
+  form.redirect_to.value = 'syori';
+  form.submit();
+});
+</script>
+@endpush

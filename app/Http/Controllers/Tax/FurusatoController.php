@@ -6,8 +6,10 @@ use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tax\FurusatoInputRequest;
+use App\Http\Requests\Tax\FurusatoSyoriRequest;
 use App\Models\Data;
 use App\Models\FurusatoInput;
+use App\Models\FurusatoSyoriSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -48,8 +50,8 @@ final class FurusatoController extends Controller
 
     public function save(Request $request): RedirectResponse
     {
-        $data = $this->resolveAuthorizedDataOrFail($request);
-        $payload = $request->except(['_token', 'data_id']);
+        $data = $this->resolveAuthorizedDataOrFail($request, 'update');
+        $payload = $request->except(['_token', 'data_id', 'redirect_to']);
         $userId = (int) auth()->id();
 
         // SQLite で IFNULL(created_by, ...) を VALUES 句で参照すると
@@ -74,7 +76,65 @@ final class FurusatoController extends Controller
             $rec->save();
         });
 
+        if ($request->input('redirect_to') === 'syori') {
+            return redirect()->route('furusato.syori', ['data_id' => $data->id])->with('success', '保存しました');
+        }
+
         return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+    }
+
+    public function syoriIndex(Request $request)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($request, 'update');
+
+        $setting = FurusatoSyoriSetting::query()->where('data_id', $data->id)->first();
+        $payload = $this->syoriDefaultPayload();
+
+        if ($setting && is_array($setting->payload)) {
+            $payload = array_replace($payload, array_intersect_key($setting->payload, $payload));
+        }
+
+        $payload = $this->applyStandardRates($payload);
+
+        return view('tax.furusato.syori_menu', [
+            'dataId' => $data->id,
+            'settings' => $payload,
+        ]);
+    }
+
+    public function syoriSave(FurusatoSyoriRequest $request): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($request, 'update');
+        $validated = $request->validated();
+
+        $payload = array_intersect_key($validated, $this->syoriDefaultPayload());
+        $payload = $this->applyStandardRates($payload);
+
+        $userId = (int) auth()->id();
+
+        FurusatoSyoriSetting::unguarded(function () use ($data, $payload, $userId): void {
+            $record = FurusatoSyoriSetting::firstOrNew(['data_id' => $data->id]);
+
+            if (! $record->exists) {
+                $record->data_id = $data->id;
+                $record->company_id = $data->company_id;
+                $record->group_id = $data->group_id;
+                $record->created_by = $userId ?: null;
+            }
+
+            $record->company_id = $data->company_id;
+            $record->group_id = $data->group_id;
+            $record->payload = $payload;
+            $record->updated_by = $userId ?: null;
+
+            $record->save();
+        });
+
+        if ($request->input('redirect_to') === 'input') {
+            return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+        }
+
+        return redirect()->route('data.index')->with('success', '保存しました');
     }
 
     public function master(Request $request)
@@ -128,7 +188,7 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    private function resolveAuthorizedDataOrFail(Request $request): Data
+    private function resolveAuthorizedDataOrFail(Request $request, string $ability = 'view'): Data
     {
         $id = (int) ($request->input('data_id') ?? $request->query('data_id'));
         abort_unless($id > 0, 422, 'data_id が指定されていません。');
@@ -167,5 +227,56 @@ final class FurusatoController extends Controller
         }
 
         return $data;
+    }
+    private function syoriDefaultPayload(): array
+    {
+        return [
+            'detail_mode' => 1,
+            'bunri_flag' => 0,
+            'one_stop_flag' => 1,
+            'shitei_toshi_flag' => 0,
+            'pref_standard_rate' => 0.04,
+            'muni_standard_rate' => 0.06,
+            'pref_applied_rate' => 0.04,
+            'muni_applied_rate' => 0.06,
+            'pref_equal_share' => 1500,
+            'muni_equal_share' => 3500,
+            'other_taxes_amount' => 0,
+        ];
+    }
+
+    private function applyStandardRates(array $payload): array
+    {
+        $shitei = (int) ($payload['shitei_toshi_flag'] ?? 0);
+
+        if ($shitei === 1) {
+            $payload['pref_standard_rate'] = 0.02;
+            $payload['muni_standard_rate'] = 0.08;
+        } else {
+            $payload['pref_standard_rate'] = 0.04;
+            $payload['muni_standard_rate'] = 0.06;
+        }
+
+        if (! array_key_exists('pref_applied_rate', $payload) || $payload['pref_applied_rate'] === null) {
+            $payload['pref_applied_rate'] = $payload['pref_standard_rate'];
+        }
+
+        if (! array_key_exists('muni_applied_rate', $payload) || $payload['muni_applied_rate'] === null) {
+            $payload['muni_applied_rate'] = $payload['muni_standard_rate'];
+        }
+
+        $payload['detail_mode'] = (int) ($payload['detail_mode'] ?? 1);
+        $payload['bunri_flag'] = (int) ($payload['bunri_flag'] ?? 0);
+        $payload['one_stop_flag'] = (int) ($payload['one_stop_flag'] ?? 1);
+        $payload['shitei_toshi_flag'] = $shitei;
+        $payload['pref_applied_rate'] = (float) $payload['pref_applied_rate'];
+        $payload['muni_applied_rate'] = (float) $payload['muni_applied_rate'];
+        $payload['pref_standard_rate'] = (float) $payload['pref_standard_rate'];
+        $payload['muni_standard_rate'] = (float) $payload['muni_standard_rate'];
+        $payload['pref_equal_share'] = (int) ($payload['pref_equal_share'] ?? 1500);
+        $payload['muni_equal_share'] = (int) ($payload['muni_equal_share'] ?? 3500);
+        $payload['other_taxes_amount'] = (int) ($payload['other_taxes_amount'] ?? 0);
+
+        return $payload;
     }
 }

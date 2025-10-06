@@ -92,6 +92,42 @@ final class FurusatoController extends Controller
         ]);
     }
 
+    public function shotokuMaster(Request $request)
+    {
+        $data = $this->resolveCompanyScopedDataOrFail($request);
+
+        return view('tax.furusato.master.shotoku_master', [
+            'dataId' => $data->id,
+        ]);
+    }
+
+    public function juminMaster(Request $request)
+    {
+        $data = $this->resolveCompanyScopedDataOrFail($request);
+
+        return view('tax.furusato.master.jumin_master', [
+            'dataId' => $data->id,
+        ]);
+    }
+
+    public function tokureiMaster(Request $request)
+    {
+        $data = $this->resolveCompanyScopedDataOrFail($request);
+
+        return view('tax.furusato.master.tokurei_master', [
+            'dataId' => $data->id,
+        ]);
+    }
+
+    public function shinkokutokureiMaster(Request $request)
+    {
+        $data = $this->resolveCompanyScopedDataOrFail($request);
+
+        return view('tax.furusato.master.shinkokutokurei_master', [
+            'dataId' => $data->id,
+        ]);
+    }
+
     private function resolveAuthorizedDataOrFail(Request $request): Data
     {
         $id = (int) ($request->input('data_id') ?? $request->query('data_id'));

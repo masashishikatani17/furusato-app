@@ -144,9 +144,14 @@ Route::get('/diag/csp/ping', function () {
 Route::prefix('furusato')->group(function () {
     Route::get('/', [FurusatoController::class, 'index'])->name('furusato.index');
     Route::get('/input', [FurusatoController::class, 'index'])->name('furusato.input');
-    Route::get('/master', [FurusatoController::class, 'master'])->name('furusato.master');    
+    Route::get('/master', [FurusatoController::class, 'master'])->name('furusato.master');
+    Route::get('/master/shotoku_master', [FurusatoController::class, 'shotokuMaster'])->name('furusato.master.shotoku');
+    Route::get('/master/jumin_master', [FurusatoController::class, 'juminMaster'])->name('furusato.master.jumin');
+    Route::get('/master/tokurei_master', [FurusatoController::class, 'tokureiMaster'])->name('furusato.master.tokurei');
+    Route::get('/master/shinkokutokurei_master', [FurusatoController::class, 'shinkokutokureiMaster'])->name('furusato.master.shinkokutokurei'); 
     Route::post('/save', [FurusatoController::class, 'save'])->name('furusato.save');
     Route::post('/calc', [FurusatoController::class, 'calc'])->name('furusato.calc');
     // 直打ちやリロードで GET /furusato/calc に来たら入力画面へ戻す
     Route::get('/calc', fn() => redirect()->route('furusato.index'));
 });
+

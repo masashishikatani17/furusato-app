@@ -26,7 +26,10 @@ final class FurusatoController extends Controller
             session(['selected_data_id' => $dataId]);
         }
         
-        return view('tax.furusato.input', ['dataId' => $dataId]);
+        return view('tax.furusato.input', [
+            'dataId'    => $dataId,
+            'bunriFlag' => $this->resolveBunriFlag($dataId),
+        ]);
     }
 
     public function calc(FurusatoInputRequest $req, FurusatoCalcService $svc)
@@ -46,9 +49,30 @@ final class FurusatoController extends Controller
         session()->flash('_old_input', $req->except(['_token']));
 
         return view('tax.furusato.input', [
-            'out' => $out,
-            'dataId' => $dataId,
+            'out'       => $out,
+            'dataId'    => $dataId,
+            'bunriFlag' => $this->resolveBunriFlag($dataId),
         ]);
+    }
+
+    private function resolveBunriFlag(?int $dataId): int
+    {
+        if (! $dataId) {
+            return 0;
+        }
+
+        $setting = FurusatoSyoriSetting::query()
+            ->select('payload')
+            ->where('data_id', $dataId)
+            ->first();
+
+        if (! $setting || ! is_array($setting->payload)) {
+            return 0;
+        }
+
+        $flag = $setting->payload['bunri_flag'] ?? 0;
+
+        return (int) ($flag ? 1 : 0);
     }
 
     public function save(Request $request): RedirectResponse

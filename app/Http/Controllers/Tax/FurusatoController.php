@@ -25,11 +25,12 @@ final class FurusatoController extends Controller
         if ($dataId) {
             session(['selected_data_id' => $dataId]);
         }
-        
-        return view('tax.furusato.input', [
-            'dataId'    => $dataId,
-            'bunriFlag' => $this->resolveBunriFlag($dataId),
-        ]);
+
+        $context = $this->makeInputContext($req, $dataId);
+        $context['out'] = ['inputs' => $context['savedInputs']];
+        unset($context['savedInputs']);
+
+        return view('tax.furusato.input', $context);
     }
 
     public function calc(FurusatoInputRequest $req, FurusatoCalcService $svc)
@@ -47,12 +48,11 @@ final class FurusatoController extends Controller
         }
 
         session()->flash('_old_input', $req->except(['_token']));
-
-        return view('tax.furusato.input', [
-            'out'       => $out,
-            'dataId'    => $dataId,
-            'bunriFlag' => $this->resolveBunriFlag($dataId),
-        ]);
+        $context = $this->makeInputContext($req, $dataId);
+        $context['out'] = ['inputs' => array_replace($context['savedInputs'], $dto->toArray())];
+        unset($context['savedInputs']);
+        
+        return view('tax.furusato.input', $context);
     }
 
     private function resolveBunriFlag(?int $dataId): int
@@ -61,18 +61,73 @@ final class FurusatoController extends Controller
             return 0;
         }
 
-        $setting = FurusatoSyoriSetting::query()
-            ->select('payload')
+        $payload = FurusatoSyoriSetting::query()
             ->where('data_id', $dataId)
-            ->first();
+            ->value('payload');
 
-        if (! $setting || ! is_array($setting->payload)) {
+        if (! is_array($payload)) {
             return 0;
         }
 
-        $flag = $setting->payload['bunri_flag'] ?? 0;
+        $flag = $payload['bunri_flag'] ?? 0;
 
         return (int) ($flag ? 1 : 0);
+    }
+
+    private function makeInputContext(Request $request, ?int $dataId): array
+    {
+        $bunriFlag = 0;
+        $kihuYear = null;
+        $warekiPrev = null;
+        $warekiCurr = null;
+        $savedInputs = [];
+
+        if ($dataId) {
+            $data = $this->findDataForInput($request, $dataId);
+
+            $bunriFlag = $this->resolveBunriFlag($dataId);
+
+            if ($data && $data->kihu_year) {
+                $kihuYear = (int) $data->kihu_year;
+                $warekiPrev = $this->toWarekiYear($kihuYear - 1);
+                $warekiCurr = $this->toWarekiYear($kihuYear);
+            }
+
+            $stored = FurusatoInput::query()
+                ->where('data_id', $dataId)
+                ->value('payload');
+
+            if (is_array($stored)) {
+                $savedInputs = $stored;
+            }
+        }
+
+        return [
+            'dataId' => $dataId,
+            'bunriFlag' => $bunriFlag,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'savedInputs' => $savedInputs,
+        ];
+    }
+
+    private function findDataForInput(Request $request, int $dataId): ?Data
+    {
+        if ($request->user()) {
+            return $this->resolveCompanyScopedDataOrFail($request);
+        }
+
+        return Data::find($dataId);
+    }
+
+    private function toWarekiYear(int $year): string
+    {
+        if ($year >= 2019) {
+            return sprintf('令和%d年', $year - 2018);
+        }
+
+        return sprintf('平成%d年', $year - 1988);
     }
 
     public function save(Request $request): RedirectResponse

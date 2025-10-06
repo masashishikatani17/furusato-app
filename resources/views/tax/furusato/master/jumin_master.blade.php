@@ -21,142 +21,53 @@
       </tr>
     </thead>
     <tbody>
-      <tr>
-        <th class="text-center" colspan="2">総合</th>
-        <td class="text-end">8%</td>
-        <td class="text-end">2%</td>
-        <td class="text-end">6%</td>
-        <td class="text-end">4%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" rowspan="2">短期譲渡</th>
-        <th class="text-center">一般</th>
-        <td class="text-end">7.2%</td>
-        <td class="text-end">1.8%</td>
-        <td class="text-end">5.4%</td>
-        <td class="text-end">3.6%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center">軽減</th>
-        <td class="text-end">4%</td>
-        <td class="text-end">1%</td>
-        <td class="text-end">3%</td>
-        <td class="text-end">2%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" rowspan="5">長期譲渡</th>
-        <th class="text-center">一般</th>
-        <td class="text-end">4%</td>
-        <td class="text-end">1%</td>
-        <td class="text-end">3%</td>
-        <td class="text-end">2%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" rowspan="2">特定</th>
-        <td class="text-end">3.2%</td>
-        <td class="text-end">0.8%</td>
-        <td class="text-end">2.4%</td>
-        <td class="text-end">1.6%</td>
-        <td>2,000万円以下の部分</td>
-      </tr>
-      <tr>
-        <td class="text-end">4%</td>
-        <td class="text-end">1%</td>
-        <td class="text-end">3%</td>
-        <td class="text-end">2%</td>
-        <td>2,000万円超の部分</td>
-      </tr>
-      <tr>
-        <th class="text-center" rowspan="2">軽課</th>
-        <td class="text-end">3.2%</td>
-        <td class="text-end">0.8%</td>
-        <td class="text-end">2.4%</td>
-        <td class="text-end">1.6%</td>
-        <td>6,000万円以下の部分</td>
-      </tr>
-      <tr>
-        <td class="text-end">4%</td>
-        <td class="text-end">1%</td>
-        <td class="text-end">3%</td>
-        <td class="text-end">2%</td>
-        <td>6,000万円超の部分</td>
-      </tr>
-      <tr>
-        <th class="text-center" colspan="2">一般株式等の譲渡</th>
-        <td class="text-end">4%</td>
-        <td class="text-end">1%</td>
-        <td class="text-end">3%</td>
-        <td class="text-end">2%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" colspan="2">上場株式等の譲渡</th>
-        <td class="text-end">4%</td>
-        <td class="text-end">1%</td>
-        <td class="text-end">3%</td>
-        <td class="text-end">2%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" colspan="2">上場株式等の配当等</th>
-        <td class="text-end">4%</td>
-        <td class="text-end">1%</td>
-        <td class="text-end">3%</td>
-        <td class="text-end">2%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" colspan="2">先物取引</th>
-        <td class="text-end">4%</td>
-        <td class="text-end">1%</td>
-        <td class="text-end">3%</td>
-        <td class="text-end">2%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" colspan="2">山林</th>
-        <td class="text-end">8%</td>
-        <td class="text-end">2%</td>
-        <td class="text-end">6%</td>
-        <td class="text-end">4%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" colspan="2">退職</th>
-        <td class="text-end">8%</td>
-        <td class="text-end">2%</td>
-        <td class="text-end">6%</td>
-        <td class="text-end">4%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" colspan="2">調整控除</th>
-        <td class="text-end">4%</td>
-        <td class="text-end">1%</td>
-        <td class="text-end">3%</td>
-        <td class="text-end">2%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" colspan="2">基本控除</th>
-        <td class="text-end">8%</td>
-        <td class="text-end">2%</td>
-        <td class="text-end">6%</td>
-        <td class="text-end">4%</td>
-        <td></td>
-      </tr>
-      <tr>
-        <th class="text-center" colspan="2">特例控除</th>
-        <td class="text-end">0.8%</td>
-        <td class="text-end">0.2%</td>
-        <td class="text-end">0.6%</td>
-        <td class="text-end">0.4%</td>
-        <td></td>
-      </tr>
+      @php
+        $formatPercent = static fn (?float $value): string => $value === null ? '' : rtrim(rtrim(number_format($value, 3), '0'), '.').'%';
+        $categoryCounts = $rates->groupBy('category')->map->count();
+        $subcategoryCounts = $rates->groupBy(fn ($rate) => $rate->category.'|'.($rate->sub_category ?? ''))->map->count();
+        $renderedCategories = [];
+        $renderedSubCategories = [];
+      @endphp
+      @foreach ($rates as $rate)
+        <tr>
+          @php
+            $categoryKey = $rate->category;
+            $subKey = $rate->category.'|'.($rate->sub_category ?? '');
+          @endphp
+          @if(($categoryCounts[$categoryKey] ?? 0) > 1)
+            @if(empty($renderedCategories[$categoryKey]))
+              <th class="text-center" rowspan="{{ $categoryCounts[$categoryKey] }}">{{ $rate->category }}</th>
+              @php $renderedCategories[$categoryKey] = true; @endphp
+            @endif
+            @if($rate->sub_category !== null && $rate->sub_category !== '')
+              @if(($subcategoryCounts[$subKey] ?? 0) > 1)
+                @if(empty($renderedSubCategories[$subKey]))
+                  <th class="text-center" rowspan="{{ $subcategoryCounts[$subKey] }}">{{ $rate->sub_category }}</th>
+                  @php $renderedSubCategories[$subKey] = true; @endphp
+                @endif
+              @else
+                <th class="text-center">{{ $rate->sub_category }}</th>
+              @endif
+            @else
+              @if(($subcategoryCounts[$subKey] ?? 0) > 1)
+                @if(empty($renderedSubCategories[$subKey]))
+                  <th class="text-center" rowspan="{{ $subcategoryCounts[$subKey] }}"></th>
+                  @php $renderedSubCategories[$subKey] = true; @endphp
+                @endif
+              @else
+                <th class="text-center"></th>
+              @endif
+            @endif
+          @else
+            <th class="text-center" colspan="2">{{ $rate->category }}</th>
+          @endif
+          <td class="text-end">{{ $formatPercent($rate->city_specified) }}</td>
+          <td class="text-end">{{ $formatPercent($rate->pref_specified) }}</td>
+          <td class="text-end">{{ $formatPercent($rate->city_non_specified) }}</td>
+          <td class="text-end">{{ $formatPercent($rate->pref_non_specified) }}</td>
+          <td>{{ $rate->remark }}</td>
+        </tr>
+      @endforeach
     </tbody>
   </table>
 </div>

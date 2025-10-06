@@ -10,12 +10,15 @@ use App\Http\Requests\Tax\FurusatoSyoriRequest;
 use App\Models\Data;
 use App\Models\FurusatoInput;
 use App\Models\FurusatoSyoriSetting;
+use App\Services\Tax\FurusatoMasterService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 final class FurusatoController extends Controller
 {
+    private const MASTER_KIHU_YEAR = 2025;
+
     public function index(Request $req)
     {
         $dataId = $req->integer('data_id') ?: null;
@@ -152,39 +155,47 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function shotokuMaster(Request $request)
+    public function shotokuMaster(Request $request, FurusatoMasterService $masterService)
     {
         $data = $this->resolveCompanyScopedDataOrFail($request);
-
+        $companyId = $request->user()?->company_id;
+        
         return view('tax.furusato.master.shotoku_master', [
             'dataId' => $data->id,
+            'rates' => $masterService->getShotokuRates(self::MASTER_KIHU_YEAR, $companyId),
         ]);
     }
 
-    public function juminMaster(Request $request)
+    public function juminMaster(Request $request, FurusatoMasterService $masterService)
     {
         $data = $this->resolveCompanyScopedDataOrFail($request);
-
+        $companyId = $request->user()?->company_id;
+        
         return view('tax.furusato.master.jumin_master', [
             'dataId' => $data->id,
+            'rates' => $masterService->getJuminRates(self::MASTER_KIHU_YEAR, $companyId),
         ]);
     }
 
-    public function tokureiMaster(Request $request)
+    public function tokureiMaster(Request $request, FurusatoMasterService $masterService)
     {
         $data = $this->resolveCompanyScopedDataOrFail($request);
-
+        $companyId = $request->user()?->company_id;
+        
         return view('tax.furusato.master.tokurei_master', [
             'dataId' => $data->id,
+            'rates' => $masterService->getTokureiRates(self::MASTER_KIHU_YEAR, $companyId),
         ]);
     }
 
-    public function shinkokutokureiMaster(Request $request)
+    public function shinkokutokureiMaster(Request $request, FurusatoMasterService $masterService)
     {
         $data = $this->resolveCompanyScopedDataOrFail($request);
-
+        $companyId = $request->user()?->company_id;
+        
         return view('tax.furusato.master.shinkokutokurei_master', [
             'dataId' => $data->id,
+            'rates' => $masterService->getShinkokutokureiRates(self::MASTER_KIHU_YEAR, $companyId),
         ]);
     }
 

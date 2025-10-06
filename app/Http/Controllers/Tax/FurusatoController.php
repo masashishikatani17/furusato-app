@@ -158,9 +158,134 @@ final class FurusatoController extends Controller
             $rec->save();
         });
 
-        if ($request->input('redirect_to') === 'syori') {
+        $redirectTo = $request->input('redirect_to');
+        if (is_array($redirectTo)) {
+            $redirectTo = end($redirectTo) ?: null;
+        }
+
+        if ($redirectTo === 'jigyo') {
+            return redirect()->route('furusato.details.jigyo', ['data_id' => $data->id]);
+        }
+
+        if ($redirectTo === 'fudosan') {
+            return redirect()->route('furusato.details.fudosan', ['data_id' => $data->id]);
+        }
+
+        if ($redirectTo === 'syori') {
             return redirect()->route('furusato.syori', ['data_id' => $data->id])->with('success', '保存しました');
         }
+
+        return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+    }
+
+    public function jigyoEigyoDetails(Request $req)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+
+        return view('tax.furusato.details.jigyo_eigyo_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => ['inputs' => $this->getFurusatoInputPayload($data)],
+        ]);
+    }
+
+    public function saveJigyoEigyoDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $fields = [
+            'jigyo_eigyo_uriage',
+            'jigyo_eigyo_urigenka',
+            'jigyo_eigyo_keihi_1',
+            'jigyo_eigyo_keihi_2',
+            'jigyo_eigyo_keihi_3',
+            'jigyo_eigyo_keihi_4',
+            'jigyo_eigyo_keihi_5',
+            'jigyo_eigyo_keihi_6',
+            'jigyo_eigyo_keihi_7',
+            'jigyo_eigyo_keihi_sonota',
+            'jigyo_eigyo_senjuusha_kyuyo',
+            'jigyo_eigyo_aoi_tokubetsu_kojo_gaku',
+        ];
+
+        $inputs = $this->extractDetailInputs($req, $fields);
+
+        $calculations = $this->calculateJigyoEigyo($inputs);
+
+        $mirrors = [
+            'syunyu_jigyo_eigyo_shotoku_prev' => $inputs['jigyo_eigyo_uriage_prev'],
+            'syunyu_jigyo_eigyo_shotoku_curr' => $inputs['jigyo_eigyo_uriage_curr'],
+            'shotoku_jigyo_eigyo_shotoku_prev' => $calculations['jigyo_eigyo_shotoku_prev'],
+            'shotoku_jigyo_eigyo_shotoku_curr' => $calculations['jigyo_eigyo_shotoku_curr'],
+        ];
+
+        $this->updateFurusatoInputPayload($data, array_merge($inputs, $calculations, $mirrors));
+
+        return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+    }
+
+    public function fudosanDetails(Request $req)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+
+        return view('tax.furusato.details.fudosan_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => ['inputs' => $this->getFurusatoInputPayload($data)],
+        ]);
+    }
+
+    public function saveFudosanDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $fields = [
+            'fudosan_shunyu',
+            'fudosan_keihi_1',
+            'fudosan_keihi_2',
+            'fudosan_keihi_3',
+            'fudosan_keihi_4',
+            'fudosan_keihi_5',
+            'fudosan_keihi_6',
+            'fudosan_keihi_7',
+            'fudosan_keihi_sonota',
+            'fudosan_senjuusha_kyuyo',
+            'fudosan_aoi_tokubetsu_kojo_gaku',
+            'fudosan_fusairishi',
+        ];
+
+        $inputs = $this->extractDetailInputs($req, $fields);
+
+        $calculations = $this->calculateFudosan($inputs);
+
+        $adjPrev = $calculations['fudosan_shotoku_prev'];
+        if ($adjPrev < 0) {
+            $adjPrev += $this->valueOrZero($inputs['fudosan_fusairishi_prev']);
+        }
+
+        $adjCurr = $calculations['fudosan_shotoku_curr'];
+        if ($adjCurr < 0) {
+            $adjCurr += $this->valueOrZero($inputs['fudosan_fusairishi_curr']);
+        }
+
+        $mirrors = [
+            'syunyu_fudosan_shotoku_prev' => $inputs['fudosan_shunyu_prev'],
+            'syunyu_fudosan_shotoku_curr' => $inputs['fudosan_shunyu_curr'],
+            'shotoku_fudosan_shotoku_prev' => $adjPrev,
+            'shotoku_fudosan_shotoku_curr' => $adjCurr,
+        ];
+
+        $this->updateFurusatoInputPayload($data, array_merge($inputs, $calculations, $mirrors));
 
         return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
     }
@@ -276,6 +401,154 @@ final class FurusatoController extends Controller
             'dataId' => $data->id,
             'rates' => $masterService->getShinkokutokureiRates(self::MASTER_KIHU_YEAR, $companyId),
         ]);
+    }
+
+    private function getFurusatoInputPayload(Data $data): array
+    {
+        $stored = FurusatoInput::query()
+            ->where('data_id', $data->id)
+            ->value('payload');
+
+        return is_array($stored) ? $stored : [];
+    }
+
+    private function extractDetailInputs(Request $request, array $fields): array
+    {
+        $result = [];
+
+        foreach ($fields as $field) {
+            foreach (['prev', 'curr'] as $period) {
+                $name = sprintf('%s_%s', $field, $period);
+                $result[$name] = $this->toNullableInt($request->input($name));
+            }
+        }
+
+        return $result;
+    }
+
+    private function calculateJigyoEigyo(array $inputs): array
+    {
+        $keihiFields = [
+            'jigyo_eigyo_keihi_1',
+            'jigyo_eigyo_keihi_2',
+            'jigyo_eigyo_keihi_3',
+            'jigyo_eigyo_keihi_4',
+            'jigyo_eigyo_keihi_5',
+            'jigyo_eigyo_keihi_6',
+            'jigyo_eigyo_keihi_7',
+            'jigyo_eigyo_keihi_sonota',
+        ];
+
+        $result = [];
+
+        foreach (['prev', 'curr'] as $period) {
+            $uriage = $this->valueOrZero($inputs[sprintf('jigyo_eigyo_uriage_%s', $period)] ?? null);
+            $urigenka = $this->valueOrZero($inputs[sprintf('jigyo_eigyo_urigenka_%s', $period)] ?? null);
+            $sashihiki1 = $uriage - $urigenka;
+            $result[sprintf('jigyo_eigyo_sashihiki_1_%s', $period)] = $sashihiki1;
+
+            $keihiTotal = 0;
+            foreach ($keihiFields as $field) {
+                $keihiTotal += $this->valueOrZero($inputs[sprintf('%s_%s', $field, $period)] ?? null);
+            }
+            $result[sprintf('jigyo_eigyo_keihi_gokei_%s', $period)] = $keihiTotal;
+
+            $sashihiki2 = $sashihiki1 - $keihiTotal;
+            $result[sprintf('jigyo_eigyo_sashihiki_2_%s', $period)] = $sashihiki2;
+
+            $senjuusha = $this->valueOrZero($inputs[sprintf('jigyo_eigyo_senjuusha_kyuyo_%s', $period)] ?? null);
+            $mae = $sashihiki2 - $senjuusha;
+            $result[sprintf('jigyo_eigyo_aoi_tokubetsu_kojo_mae_%s', $period)] = $mae;
+
+            $tokubetsuKojo = $this->valueOrZero($inputs[sprintf('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_%s', $period)] ?? null);
+            $result[sprintf('jigyo_eigyo_shotoku_%s', $period)] = $mae - $tokubetsuKojo;
+        }
+
+        foreach ($result as $key => $value) {
+            $result[$key] = (int) $value;
+        }
+
+        return $result;
+    }
+
+    private function calculateFudosan(array $inputs): array
+    {
+        $keihiFields = [
+            'fudosan_keihi_1',
+            'fudosan_keihi_2',
+            'fudosan_keihi_3',
+            'fudosan_keihi_4',
+            'fudosan_keihi_5',
+            'fudosan_keihi_6',
+            'fudosan_keihi_7',
+            'fudosan_keihi_sonota',
+        ];
+
+        $result = [];
+
+        foreach (['prev', 'curr'] as $period) {
+            $shunyu = $this->valueOrZero($inputs[sprintf('fudosan_shunyu_%s', $period)] ?? null);
+
+            $keihiTotal = 0;
+            foreach ($keihiFields as $field) {
+                $keihiTotal += $this->valueOrZero($inputs[sprintf('%s_%s', $field, $period)] ?? null);
+            }
+            $result[sprintf('fudosan_keihi_gokei_%s', $period)] = $keihiTotal;
+
+            $sashihiki = $shunyu - $keihiTotal;
+            $result[sprintf('fudosan_sashihiki_%s', $period)] = $sashihiki;
+
+            $senjuusha = $this->valueOrZero($inputs[sprintf('fudosan_senjuusha_kyuyo_%s', $period)] ?? null);
+            $mae = $sashihiki - $senjuusha;
+            $result[sprintf('fudosan_aoi_tokubetsu_kojo_mae_%s', $period)] = $mae;
+
+            $tokubetsuKojo = $this->valueOrZero($inputs[sprintf('fudosan_aoi_tokubetsu_kojo_gaku_%s', $period)] ?? null);
+            $result[sprintf('fudosan_shotoku_%s', $period)] = $mae - $tokubetsuKojo;
+        }
+
+        foreach ($result as $key => $value) {
+            $result[$key] = (int) $value;
+        }
+
+        return $result;
+    }
+
+    private function updateFurusatoInputPayload(Data $data, array $updates): void
+    {
+        $userId = (int) auth()->id();
+
+        FurusatoInput::unguarded(function () use ($data, $updates, $userId): void {
+            $record = FurusatoInput::firstOrNew(['data_id' => $data->id]);
+
+            if (! $record->exists) {
+                $record->fill([
+                    'data_id'    => $data->id,
+                    'company_id' => $data->company_id,
+                    'group_id'   => $data->group_id,
+                    'created_by' => $userId ?: null,
+                ]);
+            }
+
+            $current = is_array($record->payload) ? $record->payload : [];
+            $record->payload = array_replace($current, $updates);
+            $record->updated_by = $userId ?: null;
+
+            $record->save();
+        });
+    }
+
+    private function toNullableInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (int) round((float) $value);
+    }
+
+    private function valueOrZero(?int $value): int
+    {
+        return $value ?? 0;
     }
 
     private function resolveAuthorizedDataOrFail(Request $request, string $ability = 'view'): Data

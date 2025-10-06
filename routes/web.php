@@ -155,5 +155,14 @@ Route::prefix('furusato')->group(function () {
     Route::post('/calc', [FurusatoController::class, 'calc'])->name('furusato.calc');
     // 直打ちやリロードで GET /furusato/calc に来たら入力画面へ戻す
     Route::get('/calc', fn() => redirect()->route('furusato.index'));
+
+    Route::get('/details/jigyo_eigyo', [FurusatoController::class, 'jigyoEigyoDetails'])
+        ->name('furusato.details.jigyo');
+    Route::post('/details/jigyo_eigyo/save', [FurusatoController::class, 'saveJigyoEigyoDetails'])
+        ->name('furusato.details.jigyo.save');
+    Route::get('/details/fudosan', [FurusatoController::class, 'fudosanDetails'])
+        ->name('furusato.details.fudosan');
+    Route::post('/details/fudosan/save', [FurusatoController::class, 'saveFudosanDetails'])
+        ->name('furusato.details.fudosan.save');
 });
 

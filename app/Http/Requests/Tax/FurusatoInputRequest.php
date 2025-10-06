@@ -205,6 +205,54 @@ final class FurusatoInputRequest extends FormRequest
             }
         }
 
+        $detailGroups = [
+            'jigyo_eigyo' => [
+                'uriage',
+                'urigenka',
+                'sashihiki_1',
+                'keihi_1',
+                'keihi_2',
+                'keihi_3',
+                'keihi_4',
+                'keihi_5',
+                'keihi_6',
+                'keihi_7',
+                'keihi_sonota',
+                'keihi_gokei',
+                'sashihiki_2',
+                'senjuusha_kyuyo',
+                'aoi_tokubetsu_kojo_mae',
+                'aoi_tokubetsu_kojo_gaku',
+                'shotoku',
+            ],
+            'fudosan' => [
+                'shunyu',
+                'keihi_1',
+                'keihi_2',
+                'keihi_3',
+                'keihi_4',
+                'keihi_5',
+                'keihi_6',
+                'keihi_7',
+                'keihi_sonota',
+                'keihi_gokei',
+                'sashihiki',
+                'senjuusha_kyuyo',
+                'aoi_tokubetsu_kojo_mae',
+                'aoi_tokubetsu_kojo_gaku',
+                'shotoku',
+                'fusairishi',
+            ],
+        ];
+
+        foreach ($detailGroups as $prefix => $fields) {
+            foreach ($fields as $field) {
+                foreach (['prev', 'curr'] as $period) {
+                    $rules[sprintf('%s_%s_%s', $prefix, $field, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                }
+            }
+        }
+
         return $rules;
     }
 

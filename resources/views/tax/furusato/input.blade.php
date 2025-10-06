@@ -82,7 +82,7 @@
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
                 <td class="text-center align-middle">
-                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                  <button type="submit" class="btn btn-outline-secondary btn-sm" name="redirect_to" value="jigyo">内訳</button>
                 </td>
                 {!! $renderInputs('syunyu_jigyo_eigyo') !!}
               </tr>
@@ -100,7 +100,7 @@
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
                 <td class="text-center align-middle">
-                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                  <button type="submit" class="btn btn-outline-secondary btn-sm" name="redirect_to" value="fudosan">内訳</button>
                 </td>
                 {!! $renderInputs('syunyu_fudosan') !!}
               </tr>
@@ -178,7 +178,7 @@
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
                 <td class="text-center align-middle">
-                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                  <button type="submit" class="btn btn-outline-secondary btn-sm" name="redirect_to" value="jigyo">内訳</button>
                 </td>
                 {!! $renderInputs('shotoku_jigyo_eigyo') !!}
               </tr>
@@ -196,7 +196,7 @@
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
                 <td class="text-center align-middle">
-                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                  <button type="submit" class="btn btn-outline-secondary btn-sm" name="redirect_to" value="fudosan">内訳</button>
                 </td>
                 {!! $renderInputs('shotoku_fudosan') !!}
               </tr>

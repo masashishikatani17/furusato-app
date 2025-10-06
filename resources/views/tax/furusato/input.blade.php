@@ -36,90 +36,22 @@
       $warekiPrevLabel = $warekiPrev ?? '前年';
       $warekiCurrLabel = $warekiCurr ?? '当年';
       $showTokubetsu = in_array((int) ($kihuYear ?? 0), [2024, 2025], true);
-
-      $taxRows = [
-        ['key' => 'kazeishotoku', 'label' => '課税所得金額'],
-        ['key' => 'zeigaku', 'label' => '算出税額'],
-        ['key' => 'haito', 'label' => '配当控除', 'hasBreakdown' => true],
-        ['key' => 'jutaku', 'label' => '住宅借入金等特別控除', 'hasBreakdown' => true],
-        ['key' => 'seito', 'label' => '政党等寄附金特別控除', 'hasBreakdown' => true],
-        ['key' => 'sashihiki', 'label' => '差引税額', 'isTotal' => true],
-        ['key' => 'tokubetsu_R6', 'label' => '令和6年度分特別税額控除'],
-        ['key' => 'kijun', 'label' => '基準税額'],
-        ['key' => 'fukkou', 'label' => '復興特別所得税額'],
-        ['key' => 'gokei', 'label' => '税額合計', 'isTotal' => true],
-      ];
-
-      if (! $showTokubetsu) {
-        $taxRows = array_values(array_filter($taxRows, fn ($row) => $row['key'] !== 'tokubetsu_R6'));
-      }
-
-      $sections = [
-        [
-          'title' => '収入金額等',
-          'group' => 'syunyu',
-          'rows' => [
-            ['key' => 'jigyo_eigyo', 'label' => '営業等'],
-            ['key' => 'jigyo_nogyo', 'label' => '農業'],
-            ['key' => 'fudosan', 'label' => '不動産'],
-            ['key' => 'haito', 'label' => '配当'],
-            ['key' => 'kyuyo', 'label' => '給与'],
-            ['key' => 'zatsu_nenkin', 'label' => '雑（公的年金等）'],
-            ['key' => 'zatsu_gyomu', 'label' => '雑（業務）'],
-            ['key' => 'zatsu_sonota', 'label' => '雑（その他）'],
-            ['key' => 'joto_tanki', 'label' => '総合譲渡（短期）'],
-            ['key' => 'joto_choki', 'label' => '総合譲渡（長期）'],
-            ['key' => 'ichiji', 'label' => '一時'],
-          ],
-        ],
-        [
-          'title' => '所得金額等',
-          'group' => 'shotoku',
-          'rows' => [
-            ['key' => 'jigyo_eigyo', 'label' => '営業等'],
-            ['key' => 'jigyo_nogyo', 'label' => '農業'],
-            ['key' => 'fudosan', 'label' => '不動産'],
-            ['key' => 'rishi', 'label' => '利子'],
-            ['key' => 'haito', 'label' => '配当'],
-            ['key' => 'kyuyo', 'label' => '給与'],
-            ['key' => 'zatsu_nenkin', 'label' => '雑（公的年金等）'],
-            ['key' => 'zatsu_gyomu', 'label' => '雑（業務）'],
-            ['key' => 'zatsu_sonota', 'label' => '雑（その他）'],
-            ['key' => 'joto_tanki', 'label' => '総合譲渡（短期）'],
-            ['key' => 'joto_choki', 'label' => '総合譲渡（長期）'],
-            ['key' => 'ichiji', 'label' => '一時'],
-            ['key' => 'gokei', 'label' => '合計', 'isTotal' => true, 'hasBreakdown' => false],
-          ],
-        ],
-        [
-          'title' => '所得から差し引かれる金額',
-          'group' => 'kojo',
-          'rows' => [
-            ['key' => 'shakaihoken', 'label' => '社会保険料控除'],
-            ['key' => 'shokibo', 'label' => '小規模企業共済等掛金控除'],
-            ['key' => 'seimei', 'label' => '生命保険料控除'],
-            ['key' => 'jishin', 'label' => '地震保険料控除'],
-            ['key' => 'kafu', 'label' => '寡婦控除'],
-            ['key' => 'hitorioya', 'label' => 'ひとり親控除'],
-            ['key' => 'kinrogakusei', 'label' => '勤労学生控除'],
-            ['key' => 'shogaisha', 'label' => '障害者控除'],
-            ['key' => 'haigusha', 'label' => '配偶者控除'],
-            ['key' => 'haigusha_tokubetsu', 'label' => '配偶者特別控除'],
-            ['key' => 'fuyo', 'label' => '扶養控除'],
-            ['key' => 'kiso', 'label' => '基礎控除'],
-            ['key' => 'shokei', 'label' => '所得控除額合計', 'isTotal' => true, 'hasBreakdown' => false],
-            ['key' => 'zasson', 'label' => '雑損控除'],
-            ['key' => 'iryo', 'label' => '医療費控除'],
-            ['key' => 'kifukin', 'label' => '寄附金控除'],
-            ['key' => 'gokei', 'label' => '差引所得金額', 'isTotal' => true, 'hasBreakdown' => false],
-          ],
-        ],
-        [
-          'title' => '税金の金額',
-          'group' => 'tax',
-          'rows' => $taxRows,
-        ],
-      ];
+      $renderInputs = static function (string $base) use ($inputs) {
+          $html = '';
+          foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
+              foreach ($periods as $period) {
+                  $name = sprintf('%s_%s_%s', $base, $tax, $period);
+                  $value = old($name, $inputs[$name] ?? null);
+                  $html .= '<td><input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="' . e($name) . '" value="' . e($value) . '"></td>';
+              }
+          }
+          
+          return $html;
+      };
+      $syunyuRowspan = 11;
+      $shotokuRowspan = 13;
+      $kojoRowspan = 17;
+      $taxRowspan = $showTokubetsu ? 10 : 9;
     @endphp
 
     @php ob_start(); @endphp
@@ -142,42 +74,424 @@
               </tr>
             </thead>
             <tbody>
-              @foreach ($sections as $section)
-                @php $rowCount = count($section['rows']); @endphp
-                @foreach ($section['rows'] as $row)
-                  @php
-                    $hasBreakdown = $row['hasBreakdown'] ?? true;
-                    $isTotal = $row['isTotal'] ?? false;
-                  @endphp
-                  <tr>
-                    @if ($loop->first)
-                      <th scope="rowgroup" rowspan="{{ $rowCount }}" class="text-center align-middle bg-light">{{ $section['title'] }}</th>
-                    @endif
-                    <th scope="row" colspan="3" class="align-middle{{ $isTotal ? ' fw-bold' : '' }}">{{ $row['label'] }}</th>
-                    <td class="text-center align-middle">
-                      <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
-                    </td>
-                    <td class="text-center align-middle">
-                      @if ($hasBreakdown)
-                        <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
-                      @else
-                        <span class="text-muted">&mdash;</span>
-                      @endif
-                    </td>
-                    @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                      @foreach ($periods as $period)
-                        @php
-                          $name = sprintf('%s_%s_%s_%s', $section['group'], $row['key'], $tax, $period);
-                          $value = old($name, $inputs[$name] ?? null);
-                        @endphp
-                        <td>
-                          <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                        </td>
-                      @endforeach
-                    @endforeach
-                  </tr>
-                @endforeach
-              @endforeach
+              <tr>
+                <th scope="rowgroup" rowspan="{{ $syunyuRowspan }}" class="text-center align-middle bg-light">収入金額等</th>
+                <th rowspan="2" class="text-center align-middle">事業</th>
+                <th colspan="2" class="align-middle">営業等</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                </td>
+                {!! $renderInputs('syunyu_jigyo_eigyo') !!}
+              </tr>
+              <tr>
+                <th colspan="2" class="align-middle">農業</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('syunyu_jigyo_nogyo') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">不動産</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('syunyu_fudosan') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">配当</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('syunyu_haito') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">給与</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('syunyu_kyuyo') !!}
+              </tr>
+              <tr>
+                <th rowspan="3" class="text-center align-middle">雑</th>
+                <th colspan="2" class="align-middle">公的年金等</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('syunyu_zatsu_nenkin') !!}
+              </tr>
+              <tr>
+                <th colspan="2" class="align-middle">業務</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('syunyu_zatsu_gyomu') !!}
+              </tr>
+              <tr>
+                <th colspan="2" class="align-middle">その他</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('syunyu_zatsu_sonota') !!}
+              </tr>
+              <tr>
+                <th rowspan="2" class="text-center align-middle">譲渡</th>
+                <th colspan="2" class="align-middle">短期</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('syunyu_joto_tanki') !!}
+              </tr>
+              <tr>
+                <th colspan="2" class="align-middle">長期</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('syunyu_joto_choki') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">一時</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('syunyu_ichiji') !!}
+              </tr>
+              <tr>
+                <th scope="rowgroup" rowspan="{{ $shotokuRowspan }}" class="text-center align-middle bg-light">所得金額等</th>
+                <th rowspan="2" class="text-center align-middle">事業</th>
+                <th colspan="2" class="align-middle">営業等</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                </td>
+                {!! $renderInputs('shotoku_jigyo_eigyo') !!}
+              </tr>
+              <tr>
+                <th colspan="2" class="align-middle">農業</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_jigyo_nogyo') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">不動産</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_fudosan') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">利子</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_rishi') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">配当</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_haito') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">給与</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_kyuyo') !!}
+              </tr>
+              <tr>
+                <th rowspan="3" class="text-center align-middle">雑</th>
+                <th colspan="2" class="align-middle">公的年金等</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_zatsu_nenkin') !!}
+              </tr>
+              <tr>
+                <th colspan="2" class="align-middle">業務</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_zatsu_gyomu') !!}
+              </tr>
+              <tr>
+                <th colspan="2" class="align-middle">その他</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_zatsu_sonota') !!}
+              </tr>
+              <tr>
+                <th rowspan="2" class="text-center align-middle">譲渡</th>
+                <th colspan="2" class="align-middle">短期</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_joto_tanki') !!}
+              </tr>
+              <tr>
+                <th colspan="2" class="align-middle">長期</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_joto_choki') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">一時</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_ichiji') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">合計</th>
+                <td colspan="2" class="text-center align-middle"></td>
+                {!! $renderInputs('shotoku_gokei') !!}
+              </tr>
+              <tr>
+                <th scope="rowgroup" rowspan="{{ $kojoRowspan }}" class="text-center align-middle bg-light">所得から差し引かれる金額</th>
+                <th colspan="3" class="align-middle">社会保険料控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_shakaihoken') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">小規模企業共済等掛金控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_shokibo') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">生命保険料控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_seimei') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">地震保険料控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_jishin') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">寡婦控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_kafu') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">ひとり親控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_hitorioya') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">勤労学生控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_kinrogakusei') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">障害者控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_shogaisha') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">配偶者控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_haigusha') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">配偶者特別控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_haigusha_tokubetsu') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">扶養控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_fuyo') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">基礎控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_kiso') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">小計</th>
+                <td colspan="2" class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_shokei') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">雑損控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_zasson') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">医療費控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_iryo') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">寄付金控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_kifukin') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">合計</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('kojo_gokei') !!}
+              </tr>
+              <tr>
+                <th scope="rowgroup" rowspan="{{ $taxRowspan }}" class="text-center align-middle bg-light">税金の金額</th>
+                <th colspan="3" class="align-middle">課税所得金額</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('tax_kazeishotoku') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">税額</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('tax_zeigaku') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">配当控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('tax_haito') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">住宅借入金等特別控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('tax_jutaku') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">政党等寄付金等特別控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('tax_seito') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">差引所得税額</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('tax_sashihiki') !!}
+              </tr>
+              @if ($showTokubetsu)
+              <tr>
+                <th colspan="3" class="align-middle">令和6年度分特別税額控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('tax_tokubetsu_R6') !!}
+              </tr>
+              @endif
+              <tr>
+                <th colspan="3" class="align-middle">基準所得税額</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('tax_kijun') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">復興所得税額</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('tax_fukkou') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">合計</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                <td class="text-center align-middle"></td>
+                {!! $renderInputs('tax_gokei') !!}
+              </tr>
             </tbody>
           </table>
         </div>
@@ -802,11 +1116,6 @@
                           @endforeach
                         @endforeach
                       </tr>
-                      @for ($i = 0; $i < 19; $i++)
-                        <tr>
-                          <td colspan="10">&nbsp;</td>
-                        </tr>
-                      @endfor
                     </tbody>
                   </table>
                 </div>

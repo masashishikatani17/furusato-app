@@ -35,52 +35,68 @@
       @endif
       <div class="mb-4">
         <h6 class="mb-3">処理モード</h6>
-        <div class="d-flex flex-wrap gap-3">
-          <div>
-            <span class="d-block mb-1">処理タイプ</span>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="detail_mode" id="detailModeDetail" value="1" @checked($detailMode === '1')>
-              <label class="form-check-label" for="detailModeDetail">詳細版</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="detail_mode" id="detailModeSimple" value="0" @checked($detailMode === '0')>
-              <label class="form-check-label" for="detailModeSimple">簡便版</label>
-            </div>
-          </div>
-          <div>
-            <span class="d-block mb-1">分離課税</span>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="bunri_flag" id="bunriOff" value="0" @checked($bunriFlag === '0')>
-              <label class="form-check-label" for="bunriOff">なし</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="bunri_flag" id="bunriOn" value="1" @checked($bunriFlag === '1')>
-              <label class="form-check-label" for="bunriOn">あり</label>
-            </div>
-          </div>
-          <div>
-            <span class="d-block mb-1">ワンストップ特例</span>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="one_stop_flag" id="oneStopUse" value="1" @checked($oneStopFlag === '1')>
-              <label class="form-check-label" for="oneStopUse">利用する</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="one_stop_flag" id="oneStopNotUse" value="0" @checked($oneStopFlag === '0')>
-              <label class="form-check-label" for="oneStopNotUse">利用しない</label>
-            </div>
-          </div>
-          <div>
-            <span class="d-block mb-1">指定都市区分</span>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="shitei_toshi_flag" id="shiteiMuni" value="1" @checked($shiteiFlag === '1')>
-              <label class="form-check-label" for="shiteiMuni">指定都市</label>
-            </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="shitei_toshi_flag" id="shiteiOther" value="0" @checked($shiteiFlag === '0')>
-              <label class="form-check-label" for="shiteiOther">指定都市以外</label>
-            </div>
-          </div>
-        </div>
+          <table style="width:380px;" align="center">
+            <tr>
+              <td style="width:80px;background-color:#f9f8ee">
+                  <div>
+                    <span class="d-block mb-1">処理タイプ</span>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="detail_mode" id="detailModeDetail" value="1" @checked($detailMode === '1')>
+                      <label class="form-check-label" for="detailModeDetail">詳細版</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="detail_mode" id="detailModeSimple" value="0" @checked($detailMode === '0')>
+                      <label class="form-check-label" for="detailModeSimple">簡便版</label>
+                    </div>
+                  </div>
+              </td>
+              <td style="width:20px;">
+              </td>
+              <td style="width:80px;background-color:#f9f8ee">
+                  <div>
+                    <span class="d-block mb-1">分離課税</span>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="bunri_flag" id="bunriOff" value="0" @checked($bunriFlag === '0')>
+                      <label class="form-check-label" for="bunriOff">なし</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="bunri_flag" id="bunriOn" value="1" @checked($bunriFlag === '1')>
+                      <label class="form-check-label" for="bunriOn">あり</label>
+                    </div>
+                  </div>
+              </td>
+              <td style="width:20px;">
+              </td>
+              <td style="width:80px;background-color:#f9f8ee;">
+                  <div>
+                    <span class="d-block mb-1">ワンストップ特例</span>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="one_stop_flag" id="oneStopUse" value="1" @checked($oneStopFlag === '1')>
+                      <label class="form-check-label" for="oneStopUse">利用する</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="one_stop_flag" id="oneStopNotUse" value="0" @checked($oneStopFlag === '0')>
+                      <label class="form-check-label" for="oneStopNotUse">利用しない</label>
+                    </div>
+                  </div>
+              </td>
+              <td style="width:20px;">
+              </td>
+              <td style="width:80px;background-color:#f9f8ee;">
+                  <div>
+                    <span class="d-block mb-1">指定都市区分</span>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="shitei_toshi_flag" id="shiteiMuni" value="1" @checked($shiteiFlag === '1')>
+                      <label class="form-check-label" for="shiteiMuni">指定都市</label>
+                    </div>
+                    <div class="form-check">
+                      <input class="form-check-input" type="radio" name="shitei_toshi_flag" id="shiteiOther" value="0" @checked($shiteiFlag === '0')>
+                      <label class="form-check-label" for="shiteiOther">指定都市以外</label>
+                    </div>
+                  </div>
+              </td>
+            </tr>
+          </table>
       </div>
       <div class="mb-4">
         <h6 class="mb-3">所得割の税率</h6>

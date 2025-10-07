@@ -9,7 +9,7 @@
       <a href="{{ route('furusato.master.jumin', ['data_id' => $dataId]) }}" class="btn btn-outline-primary btn-sm">住民税率</a>
       <a href="{{ route('furusato.master.tokurei', ['data_id' => $dataId]) }}" class="btn btn-outline-primary btn-sm">特例控除</a>
       <a href="{{ route('furusato.master.shinkokutokurei', ['data_id' => $dataId]) }}" class="btn btn-outline-primary btn-sm">申告特例控除</a>
-      <a href="{{ route('furusato.input', ['data_id' => $dataId]) }}" class="btn btn-outline-secondary btn-sm">戻る</a>
+      <a href="{{ route('furusato.input', ['data_id' => $dataId], false) }}" class="btn btn-outline-secondary btn-sm">戻る</a>
     </div>
   </div>
 </div>

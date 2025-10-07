@@ -39,7 +39,7 @@
             <tr>
               <td style="width:80px;background-color:#f9f8ee">
                   <div>
-                    <span class="d-block mb-1">処理タイプ</span>
+                    <span class="d-block mb-1"><hb>処理タイプ</hb></span>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="detail_mode" id="detailModeDetail" value="1" @checked($detailMode === '1')>
                       <label class="form-check-label" for="detailModeDetail">詳細版</label>

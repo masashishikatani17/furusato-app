@@ -2,10 +2,10 @@
 @extends('layouts.min')
 
 @section('content')
-<div class="container-blue mt-2" style="max-width: 840px;">
+<div class="container-blue" style="width: 840px;">
   <div class="card-header d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-      <h5 class="mb-0"> お客様・年度一覧</h5>
+      <h1 class="mb-0 mt-2"> お客様・年度一覧</h1>
       <!-- ヘッダの新規作成ボタンは下部帯に集約 -->
   </div>
   <div class="card-body">
@@ -78,7 +78,7 @@
           <table class="table table-bordered table-sm mb-2 align-middle">
             <thead class="table-light">
             <tr style="height:25px;">
-              <th class="text-center" style="width: 220px;background-color:#E8EFF0;">
+              <th class="text-center" style="width: 180px;background-color:#E8EFF0;">
                 年　度
                 <button type="button" class="btn btn-sm btn-outline-primary ms-2 py-0 px-1"
                         style="font-size: 11px; height: 18px; line-height: 1;"
@@ -122,19 +122,19 @@
       </div>
   
       <!-- 下部ボタン帯（“ビル”と同じ配置） -->
-                <div class="btn-footer">
+                <div class="btn-footer mt-3">
                   <div class="d-flex justify-content-between">
                     <div class="d-flex flex-wrap gap-2">
-                      <a href="{{ route('data.create') }}" class="btn-base">新規データの作成</a>
+                      <a href="{{ route('data.create') }}" class="btn-base-blue">新規データの作成</a>
                       <a :href="selectedDataId ? `/data/copyForm?data_id=${selectedDataId}` : '#'"
-                         class="btn-base"
+                         class="btn-base-blue"
                          :class="{'btn-disabled-link': !selectedDataId}"
                          :title="selectedDataId ? '' : 'コピーするデータを選択してください'">
                         既存データのコピー
                       </a>
                       <!-- ▼ PDF出力（分離課税） -->
                       <a href="#"
-                         class="btn-base"
+                         class="btn-base-blue"
                          @click.prevent="openPdf('bunri')"
                          :class="{'btn-disabled-link': !selectedDataId}"
                          :title="selectedDataId ? '確定申告書（分離課税）PDFを出力' : '年度データを選択してください'">
@@ -142,11 +142,11 @@
                       </a>
                     </div>
                     <div class="d-flex align-items-center">
-                      <a href="{{ route('data.index') }}" class="btn-base">戻 る</a>
-                      <!--<img src="{{ asset('storage/images/kado_rightbottom.jpg') }}" alt="…">-->
+                      <a href="{{ route('data.index') }}" class="btn-base-blue">戻 る</a>
                     </div>
                   </div>
                 </div>
+                 
       <!-- 年度変更モーダル（※ x-data の内側に配置することが重要） -->
       <template x-if="showYearModal">
         <div class="position-fixed top-0 start-0 w-100 h-100"

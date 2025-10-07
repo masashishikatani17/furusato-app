@@ -16,15 +16,15 @@
   $otherTaxes = old('other_taxes_amount', $settings['other_taxes_amount'] ?? 0);
 @endphp
 <div class="container-blue mt-2" style="max-width: 840px;">
-  <form method="POST" action="{{ route('furusato.syori.save') }}" id="furusato-syori-form" class="card">
+  <div class="card-header d-flex align-items-start">
+    <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+    <h1 class="mb-0 mt-2">処理メニュー設定</h1>
+  </div>
+  <div class="card-body">
+    <form method="POST" action="{{ route('furusato.syori.save') }}" id="furusato-syori-form" class="card">
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId }}">
     <input type="hidden" name="redirect_to" value="">
-    <div class="card-header d-flex align-items-start">
-      <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-      <h5 class="mb-0">ふるさと納税：処理メニュー設定</h5>
-    </div>
-    <div class="card-body">
       @if ($errors->any())
         <div class="alert alert-danger">
           <ul class="mb-0">
@@ -34,8 +34,8 @@
           </ul>
         </div>
       @endif
-      <div class="mb-4">
-        <h6 class="mb-3">○処理モード</h6>
+      <div class="mb-4 mt-3">
+        <h6 class="ms-3 mb-3">○処理モード</h6>
           <table class="table-base" align="center">
             <tr>
               <td style="width:100px;background-color:#f9f8ee">
@@ -100,7 +100,7 @@
           </table>
       </div>
       <div class="mb-4">
-        <h6 class="mb-3">○所得割の税率</h6>
+        <h6 class="ms-3 mb-3">○所得割の税率</h6>
         <div class="row g-3 align-items-end">
           <div class="col-md-6">
             <div class="d-flex align-items-center gap-2 ms-5">
@@ -129,7 +129,7 @@
         </div>
       </div>
       <div class="mb-4">
-        <h6 class="mb-3">○均等割・その他税額</h6>
+        <h6 class="ms-3 mb-3">○均等割・その他税額</h6>
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label ms-5 me-1">都道府県 均等割</label>
@@ -149,25 +149,27 @@
           </div>
         
       </div>
-      <div class="d-flex justify-content-end gap-2">
-        <button type="submit" class="btn-base-green" formnovalidate>保 存</button>
-        <button type="submit"
-                class="btn-base-blue"
-                formnovalidate
-                name="redirect_to"
-                value="input">入力へ進む</button>
-        <button type="submit"
-                class="btn-base-blue"
-                formnovalidate
-                name="redirect_to"
-                value="data_master">戻 る</button>
-        <button type="submit"
-                class="btn-base-blue"
-                formnovalidate
-                name="redirect_to"
-                value="master">マスター</button>
+      <div class="btn-footer mt-3">
+        <div class="d-flex justify-content-end gap-2 me-3 mb-3">
+          <button type="submit" class="btn-base-green" formnovalidate>保 存</button>
+          <button type="submit"
+                  class="btn-base-blue"
+                  formnovalidate
+                  name="redirect_to"
+                  value="input">入力へ進む</button>
+          <button type="submit"
+                  class="btn-base-blue"
+                  formnovalidate
+                  name="redirect_to"
+                  value="data_master">戻 る</button>
+          <button type="submit"
+                  class="btn-base-blue"
+                  formnovalidate
+                  name="redirect_to"
+                  value="master">マスター</button>
+        </div>          
       </div>
-    </div>
-  </form>
+    </form>
+  </div>
 </div>
 @endsection

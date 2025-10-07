@@ -13,20 +13,24 @@ final class BunriRateService
      * @var string[]
      */
     private const OTHER_KEYS = [
-        'bunri_kazeishotoku_choki_shotoku_curr',
-        'bunri_kazeishotoku_joto_shotoku_curr',
-        'bunri_kazeishotoku_haito_shotoku_curr',
-        'bunri_kazeishotoku_sakimono_shotoku_curr',
+        'bunri_kazeishotoku_choki_jumin_%s',
+        'bunri_kazeishotoku_joto_jumin_%s',
+        'bunri_kazeishotoku_haito_jumin_%s',
+        'bunri_kazeishotoku_sakimono_jumin_%s',
     ];
 
-    public function determineMinimumRate(PayloadAccessor $accessor): ?float
+    public function minRateForSeparatedTaxes(array $payload, string $period): ?float
     {
-        if ($accessor->isPositive('bunri_kazeishotoku_tanki_shotoku_curr')) {
+        $shortTermKey = sprintf('bunri_kazeishotoku_tanki_jumin_%s', $period);
+        $shortTerm = PayloadAccessor::intOrNull($payload, $shortTermKey);
+        if ($shortTerm !== null && PayloadAccessor::nonNegativeFloat($shortTerm) > 0.0) {
             return self::SHORT_TERM_RATE;
         }
 
-        foreach (self::OTHER_KEYS as $key) {
-            if ($accessor->isPositive($key)) {
+        foreach (self::OTHER_KEYS as $pattern) {
+            $key = sprintf($pattern, $period);
+            $value = PayloadAccessor::intOrNull($payload, $key);
+            if ($value !== null && PayloadAccessor::nonNegativeFloat($value) > 0.0) {
                 return self::OTHER_RATE;
             }
         }

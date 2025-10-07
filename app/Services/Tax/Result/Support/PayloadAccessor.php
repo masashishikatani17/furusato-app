@@ -4,20 +4,13 @@ namespace App\Services\Tax\Result\Support;
 
 final class PayloadAccessor
 {
-    /**
-     * @param array<string, mixed> $payload
-     */
-    public function __construct(private readonly array $payload)
+    public static function intOrNull(array $payload, string $key): ?int
     {
-    }
-
-    public function getFloat(string $key): ?float
-    {
-        if (! array_key_exists($key, $this->payload)) {
+        if (! array_key_exists($key, $payload)) {
             return null;
         }
 
-        $value = $this->payload[$key];
+        $value = $payload[$key];
 
         if ($value === null) {
             return null;
@@ -30,17 +23,27 @@ final class PayloadAccessor
             }
         }
 
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_float($value)) {
+            return (int) round($value);
+        }
+
         if (is_numeric($value)) {
-            return (float) $value;
+            return (int) round((float) $value);
         }
 
         return null;
     }
 
-    public function isPositive(string $key): bool
+    public static function nonNegativeFloat(int|float|null $value): float
     {
-        $value = $this->getFloat($key);
+        if ($value === null) {
+            return 0.0;
+        }
 
-        return $value !== null && $value > 0.0;
+        return max(0.0, (float) $value);
     }
 }

@@ -387,10 +387,110 @@ final class FurusatoController extends Controller
 
     private function buildResultsFrom(array $payload): array
     {
+        /** @var \App\Services\Tax\FurusatoMasterService $masterService */
+        $masterService = app(FurusatoMasterService::class);
+        $companyId = auth()->user()?->company_id;
+        $rows = $masterService->getTokureiRates(self::MASTER_KIHU_YEAR, $companyId);
+
+        $taxableIncome = max(0, (float) ($payload['tax_kazeishotoku_shotoku_curr'] ?? 0));
+        $tokureiStandard = $this->lowerBoundRate($taxableIncome, $rows);
+
+        $tokurei90 = 0.90;
+
+        $sanrinIncome = $payload['bunri_kazeishotoku_sanrin_shotoku_curr'] ?? null;
+        $sanrinBase = null;
+        if ($sanrinIncome !== null && (float) $sanrinIncome !== 0.0) {
+            $sanrinBase = $this->lowerBoundRate(((float) $sanrinIncome) / 5, $rows);
+        }
+
+        $taishokuIncome = $payload['bunri_kazeishotoku_taishoku_shotoku_curr'] ?? null;
+        $taishokuBase = null;
+        if ($taishokuIncome !== null && (float) $taishokuIncome !== 0.0) {
+            $taishokuBase = $this->lowerBoundRate((float) $taishokuIncome, $rows);
+        }
+
+        $adoptedCandidates = array_filter([$sanrinBase, $taishokuBase], static fn ($v) => $v !== null);
+        $adoptedMin = $adoptedCandidates ? min($adoptedCandidates) : null;
+
+        $shortTerm = (float) ($payload['bunri_kazeishotoku_tanki_shotoku_curr'] ?? 0);
+        $longTerm = (float) ($payload['bunri_kazeishotoku_choki_shotoku_curr'] ?? 0);
+        $joto = (float) ($payload['bunri_kazeishotoku_joto_shotoku_curr'] ?? 0);
+        $haito = (float) ($payload['bunri_kazeishotoku_haito_shotoku_curr'] ?? 0);
+        $sakimono = (float) ($payload['bunri_kazeishotoku_sakimono_shotoku_curr'] ?? 0);
+
+        $bunriMin = null;
+        if ($shortTerm > 0) {
+            $bunriMin = 0.59370;
+        } elseif ($longTerm > 0 || $joto > 0 || $haito > 0 || $sakimono > 0) {
+            $bunriMin = 0.74685;
+        }
+
+        $finalCandidates = array_filter([
+            $tokureiStandard,
+            $tokurei90,
+            $adoptedMin,
+            $bunriMin,
+        ], static fn ($v) => $v !== null);
+
+        $finalRate = $finalCandidates ? min($finalCandidates) : null;
+
         return [
-            'details' => $payload,
+            'details' => [
+                'tokurei_standard' => $tokureiStandard,
+                'tokurei_90'       => $tokurei90,
+                'sanrin_base'      => $sanrinBase,
+                'taishoku_base'    => $taishokuBase,
+                'adopted_min'      => $adoptedMin,
+                'bunri_min'        => $bunriMin,
+                'final_rate'       => $finalRate,
+            ],
             'upper'   => $payload,
         ];
+    }
+
+    private function lowerBoundRate(?float $amount, iterable $rows): ?float
+    {
+        if ($amount === null) {
+            return null;
+        }
+        $amount = max(0, (float) $amount);
+
+        // rows を配列・モデル双方に対応して正規化
+        $candidates = [];
+        foreach ($rows as $row) {
+            if (is_array($row)) {
+                $threshold = $row['threshold'] ?? null;
+                $rate      = $row['rate'] ?? null;
+            } else {
+                // Eloquent\Model / stdClass 等
+                $threshold = data_get($row, 'threshold');
+                $rate      = data_get($row, 'rate');
+            }
+            if (is_numeric($threshold) && is_numeric($rate)) {
+                $candidates[] = [
+                    'threshold' => (float) $threshold,
+                    'rate'      => (float) $rate,
+                ];
+            }
+        }
+
+        if (! $candidates) {
+            return null;
+        }
+
+        usort($candidates, static fn ($a, $b) => $a['threshold'] <=> $b['threshold']);
+
+        $matchedRate = null;
+        foreach ($candidates as $c) {
+            if ($c['threshold'] <= $amount) {
+                $matchedRate = $c['rate'];
+            } else {
+                break;
+            }
+        }
+
+        // 金額が最小しきい値よりも小さい場合は、最小行の rate（仕様に応じて null にしたい場合はここを変更）
+        return $matchedRate ?? $candidates[0]['rate'] ?? null;
     }
 
     private function sanitizeDetailPayload(array $payload): array

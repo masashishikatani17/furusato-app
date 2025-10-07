@@ -2,14 +2,13 @@
 @extends('layouts.min')
 
 @section('content')
-<div class="container" style="max-width: 1440px; margin:0 auto;background-color:#4193d0;">
-  <div class="wrapper">
-    <div class="d-flex align-items-start ms-3">
+<div class="container-blue mt-2" style="max-width: 840px;">
+  <div class="card-header d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
       <h5 class="mb-0"> お客様・年度一覧</h5>
       <!-- ヘッダの新規作成ボタンは下部帯に集約 -->
-    </div>
-  
+  </div>
+  <div class="card-body">
     @php
       // Blade → Alpine 受け渡し用
       $guestsJson = $guests->map(fn($g) => [

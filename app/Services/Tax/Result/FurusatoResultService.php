@@ -32,64 +32,70 @@ final class FurusatoResultService
         ];
     }
 
-    /**
-     * @param array<int, array{lower:int, upper:int|null, rate:float}> $tokureiRows
-     * @return array<string, float|null>
-     */
     private function buildPeriodDetails(array $payload, array $tokureiRows, string $period): array
     {
         $taxableKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
         $taxableRaw = PayloadAccessor::intOrNull($payload, $taxableKey);
-        $taxableIncome = $taxableRaw !== null ? PayloadAccessor::nonNegativeFloat($taxableRaw) : null;
-
-        $tokureiStandard = $taxableIncome !== null
-            ? $this->tokureiRateService->lowerBoundRate($taxableIncome, $tokureiRows)
+        $taxableAmount = $taxableRaw !== null
+            ? PayloadAccessor::floorToThousands(PayloadAccessor::nonNegativeFloat($taxableRaw))
             : null;
+
+        $aa50 = $taxableAmount !== null
+            ? $this->tokureiRateService->lowerBoundRate($taxableAmount, $tokureiRows)
+            : null;
+
+        $aa51 = self::FIXED_90_RATE;
 
         $sanrinKey = sprintf('bunri_kazeishotoku_sanrin_jumin_%s', $period);
         $sanrinRaw = PayloadAccessor::intOrNull($payload, $sanrinKey);
-        $sanrinBase = null;
+        $aa52 = null;
         if ($sanrinRaw !== null) {
-            $sanrinIncome = PayloadAccessor::nonNegativeFloat($sanrinRaw);
-            if ($sanrinIncome > 0.0) {
-                $sanrinBase = $this->tokureiRateService->lowerBoundRate($sanrinIncome / 5, $tokureiRows);
+            $sanrinAmount = PayloadAccessor::floorToThousands(PayloadAccessor::nonNegativeFloat($sanrinRaw));
+
+            if ($sanrinAmount > 0.0) {
+                $divided = PayloadAccessor::floorToThousands($sanrinAmount / 5);
+
+                if ($divided !== null && $divided > 0.0) {
+                    $aa52 = $this->tokureiRateService->lowerBoundRate($divided, $tokureiRows);
+                }
             }
         }
 
         $taishokuKey = sprintf('bunri_kazeishotoku_taishoku_jumin_%s', $period);
         $taishokuRaw = PayloadAccessor::intOrNull($payload, $taishokuKey);
-        $taishokuBase = null;
+        $aa53 = null;
         if ($taishokuRaw !== null) {
-            $taishokuIncome = PayloadAccessor::nonNegativeFloat($taishokuRaw);
-            if ($taishokuIncome > 0.0) {
-                $taishokuBase = $this->tokureiRateService->lowerBoundRate($taishokuIncome, $tokureiRows);
+            $taishokuAmount = PayloadAccessor::floorToThousands(PayloadAccessor::nonNegativeFloat($taishokuRaw));
+
+            if ($taishokuAmount > 0.0) {
+                $aa53 = $this->tokureiRateService->lowerBoundRate($taishokuAmount, $tokureiRows);
             }
         }
 
         $adoptedCandidates = array_filter([
-            $sanrinBase,
-            $taishokuBase,
+            $aa52,
+            $aa53,
         ], static fn (?float $value) => $value !== null);
-        $adoptedMin = $adoptedCandidates ? min($adoptedCandidates) : null;
+        $aa54 = $adoptedCandidates ? min($adoptedCandidates) : null;
 
-        $bunriMin = $this->bunriRateService->minRateForSeparatedTaxes($payload, $period);
+        $aa55 = $this->bunriRateService->minRateForSeparatedTaxes($payload, $period);
 
         $finalCandidates = array_filter([
-            $tokureiStandard,
-            self::FIXED_90_RATE,
-            $adoptedMin,
-            $bunriMin,
+            $aa50,
+            $aa51,
+            $aa54,
+            $aa55,
         ], static fn (?float $value) => $value !== null);
-        $finalRate = $finalCandidates ? min($finalCandidates) : null;
+        $aa56 = $finalCandidates ? min($finalCandidates) : null;
 
         return [
-            'tokurei_standard' => $tokureiStandard,
-            'tokurei_90' => self::FIXED_90_RATE,
-            'sanrin_base' => $sanrinBase,
-            'taishoku_base' => $taishokuBase,
-            'adopted_min' => $adoptedMin,
-            'bunri_min' => $bunriMin,
-            'final_rate' => $finalRate,
+            'AA50' => $aa50,
+            'AA51' => $aa51,
+            'AA52' => $aa52,
+            'AA53' => $aa53,
+            'AA54' => $aa54,
+            'AA55' => $aa55,
+            'AA56' => $aa56,
         ];
     }
 }

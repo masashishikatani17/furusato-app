@@ -46,4 +46,19 @@ final class PayloadAccessor
 
         return max(0.0, (float) $value);
     }
+
+    public static function floorToThousands(int|float|null $value): ?float
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $amount = (float) $value;
+
+        if ($amount <= 0.0) {
+            return 0.0;
+        }
+
+        return floor($amount / 1000) * 1000;
+    }
 }

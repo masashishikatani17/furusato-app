@@ -89,7 +89,7 @@
 
         @php ob_start(); @endphp
       <div>
-        <h5 class="card-title mb-3">確定申告書(あああ総合課税)</h5>
+        <h5 class="card-title mb-3">確定申告書(総合課税)</h5>
         <div class="table-responsive">
           <table class="table table-bordered table-sm align-middle mb-0">
             <thead class="table-light text-center align-middle">

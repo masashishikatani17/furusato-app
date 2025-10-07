@@ -121,80 +121,16 @@
         </div>
       </div>
       <div class="d-flex justify-content-end gap-2">
-        <button type="submit" class="btn btn-success" id="furusato-syori-save" formnovalidate>戻る</button>
-        <button type="button" class="btn btn-primary" id="furusato-syori-go-input">入力へ進む</button>
+        <!-- 戻る：保存POST（redirect_to 指定なし → controller 既定で data.index へ）-->
+        <button type="submit" class="btn btn-success" formnovalidate>戻る</button>
+        <!-- 入力へ進む：保存POST → /furusato/syori/save?redirect_to=input -->
+        <button type="submit"
+                class="btn btn-primary"
+                formnovalidate
+                formmethod="POST"
+                formaction="{{ route('furusato.syori.save', ['redirect_to' => 'input']) }}">入力へ進む</button>
       </div>
     </div>
   </form>
 </div>
 @endsection
-
-@push('scripts')
-<script>
-(function() {
-  const form = document.getElementById('furusato-syori-form');
-  if (!form) {
-    return;
-  }
-  const prefStandardInput = document.getElementById('pref-standard-rate');
-  const muniStandardInput = document.getElementById('muni-standard-rate');
-  const prefAppliedInput = document.getElementById('pref-applied-rate');
-  const muniAppliedInput = document.getElementById('muni-applied-rate');
-  const shiteiRadios = form.querySelectorAll('input[name="shitei_toshi_flag"]');
-  let prefAppliedDirty = false;
-  let muniAppliedDirty = false;
-  const valuesEqual = function(a, b) {
-    const av = parseFloat(a);
-    const bv = parseFloat(b);
-    if (Number.isNaN(av) || Number.isNaN(bv)) {
-      return false;
-    }
-    return Math.abs(av - bv) < 1e-9;
-  };
-
-  prefAppliedInput?.addEventListener('input', function() {
-    prefAppliedDirty = true;
-  });
-  muniAppliedInput?.addEventListener('input', function() {
-    muniAppliedDirty = true;
-  });
-
-  shiteiRadios.forEach(function(radio) {
-    radio.addEventListener('change', function() {
-      const isDesignated = form.querySelector('input[name="shitei_toshi_flag"]:checked')?.value === '1';
-      const prefStandard = isDesignated ? 0.02 : 0.04;
-      const muniStandard = isDesignated ? 0.08 : 0.06;
-      if (prefStandardInput) {
-        prefStandardInput.value = prefStandard.toFixed(2);
-      }
-      if (muniStandardInput) {
-        muniStandardInput.value = muniStandard.toFixed(2);
-      }
-      if (!prefAppliedDirty && prefAppliedInput) {
-        prefAppliedInput.value = prefStandard.toFixed(2);
-      }
-      if (!muniAppliedDirty && muniAppliedInput) {
-        muniAppliedInput.value = muniStandard.toFixed(2);
-      }
-    });
-  });
-
-  prefAppliedDirty = !(prefAppliedInput && prefStandardInput && valuesEqual(prefAppliedInput.value, prefStandardInput.value));
-  muniAppliedDirty = !(muniAppliedInput && muniStandardInput && valuesEqual(muniAppliedInput.value, muniStandardInput.value));
-
-  document.getElementById('furusato-syori-back')?.addEventListener('click', function() {
-    form.redirect_to.value = '';
-  });
-
-  document.getElementById('furusato-syori-save')?.addEventListener('click', function() {
-    form.redirect_to.value = '';
-  });
-
-  document.getElementById('furusato-syori-go-input')?.addEventListener('click', function(event) {
-    event.preventDefault();
-    form.redirect_to.value = 'input';
-    form.submit();
-  });
-})();
-</script>
-@endpush

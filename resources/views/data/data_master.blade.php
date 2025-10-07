@@ -3,8 +3,9 @@
 
 @section('content')
 <div class="container" style="max-width: 1440px; margin:0 auto;">
-  <div class="d-flex justify-content-between align-items-center py-3">
-    <h5 class="mb-0">▶ お客様・年度一覧</h5>
+  <div class="d-flex align-items-start ms-3">
+    <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+    <h5 class="mb-0"> お客様・年度一覧</h5>
     <!-- ヘッダの新規作成ボタンは下部帯に集約 -->
   </div>
 

@@ -184,13 +184,17 @@ final class FurusatoController extends Controller
         $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $payload = FurusatoInput::query()
+            ->where('data_id', $data->id)
+            ->value('payload');
+        $out = ['inputs' => is_array($payload) ? $payload : []];
 
         return view('tax.furusato.details.jigyo_eigyo_details', [
             'dataId' => $data->id,
             'kihuYear' => $kihuYear,
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
-            'out' => ['inputs' => $this->getFurusatoInputPayload($data)],
+            'out' => $out,
         ]);
     }
 
@@ -235,13 +239,17 @@ final class FurusatoController extends Controller
         $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
-
+        $payload = FurusatoInput::query()
+            ->where('data_id', $data->id)
+            ->value('payload');
+        $out = ['inputs' => is_array($payload) ? $payload : []];
+        
         return view('tax.furusato.details.fudosan_details', [
             'dataId' => $data->id,
             'kihuYear' => $kihuYear,
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
-            'out' => ['inputs' => $this->getFurusatoInputPayload($data)],
+            'out' => $out,
         ]);
     }
 

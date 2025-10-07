@@ -6,6 +6,12 @@
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title', 'Furusato Calc')</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  {{-- App common styles (public/css/style.css) with cache-busting --}}
+  @php
+    $cssPath = public_path('css/style.css');
+    $v = is_file($cssPath) ? filemtime($cssPath) : time();
+  @endphp
+  <link href="{{ asset('css/style.css') }}?v={{ $v }}" rel="stylesheet">  
   @stack('styles')
 </head>
 <body class="bg-light">

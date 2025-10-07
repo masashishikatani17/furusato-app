@@ -121,14 +121,22 @@
         </div>
       </div>
       <div class="d-flex justify-content-end gap-2">
-        <!-- 戻る：保存POST（redirect_to 指定なし → controller 既定で data.index へ）-->
-        <button type="submit" class="btn btn-success" formnovalidate>戻る</button>
-        <!-- 入力へ進む：保存POST → /furusato/syori/save?redirect_to=input -->
+        <button type="submit" class="btn btn-success btn-sm" formnovalidate>保存</button>
         <button type="submit"
-                class="btn btn-primary"
+                class="btn btn-primary btn-sm"
                 formnovalidate
-                formmethod="POST"
-                formaction="{{ route('furusato.syori.save', ['redirect_to' => 'input']) }}">入力へ進む</button>
+                name="redirect_to"
+                value="input">入力へ進む</button>
+        <button type="submit"
+                class="btn btn-outline-secondary btn-sm"
+                formnovalidate
+                name="redirect_to"
+                value="data_master">戻る</button>
+        <button type="submit"
+                class="btn btn-outline-secondary btn-sm"
+                formnovalidate
+                name="redirect_to"
+                value="master">マスター</button>
       </div>
     </div>
   </form>

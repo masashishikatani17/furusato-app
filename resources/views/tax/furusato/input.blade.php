@@ -10,18 +10,16 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="mb-0">ふるさと納税：インプット表</h5>
       <div class="d-flex flex-wrap justify-content-end gap-2">
-        <!-- 戻る：保存POST → /furusato/save?redirect_to=syori -->
         <button type="submit"
                 class="btn btn-outline-secondary btn-sm"
                 formnovalidate
-                formmethod="POST"
-                formaction="{{ route('furusato.save', ['redirect_to' => 'syori']) }}">戻る</button>
-        <!-- マスター：保存POST → /furusato/save?redirect_to=master -->
+                name="redirect_to"
+                value="syori">戻る</button>
         <button type="submit"
                 class="btn btn-outline-secondary btn-sm"
                 formnovalidate
-                formmethod="POST"
-                formaction="{{ route('furusato.save', ['redirect_to' => 'master']) }}">マスター</button>
+                name="redirect_to"
+                value="master">マスター</button>
         <button type="submit" class="btn btn-success btn-sm" formnovalidate>保存</button>
         <button type="submit" class="btn btn-primary btn-sm" formaction="{{ route('furusato.calc') }}">送信</button>
       </div>

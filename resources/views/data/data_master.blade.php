@@ -2,182 +2,184 @@
 @extends('layouts.min')
 
 @section('content')
-<div class="container" style="max-width: 1440px; margin:0 auto;">
-  <div class="d-flex align-items-start ms-3">
-    <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-    <h5 class="mb-0"> お客様・年度一覧</h5>
-    <!-- ヘッダの新規作成ボタンは下部帯に集約 -->
-  </div>
-
-  @php
-    // Blade → Alpine 受け渡し用
-    $guestsJson = $guests->map(fn($g) => [
-      'id' => (int)$g->id,
-      'name' => $g->name,
-      'user_id' => (int)($g->user_id ?? 0),
-    ]);
-    $datasJson = $datas->map(fn($d) => [
-      'id' => (int)$d->id,
-      'guest_id' => (int)$d->guest_id,
-      'kihu_year' => (int)$d->kihu_year,
-      'owner_user_id' => (int)($d->owner_user_id ?? 0),
-      'user_id' => (int)($d->user_id ?? 0),
-      // 鍵マーク表示用（feature.data_privacyがfalseでもnullで来るだけなので安全）
-      'visibility' => $d->visibility ?? null,
-    ]);
-  @endphp
-
-  <div x-data="masterPane(@js($guestsJson), @js($datasJson), {{ $guestId ?? 'null' }})"
-       x-init="init()" x-cloak class="border rounded p-3">
-
-    <!-- 上部：検索（お客様名） -->
-    <div class="d-flex align-items-center gap-2 mb-2">
-      <label class="mb-0">表示：</label>
-      <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" value="all" x-model="viewMode" id="viewAll">
-        <label class="form-check-label" for="viewAll">全表示</label>
-      </div>
-      <div class="form-check form-check-inline">
-        <input class="form-check-input" type="radio" value="search" x-model="viewMode" id="viewSearch">
-        <label class="form-check-label" for="viewSearch">検　索</label>
-      </div>
-      <template x-if="viewMode==='search'">
-        <input type="text" class="form-control form-control-sm" style="width: 220px;"
-               placeholder="お客様名で検索" x-model="searchQuery"
-               @keyup.enter="updateFilter" @blur="updateFilter">
-      </template>
+<div class="container" style="max-width: 1440px; margin:0 auto;background-color:#4193d0;">
+  <div class="wrapper">
+    <div class="d-flex align-items-start ms-3">
+      <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+      <h5 class="mb-0"> お客様・年度一覧</h5>
+      <!-- ヘッダの新規作成ボタンは下部帯に集約 -->
     </div>
-
-    <!-- 2ペイン -->
-    <div class="d-flex gap-3 flex-nowrap justify-content-center" style="overflow-x:auto;">
-      <!-- 左：お客様一覧 -->
-      <div class="flex-shrink-0" style="width: 300px;">
-        <table class="table table-bordered table-sm mb-2">
-          <thead class="table-light">
-          <tr><th class="text-center" style="height: 25px;background-color:#E8EFF0;">お客様名</th></tr>
-          </thead>
-        </table>
-        <div class="border" style="max-height: 420px; overflow-y: auto;">
-          <table class="table table-sm mb-0">
-            <tbody>
-            <template x-for="g in filteredGuests" :key="g.id">
-              <tr :class="g.id===guestId ? 'table-primary' : ''" style="cursor:pointer;">
-                <td class="py-1 px-2" @click="selectGuest(g.id)" x-text="g.name"></td>
-              </tr>
-            </template>
-            <template x-if="filteredGuests.length===0">
-              <tr><td class="text-muted py-2 px-2">（お客様がありません）</td></tr>
-            </template>
-            </tbody>
-          </table>
+  
+    @php
+      // Blade → Alpine 受け渡し用
+      $guestsJson = $guests->map(fn($g) => [
+        'id' => (int)$g->id,
+        'name' => $g->name,
+        'user_id' => (int)($g->user_id ?? 0),
+      ]);
+      $datasJson = $datas->map(fn($d) => [
+        'id' => (int)$d->id,
+        'guest_id' => (int)$d->guest_id,
+        'kihu_year' => (int)$d->kihu_year,
+        'owner_user_id' => (int)($d->owner_user_id ?? 0),
+        'user_id' => (int)($d->user_id ?? 0),
+        // 鍵マーク表示用（feature.data_privacyがfalseでもnullで来るだけなので安全）
+        'visibility' => $d->visibility ?? null,
+      ]);
+    @endphp
+  
+    <div x-data="masterPane(@js($guestsJson), @js($datasJson), {{ $guestId ?? 'null' }})"
+         x-init="init()" x-cloak class="border rounded p-3">
+  
+      <!-- 上部：検索（お客様名） -->
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <label class="mb-0">表示：</label>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" value="all" x-model="viewMode" id="viewAll">
+          <label class="form-check-label" for="viewAll">全表示</label>
         </div>
-      </div>
-
-      <!-- 右：年度一覧 -->
-      <div class="flex-shrink-0" style="flex: 0 0 320px; width: 320px;">
-        <table class="table table-bordered table-sm mb-2 align-middle">
-          <thead class="table-light">
-          <tr style="height:25px;">
-            <th class="text-center" style="width: 220px;background-color:#E8EFF0;">
-              年　度
-              <button type="button" class="btn btn-sm btn-outline-primary ms-2 py-0 px-1"
-                      style="font-size: 11px; height: 18px; line-height: 1;"
-                      @click="toggleSort()"
-                      :title="sortOrder==='desc' ? '新しい順→古い順に切替' : '古い順→新しい順に切替'">
-                ⇅
-              </button>
-            </th>
-            <th class="text-center" style="width: 100px;background-color:#E8EFF0;">選　択</th>
-          </tr>
-          </thead>
-        </table>
-        <div class="border" style="max-height: 500px; overflow-y: auto;">
-          <table class="table table-sm mb-0 align-middle">
-            <tbody>
-            <template x-for="d in filteredDatas" :key="d.id">
-              <tr style="height: 25px; cursor:pointer;"
-                  :class="selectedDataId===d.id ? 'table-active' : ''"
-                  @click="selectedDataId=d.id">
-                <td class="text-end pe-3" style="width:120px;">
-                  <template x-if="isPrivate(d)">
-                    <span title="非共有（作成者のみ）">🔒</span>
-                  </template>
-                  <span x-text="formatYear(d.kihu_year)"></span>
-                </td>
-                <td class="text-center" style="width:100px;">
-                  <button type="button" class="btn-base-blue"
-                          @click.stop="selectedDataId=d.id; openYearModal(d)">選 択</button>
-                </td>
-              </tr>
-            </template>
-            <template x-if="filteredDatas.length===0">
-              <tr><td class="text-muted py-2 px-2" colspan="2">（年度データがありません）</td></tr>
-            </template>
-            </tbody>
-          </table>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="radio" value="search" x-model="viewMode" id="viewSearch">
+          <label class="form-check-label" for="viewSearch">検　索</label>
         </div>
+        <template x-if="viewMode==='search'">
+          <input type="text" class="form-control form-control-sm" style="width: 220px;"
+                 placeholder="お客様名で検索" x-model="searchQuery"
+                 @keyup.enter="updateFilter" @blur="updateFilter">
+        </template>
       </div>
-    </div>
-
-    <!-- 下部ボタン帯（“ビル”と同じ配置） -->
-    <div class="btn-footer mt-4">
-      <table class="table-s-bottom w-100">
-        <tr>
-          <td class="align-middle">
-            <div class="d-flex justify-content-between">
-              <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('data.create') }}" class="btn-base">新規データの作成</a>
-                <a :href="selectedDataId ? `/data/copyForm?data_id=${selectedDataId}` : '#'"
-                   class="btn-base"
-                   :class="{'btn-disabled-link': !selectedDataId}"
-                   :title="selectedDataId ? '' : 'コピーするデータを選択してください'">
-                  既存データのコピー
-                </a>
-                <!-- ▼ PDF出力（分離課税） -->
-                <a href="#"
-                   class="btn-base"
-                   @click.prevent="openPdf('bunri')"
-                   :class="{'btn-disabled-link': !selectedDataId}"
-                   :title="selectedDataId ? '確定申告書（分離課税）PDFを出力' : '年度データを選択してください'">
-                  PDF出力（分離課税）
-                </a>
-              </div>
-              <div class="d-flex align-items-center">
-                <a href="{{ route('data.index') }}" class="btn-base">戻 る</a>
-                <!--<img src="{{ asset('storage/images/kado_rightbottom.jpg') }}" alt="…">-->
-              </div>
-            </div>
-          </td>
-        </tr>
-      </table>
-    </div>
-    <!-- 年度変更モーダル -->
-    <template x-if="showYearModal">
-      <div class="position-fixed top-0 start-0 w-100 h-100"
-           style="background: rgba(0,0,0,.35); z-index: 1055;"
-           @click.self="showYearModal=false">
-        <div class="bg-white rounded shadow p-3"
-             style="width:520px; max-width:90vw; margin:10vh auto;">
-          <h6 class="mb-2">年度の選択</h6>
-          <div class="text-muted mb-3" style="font-size: 0.9rem;">
-            同じ年度を選ぶと既存データへ遷移します。別の年度を選ぶと複製して新しいデータへ遷移します。
-          </div>
-          <div class="d-flex align-items-center gap-2 mb-3">
-            <label class="mb-0" style="width:90px;">年度</label>
-            <select class="form-select form-select-sm" style="width:200px;" x-model.number="yearSelected">
-              <template x-for="y in yearOptions" :key="y">
-                <option :value="y" x-text="y + '年'"></option>
+  
+      <!-- 2ペイン -->
+      <div class="d-flex gap-3 flex-nowrap justify-content-center" style="overflow-x:auto;">
+        <!-- 左：お客様一覧 -->
+        <div class="flex-shrink-0" style="width: 300px;">
+          <table class="table table-bordered table-sm mb-2">
+            <thead class="table-light">
+            <tr><th class="text-center" style="height: 25px;background-color:#E8EFF0;">お客様名</th></tr>
+            </thead>
+          </table>
+          <div class="border" style="max-height: 420px; overflow-y: auto;">
+            <table class="table table-sm mb-0">
+              <tbody>
+              <template x-for="g in filteredGuests" :key="g.id">
+                <tr :class="g.id===guestId ? 'table-primary' : ''" style="cursor:pointer;">
+                  <td class="py-1 px-2" @click="selectGuest(g.id)" x-text="g.name"></td>
+                </tr>
               </template>
-            </select>
+              <template x-if="filteredGuests.length===0">
+                <tr><td class="text-muted py-2 px-2">（お客様がありません）</td></tr>
+              </template>
+              </tbody>
+            </table>
           </div>
-          <div class="d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-primary btn-sm" @click="proceedByYear()">決 定</button>
-            <button type="button" class="btn btn-secondary btn-sm" @click="showYearModal=false">戻 る</button>
+        </div>
+  
+        <!-- 右：年度一覧 -->
+        <div class="flex-shrink-0">
+          <table class="table table-bordered table-sm mb-2 align-middle">
+            <thead class="table-light">
+            <tr style="height:25px;">
+              <th class="text-center" style="width: 220px;background-color:#E8EFF0;">
+                年　度
+                <button type="button" class="btn btn-sm btn-outline-primary ms-2 py-0 px-1"
+                        style="font-size: 11px; height: 18px; line-height: 1;"
+                        @click="toggleSort()"
+                        :title="sortOrder==='desc' ? '新しい順→古い順に切替' : '古い順→新しい順に切替'">
+                  ⇅
+                </button>
+              </th>
+              <th class="text-center" style="width: 350px;background-color:#E8EFF0;">選　択</th>
+            </tr>
+            </thead>
+          </table>
+          <div class="border" style="max-height: 500px; overflow-y: auto;">
+            <table class="table table-sm mb-0 align-middle">
+              <tbody>
+              <template x-for="d in filteredDatas" :key="d.id">
+                <tr style="height: 25px; cursor:pointer;"
+                    :class="selectedDataId===d.id ? 'table-active' : ''"
+                    @click="selectedDataId=d.id">
+                  <td class="text-end pe-3" style="width:120px;">
+                    <template x-if="isPrivate(d)">
+                      <span title="非共有（作成者のみ）">🔒</span>
+                    </template>
+                    <span x-text="formatYear(d.kihu_year)"></span>
+                  </td>
+                  <td class="text-center" style="width:350px;" nowrap="nowrap">
+                    <div class="d-flex flex-column gap-1 align-items-center">
+                      <button type="button" class="btn-base-blue"
+                              @click.stop="selectedDataId=d.id; openYearModal(d)">選 択</button>
+                      <form method="GET" action="{{ route('furusato.syori') }}" class="d-inline">
+                        <input type="hidden" name="data_id" :value="d.id">
+                        <button type="submit" class="btn btn-base-blue">処理メニューへ</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+              <template x-if="filteredDatas.length===0">
+                <tr><td class="text-muted py-2 px-2" colspan="2">（年度データがありません）</td></tr>
+              </template>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-    </template>
-
+  
+      <!-- 下部ボタン帯（“ビル”と同じ配置） -->
+                <div class="btn-footer">
+                  <div class="d-flex justify-content-between">
+                    <div class="d-flex flex-wrap gap-2">
+                      <a href="{{ route('data.create') }}" class="btn-base">新規データの作成</a>
+                      <a :href="selectedDataId ? `/data/copyForm?data_id=${selectedDataId}` : '#'"
+                         class="btn-base"
+                         :class="{'btn-disabled-link': !selectedDataId}"
+                         :title="selectedDataId ? '' : 'コピーするデータを選択してください'">
+                        既存データのコピー
+                      </a>
+                      <!-- ▼ PDF出力（分離課税） -->
+                      <a href="#"
+                         class="btn-base"
+                         @click.prevent="openPdf('bunri')"
+                         :class="{'btn-disabled-link': !selectedDataId}"
+                         :title="selectedDataId ? '確定申告書（分離課税）PDFを出力' : '年度データを選択してください'">
+                        PDF出力（分離課税）
+                      </a>
+                    </div>
+                    <div class="d-flex align-items-center">
+                      <a href="{{ route('data.index') }}" class="btn-base">戻 る</a>
+                      <!--<img src="{{ asset('storage/images/kado_rightbottom.jpg') }}" alt="…">-->
+                    </div>
+                  </div>
+                </div>
+    </div>
+  </div>   
+      <!-- 年度変更モーダル -->
+      <template x-if="showYearModal">
+        <div class="position-fixed top-0 start-0 w-100 h-100"
+             style="background: rgba(0,0,0,.35); z-index: 1055;"
+             @click.self="showYearModal=false">
+          <div class="bg-white rounded shadow p-3"
+               style="width:520px; max-width:90vw; margin:10vh auto;">
+            <h6 class="mb-2">年度の選択</h6>
+            <div class="text-muted mb-3" style="font-size: 0.9rem;">
+              同じ年度を選ぶと既存データへ遷移します。別の年度を選ぶと複製して新しいデータへ遷移します。
+            </div>
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <label class="mb-0" style="width:90px;">年度</label>
+              <select class="form-select form-select-sm" style="width:200px;" x-model.number="yearSelected">
+                <template x-for="y in yearOptions" :key="y">
+                  <option :value="y" x-text="y + '年'"></option>
+                </template>
+              </select>
+            </div>
+            <div class="d-flex justify-content-end gap-2">
+              <button type="button" class="btn btn-primary btn-sm" @click="proceedByYear()">決 定</button>
+              <button type="button" class="btn btn-secondary btn-sm" @click="showYearModal=false">戻 る</button>
+            </div>
+          </div>
+        </div>
+      </template>
   </div>
 </div>
 @endsection

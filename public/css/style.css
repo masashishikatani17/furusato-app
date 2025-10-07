@@ -1,216 +1,429 @@
-/* ==========================================================================
-   furusato style.css (Essential Set)
-   - Based on 「ビル」から“必須セット”のみ抽出・再構成
-   - Bootstrap の基本クラス (.btn, .table, .form-control 等) は上書きしない
-   - data_master / data_create / data_copy で即時効果が出るものに限定
-   ========================================================================== */
-
+        /* ==========================================================================
+           furusato style.css (Essential Set)
+           - Based on 「ビル」から“必須セット”のみ抽出・再構成
+           - Bootstrap の基本クラス (.btn, .table, .form-control 等) は上書きしない
+           - data_master / data_create / data_copy で即時効果が出るものに限定
+           ========================================================================== */
+        
+ /* --------------------------------------
+  * レイアウト
+  * ------------------------------------ */
+        .container {
+            width: 700px;
+            margin: 0px auto;
+            padding: 0px;
+            background-color: #ffffff; /* 白背景 */
+            border: 1px solid #ddd;    /* 薄いグレー枠 */
+            border-radius: 8px;        /* 角丸 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 軽い影 */
+        }
+        
+        .container-blue {
+            width: 700px;
+            margin: 0px auto;
+            padding: 0px;
+            background-color: #ffffff; /* 白背景 */
+            border: 2px solid #4193d0;    /* 太い青枠 */
+            border-radius: 8px;        /* 角丸 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 軽い影 */
+        }
+        
+        .wrapper {
+          width: 95%;
+          max-width: 1200px;
+          margin: 0 auto;
+          background-color: #ffffff;
+        }
+        
+        /* Alpine.js 初期化前のちらつき防止 */
+        [x-cloak] { display: none !important; }
+        
 /* --------------------------------------
- * レイアウト補助
- * ------------------------------------ */
-.wrapper {
-  width: 95%;
-  max-width: 1200px;
-  margin: 0 auto;
-  background-color: #ffffff;
-}
-
-/* Alpine.js 初期化前のちらつき防止 */
-[x-cloak] { display: none !important; }
-
-hb {
-    font-size: 13px;
-    font-weight: bold;
-    color: #000;
-    margin-bottom: 0px;
-}
-
-
+  * 文字
+  * ------------------------------------ */        
+        hb {
+            font-size: 13px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 0px;
+        }
+        
+        /* ※注 文字*/
+        p-small {
+            font-size: 12px;
+            text-align: left;
+            color: #555555; /* 黒 */
+        }    
+            
+        
 /* --------------------------------------
- * 下部ボタン帯（“ビル”と同じ構造）
- * data_master 下部で使用
+  * ボタン（独自クラス）
+         * Bootstrapの .btn とは別に運用
  * ------------------------------------ */
-.table-s-bottom {
-  background-color: #666666;
-  color: #ffffff;
-  text-align: right;
-  height: 40px;
-  width: 100%;
-  border-bottom: 1px solid #999;
-}
-.table-s-bottom td {
-  padding: 8px;
-  text-align: right;
-  border-bottom: 1px solid #ddd;
-}
-
-/* --------------------------------------
- * ボタン（独自クラス）
- * Bootstrapの .btn とは別に運用
- * ------------------------------------ */
-.btn-base {
-  display: inline-block;
-  padding: 3px 10px;
-  font-size: 13px;
-  font-weight: normal;
-  text-align: center;
-  text-decoration: none;
-  border-radius: 5px;
-  transition: all 0.3s ease;
-  border: 1px solid #ccc;
-  background-color: #fff;
-  color: #000;
-  cursor: pointer;
-  line-height: 1.2;
-}
-
-.btn-base-blue {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 3px 10px;
-  font-size: 13px;
-  font-weight: normal;
-  text-align: center;
-  text-decoration: none;
-  border-radius: 5px;
-  transition: all 0.3s ease;
-  border: 1px solid #ccc;
-  background-color: #e9eff7;
-  color: #000;
-  cursor: pointer;
-  line-height: 1.2;
-}
-
-.btn-base-red {
-  display: inline-block;
-  padding: 3px 10px;
-  font-size: 13px;
-  font-weight: normal;
-  text-align: center;
-  text-decoration: none;
-  border-radius: 5px;
-  transition: all 0.3s ease;
-  border: 1px solid #ccc;
-  background-color: #e9eff7;
-  color: #d90000;
-  cursor: pointer;
-  line-height: 1.2;
-}
-
-.btn-base-low {
-  display: inline-block;
-  height: 22px;
-  padding: 3px 10px;
-  font-size: 13px;
-  font-weight: normal;
-  text-align: center;
-  text-decoration: none;
-  border-radius: 5px;
-  transition: all 0.3s ease;
-  border: 1px solid #ccc;
-  background-color: #fff;
-  color: #000;
-  cursor: pointer;
-}
-
-/* 非活性リンク風（クリック不可） */
-.btn-disabled {
-  display: inline-block;
-  padding: 3px 10px;
-  font-size: 13px;
-  font-weight: normal;
-  text-align: center;
-  text-decoration: none;
-  border-radius: 5px;
-  transition: all 0.3s ease;
-  border: 1px solid #ccc;
-  background-color: #ddd !important;
-  color: #666 !important;
-  line-height: 1.2;
-}
-.btn-disabled-link { pointer-events: none; opacity: 0.4; }
-.disabled-link     { pointer-events: none; opacity: 0.2; }
-
-/* ボタングループ（ラベル付）の縦並び補助 */
-.btn-vgroup { display: inline-flex; flex-direction: column; align-items: flex-start; }
-.btn-group-label {
-  min-width: 88px;
-  padding: 0 3px;
-  text-align: center;
-  font-size: 13px;
-  display: inline-block;
-  height: 18px;
-}
-.btn-group-label.create { background: #999999; color: #fff; }
-.btn-group-label.delete { background: #999999; color: #d90000; }
-/* 2行ボタン用（改行許可） */
-.btn-change { white-space: normal; line-height: 1.15; }
-
+ 
+        .btn-base {
+          display: inline-block;
+          padding: 3px 10px;
+          font-size: 13px;
+          font-weight: normal;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 5px;
+          transition: all 0.3s ease;
+          border: 1px solid #ccc;
+          background-color: #fff;
+          color: #000;
+          cursor: pointer;
+          line-height: 1.2;
+        }
+        
+        .btn-base-blue {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 3px 10px;
+          font-size: 13px;
+          font-weight: normal;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 5px;
+          transition: all 0.3s ease;
+          border: 1px solid #ccc;
+          background-color: #e9eff7;
+          color: #000;
+          cursor: pointer;
+          line-height: 1.2;
+        }
+        
+        .btn-base-red {
+          display: inline-block;
+          padding: 3px 10px;
+          font-size: 13px;
+          font-weight: normal;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 5px;
+          transition: all 0.3s ease;
+          border: 1px solid #ccc;
+          background-color: #e9eff7;
+          color: #d90000;
+          cursor: pointer;
+          line-height: 1.2;
+        }
+        
+        .btn-base-green {
+          display: inline-block;
+          padding: 3px 10px;
+          font-size: 13px;
+          font-weight: normal;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 5px;
+          transition: all 0.3s ease;
+          border: 1px solid #ccc;
+          background-color: #C0DEC5;
+          color: #000;
+          cursor: pointer;
+          line-height: 1.2;
+        }
+        
+        .btn-base-low {
+          display: inline-block;
+          height: 22px;
+          padding: 3px 10px;
+          font-size: 13px;
+          font-weight: normal;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 5px;
+          transition: all 0.3s ease;
+          border: 1px solid #ccc;
+          background-color: #fff;
+          color: #000;
+          cursor: pointer;
+        }
+        
+        /* 非活性リンク風（クリック不可） */
+        .btn-disabled {
+          display: inline-block;
+          padding: 3px 10px;
+          font-size: 13px;
+          font-weight: normal;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 5px;
+          transition: all 0.3s ease;
+          border: 1px solid #ccc;
+          background-color: #ddd !important;
+          color: #666 !important;
+          line-height: 1.2;
+        }
+        .btn-disabled-link { pointer-events: none; opacity: 0.4; }
+        .disabled-link     { pointer-events: none; opacity: 0.2; }
+        
+        /* ボタングループ（ラベル付）の縦並び補助 */
+        .btn-vgroup { display: inline-flex; flex-direction: column; align-items: flex-start; }
+        .btn-group-label {
+          min-width: 88px;
+          padding: 0 3px;
+          text-align: center;
+          font-size: 13px;
+          display: inline-block;
+          height: 18px;
+        }
+        .btn-group-label.create { background: #999999; color: #fff; }
+        .btn-group-label.delete { background: #999999; color: #d90000; }
+        /* 2行ボタン用（改行許可） */
+        .btn-change { white-space: normal; line-height: 1.15; }
+        
 /* --------------------------------------
  * テーブル（軽量／選択／スクロール）
- * Bootstrap の .table は上書きしない
+         * Bootstrap の .table は上書きしない
  * ------------------------------------ */
+        
+        /* 選択系の軽量テーブル（行間詰め、左寄せ） */
+        .table-m-sentaku {
+          background-color: #fff;
+          color: #000;
+          padding: 2px;
+          margin: 3px auto;
+          border-bottom: 1px solid #999;
+        }
+        
+        .table-base {
+          /* 幅を100%にせず、テーブル自体を中央寄せ */
+            border-collapse: collapse; 
+            margin: 10px auto;     /* 上下10px, 左右 auto */
+            font-size: 13px;
+            text-align: center;
+            vertical-align: middle; /* tdの内容を縦中央に配置する */
+            display: table;    /* tableレイアウトを使う */
+            line-height: 1.2;
+        }
+        
+        
+        
+        
+        
+        
+        
+        
+        .table-m-sentaku td {
+          vertical-align: middle !important;
+          text-align: left;
+          padding-left: 10px;
+        }
+        
+        /* コンパクト化ユーティリティ */
+        .table-compact td,
+        .table-compact th {
+          padding: 1px 4px !important;
+        }
+        
+        /* 偶数ストライプ/ホバーを無効化（他所の指定がある場合に打消し） */
+        .no-stripe tbody tr:nth-child(even),
+        .no-stripe tbody tr:hover {
+          background-color: transparent !important;
+        }
+        
+        /* 固定ヘッダ＋tbodyスクロール（表幅を揃える構成） */
+        .scroll-body-table thead tr {
+          display: table;
+          width: 100%;
+          table-layout: fixed;
+        }
+        .scroll-body-table tbody {
+          display: block;
+          max-height: var(--scroll-height, 420px);
+          overflow-y: auto;
+        }
+        .scroll-body-table tbody tr {
+          display: table;
+          width: 100%;
+          table-layout: fixed;
+        }
+        
+        .table-i-bottom {
+          background-color: #666666;
+          color: #ffffff;
+          text-align: right;
+          height: 40px;
+          width: 100%;
+        }
+        
+        .table-i-bottom td {
+          padding: 8px;
+          text-align: right;
+          border-bottom: 1px solid #ddd;
+        }
+        
+        
+        .form-control {
+            font-size: 13px;
+            height: 22px;
+            line-height: 1.2;
+            text-align: right;
+            display: inline-block;
+            border-radius: 5px;
+            border-color:#d0d0d0;
+        }
+        .kana2 {
+            font-size: 13px;
+            margin: auto;
+            height: 22px;
+            width: 57px;
+            text-align: left;
+            line-height: 1.3;
+            border-radius: 5px;
+            border-color:#d0d0d0;
+        }
+        .kana3 {
+            font-size: 13px;
+            margin: auto;
+            height: 22px;
+            width: 70px;
+            text-align: left;
+            line-height: 1.3;
+            border-radius: 5px;
+            border-color:#d0d0d0;
+        }
 
-/* 選択系の軽量テーブル（行間詰め、左寄せ） */
-.table-m-sentaku {
-  background-color: #fff;
-  color: #000;
-  padding: 2px;
-  margin: 3px auto;
-  border-bottom: 1px solid #999;
-}
-.table-m-sentaku td {
-  vertical-align: middle !important;
-  text-align: left;
-  padding-left: 10px;
-}
+/* --------------------------------------
+  * フォームコントロール
+  * ------------------------------------ */
+        .form-control {
+            font-size: 13px;
+            height: 22px;
+            line-height: 1.2;
+            text-align: right;
+            display: inline-block;
+            border-radius: 5px;
+            border-color:#d0d0d0;
+        }
+        .kana2 {
+            font-size: 13px;
+            margin: auto;
+            height: 22px;
+            width: 57px;
+            text-align: left;
+            line-height: 1.3;
+            border-radius: 5px;
+            border-color:#d0d0d0;
+        }
+        .kana3 {
+            font-size: 13px;
+            margin: auto;
+            height: 22px;
+            width: 70px;
+            text-align: left;
+            line-height: 1.3;
+            border-radius: 5px;
+            border-color:#d0d0d0;
+        }  
+          
+        .suji2 {
+            width: 45px !important;
+            height: 22px;
+            line-height: 1.2;
+            }
+        
+        .input-group .form-control.suji2 {
+            flex: 0 0 auto !important; /* 横幅を自動拡張しない */
+            width: 40px !important;    /* 幅を強制固定 */
+            height: 22px;
+            line-height: 1.2;
+        }
+        
+        .suji3 {
+            width: 52px !important;
+            height: 22px;
+            line-height: 1.2;
+            }
+        
+        .input-group .form-control.suji3 {
+            flex: 0 0 auto !important; /* 横幅を自動拡張しない */
+            width: 52px !important;    /* 幅を強制固定 */
+            height: 22px;
+            line-height: 1.2;
+        }
+        
+        .suji4 {
+            width: 60px !important;
+            height: 22px;
+            line-height: 1.2;
+            }
+        .input-group .form-control.suji4 {
+            flex: 0 0 auto !important; /* 横幅を自動拡張しない */
+            width: 60px !important;    /* 幅を強制固定 */
+            height: 22px;
+            line-height: 1.2;
+        }
+                 
+        .suji5 {
+            width: 70px !important;
+            height: 22px;
+            line-height: 1.2;
+            }
+        
+        
+        .input-group .form-control.suji5 {
+            flex: 0 0 auto !important; /* 横幅を自動拡張しない */
+            width: 70px !important;    /* 幅を強制固定 */
+            height: 22px;
+            line-height: 1.2;
+        }
 
-/* コンパクト化ユーティリティ */
-.table-compact td,
-.table-compact th {
-  padding: 1px 4px !important;
-}
-
-/* 偶数ストライプ/ホバーを無効化（他所の指定がある場合に打消し） */
-.no-stripe tbody tr:nth-child(even),
-.no-stripe tbody tr:hover {
-  background-color: transparent !important;
-}
-
-/* 固定ヘッダ＋tbodyスクロール（表幅を揃える構成） */
-.scroll-body-table thead tr {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
-}
-.scroll-body-table tbody {
-  display: block;
-  max-height: var(--scroll-height, 420px);
-  overflow-y: auto;
-}
-.scroll-body-table tbody tr {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
-}
-
-/* インプット表下帯のテーブル（高さ・背景はセル側で持つ） */
-.table-input-bottom {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed; /* 幅の暴走抑止（任意） */
-}
-.table-input-bottom td {
-  height: 40px;              /* ← 高さは td へ */
-  padding: 8px;
-  text-align: right;
-  color: #fff;
-  background-color: #4193d0; /* ← 背景は td へ */
-  vertical-align: middle;    /* ボタン縦位置を中央に */
-}
-.table-input-bottom .btn-base { color: #fff; }
-
-/* デバッグ用（必要なら一時的に有効化）
-.table-input-bottom, .table-input-bottom td { outline: 1px solid red; }
-*/
+    
+        .suji6 {
+            width: 80px !important;
+            height: 22px;
+            line-height: 1.2;
+            }
+        
+        .input-group .form-control.suji6 {
+            flex: 0 0 auto !important; /* 横幅を自動拡張しない */
+            width: 80px !important;    /* 幅を強制固定 */
+            height: 22px;
+            line-height: 1.2;
+        }
+            
+        .suji7 {
+            width: 93px !important;
+            height: 22px;
+            line-height: 1.2;
+            }
+        
+        .input-group .form-control.suji7 {
+            flex: 0 0 auto !important; /* 横幅を自動拡張しない */
+            width: 93px !important;    /* 幅を強制固定 */
+            height: 22px;
+            line-height: 1.2;
+        }
+        
+        .suji8 {
+            width: 100px !important;
+            height: 22px;
+            line-height: 1.2;
+            }
+        
+        .input-group .form-control.suji8 {
+            flex: 0 0 auto !important; /* 横幅を自動拡張しない */
+            width: 100px !important;    /* 幅を強制固定 */
+            height: 22px;
+            line-height: 1.2;
+        }
+        
+        .suji9 {
+            width: 110px !important;
+            height: 22px;
+            line-height: 1.2;
+            }
+        
+        .input-group .form-control.suji9 {
+            flex: 0 0 auto !important; /* 横幅を自動拡張しない */
+            width: 110px !important;    /* 幅を強制固定 */
+            height: 22px;
+            line-height: 1.2;
+        }
+        
+          

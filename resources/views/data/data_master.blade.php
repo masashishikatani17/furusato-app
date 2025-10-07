@@ -109,10 +109,6 @@
                     <div class="d-flex flex-column gap-1 align-items-center">
                       <button type="button" class="btn-base-blue"
                               @click.stop="selectedDataId=d.id; openYearModal(d)">選 択</button>
-                      <form method="GET" action="{{ route('furusato.syori') }}" class="d-inline">
-                        <input type="hidden" name="data_id" :value="d.id">
-                        <button type="submit" class="btn btn-base-blue">処理メニューへ</button>
-                      </form>
                     </div>
                   </td>
                 </tr>
@@ -152,9 +148,7 @@
                     </div>
                   </div>
                 </div>
-    </div>
-  </div>   
-      <!-- 年度変更モーダル -->
+      <!-- 年度変更モーダル（※ x-data の内側に配置することが重要） -->
       <template x-if="showYearModal">
         <div class="position-fixed top-0 start-0 w-100 h-100"
              style="background: rgba(0,0,0,.35); z-index: 1055;"
@@ -171,15 +165,16 @@
                 <template x-for="y in yearOptions" :key="y">
                   <option :value="y" x-text="y + '年'"></option>
                 </template>
-              </select>
+            </select>
             </div>
             <div class="d-flex justify-content-end gap-2">
-              <button type="button" class="btn btn-primary btn-sm" @click="proceedByYear()">決 定</button>
+            <button type="button" class="btn btn-primary btn-sm" @click="proceedByYear()">決 定</button>
               <button type="button" class="btn btn-secondary btn-sm" @click="showYearModal=false">戻 る</button>
             </div>
           </div>
         </div>
       </template>
+    </div> <!-- /x-data="masterPane(...)" -->
   </div>
 </div>
 @endsection

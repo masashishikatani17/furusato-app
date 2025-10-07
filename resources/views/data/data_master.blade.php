@@ -2,10 +2,10 @@
 @extends('layouts.min')
 
 @section('content')
-<div class="container-blue" style="width: 840px;">
+<div class="container-blue">
   <div class="card-header d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-      <h1 class="mb-0 mt-2"> お客様・年度一覧</h1>
+      <h0 class="mb-0 mt-2"> お客様・年度一覧</h0>
       <!-- ヘッダの新規作成ボタンは下部帯に集約 -->
   </div>
   <div class="card-body">
@@ -31,30 +31,35 @@
          x-init="init()" x-cloak class="border rounded p-3">
   
       <!-- 上部：検索（お客様名） -->
-      <div class="d-flex align-items-center gap-2 mb-2">
-        <label class="mb-0">表示：</label>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" value="all" x-model="viewMode" id="viewAll">
-          <label class="form-check-label" for="viewAll">全表示</label>
-        </div>
-        <div class="form-check form-check-inline">
-          <input class="form-check-input" type="radio" value="search" x-model="viewMode" id="viewSearch">
-          <label class="form-check-label" for="viewSearch">検　索</label>
-        </div>
-        <template x-if="viewMode==='search'">
-          <input type="text" class="form-control form-control-sm" style="width: 220px;"
-                 placeholder="お客様名で検索" x-model="searchQuery"
-                 @keyup.enter="updateFilter" @blur="updateFilter">
-        </template>
-      </div>
-  
+      <table align="center" class="table-beige ms-3 mb-3" style="width: 230px;">
+        <tr>
+           <td>
+            <div class="d-flex align-items-center gap-2 ms-2 mt-1">
+              <label class="mb-1">表示：</label>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" value="all" x-model="viewMode" id="viewAll">
+                <label class="form-check-label" for="viewAll">全表示</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" value="search" x-model="viewMode" id="viewSearch">
+                <label class="form-check-label" for="viewSearch">検　索</label>
+              </div>
+              <template x-if="viewMode==='search'">
+                <input type="text" class="form-control form-control-sm" style="width: 220px;"
+                       placeholder="お客様名で検索" x-model="searchQuery"
+                       @keyup.enter="updateFilter" @blur="updateFilter">
+              </template>
+            </div>
+          </td> 
+        </tr>   
+      </table>
       <!-- 2ペイン -->
       <div class="d-flex gap-3 flex-nowrap justify-content-center" style="overflow-x:auto;">
         <!-- 左：お客様一覧 -->
         <div class="flex-shrink-0" style="width: 300px;">
           <table class="table table-bordered table-sm mb-2">
             <thead class="table-light">
-            <tr><th class="text-center" style="height: 25px;background-color:#E8EFF0;">お客様名</th></tr>
+            <tr><th class="text-center" style="width: 300px;height: 25px;background-color:#d0e5f4;">お客様名</th></tr>
             </thead>
           </table>
           <div class="border" style="max-height: 420px; overflow-y: auto;">
@@ -62,11 +67,11 @@
               <tbody>
               <template x-for="g in filteredGuests" :key="g.id">
                 <tr :class="g.id===guestId ? 'table-primary' : ''" style="cursor:pointer;">
-                  <td class="py-1 px-2" @click="selectGuest(g.id)" x-text="g.name"></td>
+                  <td class="py-1 px-2" @click="selectGuest(g.id)" x-text="g.name" style="width: 300px;"></td>
                 </tr>
               </template>
               <template x-if="filteredGuests.length===0">
-                <tr><td class="text-muted py-2 px-2">（お客様がありません）</td></tr>
+                <tr><td class="text-muted py-2 px-2" style="width: 300px;">（お客様がありません）</td></tr>
               </template>
               </tbody>
             </table>
@@ -78,7 +83,7 @@
           <table class="table table-bordered table-sm mb-2 align-middle">
             <thead class="table-light">
             <tr style="height:25px;">
-              <th class="text-center" style="width: 180px;background-color:#E8EFF0;">
+              <th class="text-center" style="width: 150px;background-color:#d0e5f4;">
                 年　度
                 <button type="button" class="btn btn-sm btn-outline-primary ms-2 py-0 px-1"
                         style="font-size: 11px; height: 18px; line-height: 1;"
@@ -87,24 +92,24 @@
                   ⇅
                 </button>
               </th>
-              <th class="text-center" style="width: 350px;background-color:#E8EFF0;">選　択</th>
+              <th class="text-center" style="width: 150px;background-color:#d0e5f4;">選　択</th>
             </tr>
             </thead>
           </table>
-          <div class="border" style="max-height: 500px; overflow-y: auto;">
+          <div class="border" style="max-height: 300px; overflow-y: auto;">
             <table class="table table-sm mb-0 align-middle">
               <tbody>
               <template x-for="d in filteredDatas" :key="d.id">
                 <tr style="height: 25px; cursor:pointer;"
                     :class="selectedDataId===d.id ? 'table-active' : ''"
                     @click="selectedDataId=d.id">
-                  <td class="text-end pe-3" style="width:120px;">
+                  <td class="text-end pe-3" style="width:150px;">
                     <template x-if="isPrivate(d)">
                       <span title="非共有（作成者のみ）">🔒</span>
                     </template>
                     <span x-text="formatYear(d.kihu_year)"></span>
                   </td>
-                  <td class="text-center" style="width:350px;" nowrap="nowrap">
+                  <td class="text-center" style="width:150px;" nowrap="nowrap">
                     <div class="d-flex flex-column gap-1 align-items-center">
                       <button type="button" class="btn-base-blue"
                               @click.stop="selectedDataId=d.id; openYearModal(d)">選 択</button>

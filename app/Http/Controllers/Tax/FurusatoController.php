@@ -133,30 +133,8 @@ final class FurusatoController extends Controller
     public function save(Request $request): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
-        $payload = $request->except(['_token', 'data_id', 'redirect_to']);
-        $userId = (int) auth()->id();
-
-        // SQLite で IFNULL(created_by, ...) を VALUES 句で参照すると
-        // 「no such column: created_by」になるため、作成/更新を分けて処理する
-        FurusatoInput::unguarded(function () use ($data, $payload, $userId): void {
-            $rec = FurusatoInput::firstOrNew(['data_id' => $data->id]);
-
-            if (! $rec->exists) {
-                // 初回作成時のみ created_by をセット
-                $rec->fill([
-                    'data_id'    => $data->id,
-                    'company_id' => $data->company_id,
-                    'group_id'   => $data->group_id,
-                    'created_by' => $userId ?: null,
-                ]);
-            }
-
-            // 毎回更新されるフィールド
-            $rec->payload   = $payload;
-            $rec->updated_by = $userId ?: null;
-
-            $rec->save();
-        });
+        $updates = $request->except(['_token', 'data_id', 'redirect_to']);
+        $this->updateFurusatoInputPayload($data, $updates);
 
         $redirectTo = $request->input('redirect_to');
         if (is_array($redirectTo)) {
@@ -175,6 +153,10 @@ final class FurusatoController extends Controller
             return redirect()->route('furusato.syori', ['data_id' => $data->id])->with('success', '保存しました');
         }
 
+        if ($redirectTo === 'master') {
+            return redirect()->route('furusato.master', ['data_id' => $data->id])->with('success', '保存しました');
+        }
+
         return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
     }
 
@@ -184,10 +166,10 @@ final class FurusatoController extends Controller
         $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
-        $payload = FurusatoInput::query()
+        $payload = optional(FurusatoInput::query()
             ->where('data_id', $data->id)
-            ->value('payload');
-        $out = ['inputs' => is_array($payload) ? $payload : []];
+            ->first())->payload ?? [];
+        $out = ['inputs' => $payload];
 
         return view('tax.furusato.details.jigyo_eigyo_details', [
             'dataId' => $data->id,
@@ -202,33 +184,17 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $fields = [
-            'jigyo_eigyo_uriage',
-            'jigyo_eigyo_urigenka',
-            'jigyo_eigyo_keihi_1',
-            'jigyo_eigyo_keihi_2',
-            'jigyo_eigyo_keihi_3',
-            'jigyo_eigyo_keihi_4',
-            'jigyo_eigyo_keihi_5',
-            'jigyo_eigyo_keihi_6',
-            'jigyo_eigyo_keihi_7',
-            'jigyo_eigyo_keihi_sonota',
-            'jigyo_eigyo_senjuusha_kyuyo',
-            'jigyo_eigyo_aoi_tokubetsu_kojo_gaku',
-        ];
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id']));
 
-        $inputs = $this->extractDetailInputs($req, $fields);
+        $calculations = $this->calculateJigyoEigyo($payload);
+        $payload = array_replace($payload, $calculations);
 
-        $calculations = $this->calculateJigyoEigyo($inputs);
+        $payload['syunyu_jigyo_eigyo_shotoku_prev'] = $this->valueOrZero($payload['jigyo_eigyo_uriage_prev'] ?? null);
+        $payload['syunyu_jigyo_eigyo_shotoku_curr'] = $this->valueOrZero($payload['jigyo_eigyo_uriage_curr'] ?? null);
+        $payload['shotoku_jigyo_eigyo_shotoku_prev'] = (int) ($payload['jigyo_eigyo_shotoku_prev'] ?? 0);
+        $payload['shotoku_jigyo_eigyo_shotoku_curr'] = (int) ($payload['jigyo_eigyo_shotoku_curr'] ?? 0);
 
-        $mirrors = [
-            'syunyu_jigyo_eigyo_shotoku_prev' => $inputs['jigyo_eigyo_uriage_prev'],
-            'syunyu_jigyo_eigyo_shotoku_curr' => $inputs['jigyo_eigyo_uriage_curr'],
-            'shotoku_jigyo_eigyo_shotoku_prev' => $calculations['jigyo_eigyo_shotoku_prev'],
-            'shotoku_jigyo_eigyo_shotoku_curr' => $calculations['jigyo_eigyo_shotoku_curr'],
-        ];
-
-        $this->updateFurusatoInputPayload($data, array_merge($inputs, $calculations, $mirrors));
+        $this->updateFurusatoInputPayload($data, $payload);
 
         return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
     }
@@ -239,11 +205,11 @@ final class FurusatoController extends Controller
         $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
-        $payload = FurusatoInput::query()
+        $payload = optional(FurusatoInput::query()
             ->where('data_id', $data->id)
-            ->value('payload');
-        $out = ['inputs' => is_array($payload) ? $payload : []];
-        
+            ->first())->payload ?? [];
+        $out = ['inputs' => $payload];
+
         return view('tax.furusato.details.fudosan_details', [
             'dataId' => $data->id,
             'kihuYear' => $kihuYear,
@@ -257,43 +223,28 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $fields = [
-            'fudosan_shunyu',
-            'fudosan_keihi_1',
-            'fudosan_keihi_2',
-            'fudosan_keihi_3',
-            'fudosan_keihi_4',
-            'fudosan_keihi_5',
-            'fudosan_keihi_6',
-            'fudosan_keihi_7',
-            'fudosan_keihi_sonota',
-            'fudosan_senjuusha_kyuyo',
-            'fudosan_aoi_tokubetsu_kojo_gaku',
-            'fudosan_fusairishi',
-        ];
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id']));
 
-        $inputs = $this->extractDetailInputs($req, $fields);
+        $calculations = $this->calculateFudosan($payload);
+        $payload = array_replace($payload, $calculations);
 
-        $calculations = $this->calculateFudosan($inputs);
+        $payload['syunyu_fudosan_shotoku_prev'] = $this->valueOrZero($payload['fudosan_shunyu_prev'] ?? null);
+        $payload['syunyu_fudosan_shotoku_curr'] = $this->valueOrZero($payload['fudosan_shunyu_curr'] ?? null);
 
-        $adjPrev = $calculations['fudosan_shotoku_prev'];
+        $adjPrev = (int) ($payload['fudosan_shotoku_prev'] ?? 0);
         if ($adjPrev < 0) {
-            $adjPrev += $this->valueOrZero($inputs['fudosan_fusairishi_prev']);
+            $adjPrev += $this->valueOrZero($payload['fudosan_fusairishi_prev'] ?? null);
         }
 
-        $adjCurr = $calculations['fudosan_shotoku_curr'];
+        $adjCurr = (int) ($payload['fudosan_shotoku_curr'] ?? 0);
         if ($adjCurr < 0) {
-            $adjCurr += $this->valueOrZero($inputs['fudosan_fusairishi_curr']);
+            $adjCurr += $this->valueOrZero($payload['fudosan_fusairishi_curr'] ?? null);
         }
 
-        $mirrors = [
-            'syunyu_fudosan_shotoku_prev' => $inputs['fudosan_shunyu_prev'],
-            'syunyu_fudosan_shotoku_curr' => $inputs['fudosan_shunyu_curr'],
-            'shotoku_fudosan_shotoku_prev' => $adjPrev,
-            'shotoku_fudosan_shotoku_curr' => $adjCurr,
-        ];
+        $payload['shotoku_fudosan_shotoku_prev'] = $adjPrev;
+        $payload['shotoku_fudosan_shotoku_curr'] = $adjCurr;
 
-        $this->updateFurusatoInputPayload($data, array_merge($inputs, $calculations, $mirrors));
+        $this->updateFurusatoInputPayload($data, $payload);
 
         return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
     }
@@ -413,25 +364,18 @@ final class FurusatoController extends Controller
 
     private function getFurusatoInputPayload(Data $data): array
     {
-        $stored = FurusatoInput::query()
+        return optional(FurusatoInput::query()
             ->where('data_id', $data->id)
-            ->value('payload');
-
-        return is_array($stored) ? $stored : [];
+            ->first())->payload ?? [];
     }
 
-    private function extractDetailInputs(Request $request, array $fields): array
+    private function sanitizeDetailPayload(array $payload): array
     {
-        $result = [];
-
-        foreach ($fields as $field) {
-            foreach (['prev', 'curr'] as $period) {
-                $name = sprintf('%s_%s', $field, $period);
-                $result[$name] = $this->toNullableInt($request->input($name));
-            }
+        foreach ($payload as $key => $value) {
+            $payload[$key] = $this->toNullableInt($value);
         }
 
-        return $result;
+        return $payload;
     }
 
     private function calculateJigyoEigyo(array $inputs): array

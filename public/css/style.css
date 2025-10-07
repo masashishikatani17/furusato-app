@@ -12,6 +12,7 @@
             width: 700px;
             margin: 0px auto;
             padding: 0px;
+            font-size: 13px;
             background-color: #ffffff; /* 白背景 */
             border: 1px solid #ddd;    /* 薄いグレー枠 */
             border-radius: 8px;        /* 角丸 */
@@ -22,6 +23,7 @@
             width: 700px;
             margin: 0px auto;
             padding: 0px;
+            font-size: 13px;
             background-color: #ffffff; /* 白背景 */
             border: 2px solid #4193d0;    /* 太い青枠 */
             border-radius: 8px;        /* 角丸 */
@@ -41,6 +43,14 @@
 /* --------------------------------------
   * 文字
   * ------------------------------------ */        
+        h1 {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: left;
+            color: #4193d0; /* 濃いグレー */
+        }
+        
         hb {
             font-size: 13px;
             font-weight: bold;
@@ -191,20 +201,22 @@
         }
         
         .table-base {
-          /* 幅を100%にせず、テーブル自体を中央寄せ */
-            border-collapse: collapse; 
-            margin: 10px auto;     /* 上下10px, 左右 auto */
-            font-size: 13px;
-            text-align: center;
-            vertical-align: middle; /* tdの内容を縦中央に配置する */
-            display: table;    /* tableレイアウトを使う */
-            line-height: 1.2;
+        /* 幅を100%にせず、テーブル自体を中央寄せ */
+          border-collapse: collapse;
+          margin: 10px auto; /* 上下10px, 左右 auto */
+          font-size: 13px;
+          /* padding/text-align/vertical-alignはセル側に移動 */
+          /* display: table は <table> では不要 */
         }
         
-        
-        
-        
-        
+        /* セル共通設定（Bootstrapの.tableを上書きできるよう強めのセレクタに） */
+        table.table-base td,
+        table.table-base th {
+          padding: 4px;           /* セル内余白 */
+          text-align: center;     /* 横方向中央寄せ */
+          vertical-align: middle; /* 縦方向中央寄せ */
+          line-height: 1.2;
+        }
         
         
         

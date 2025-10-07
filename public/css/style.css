@@ -12,6 +12,7 @@
   width: 95%;
   max-width: 1200px;
   margin: 0 auto;
+  background-color: #ffffff;
 }
 
 /* Alpine.js 初期化前のちらつき防止 */
@@ -185,3 +186,23 @@
   width: 100%;
   table-layout: fixed;
 }
+
+/* インプット表下帯のテーブル（高さ・背景はセル側で持つ） */
+.table-input-bottom {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed; /* 幅の暴走抑止（任意） */
+}
+.table-input-bottom td {
+  height: 40px;              /* ← 高さは td へ */
+  padding: 8px;
+  text-align: right;
+  color: #fff;
+  background-color: #4193d0; /* ← 背景は td へ */
+  vertical-align: middle;    /* ボタン縦位置を中央に */
+}
+.table-input-bottom .btn-base { color: #fff; }
+
+/* デバッグ用（必要なら一時的に有効化）
+.table-input-bottom, .table-input-bottom td { outline: 1px solid red; }
+*/

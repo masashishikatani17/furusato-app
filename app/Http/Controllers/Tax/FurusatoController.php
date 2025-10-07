@@ -136,28 +136,21 @@ final class FurusatoController extends Controller
         $updates = $request->except(['_token', 'data_id', 'redirect_to']);
         $this->updateFurusatoInputPayload($data, $updates);
 
-        $redirectTo = $request->input('redirect_to');
-        if (is_array($redirectTo)) {
-            $redirectTo = end($redirectTo) ?: null;
-        }
+        $goto = (string) $request->input('redirect_to', '');
+        $routeParams = ['data_id' => $data->id];
 
-        if ($redirectTo === 'jigyo') {
-            return redirect()->route('furusato.details.jigyo', ['data_id' => $data->id]);
+        switch ($goto) {
+            case 'syori':
+                return redirect()->route('furusato.syori', $routeParams)->with('success', '保存しました');
+            case 'master':
+                return redirect()->route('furusato.master', $routeParams)->with('success', '保存しました');
+            case 'jigyo':
+                return redirect()->route('furusato.details.jigyo', $routeParams)->with('success', '保存しました');
+            case 'fudosan':
+                return redirect()->route('furusato.details.fudosan', $routeParams)->with('success', '保存しました');
+            default:
+                return redirect()->route('furusato.input', $routeParams)->with('success', '保存しました');
         }
-
-        if ($redirectTo === 'fudosan') {
-            return redirect()->route('furusato.details.fudosan', ['data_id' => $data->id]);
-        }
-
-        if ($redirectTo === 'syori') {
-            return redirect()->route('furusato.syori', ['data_id' => $data->id])->with('success', '保存しました');
-        }
-
-        if ($redirectTo === 'master') {
-            return redirect()->route('furusato.master', ['data_id' => $data->id])->with('success', '保存しました');
-        }
-
-        return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
     }
 
     public function jigyoEigyoDetails(Request $req)
@@ -166,10 +159,10 @@ final class FurusatoController extends Controller
         $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
-        $payload = optional(FurusatoInput::query()
+        $payload = FurusatoInput::query()
             ->where('data_id', $data->id)
-            ->first())->payload ?? [];
-        $out = ['inputs' => $payload];
+            ->value('payload');
+        $out = ['inputs' => is_array($payload) ? $payload : []];
 
         return view('tax.furusato.details.jigyo_eigyo_details', [
             'dataId' => $data->id,
@@ -205,10 +198,10 @@ final class FurusatoController extends Controller
         $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
-        $payload = optional(FurusatoInput::query()
+        $payload = FurusatoInput::query()
             ->where('data_id', $data->id)
-            ->first())->payload ?? [];
-        $out = ['inputs' => $payload];
+            ->value('payload');
+        $out = ['inputs' => is_array($payload) ? $payload : []];
 
         return view('tax.furusato.details.fudosan_details', [
             'dataId' => $data->id,
@@ -296,11 +289,22 @@ final class FurusatoController extends Controller
             $record->save();
         });
 
-        if ($request->input('redirect_to') === 'input') {
-            return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+        $goto = (string) $request->input('redirect_to', '');
+        $routeParams = ['data_id' => $data->id];
+
+        if ($goto === 'input') {
+            return redirect()->route('furusato.input', $routeParams)->with('success', '保存しました');
         }
 
-        return redirect()->route('data.index')->with('success', '保存しました');
+        if ($goto === 'master') {
+            return redirect()->route('furusato.master', $routeParams)->with('success', '保存しました');
+        }
+
+        if ($goto === 'data_master') {
+            return redirect()->route('data.index', $routeParams)->with('success', '保存しました');
+        }
+
+        return redirect()->route('furusato.syori', $routeParams)->with('success', '保存しました');
     }
 
     public function master(Request $request)

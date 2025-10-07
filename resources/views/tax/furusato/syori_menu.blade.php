@@ -18,7 +18,7 @@
 <div class="container-blue mt-2" style="max-width: 840px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-    <h1 class="mb-0 mt-2">処理メニュー設定</h1>
+    <h0 class="mb-0 mt-2">処理メニュー設定</h0>
   </div>
   <div class="card-body">
     <form method="POST" action="{{ route('furusato.syori.save') }}" id="furusato-syori-form" class="card">
@@ -35,12 +35,12 @@
         </div>
       @endif
       <div class="mb-4 mt-3">
-        <h6 class="ms-3 mb-3">○処理モード</h6>
+        <h1 class="ms-3">○処理モード</h1>
           <table class="table-base" align="center">
             <tr>
               <td style="width:100px;background-color:#f9f8ee">
                   <div>
-                    <hb class="d-block mb-3">処理タイプ</hb>
+                    <hb class="d-block mt-2">処理タイプ</hb><hr>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="detail_mode" id="detailModeDetail" value="1" @checked($detailMode === '1')>
                       <label class="form-check-label" for="detailModeDetail">詳細版</label>
@@ -55,7 +55,7 @@
               </td>
               <td style="width:100px;background-color:#f9f8ee">
                   <div>
-                    <hb class="d-block mb-3">分離課税</hb>
+                    <hb class="d-block mt-2">分離課税</hb><hr>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="bunri_flag" id="bunriOff" value="0" @checked($bunriFlag === '0')>
                       <label class="form-check-label" for="bunriOff">なし</label>
@@ -70,7 +70,7 @@
               </td>
               <td style="width:120px;background-color:#f9f8ee;">
                   <div>
-                    <hb class="d-block mb-3">ワンストップ特例</hb>
+                    <hb class="d-block mt-2">ワンストップ特例</hb><hr>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="one_stop_flag" id="oneStopUse" value="1" @checked($oneStopFlag === '1')>
                       <label class="form-check-label" for="oneStopUse">利用する</label>
@@ -85,7 +85,7 @@
               </td>
               <td style="width:120px;background-color:#f9f8ee;">
                   <div>
-                    <hb class="d-block mb-3">指定都市区分</hb>
+                    <hb class="d-block mt-2">指定都市区分</hb><hr>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="shitei_toshi_flag" id="shiteiMuni" value="1" @checked($shiteiFlag === '1')>
                       <label class="form-check-label" for="shiteiMuni">指定都市</label>
@@ -100,7 +100,7 @@
           </table>
       </div>
       <div class="mb-4">
-        <h6 class="ms-3 mb-3">○所得割の税率</h6>
+        <h1 class="ms-3 mb-3">○所得割の税率</h1>
         <div class="row g-3 align-items-end">
           <div class="col-md-6">
             <div class="d-flex align-items-center gap-2 ms-5">
@@ -129,7 +129,7 @@
         </div>
       </div>
       <div class="mb-4">
-        <h6 class="ms-3 mb-3">○均等割・その他税額</h6>
+        <h1 class="ms-3 mb-3">○均等割・その他税額</h1>
         <div class="row g-3">
           <div class="col-md-6">
             <label class="form-label ms-5 me-1">都道府県 均等割</label>

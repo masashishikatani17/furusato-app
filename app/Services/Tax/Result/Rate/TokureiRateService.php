@@ -20,13 +20,25 @@ final class TokureiRateService
         $rows = [];
         foreach ($collection as $row) {
             $lower = $row->lower;
-            if ($lower === null) {
+            if (is_string($lower)) {
+                $lower = trim($lower);
+            }
+            if ($lower === null || $lower === '') {
                 continue;
             }
 
             $upper = $row->upper;
+            if (is_string($upper)) {
+                $upper = trim($upper);
+            }
+            if ($upper === '') {
+                $upper = null;
+            }
             $rate = $row->tokurei_deduction_rate;
-
+            if (is_string($rate)) {
+                $rate = trim($rate);
+            }
+            
             if (! is_numeric($rate)) {
                 continue;
             }

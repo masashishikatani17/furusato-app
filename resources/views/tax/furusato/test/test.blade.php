@@ -1,2 +1,0 @@
-@extends('layouts.min')
-@endsection

@@ -157,7 +157,7 @@ final class FurusatoController extends Controller
 
         if ($shouldShowResult) {
             $payload = $this->getFurusatoInputPayload($data);
-            $kihuYear = (int) ($data->kihu_year ?: self::MASTER_KIHU_YEAR);
+            $kihuYear = self::MASTER_KIHU_YEAR;
             $companyId = $request->user()?->company_id;
             $companyId = $companyId !== null ? (int) $companyId : null;
             $results = $resultService->buildFromPayload($kihuYear, $companyId, $payload);

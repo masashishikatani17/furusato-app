@@ -2,73 +2,97 @@
 
 namespace App\Services\Tax\Result\Rate;
 
-use Illuminate\Support\Collection;
-use function data_get;
+use App\Services\Tax\FurusatoMasterService;
 
 final class TokureiRateService
 {
-    /**
-     * @param iterable<int, array{threshold: float, rate: float}|array-key, mixed> $rates
-     */
-    public function lookup(?float $amount, iterable $rates): ?float
+    public function __construct(private readonly FurusatoMasterService $masterService)
     {
-        if ($amount === null) {
-            return null;
-        }
-
-        $normalized = $this->normalizeRates($rates);
-        if ($normalized === []) {
-            return null;
-        }
-
-        $amount = max(0.0, (float) $amount);
-
-        $matched = null;
-        foreach ($normalized as $candidate) {
-            if ($candidate['threshold'] <= $amount) {
-                $matched = $candidate['rate'];
-            } else {
-                break;
-            }
-        }
-
-        return $matched ?? $normalized[0]['rate'];
     }
 
     /**
-     * @param iterable<int, array{threshold: float, rate: float}|array-key, mixed> $rates
-     * @return array<int, array{threshold: float, rate: float}>
+     * @return array<int, array{lower:int, upper:int|null, rate:float}>
      */
-    private function normalizeRates(iterable $rates): array
+    public function getRows(int $year, ?int $companyId): array
     {
-        if ($rates instanceof Collection) {
-            $rates = $rates->all();
-        }
+        $collection = $this->masterService->getTokureiRates($year, $companyId);
 
-        $normalized = [];
-
-        foreach ($rates as $row) {
-            $threshold = null;
-            $rate = null;
-
-            if (is_array($row)) {
-                $threshold = $row['threshold'] ?? null;
-                $rate = $row['rate'] ?? null;
-            } elseif (is_object($row)) {
-                $threshold = data_get($row, 'threshold');
-                $rate = data_get($row, 'rate');
+        $rows = [];
+        foreach ($collection as $row) {
+            $lower = $row->lower;
+            if ($lower === null) {
+                continue;
             }
 
-            if (is_numeric($threshold) && is_numeric($rate)) {
-                $normalized[] = [
-                    'threshold' => (float) $threshold,
-                    'rate' => (float) $rate,
-                ];
+            $upper = $row->upper;
+            $rate = $row->tokurei_deduction_rate;
+
+            if (! is_numeric($rate)) {
+                continue;
+            }
+
+            $rows[] = [
+                'lower' => (int) $lower,
+                'upper' => $upper !== null ? (int) $upper : null,
+                'rate' => ((float) $rate) / 100.0,
+            ];
+        }
+
+        usort($rows, static function (array $a, array $b): int {
+            $lowerCmp = $a['lower'] <=> $b['lower'];
+            if ($lowerCmp !== 0) {
+                return $lowerCmp;
+            }
+
+            $upperA = $a['upper'];
+            $upperB = $b['upper'];
+
+            if ($upperA === $upperB) {
+                return 0;
+            }
+
+            if ($upperA === null) {
+                return 1;
+            }
+
+            if ($upperB === null) {
+                return -1;
+            }
+
+            return $upperA <=> $upperB;
+        });
+
+        return $rows;
+    }
+
+    public function lowerBoundRate(float $amount, array $rows): ?float
+    {
+        if ($rows === []) {
+            return null;
+        }
+
+        $amount = max(0.0, $amount);
+        $lowest = $rows[0]['lower'];
+
+        if ($amount < $lowest) {
+            return null;
+        }
+
+        foreach ($rows as $row) {
+            $upper = $row['upper'];
+            if ($upper === null) {
+                if ($amount >= $row['lower']) {
+                    return $row['rate'];
+                }
+
+                continue;
+            }
+
+            if ($row['lower'] <= $amount && $amount <= $upper) {
+                return $row['rate'];
             }
         }
 
-        usort($normalized, static fn (array $a, array $b) => $a['threshold'] <=> $b['threshold']);
-
-        return $normalized;
+        return null;
     }
 }

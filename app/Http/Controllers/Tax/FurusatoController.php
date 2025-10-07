@@ -9,6 +9,7 @@ use App\Http\Requests\Tax\FurusatoInputRequest;
 use App\Http\Requests\Tax\FurusatoSyoriRequest;
 use App\Models\Data;
 use App\Models\FurusatoInput;
+use App\Models\FurusatoResult;
 use App\Models\FurusatoSyoriSetting;
 use App\Services\Tax\FurusatoMasterService;
 use App\Services\Tax\Result\FurusatoResultService;
@@ -28,8 +29,19 @@ final class FurusatoController extends Controller
 
         $context = $this->makeInputContext($req, $dataId);
         $context['out'] = ['inputs' => $context['savedInputs']];
-        $context['results'] = (array) session('furusato_results', $context['results']);
-        $context['showResult'] = (bool) session('show_furusato_result', $context['showResult']);
+
+        $session = session();
+        if ($session->has('furusato_results')) {
+            $context['results'] = (array) $session->get('furusato_results');
+        } elseif ($dataId) {
+            $context['results'] = $this->getStoredFurusatoResults($dataId);
+        }
+
+        if ($session->has('show_furusato_result')) {
+            $context['showResult'] = (bool) $session->get('show_furusato_result');
+        } else {
+            $context['showResult'] = $context['results'] !== [];
+        }
         unset($context['savedInputs']);
 
         return view('tax.furusato.input', $context);
@@ -149,6 +161,8 @@ final class FurusatoController extends Controller
             $companyId = $request->user()?->company_id;
             $companyId = $companyId !== null ? (int) $companyId : null;
             $results = $resultService->buildFromPayload($kihuYear, $companyId, $payload);
+
+            $this->storeFurusatoResults($data, $results);
 
             session()->flash('furusato_results', $results);
             session()->flash('show_furusato_result', true);
@@ -388,6 +402,36 @@ final class FurusatoController extends Controller
         return optional(FurusatoInput::query()
             ->where('data_id', $data->id)
             ->first())->payload ?? [];
+    }
+
+    private function getStoredFurusatoResults(int $dataId): array
+    {
+        $payload = FurusatoResult::query()
+            ->where('data_id', $dataId)
+            ->value('payload');
+
+        return is_array($payload) ? $payload : [];
+    }
+
+    private function storeFurusatoResults(Data $data, array $results): void
+    {
+        $userId = (int) auth()->id();
+
+        FurusatoResult::unguarded(function () use ($data, $results, $userId): void {
+            $record = FurusatoResult::firstOrNew(['data_id' => $data->id]);
+
+            if (! $record->exists) {
+                $record->data_id = $data->id;
+                $record->created_by = $userId ?: null;
+            }
+
+            $record->company_id = $data->company_id;
+            $record->group_id = $data->group_id;
+            $record->payload = $results;
+            $record->updated_by = $userId ?: null;
+
+            $record->save();
+        });
     }
 
     private function sanitizeDetailPayload(array $payload): array

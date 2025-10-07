@@ -28,6 +28,8 @@ final class FurusatoController extends Controller
 
         $context = $this->makeInputContext($req, $dataId);
         $context['out'] = ['inputs' => $context['savedInputs']];
+        $context['results'] = (array) session('furusato_results', $context['results']);
+        $context['showResult'] = (bool) session('show_furusato_result', $context['showResult']);
         unset($context['savedInputs']);
 
         return view('tax.furusato.input', $context);
@@ -109,6 +111,8 @@ final class FurusatoController extends Controller
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
             'savedInputs' => $savedInputs,
+            'results' => [],
+            'showResult' => false,
         ];
     }
 
@@ -133,8 +137,16 @@ final class FurusatoController extends Controller
     public function save(Request $request): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
-        $updates = $request->except(['_token', 'data_id', 'redirect_to']);
+        $updates = $request->except(['_token', 'data_id', 'redirect_to', 'show_result']);
         $this->updateFurusatoInputPayload($data, $updates);
+
+        if ($request->boolean('show_result')) {
+            $payload = $this->getFurusatoInputPayload($data);
+            $results = $this->buildResultsFrom($payload);
+
+            session()->flash('furusato_results', $results);
+            session()->flash('show_furusato_result', true);
+        }
 
         $goto = (string) $request->input('redirect_to', '');
         $routeParams = ['data_id' => $data->id];
@@ -371,6 +383,14 @@ final class FurusatoController extends Controller
         return optional(FurusatoInput::query()
             ->where('data_id', $data->id)
             ->first())->payload ?? [];
+    }
+
+    private function buildResultsFrom(array $payload): array
+    {
+        return [
+            'details' => $payload,
+            'upper'   => $payload,
+        ];
     }
 
     private function sanitizeDetailPayload(array $payload): array

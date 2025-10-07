@@ -18,6 +18,14 @@
 /* Alpine.js 初期化前のちらつき防止 */
 [x-cloak] { display: none !important; }
 
+hb {
+    font-size: 13px;
+    font-weight: bold;
+    color: #000;
+    margin-bottom: 0px;
+}
+
+
 /* --------------------------------------
  * 下部ボタン帯（“ビル”と同じ構造）
  * data_master 下部で使用

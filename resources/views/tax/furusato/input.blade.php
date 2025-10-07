@@ -5,7 +5,17 @@
   <form method="POST" action="{{ route('furusato.save') }}" id="furusato-input-form">
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId ?? '' }}">
-    <input type="hidden" name="redirect_to" value="">
+    <input type="hidden" name="redirect_to" value="input">
+    <input type="hidden" name="show_result" value="1">
+
+    @php
+      $resultsData = $results ?? [];
+      $showResultFlag = (bool) ($showResult ?? false);
+      $inputTabActiveClass = $showResultFlag ? '' : 'active';
+      $inputPaneActiveClass = $showResultFlag ? '' : 'show active';
+      $detailsTabActiveClass = $showResultFlag ? 'active' : '';
+      $detailsPaneActiveClass = $showResultFlag ? 'show active' : '';
+    @endphp
 
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="mb-0">ふるさと納税：インプット表</h5>
@@ -21,7 +31,7 @@
                 name="redirect_to"
                 value="master">マスター</button>
         <button type="submit" class="btn btn-success btn-sm" formnovalidate>保存</button>
-        <button type="submit" class="btn btn-primary btn-sm" formaction="{{ route('furusato.calc') }}">送信</button>
+        <button type="submit" class="btn btn-primary btn-sm">送信</button>
       </div>
     </div>
 
@@ -39,30 +49,45 @@
       </div>
     @endif
 
-    @php
-      $inputs = $out['inputs'] ?? [];
-      $warekiPrevLabel = $warekiPrev ?? '前年';
-      $warekiCurrLabel = $warekiCurr ?? '当年';
-      $showTokubetsu = in_array((int) ($kihuYear ?? 0), [2024, 2025], true);
-      $renderInputs = static function (string $base) use ($inputs) {
-          $html = '';
-          foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
-              foreach ($periods as $period) {
-                  $name = sprintf('%s_%s_%s', $base, $tax, $period);
-                  $value = old($name, $inputs[$name] ?? null);
-                  $html .= '<td><input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="' . e($name) . '" value="' . e($value) . '"></td>';
-              }
-          }
-          
-          return $html;
-      };
-      $syunyuRowspan = 11;
-      $shotokuRowspan = 13;
-      $kojoRowspan = 17;
-      $taxRowspan = $showTokubetsu ? 10 : 9;
-    @endphp
+    <ul class="nav nav-tabs" id="furusato-main-tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {{ $inputTabActiveClass }}" id="furusato-tab-input-nav" data-bs-toggle="tab" data-bs-target="#furusato-tab-input" type="button" role="tab" aria-controls="furusato-tab-input" aria-selected="{{ $showResultFlag ? 'false' : 'true' }}">入力</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link {{ $detailsTabActiveClass }}" id="furusato-tab-result-details-nav" data-bs-toggle="tab" data-bs-target="#furusato-tab-result-details" type="button" role="tab" aria-controls="furusato-tab-result-details" aria-selected="{{ $showResultFlag ? 'true' : 'false' }}">計算詳細</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="furusato-tab-result-upper-nav" data-bs-toggle="tab" data-bs-target="#furusato-tab-result-upper" type="button" role="tab" aria-controls="furusato-tab-result-upper" aria-selected="false">上段（ふるさと）</button>
+      </li>
+    </ul>
 
-    @php ob_start(); @endphp
+    <div class="tab-content" id="furusato-main-tab-content">
+      <div class="tab-pane fade {{ $inputPaneActiveClass }}" id="furusato-tab-input" role="tabpanel" aria-labelledby="furusato-tab-input-nav">
+
+        @php
+          $inputs = $out['inputs'] ?? [];
+          $warekiPrevLabel = $warekiPrev ?? '前年';
+          $warekiCurrLabel = $warekiCurr ?? '当年';
+          $showTokubetsu = in_array((int) ($kihuYear ?? 0), [2024, 2025], true);
+          $renderInputs = static function (string $base) use ($inputs) {
+              $html = '';
+              foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
+                  foreach ($periods as $period) {
+                      $name = sprintf('%s_%s_%s', $base, $tax, $period);
+                      $value = old($name, $inputs[$name] ?? null);
+                      $html .= '<td><input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="' . e($name) . '" value="' . e($value) . '"></td>';
+                  }
+              }
+
+              return $html;
+          };
+          $syunyuRowspan = 11;
+          $shotokuRowspan = 13;
+          $kojoRowspan = 17;
+          $taxRowspan = $showTokubetsu ? 10 : 9;
+        @endphp
+
+        @php ob_start(); @endphp
       <div>
         <h5 class="card-title mb-3">確定申告書(総合課税)</h5>
         <div class="table-responsive">
@@ -1155,6 +1180,14 @@
         </div>
       </div>
     @endif
+      </div>
+      <div class="tab-pane fade {{ $detailsPaneActiveClass }}" id="furusato-tab-result-details" role="tabpanel" aria-labelledby="furusato-tab-result-details-nav">
+        @include('tax.furusato.tabs.result_details', ['results' => $resultsData])
+      </div>
+      <div class="tab-pane fade" id="furusato-tab-result-upper" role="tabpanel" aria-labelledby="furusato-tab-result-upper-nav">
+        @include('tax.furusato.tabs.result_upper_furusato', ['results' => $resultsData])
+      </div>
+    </div>
   </form>
 </div>
 @endsection

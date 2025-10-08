@@ -253,6 +253,30 @@ final class FurusatoInputRequest extends FormRequest
             }
         }
 
+        $kihukinCategories = [
+            'furusato',
+            'kyodobokin_nisseki',
+            'seito',
+            'npo',
+            'koueki',
+            'kuni',
+            'sonota',
+        ];
+        $kihukinFields = [
+            'shotokuzei_shotokukojo',
+            'shotokuzei_zeigakukojo',
+            'juminzei_zeigakukojo_pref',
+            'juminzei_zeigakukojo_muni',
+        ];
+
+        foreach ($kihukinCategories as $category) {
+            foreach ($kihukinFields as $field) {
+                foreach (['prev', 'curr'] as $period) {
+                    $rules[sprintf('%s_%s_%s', $field, $category, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                }
+            }
+        }
+
         return $rules;
     }
 
@@ -332,6 +356,35 @@ final class FurusatoInputRequest extends FormRequest
             'gensen_choshu_zeigaku' => '源泉徴収税額',
             'shitei_toshi_flag' => '指定都市区分',
         ];
+
+        $kihukinCategoryLabels = [
+            'furusato' => '都道府県・市区町村に対する寄付金（ふるさと納税）',
+            'kyodobokin_nisseki' => '住所地の共同募金、日赤その他に対する寄付金',
+            'seito' => '政党等に対する寄付金',
+            'npo' => 'NPO法人等に対する寄付金',
+            'koueki' => '公益社団法人等に対する寄付金',
+            'kuni' => '国に対する寄付金',
+            'sonota' => 'その他の寄付金',
+        ];
+        $kihukinFieldLabels = [
+            'shotokuzei_shotokukojo' => '所得税・所得控除',
+            'shotokuzei_zeigakukojo' => '所得税・税額控除',
+            'juminzei_zeigakukojo_pref' => '住民税・都道府県税額控除',
+            'juminzei_zeigakukojo_muni' => '住民税・市区町村税額控除',
+        ];
+        $periodLabels = [
+            'prev' => '前年',
+            'curr' => '当年',
+        ];
+
+        foreach ($kihukinCategoryLabels as $category => $categoryLabel) {
+            foreach ($kihukinFieldLabels as $field => $fieldLabel) {
+                foreach ($periodLabels as $period => $periodLabel) {
+                    $name = sprintf('%s_%s_%s', $field, $category, $period);
+                    $attributes[$name] = sprintf('%s（%s・%s）', $categoryLabel, $fieldLabel, $periodLabel);
+                }
+            }
+        }
 
         return $attributes;
     }

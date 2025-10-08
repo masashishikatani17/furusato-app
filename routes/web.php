@@ -164,5 +164,9 @@ Route::prefix('furusato')->group(function () {
         ->name('furusato.details.fudosan');
     Route::post('/details/fudosan/save', [FurusatoController::class, 'saveFudosanDetails'])
         ->name('furusato.details.fudosan.save');
+    Route::get('/details/kihukin', [FurusatoController::class, 'kihukinDetails'])
+        ->name('furusato.details.kihukin');
+    Route::post('/details/kihukin/save', [FurusatoController::class, 'saveKihukinDetails'])
+        ->name('furusato.details.kihukin.save');
 });
 

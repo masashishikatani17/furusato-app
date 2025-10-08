@@ -16,7 +16,30 @@ class FurusatoMasterService
 
     public function getShotokuRates(int $year, ?int $companyId = null): Collection
     {
-        return $this->rememberRates('shotoku', ShotokuRate::class, $year, $companyId);
+        return $this->rememberRates('shotoku', ShotokuRate::class, $year, $companyId)
+            ->filter(static fn ($rate) => $rate->lower !== null)
+            ->map(static function ($rate): array {
+                $upper = $rate->upper;
+
+                return [
+                    'lower' => (int) $rate->lower,
+                    'upper' => $upper !== null ? (int) $upper : null,
+                    'rate' => (float) $rate->rate,
+                    'deduction_amount' => (int) $rate->deduction_amount,
+                ];
+            })
+            ->sort(function (array $a, array $b): int {
+                $lowerCompare = $a['lower'] <=> $b['lower'];
+                if ($lowerCompare !== 0) {
+                    return $lowerCompare;
+                }
+
+                $aUpper = $a['upper'] ?? PHP_INT_MAX;
+                $bUpper = $b['upper'] ?? PHP_INT_MAX;
+
+                return $aUpper <=> $bUpper;
+            })
+            ->values();
     }
 
     public function getJuminRates(int $year, ?int $companyId = null): Collection

@@ -18,7 +18,7 @@
     @endphp
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="mb-0">ふるさと納税：インプット表</h5>
+      <h5 class="mb-0">インプット表</h5>
       <div class="d-flex flex-wrap justify-content-end gap-2">
         <button type="submit"
                 class="btn btn-outline-secondary btn-sm"
@@ -69,13 +69,20 @@
           $warekiPrevLabel = $warekiPrev ?? '前年';
           $warekiCurrLabel = $warekiCurr ?? '当年';
           $showTokubetsu = in_array((int) ($kihuYear ?? 0), [2024, 2025], true);
-          $renderInputs = static function (string $base) use ($inputs) {
+          $readonlyBases = [
+              'kojo_shokei' => true,
+              'kojo_gokei' => true,
+              'tax_zeigaku' => true,
+          ];
+          $shotokuRatesForScript = collect($shotokuRates ?? [])->values()->toArray();
+          $renderInputs = static function (string $base) use ($inputs, $readonlyBases) {
               $html = '';
               foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                   foreach ($periods as $period) {
                       $name = sprintf('%s_%s_%s', $base, $tax, $period);
                       $value = old($name, $inputs[$name] ?? null);
-                      $html .= '<td><input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="' . e($name) . '" value="' . e($value) . '"></td>';
+                      $readonlyAttr = isset($readonlyBases[$base]) ? ' readonly' : '';
+                      $html .= '<td><input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . '></td>';
                   }
               }
 
@@ -1193,3 +1200,120 @@
   </form>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const shotokuRates = @json($shotokuRatesForScript);
+    const taxTypes = ['shotoku', 'jumin'];
+    const periods = ['prev', 'curr'];
+    const kojoShokeiBases = [
+      'kojo_shakaihoken',
+      'kojo_shokibo',
+      'kojo_seimei',
+      'kojo_jishin',
+      'kojo_kafu',
+      'kojo_hitorioya',
+      'kojo_kinrogakusei',
+      'kojo_shogaisha',
+      'kojo_haigusha',
+      'kojo_haigusha_tokubetsu',
+      'kojo_fuyo',
+      'kojo_kiso',
+    ];
+    const kojoGokeiExtras = ['kojo_zasson', 'kojo_iryo', 'kojo_kifukin'];
+
+    const getInput = (name) => document.querySelector('[name="' + name + '"]');
+    const readInt = (name) => {
+      const input = getInput(name);
+      if (!input) {
+        return 0;
+      }
+      const value = Number(input.value);
+      return Number.isFinite(value) ? Math.trunc(value) : 0;
+    };
+    const writeInt = (name, value) => {
+      const input = getInput(name);
+      if (input) {
+        const numeric = Number.isFinite(value) ? Math.trunc(value) : 0;
+        input.value = numeric;
+      }
+    };
+
+    const findShotokuRate = (amount) => {
+      for (const rate of shotokuRates) {
+        const lower = Number(rate.lower ?? 0);
+        const upper = rate.upper === null || rate.upper === undefined ? null : Number(rate.upper);
+        if (amount >= lower && (upper === null || amount <= upper)) {
+          return rate;
+        }
+      }
+      return null;
+    };
+
+    const calculateShotokuTax = (amount) => {
+      const taxable = Math.max(0, Math.trunc(Number(amount) || 0));
+      const matched = findShotokuRate(taxable);
+      if (!matched) {
+        return 0;
+      }
+      const rateDecimal = Number(matched.rate ?? 0) / 100;
+      const deduction = Number(matched.deduction_amount ?? 0);
+      const raw = taxable * rateDecimal - deduction;
+      return Number.isFinite(raw) ? Math.trunc(raw) : 0;
+    };
+
+    const recalcKojo = () => {
+      taxTypes.forEach((tax) => {
+        periods.forEach((period) => {
+          let shokei = 0;
+          kojoShokeiBases.forEach((base) => {
+            shokei += readInt(`${base}_${tax}_${period}`);
+          });
+          writeInt(`kojo_shokei_${tax}_${period}`, shokei);
+
+          let gokei = shokei;
+          kojoGokeiExtras.forEach((base) => {
+            gokei += readInt(`${base}_${tax}_${period}`);
+          });
+          writeInt(`kojo_gokei_${tax}_${period}`, gokei);
+        });
+      });
+    };
+
+    const recalcTax = () => {
+      periods.forEach((period) => {
+        const shotokuAmount = readInt(`tax_kazeishotoku_shotoku_${period}`);
+        writeInt(`tax_zeigaku_shotoku_${period}`, calculateShotokuTax(shotokuAmount));
+
+        const juminAmount = Math.max(0, readInt(`tax_kazeishotoku_jumin_${period}`));
+        writeInt(`tax_zeigaku_jumin_${period}`, juminAmount * 0.1);
+      });
+    };
+
+    const kojoBasesForEvents = kojoShokeiBases.concat(kojoGokeiExtras);
+    kojoBasesForEvents.forEach((base) => {
+      taxTypes.forEach((tax) => {
+        periods.forEach((period) => {
+          const input = getInput(`${base}_${tax}_${period}`);
+          if (input) {
+            input.addEventListener('blur', recalcKojo);
+          }
+        });
+      });
+    });
+
+    taxTypes.forEach((tax) => {
+      periods.forEach((period) => {
+        const input = getInput(`tax_kazeishotoku_${tax}_${period}`);
+        if (input) {
+          input.addEventListener('blur', recalcTax);
+        }
+      });
+    });
+
+    recalcKojo();
+    recalcTax();
+  });
+</script>
+@endpush

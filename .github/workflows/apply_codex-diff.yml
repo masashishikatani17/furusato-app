@@ -1,0 +1,101 @@
+name: Apply unified diff from comment
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: read
+
+jobs:
+  apply-diff:
+    if: >
+      github.event.issue.pull_request != null &&
+      contains(github.event.comment.body, '```diff') &&
+      (contains(github.event.comment.body, '/apply') || contains(github.event.comment.body, '/codex-apply')) &&
+      (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'COLLABORATOR')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, intl, sqlite3, dom
+          coverage: none
+
+      - name: Install Composer deps (no-dev ok if未使用)
+        run: |
+          if [ -f composer.json ]; then
+            composer install --no-interaction --prefer-dist --no-progress
+          fi
+
+      - name: Extract diff block from comment
+        id: extract
+        run: |
+          jq -r '.comment.body' "$GITHUB_EVENT_PATH" > .github/comment.txt
+          awk 'BEGIN{inb=0}
+               /```diff/{ if(inb==0){inb=1; next} else {inb=0; exit} }
+               { if(inb==1) print $0 }' .github/comment.txt > .github/codex.patch
+          echo "---- PATCH (first 80 chars) ----"
+          head -c 80 .github/codex.patch || true
+          echo
+          test -s .github/codex.patch
+
+      - name: Ensure working branch 'sub'
+        run: |
+          git fetch origin sub || true
+          if git show-ref --verify --quiet refs/heads/sub; then
+            git switch sub
+          else
+            git switch -c sub
+          fi
+          # サーバ側の main を追従して開始（手元ルールに準拠）
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Apply patch
+        run: |
+          # unified diff を適用。ファイル追加/更新/削除に対応
+          git apply --whitespace=fix --index .github/codex.patch
+          git status
+
+      - name: Run minimal tests (optional)
+        continue-on-error: true
+        env:
+          APP_ENV: testing
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ":memory:"
+        run: |
+          if [ -f artisan ]; then
+            php artisan -V || true
+            php artisan test || true
+          fi
+
+      - name: Commit changes to sub
+        run: |
+          git config user.name  "codex-bot"
+          git config user.email "codex-bot@users.noreply.github.com"
+          git commit -m "sub: apply codex unified diff from comment $GITHUB_RUN_ID" || echo "No changes to commit"
+          git push -u origin sub
+
+      - name: Ensure PR (sub -> main)
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: sub
+          base: main
+          title: "sub → main: Codex diff applied (#${{ github.event.issue.number }})"
+          body: |
+            自動生成: コメントの unified diff を sub ブランチへ適用しました。
+
+            - ソース: #${{ github.event.issue.number }} のコメント
+            - トリガ: `${{ github.event.comment.user.login }}` による `/apply`
+          draft: false

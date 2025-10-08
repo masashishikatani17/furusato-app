@@ -158,15 +158,17 @@
              style="background: rgba(0,0,0,.35); z-index: 1055;"
              @click.self="showYearModal=false">
           <div class="bg-white rounded shadow p-3"
-               style="width:340px; margin:10vh auto;">
-            <h6 class="mb-2">○年度の選択</h6>
-            <div class="ms-3 mb-3">
+               style="width:420px; max-width:90vw; margin:10vh auto;">
+            <hb class="mb-3">○年度の選択</hb>
+            <br>
+            <div class="mt-2 ms-5 mb-3">
               <hs>
-              同じ年度を選ぶと既存データへ遷移します。<br>別の年度を選ぶと複製して新しいデータへ遷移します。
-              <hs>
+                同じ年度を選ぶと既存データへ遷移します。
+                <br>別の年度を選ぶと複製して新しいデータへ遷移します。
+              </hs>
             </div>
-            <div class="d-flex align-items-center gap-2">
-              <label class="ms-3" style="width:50px;">年度</label>
+            <div class="d-flex align-items-center gap-2 mt-3 ms-3">
+              <label class="ms-2 ms-2">年度</label>
               <select class="form-select form-select-sm" style="width:200px;" x-model.number="yearSelected">
                 <template x-for="y in yearOptions" :key="y">
                   <option :value="y" x-text="y + '年'"></option>

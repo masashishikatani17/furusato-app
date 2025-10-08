@@ -4,7 +4,7 @@
 <div class="container-grey mt-2" style="width: 500px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop_m.jpg') }}" alt="…">
-    <h1 class="mb-0 mt-2">マスター一覧</h1>
+    <hb class="mb-0 mt-2">マスター一覧</hb>
   </div>
   <div class="card-body mt-3">
     <div class="wrapper">

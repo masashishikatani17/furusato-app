@@ -39,8 +39,8 @@
           <table class="table-base" align="center">
             <tr>
               <td style="width:100px;background-color:#f9f8ee">
-                  <div>
-                    <hb class="d-block mt-2">処理タイプ</hb><hr>
+                  <div class="text-start ms-1 me-1">
+                    <hb class="d-block mt-2 text-center">処理タイプ</hb><hr>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="detail_mode" id="detailModeDetail" value="1" @checked($detailMode === '1')>
                       <label class="form-check-label" for="detailModeDetail">詳細版</label>
@@ -51,11 +51,11 @@
                     </div>
                   </div>
               </td>
-              <td style="width:20px;">
+              <td class="b-none" style="width:20px;">
               </td>
               <td style="width:100px;background-color:#f9f8ee">
-                  <div>
-                    <hb class="d-block mt-2">分離課税</hb><hr>
+                  <div class="text-start ms-1 me-1">
+                    <hb class="d-block mt-2 text-center">分離課税</hb><hr>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="bunri_flag" id="bunriOff" value="0" @checked($bunriFlag === '0')>
                       <label class="form-check-label" for="bunriOff">なし</label>
@@ -66,11 +66,11 @@
                     </div>
                   </div>
               </td>
-              <td style="width:20px;">
+              <td class="b-none" style="width:20px;">
               </td>
               <td style="width:120px;background-color:#f9f8ee;">
-                  <div>
-                    <hb class="d-block mt-2">ワンストップ特例</hb><hr>
+                  <div class="text-start ms-1 me-1">
+                    <hb class="d-block mt-2 text-center">ワンストップ特例</hb><hr>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="one_stop_flag" id="oneStopUse" value="1" @checked($oneStopFlag === '1')>
                       <label class="form-check-label" for="oneStopUse">利用する</label>
@@ -81,11 +81,11 @@
                     </div>
                   </div>
               </td>
-              <td style="width:20px;">
+              <td class="b-none" style="width:20px;">
               </td>
               <td style="width:120px;background-color:#f9f8ee;">
-                  <div>
-                    <hb class="d-block mt-2">指定都市区分</hb><hr>
+                  <div class="text-start ms-1 me-1">
+                    <hb class="d-block mt-2 text-center">指定都市区分</hb><hr>
                     <div class="form-check">
                       <input class="form-check-input" type="radio" name="shitei_toshi_flag" id="shiteiMuni" value="1" @checked($shiteiFlag === '1')>
                       <label class="form-check-label" for="shiteiMuni">指定都市</label>
@@ -128,7 +128,7 @@
           </div>
         </div>
       </div>
-      <div class="mb-4">
+      <div>
         <h1 class="ms-3 mb-3">○均等割・その他税額</h1>
         <div class="row g-3">
           <div class="col-md-6">
@@ -147,9 +147,9 @@
             <input type="number" class="form-control suji7 comma floor integer_comma" name="other_taxes_amount" value="{{ $otherTaxes }}" min="0" step="1" required>
             円
           </div>
-        
       </div>
-      <div class="btn-footer mt-3">
+      <hr>
+      <div class="btn-footer">
         <div class="d-flex justify-content-end gap-2 me-3 mb-3">
           <button type="submit" class="btn-base-green" formnovalidate>保 存</button>
           <button type="submit"

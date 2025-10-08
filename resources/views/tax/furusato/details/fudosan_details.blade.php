@@ -4,110 +4,117 @@
 
 @section('content')
 @php($inputs = $out['inputs'] ?? [])
-<div class="container" style="min-width: 720px; max-width: 960px;">
-  <form method="POST" action="{{ route('furusato.details.fudosan.save') }}">
-    @csrf
-    <input type="hidden" name="data_id" value="{{ $dataId }}">
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="mb-0">不動産（内訳）</h5>
-      <button type="submit" class="btn btn-outline-secondary btn-sm">戻る</button>
+<div class="container-blue mt-2" style="width:600px;">
+  <div class="card-header d-flex align-items-start">
+    <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+    <h0 class="mb-0 mt-2">内訳－不動産</h0>
+  </div>
+  <div class="card-body">　
+  　<div class="wrapper">
+      <form method="POST" action="{{ route('furusato.details.fudosan.save') }}">
+        @csrf
+        <input type="hidden" name="data_id" value="{{ $dataId }}">
+    
+        @if ($errors->any())
+          <div class="alert alert-danger">
+            <ul class="mb-0">
+              @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+              @endforeach
+            </ul>
+          </div>
+        @endif
+    
+        <div class="table-responsive">
+          <table class="table-base table-bordered align-middle">
+            <tbody>
+              <tr>
+                <th colspan="2" style="height:30px;">項 目</th>
+                <th>{{ $warekiPrev ?? '前年' }}</th>
+                <th>{{ $warekiCurr ?? '当年' }}</th>
+              </tr>
+              <tr>
+                <th class="text-start align-middle" colspan="2">収入金額</th>
+                <td>
+                  @php($name = 'fudosan_shunyu_prev')
+                  <input type="number" min="0" step="1" class="form-control suji11" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}">
+                </td>
+                <td>
+                  @php($name = 'fudosan_shunyu_curr')
+                  <input type="number" min="0" step="1" class="form-control suji11" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}">
+                </td>
+              </tr>
+              @php($expenseFields = [
+                ['label' => '', 'name' => 'fudosan_keihi_1'],
+                ['label' => '', 'name' => 'fudosan_keihi_2'],
+                ['label' => '', 'name' => 'fudosan_keihi_3'],
+                ['label' => '', 'name' => 'fudosan_keihi_4'],
+                ['label' => '', 'name' => 'fudosan_keihi_5'],
+                ['label' => '', 'name' => 'fudosan_keihi_6'],
+                ['label' => '', 'name' => 'fudosan_keihi_7'],
+                ['label' => 'その他', 'name' => 'fudosan_keihi_sonota'],
+                ['label' => '合計', 'name' => 'fudosan_keihi_gokei', 'readonly' => true],
+              ])
+              <tr>
+                <th class="text-start align-middle" rowspan="9">必要経費</th>
+                @php($field = array_shift($expenseFields))
+                <th class="text-start u-nowrap th-ccc">{{ $field['label'] }}</td>
+                <td>
+                  @php($name = $field['name'] . '_prev')
+                  @php($readonly = $field['readonly'] ?? false)
+                  <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
+                </td>
+                <td>
+                  @php($name = $field['name'] . '_curr')
+                  <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
+                </td>
+              </tr>
+              @foreach ($expenseFields as $field)
+                <tr>
+                  <th class="text-start u-nowrap th-ccc">{{ $field['label'] }}</th>
+                  <td>
+                    @php($name = $field['name'] . '_prev')
+                    @php($readonly = $field['readonly'] ?? false)
+                    <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
+                  </td>
+                  <td>
+                    @php($name = $field['name'] . '_curr')
+                    <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
+                  </td>
+                </tr>
+              @endforeach
+              @php($footerFields = [
+                ['name' => 'fudosan_sashihiki', 'label' => '差引金額', 'readonly' => true],
+                ['name' => 'fudosan_senjuusha_kyuyo', 'label' => '専従者給与'],
+                ['name' => 'fudosan_aoi_tokubetsu_kojo_mae', 'label' => '青色申告特別控除前の所得金額', 'readonly' => true],
+                ['name' => 'fudosan_aoi_tokubetsu_kojo_gaku', 'label' => '青色申告特別控除額'],
+                ['name' => 'fudosan_shotoku', 'label' => '所得金額', 'readonly' => true],
+                ['name' => 'fudosan_fusairishi', 'label' => '土地等を取得するための負債利子'],
+              ])
+              @foreach ($footerFields as $field)
+                <tr>
+                  <th class="text-start align-middle" colspan="2">{{ $field['label'] }}</th>
+                  <td>
+                    @php($name = $field['name'] . '_prev')
+                    @php($readonly = $field['readonly'] ?? false)
+                    <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
+                  </td>
+                  <td>
+                    @php($name = $field['name'] . '_curr')
+                    <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
+                  </td>
+                </tr>
+              @endforeach
+            </tbody>
+          </table>
+        </div>
+        <hr>
+            <div class="text-end me-2 mb-2">
+              <button type="submit" class="btn-base-blue">戻 る</button>
+            </div>
+      </form>
     </div>
-
-    @if ($errors->any())
-      <div class="alert alert-danger">
-        <ul class="mb-0">
-          @foreach ($errors->all() as $error)
-            <li>{{ $error }}</li>
-          @endforeach
-        </ul>
-      </div>
-    @endif
-
-    <div class="table-responsive">
-      <table class="table table-bordered table-sm align-middle text-center mb-0">
-        <tbody>
-          <tr class="table-light">
-            <th class="align-middle" colspan="2">項目</th>
-            <th class="align-middle">{{ $warekiPrev ?? '前年' }}</th>
-            <th class="align-middle">{{ $warekiCurr ?? '当年' }}</th>
-          </tr>
-          <tr>
-            <th class="align-middle" colspan="2">収入金額</th>
-            <td>
-              @php($name = 'fudosan_shunyu_prev')
-              <input type="number" min="0" step="1" class="form-control form-control-sm text-end" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}">
-            </td>
-            <td>
-              @php($name = 'fudosan_shunyu_curr')
-              <input type="number" min="0" step="1" class="form-control form-control-sm text-end" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}">
-            </td>
-          </tr>
-          @php($expenseFields = [
-            ['label' => '', 'name' => 'fudosan_keihi_1'],
-            ['label' => '', 'name' => 'fudosan_keihi_2'],
-            ['label' => '', 'name' => 'fudosan_keihi_3'],
-            ['label' => '', 'name' => 'fudosan_keihi_4'],
-            ['label' => '', 'name' => 'fudosan_keihi_5'],
-            ['label' => '', 'name' => 'fudosan_keihi_6'],
-            ['label' => '', 'name' => 'fudosan_keihi_7'],
-            ['label' => 'その他', 'name' => 'fudosan_keihi_sonota'],
-            ['label' => '合計', 'name' => 'fudosan_keihi_gokei', 'readonly' => true],
-          ])
-          <tr>
-            <th class="align-middle" rowspan="9">必要経費</th>
-            @php($field = array_shift($expenseFields))
-            <td class="align-middle">{{ $field['label'] }}</td>
-            <td>
-              @php($name = $field['name'] . '_prev')
-              @php($readonly = $field['readonly'] ?? false)
-              <input type="number" min="0" step="1" class="form-control form-control-sm text-end{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
-            </td>
-            <td>
-              @php($name = $field['name'] . '_curr')
-              <input type="number" min="0" step="1" class="form-control form-control-sm text-end{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
-            </td>
-          </tr>
-          @foreach ($expenseFields as $field)
-            <tr>
-              <td class="align-middle">{{ $field['label'] }}</td>
-              <td>
-                @php($name = $field['name'] . '_prev')
-                @php($readonly = $field['readonly'] ?? false)
-                <input type="number" min="0" step="1" class="form-control form-control-sm text-end{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
-              </td>
-              <td>
-                @php($name = $field['name'] . '_curr')
-                <input type="number" min="0" step="1" class="form-control form-control-sm text-end{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
-              </td>
-            </tr>
-          @endforeach
-          @php($footerFields = [
-            ['name' => 'fudosan_sashihiki', 'label' => '差引金額', 'readonly' => true],
-            ['name' => 'fudosan_senjuusha_kyuyo', 'label' => '専従者給与'],
-            ['name' => 'fudosan_aoi_tokubetsu_kojo_mae', 'label' => '青色申告特別控除前の所得金額', 'readonly' => true],
-            ['name' => 'fudosan_aoi_tokubetsu_kojo_gaku', 'label' => '青色申告特別控除額'],
-            ['name' => 'fudosan_shotoku', 'label' => '所得金額', 'readonly' => true],
-            ['name' => 'fudosan_fusairishi', 'label' => '土地等を取得するための負債利子'],
-          ])
-          @foreach ($footerFields as $field)
-            <tr>
-              <th class="align-middle" colspan="2">{{ $field['label'] }}</th>
-              <td>
-                @php($name = $field['name'] . '_prev')
-                @php($readonly = $field['readonly'] ?? false)
-                <input type="number" min="0" step="1" class="form-control form-control-sm text-end{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
-              </td>
-              <td>
-                @php($name = $field['name'] . '_curr')
-                <input type="number" min="0" step="1" class="form-control form-control-sm text-end{{ $readonly ? ' bg-light' : '' }}" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}" @if($readonly) readonly @endif>
-              </td>
-            </tr>
-          @endforeach
-        </tbody>
-      </table>
-    </div>
-  </form>
+  </div>
 </div>
 
 @push('scripts')

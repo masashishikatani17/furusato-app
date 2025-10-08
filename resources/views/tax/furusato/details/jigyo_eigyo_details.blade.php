@@ -4,7 +4,7 @@
 
 @section('content')
 @php($inputs = $out['inputs'] ?? [])
-<div class="container-blue mt-2">
+<div class="container-blue mt-2" style="width:600px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">内訳－事業・営業等</h0>
@@ -35,167 +35,167 @@
               </thead>
               <tbody>
                 <tr>
-                  <th colspan="2" class="text-start align-middle">売上(収入)金額</th>
+                  <th colspan="2" class="text-start align-middle ps-1">売上(収入)金額</th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji9" name="jigyo_eigyo_uriage_prev" value="{{ old('jigyo_eigyo_uriage_prev', $inputs['jigyo_eigyo_uriage_prev'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_uriage_prev" value="{{ old('jigyo_eigyo_uriage_prev', $inputs['jigyo_eigyo_uriage_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_uriage_curr" value="{{ old('jigyo_eigyo_uriage_curr', $inputs['jigyo_eigyo_uriage_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th colspan="2" class="text-start align-middle">売上原価</th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_urigenka_prev" value="{{ old('jigyo_eigyo_urigenka_prev', $inputs['jigyo_eigyo_urigenka_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_urigenka_curr" value="{{ old('jigyo_eigyo_urigenka_curr', $inputs['jigyo_eigyo_urigenka_curr'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_uriage_curr" value="{{ old('jigyo_eigyo_uriage_curr', $inputs['jigyo_eigyo_uriage_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
-                  <th colspan="2" class="text-start align-middle">差引金額</th>
+                  <th colspan="2" class="text-start align-middle ps-1">売上原価</th>
+                  <td>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_urigenka_prev" value="{{ old('jigyo_eigyo_urigenka_prev', $inputs['jigyo_eigyo_urigenka_prev'] ?? null) }}">
+                  </td>
+                  <td>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_urigenka_curr" value="{{ old('jigyo_eigyo_urigenka_curr', $inputs['jigyo_eigyo_urigenka_curr'] ?? null) }}">
+                  </td>
+                </tr>
+                <tr>
+                  <th colspan="2" class="text-start align-middle ps-1">差引金額</th>
                   <td>
                     @php($name = 'jigyo_eigyo_sashihiki_1_prev')
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   <td>
                     @php($name = 'jigyo_eigyo_sashihiki_1_curr')
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
                 <tr>
-                  <th scope="rowgroup" rowspan="9" class="text-center align-middle">経 費</th>
-                  <th class="u-nowrap th-ccc"></th>
+                  <th scope="rowgroup" rowspan="9" class="text-start align-middle ps-1">経 費</th>
+                  <th class="text-startu-nowrap th-ccc"></th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_1_prev" value="{{ old('jigyo_eigyo_keihi_1_prev', $inputs['jigyo_eigyo_keihi_1_prev'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_1_prev" value="{{ old('jigyo_eigyo_keihi_1_prev', $inputs['jigyo_eigyo_keihi_1_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_1_curr" value="{{ old('jigyo_eigyo_keihi_1_curr', $inputs['jigyo_eigyo_keihi_1_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="u-nowrap th-ccc"></th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_2_prev" value="{{ old('jigyo_eigyo_keihi_2_prev', $inputs['jigyo_eigyo_keihi_2_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_2_curr" value="{{ old('jigyo_eigyo_keihi_2_curr', $inputs['jigyo_eigyo_keihi_2_curr'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_1_curr" value="{{ old('jigyo_eigyo_keihi_1_curr', $inputs['jigyo_eigyo_keihi_1_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
-                  <th class="u-nowrap th-ccc"></th>
+                  <th class="text-start u-nowrap th-ccc"></th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_3_prev" value="{{ old('jigyo_eigyo_keihi_3_prev', $inputs['jigyo_eigyo_keihi_3_prev'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_2_prev" value="{{ old('jigyo_eigyo_keihi_2_prev', $inputs['jigyo_eigyo_keihi_2_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_3_curr" value="{{ old('jigyo_eigyo_keihi_3_curr', $inputs['jigyo_eigyo_keihi_3_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="u-nowrap th-ccc"></th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_4_prev" value="{{ old('jigyo_eigyo_keihi_4_prev', $inputs['jigyo_eigyo_keihi_4_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_4_curr" value="{{ old('jigyo_eigyo_keihi_4_curr', $inputs['jigyo_eigyo_keihi_4_curr'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_2_curr" value="{{ old('jigyo_eigyo_keihi_2_curr', $inputs['jigyo_eigyo_keihi_2_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
-                  <th class="u-nowrap th-ccc"></th>
+                  <th class="text-start u-nowrap th-ccc"></th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_5_prev" value="{{ old('jigyo_eigyo_keihi_5_prev', $inputs['jigyo_eigyo_keihi_5_prev'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_3_prev" value="{{ old('jigyo_eigyo_keihi_3_prev', $inputs['jigyo_eigyo_keihi_3_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_5_curr" value="{{ old('jigyo_eigyo_keihi_5_curr', $inputs['jigyo_eigyo_keihi_5_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="u-nowrap th-ccc"></th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_6_prev" value="{{ old('jigyo_eigyo_keihi_6_prev', $inputs['jigyo_eigyo_keihi_6_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_6_curr" value="{{ old('jigyo_eigyo_keihi_6_curr', $inputs['jigyo_eigyo_keihi_6_curr'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_3_curr" value="{{ old('jigyo_eigyo_keihi_3_curr', $inputs['jigyo_eigyo_keihi_3_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
-                  <th class="u-nowrap th-ccc"></th>
+                  <th class="text-start u-nowrap th-ccc"></th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_7_prev" value="{{ old('jigyo_eigyo_keihi_7_prev', $inputs['jigyo_eigyo_keihi_7_prev'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_4_prev" value="{{ old('jigyo_eigyo_keihi_4_prev', $inputs['jigyo_eigyo_keihi_4_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_7_curr" value="{{ old('jigyo_eigyo_keihi_7_curr', $inputs['jigyo_eigyo_keihi_7_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="u-nowrap th-ccc">その他</th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_sonota_prev" value="{{ old('jigyo_eigyo_keihi_sonota_prev', $inputs['jigyo_eigyo_keihi_sonota_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_keihi_sonota_curr" value="{{ old('jigyo_eigyo_keihi_sonota_curr', $inputs['jigyo_eigyo_keihi_sonota_curr'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_4_curr" value="{{ old('jigyo_eigyo_keihi_4_curr', $inputs['jigyo_eigyo_keihi_4_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
-                  <th class="u-nowrap th-ccc">合計</th>
+                  <th class="text-start u-nowrap th-ccc"></th>
+                  <td>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_5_prev" value="{{ old('jigyo_eigyo_keihi_5_prev', $inputs['jigyo_eigyo_keihi_5_prev'] ?? null) }}">
+                  </td>
+                  <td>
+                    <input type="number" min="0" step="1" class="form-control  suji11" name="jigyo_eigyo_keihi_5_curr" value="{{ old('jigyo_eigyo_keihi_5_curr', $inputs['jigyo_eigyo_keihi_5_curr'] ?? null) }}">
+                  </td>
+                </tr>
+                <tr>
+                  <th class="text-start u-nowrap th-ccc"></th>
+                  <td>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_6_prev" value="{{ old('jigyo_eigyo_keihi_6_prev', $inputs['jigyo_eigyo_keihi_6_prev'] ?? null) }}">
+                  </td>
+                  <td>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_6_curr" value="{{ old('jigyo_eigyo_keihi_6_curr', $inputs['jigyo_eigyo_keihi_6_curr'] ?? null) }}">
+                  </td>
+                </tr>
+                <tr>
+                  <th class="text-start u-nowrap th-ccc"></th>
+                  <td>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_7_prev" value="{{ old('jigyo_eigyo_keihi_7_prev', $inputs['jigyo_eigyo_keihi_7_prev'] ?? null) }}">
+                  </td>
+                  <td>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_7_curr" value="{{ old('jigyo_eigyo_keihi_7_curr', $inputs['jigyo_eigyo_keihi_7_curr'] ?? null) }}">
+                  </td>
+                </tr>
+                <tr>
+                  <th class="text-start u-nowrap th-ccc">その他</th>
+                  <td>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_sonota_prev" value="{{ old('jigyo_eigyo_keihi_sonota_prev', $inputs['jigyo_eigyo_keihi_sonota_prev'] ?? null) }}">
+                  </td>
+                  <td>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_sonota_curr" value="{{ old('jigyo_eigyo_keihi_sonota_curr', $inputs['jigyo_eigyo_keihi_sonota_curr'] ?? null) }}">
+                  </td>
+                </tr>
+                <tr>
+                  <th class="u-nowrap th-ccc">合 計</th>
                   <td>
                     @php($name = 'jigyo_eigyo_keihi_gokei_prev')
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   <td>
                     @php($name = 'jigyo_eigyo_keihi_gokei_curr')
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
                 <tr>
-                  <th colspan="2" class="text-start align-middle">差引金額</th>
+                  <th colspan="2" class="text-start align-middle ps-1">差引金額</th>
                   <td>
                     @php($name = 'jigyo_eigyo_sashihiki_2_prev')
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   <td>
                     @php($name = 'jigyo_eigyo_sashihiki_2_curr')
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
                 <tr>
-                  <th colspan="2" class="text-start align-middle">専従者給与</th>
+                  <th colspan="2" class="text-start align-middle ps-1">専従者給与</th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_senjuusha_kyuyo_prev" value="{{ old('jigyo_eigyo_senjuusha_kyuyo_prev', $inputs['jigyo_eigyo_senjuusha_kyuyo_prev'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_senjuusha_kyuyo_prev" value="{{ old('jigyo_eigyo_senjuusha_kyuyo_prev', $inputs['jigyo_eigyo_senjuusha_kyuyo_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_senjuusha_kyuyo_curr" value="{{ old('jigyo_eigyo_senjuusha_kyuyo_curr', $inputs['jigyo_eigyo_senjuusha_kyuyo_curr'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_senjuusha_kyuyo_curr" value="{{ old('jigyo_eigyo_senjuusha_kyuyo_curr', $inputs['jigyo_eigyo_senjuusha_kyuyo_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
-                  <th colspan="2" class="text-start align-middle">青色申告特別控除前の所得金額</th>
+                  <th colspan="2" class="text-start align-middle ps-1 pe-1">青色申告特別控除前の所得金額</th>
                   <td>
                     @php($name = 'jigyo_eigyo_aoi_tokubetsu_kojo_mae_prev')
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   <td>
                     @php($name = 'jigyo_eigyo_aoi_tokubetsu_kojo_mae_curr')
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
                 <tr>
-                  <th colspan="2" class="text-start align-middle">青色申告特別控除額</th>
+                  <th colspan="2" class="text-start align-middle ps-1">青色申告特別控除額</th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev" value="{{ old('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev', $inputs['jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev" value="{{ old('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev', $inputs['jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr" value="{{ old('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr', $inputs['jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr'] ?? null) }}">
+                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr" value="{{ old('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr', $inputs['jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
-                  <th colspan="2" class="text-start align-middle">所得金額</th>
+                  <th colspan="2" class="text-start align-middle ps-1">所得金額</th>
                   <td>
                     @php($name = 'jigyo_eigyo_shotoku_prev')
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   <td>
                     @php($name = 'jigyo_eigyo_shotoku_curr')
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
               </tbody>

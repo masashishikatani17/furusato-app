@@ -95,6 +95,7 @@ final class FurusatoController extends Controller
         $warekiPrev = null;
         $warekiCurr = null;
         $savedInputs = [];
+        $data = null;
 
         if ($dataId) {
             $data = $this->findDataForInput($request, $dataId);
@@ -116,6 +117,15 @@ final class FurusatoController extends Controller
             }
         }
 
+        $companyId = $request->user()?->company_id;
+        if ($companyId === null && $data) {
+            $companyId = $data->company_id;
+        }
+        $companyId = $companyId !== null ? (int) $companyId : null;
+
+        $shotokuRates = app(FurusatoMasterService::class)
+            ->getShotokuRates(self::MASTER_KIHU_YEAR, $companyId);
+
         return [
             'dataId' => $dataId,
             'bunriFlag' => $bunriFlag,
@@ -125,6 +135,7 @@ final class FurusatoController extends Controller
             'savedInputs' => $savedInputs,
             'results' => [],
             'showResult' => false,
+            'shotokuRates' => $shotokuRates,
         ];
     }
 
@@ -580,11 +591,100 @@ final class FurusatoController extends Controller
             }
 
             $current = is_array($record->payload) ? $record->payload : [];
-            $record->payload = array_replace($current, $updates);
+            $payload = array_replace($current, $updates);
+            $payload = $this->applyAutoCalculatedFields($data, $payload);
+            $record->payload = $payload;
             $record->updated_by = $userId ?: null;
 
             $record->save();
         });
+    }
+
+    private function applyAutoCalculatedFields(Data $data, array $payload): array
+    {
+        $taxTypes = ['shotoku', 'jumin'];
+        $periods = ['prev', 'curr'];
+        $kojoShokeiBases = [
+            'kojo_shakaihoken',
+            'kojo_shokibo',
+            'kojo_seimei',
+            'kojo_jishin',
+            'kojo_kafu',
+            'kojo_hitorioya',
+            'kojo_kinrogakusei',
+            'kojo_shogaisha',
+            'kojo_haigusha',
+            'kojo_haigusha_tokubetsu',
+            'kojo_fuyo',
+            'kojo_kiso',
+        ];
+        $kojoGokeiExtras = ['kojo_zasson', 'kojo_iryo', 'kojo_kifukin'];
+
+        /** @var FurusatoMasterService $masterService */
+        $masterService = app(FurusatoMasterService::class);
+        $companyId = $data->company_id !== null ? (int) $data->company_id : null;
+        $shotokuRates = $masterService
+            ->getShotokuRates(self::MASTER_KIHU_YEAR, $companyId)
+            ->all();
+
+        foreach ($taxTypes as $tax) {
+            foreach ($periods as $period) {
+                $shokei = 0;
+                foreach ($kojoShokeiBases as $base) {
+                    $key = sprintf('%s_%s_%s', $base, $tax, $period);
+                    $shokei += $this->valueOrZero($this->toNullableInt($payload[$key] ?? null));
+                }
+                $payload[sprintf('kojo_shokei_%s_%s', $tax, $period)] = $shokei;
+
+                $gokei = $shokei;
+                foreach ($kojoGokeiExtras as $base) {
+                    $key = sprintf('%s_%s_%s', $base, $tax, $period);
+                    $gokei += $this->valueOrZero($this->toNullableInt($payload[$key] ?? null));
+                }
+                $payload[sprintf('kojo_gokei_%s_%s', $tax, $period)] = $gokei;
+            }
+        }
+
+        foreach ($periods as $period) {
+            $shotokuKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
+            $shotokuAmount = $this->valueOrZero($this->toNullableInt($payload[$shotokuKey] ?? null));
+            $payload[sprintf('tax_zeigaku_shotoku_%s', $period)] = $this->calculateShotokuTaxAmount($shotokuRates, $shotokuAmount);
+
+            $juminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
+            $juminAmount = max(0, $this->valueOrZero($this->toNullableInt($payload[$juminKey] ?? null)));
+            $payload[sprintf('tax_zeigaku_jumin_%s', $period)] = (int) ($juminAmount * 0.1);
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param array<int, array{lower:int, upper:int|null, rate:float, deduction_amount:int}> $rates
+     */
+    private function calculateShotokuTaxAmount(array $rates, int $taxable): int
+    {
+        $amount = max(0, $taxable);
+
+        foreach ($rates as $rate) {
+            $lower = (int) ($rate['lower'] ?? 0);
+            $upper = array_key_exists('upper', $rate) ? $rate['upper'] : null;
+
+            if ($amount < $lower) {
+                continue;
+            }
+
+            if ($upper !== null && $amount > $upper) {
+                continue;
+            }
+
+            $rateDecimal = (float) ($rate['rate'] ?? 0) / 100;
+            $deduction = (int) ($rate['deduction_amount'] ?? 0);
+            $value = $amount * $rateDecimal - $deduction;
+
+            return (int) $value;
+        }
+
+        return 0;
     }
 
     private function toNullableInt(mixed $value): ?int

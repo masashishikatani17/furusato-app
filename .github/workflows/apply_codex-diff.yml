@@ -1,8 +1,14 @@
 name: Apply unified diff from comment
 
 on:
+  # PRの会話コメントで起動
   issue_comment:
+    types: [created, edited]
+  # PRの「レビューコメント」でも起動（会話タブ以外のコメントを拾う）
+  pull_request_review_comment:
     types: [created]
+  # 手動実行（起動確認や切り分け用）
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,10 +17,20 @@ permissions:
 
 jobs:
   apply-diff:
+    # PRに紐づいたコメントで、/apply か /codex-apply を含み、かつ diff らしきブロックを含む場合のみ
     if: >
-      github.event.issue.pull_request != null &&
-      contains(github.event.comment.body, '```diff') &&
-      (contains(github.event.comment.body, '/apply') || contains(github.event.comment.body, '/codex-apply')) &&
+      (
+        (github.event_name == 'issue_comment' && github.event.issue.pull_request != null) ||
+        (github.event_name == 'pull_request_review_comment')
+      ) &&
+      (
+        contains(github.event.comment.body, '/apply') ||
+        contains(github.event.comment.body, '/codex-apply')
+      ) &&
+      (
+        contains(github.event.comment.body, '```diff') ||
+        contains(github.event.comment.body, '*** Begin Patch')
+      ) &&
       (github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'COLLABORATOR')
     runs-on: ubuntu-latest
 
@@ -41,9 +57,16 @@ jobs:
         id: extract
         run: |
           jq -r '.comment.body' "$GITHUB_EVENT_PATH" > .github/comment.txt
+          # ```diff フェンス優先、無ければ *** Begin Patch ～ *** End Patch を抽出
           awk 'BEGIN{inb=0}
                /```diff/{ if(inb==0){inb=1; next} else {inb=0; exit} }
-               { if(inb==1) print $0 }' .github/comment.txt > .github/codex.patch
+               { if(inb==1) print $0 }' .github/comment.txt > .github/codex.patch || true
+          if [ ! -s .github/codex.patch ]; then
+            awk "BEGIN{inb=0}
+                 /\\*\\*\\* Begin Patch/{inb=1; print; next}
+                 /\\*\\*\\* End Patch/{print; exit}
+                 { if(inb==1) print }" .github/comment.txt > .github/codex.patch
+          fi
           echo "---- PATCH (first 80 chars) ----"
           head -c 80 .github/codex.patch || true
           echo

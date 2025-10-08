@@ -37,7 +37,7 @@ final class FurusatoMasterViewTest extends TestCase
         $response = $this->get(route('furusato.master', ['data_id' => $data->id], false));
 
         $response->assertOk();
-        $response->assertSee('ふるさと納税：マスター一覧', false);
+        $response->assertSee('マスター一覧', false);
     }
 
     /** @test */

@@ -67,7 +67,7 @@
               <td class="text-end">{{ $formatPercent($rate->pref_specified) }}</td>
               <td class="text-end">{{ $formatPercent($rate->city_non_specified) }}</td>
               <td class="text-end">{{ $formatPercent($rate->pref_non_specified) }}</td>
-              <td>{{ $rate->remark }}</td>
+              <td class="text-start">{{ $rate->remark }}</td>
             </tr>
           @endforeach
         </tbody>

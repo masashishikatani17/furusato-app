@@ -55,6 +55,6 @@
         <a href="{{ route('furusato.master', ['data_id' => $dataId]) }}" class="btn-base-blue">戻 る</a>
       </div>
     </div>  
-  </div>    
+  </div>  
 </div>
 @endsection

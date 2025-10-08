@@ -30,6 +30,17 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 軽い影 */
         }
         
+        .container-grey {
+            width: 700px;
+            margin: 0px auto;
+            padding: 0px;
+            font-size: 13px;
+            background-color: #ffffff; /* 白背景 */
+            border: 2px solid #7f7f7f;    /* 太い青枠 */
+            border-radius: 8px;        /* 角丸 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 軽い影 */
+        }
+        
         .wrapper {
           width: 95%;
           max-width: 1200px;
@@ -43,14 +54,16 @@
 /* --------------------------------------
   * 文字
   * ------------------------------------ */        
+   /* インプット表タイトル　青 */
         h0 {
             font-size: 16px;
             font-weight: bold;
             margin-bottom: 10px;
             text-align: left;
-            color: #4193d0; /* 濃いグレー */
+            color: #4193d0; /* 濃い青 */
         }
         
+    /* 小見出し　太 */
         h1 {
             font-size: 14px;
             font-weight: bold;
@@ -59,6 +72,7 @@
             color: #000; /* 濃いグレー */
         }
         
+    /* ただの太文字 */    
         hb {
             font-size: 13px;
             font-weight: bold;
@@ -66,13 +80,36 @@
             margin-bottom: 0px;
         }
         
-        /* ※注 文字*/
+    /* 説明文　少々薄い */
+        hs {
+            font-size: 13px;
+            color: #333333;
+            margin-bottom: 0px;
+        }
+    
+    /* マスタータイトル　グレー */    
+        hm {
+            font-size: 13px;
+            color: #7f7f7f;
+            margin-bottom: 0px;
+        }
+        
+        
+        
+        
+    /* ※注 文字*/
         p-small {
             font-size: 12px;
             text-align: left;
             color: #555555; /* 黒 */
         }    
-            
+   
+   /* --- 配置／書式 --- */
+        .text-center { text-align: center; }
+        .text-end  { text-align: right; }
+        .text-start   { text-align: left; }
+        .nowrap    { white-space: nowrap; }     
+        
         
 /* --------------------------------------
   * ボタン（独自クラス）
@@ -161,6 +198,28 @@
           cursor: pointer;
         }
         
+        /* メニュー用ボタン_グレー地白字 */
+        .btn-menu {
+            display: inline-flex;              /* ← フレックスで中央寄せ */
+            align-items: center;               /* ← 縦中央 */
+            justify-content: center;           /* ← 横中央 */
+            width: 150px;
+            height: 40px;
+            line-height: 1;
+            font-size: 15px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+            border: 1px solid #ccc; 
+            background-color: #666666; 
+            color: #ffffff; 
+            cursor: pointer;
+            vertical-align: middle;            /* ← 行内での縦位置（隣の要素と揃える用） */
+        }
+
+        
         /* 非活性リンク風（クリック不可） */
         .btn-disabled {
           display: inline-block;
@@ -218,13 +277,32 @@
         }
         
         /* セル共通設定（Bootstrapの.tableを上書きできるよう強めのセレクタに） */
-        table.table-base td,
         table.table-base th {
+          background-color: #666;
+          color: #fff;
+          font-weight: bold;
+          padding: 2px;           /* セル内余白 */
+          text-align: center;     /* 横方向中央寄せ */
+          vertical-align: middle; /* 縦方向中央寄せ */
+          line-height: 1.2;
+        }
+        
+        table.table-base td {
           padding: 4px;           /* セル内余白 */
           text-align: center;     /* 横方向中央寄せ */
           vertical-align: middle; /* 縦方向中央寄せ */
           line-height: 1.2;
         }
+        
+          　/* 見出しセルの背景色を変える */
+            /* ★ 必ず <th> に付けてください（<table>/<tr> に付けると子孫に継承されます） */
+               .table-base .th-ccc   { background-color: #ccc; color: #000; }  /* 薄グレー地＋黒文字 */
+               .table-base .th-cream { background-color: #FCEEBF; color: #000; } /* クリーム地＋黒文字 */
+
+            /* html側の指定 
+            　　 <th class="u-nowrap th-ccc">番号</th>
+        　　　　　<th class="u-nowrap th-cream">氏　名</th> */
+               table.table-base th.th-ccc { background-color:#ccc !important; color:#000 !important; }　
         
         
         .table-m-sentaku td {
@@ -279,7 +357,7 @@
         .table-beige {
             border-collapse: collapse;
             margin: 10px auto;     /* 上下10px, 左右 auto */
-            border: 1px solid #888; /* ★ 追加 */
+            border: 1px solid #DDDDDD; /* ★ 追加 */
             text-align: center;
             vertical-align: middle !important;
             font-size: 13px;
@@ -287,6 +365,19 @@
             background-color: #f9f8ee !important;
           }
     
+    /* --- 罫線をセル単位で透明化する --- */
+        .b-none     { border: none !important; }
+        .b-t-no   { border-top:    none !important; }
+        .b-r-no   { border-right:  none !important; }
+        .b-b-no   { border-bottom: none !important; }
+        .b-l-no   { border-left:   none !important; }
+        .b-x-no   { border-left:   none !important; border-right: none !important; }
+        
+    /* --- 罫線をセル単位で太線にする --- */
+        .b-t-strong { border-top:    2px solid #333 !important; }
+        .b-r-strong { border-right:  2px solid #333 !important; }
+        .b-b-strong { border-bottom: 2px solid #333 !important; }
+        .b-l-strong { border-left:   2px solid #333 !important; }
 
 /* --------------------------------------
   * フォームコントロール

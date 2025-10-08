@@ -128,7 +128,7 @@
           </div>
         </div>
       </div>
-      <div class="mb-4">
+      <div>
         <h1 class="ms-3 mb-3">○均等割・その他税額</h1>
         <div class="row g-3">
           <div class="col-md-6">
@@ -147,9 +147,9 @@
             <input type="number" class="form-control suji7 comma floor integer_comma" name="other_taxes_amount" value="{{ $otherTaxes }}" min="0" step="1" required>
             円
           </div>
-        
+      <hr>  
       </div>
-      <div class="btn-footer mt-3">
+      <div class="btn-footer">
         <div class="d-flex justify-content-end gap-2 me-3 mb-3">
           <button type="submit" class="btn-base-green" formnovalidate>保 存</button>
           <button type="submit"

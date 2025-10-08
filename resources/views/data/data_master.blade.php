@@ -125,9 +125,9 @@
           </div>
         </div>
       </div>
-  
+      <hr>
       <!-- 下部ボタン帯（“ビル”と同じ配置） -->
-                <div class="btn-footer mt-3">
+                <div class="btn-footer">
                   <div class="d-flex justify-content-between">
                     <div class="d-flex flex-wrap gap-2">
                       <a href="{{ route('data.create') }}" class="btn-base-blue">新規データの作成</a>
@@ -158,22 +158,27 @@
              style="background: rgba(0,0,0,.35); z-index: 1055;"
              @click.self="showYearModal=false">
           <div class="bg-white rounded shadow p-3"
-               style="width:520px; max-width:90vw; margin:10vh auto;">
-            <h6 class="mb-2">年度の選択</h6>
-            <div class="text-muted mb-3" style="font-size: 0.9rem;">
-              同じ年度を選ぶと既存データへ遷移します。別の年度を選ぶと複製して新しいデータへ遷移します。
+               style="width:420px; max-width:90vw; margin:10vh auto;">
+            <hb class="mb-3">○年度の選択</hb>
+            <br>
+            <div class="mt-2 ms-5 mb-3">
+              <hs>
+                同じ年度を選ぶと既存データへ遷移します。
+                <br>別の年度を選ぶと複製して新しいデータへ遷移します。
+              </hs>
             </div>
-            <div class="d-flex align-items-center gap-2 mb-3">
-              <label class="mb-0" style="width:90px;">年度</label>
+            <div class="d-flex align-items-center gap-2 mt-3 ms-3">
+              <label class="ms-2 ms-2">年度</label>
               <select class="form-select form-select-sm" style="width:200px;" x-model.number="yearSelected">
                 <template x-for="y in yearOptions" :key="y">
                   <option :value="y" x-text="y + '年'"></option>
                 </template>
             </select>
             </div>
+            <hr>
             <div class="d-flex justify-content-end gap-2">
-            <button type="button" class="btn btn-primary btn-sm" @click="proceedByYear()">決 定</button>
-              <button type="button" class="btn btn-secondary btn-sm" @click="showYearModal=false">戻 る</button>
+            <button type="button" class="btn btn-base-blue" @click="proceedByYear()">決 定</button>
+              <button type="button" class="btn btn-base-blue" @click="showYearModal=false">戻 る</button>
             </div>
           </div>
         </div>

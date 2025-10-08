@@ -447,7 +447,9 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle">
+                  <button type="submit" class="btn btn-outline-secondary btn-sm" name="redirect_to" value="kihukin">内訳</button>
+                </td>
                 {!! $renderInputs('kojo_kifukin') !!}
               </tr>
               <tr>

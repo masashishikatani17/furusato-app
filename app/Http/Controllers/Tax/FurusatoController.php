@@ -179,6 +179,8 @@ final class FurusatoController extends Controller
                 return redirect()->route('furusato.details.jigyo', $routeParams)->with('success', '保存しました');
             case 'fudosan':
                 return redirect()->route('furusato.details.fudosan', $routeParams)->with('success', '保存しました');
+            case 'kihukin_details':
+                return redirect()->route('furusato.details.kihukin', $routeParams)->with('success', '保存しました');
             default:
                 return redirect()->route('furusato.input', $routeParams)->with('success', '保存しました');
         }
@@ -267,6 +269,37 @@ final class FurusatoController extends Controller
 
         $payload['shotoku_fudosan_shotoku_prev'] = $adjPrev;
         $payload['shotoku_fudosan_shotoku_curr'] = $adjCurr;
+
+        $this->updateFurusatoInputPayload($data, $payload);
+
+        return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+    }
+
+    public function kihukinDetails(Request $req)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $payload = FurusatoInput::query()
+            ->where('data_id', $data->id)
+            ->value('payload');
+        $out = ['inputs' => is_array($payload) ? $payload : []];
+
+        return view('tax.furusato.details.kihukin_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => $out,
+        ]);
+    }
+
+    public function saveKihukinDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'redirect_to']));
 
         $this->updateFurusatoInputPayload($data, $payload);
 

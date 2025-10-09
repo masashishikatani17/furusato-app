@@ -5,6 +5,7 @@
 @section('content')
 @php
     $inputs = $out['inputs'] ?? [];
+    $storedLabels = $storedLabels ?? [];
     $originTabRaw = request()->input('origin_tab', 'input');
     $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
@@ -70,90 +71,74 @@
                     <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
+                @php($expenseFields = [
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_01', 'labelIndex' => 1, 'name' => 'jigyo_eigyo_keihi_1', 'placeholder' => '例：地代家賃'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_02', 'labelIndex' => 2, 'name' => 'jigyo_eigyo_keihi_2', 'placeholder' => '例：水道光熱費'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_03', 'labelIndex' => 3, 'name' => 'jigyo_eigyo_keihi_3', 'placeholder' => '例：旅費交通費'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_04', 'labelIndex' => 4, 'name' => 'jigyo_eigyo_keihi_4', 'placeholder' => '例：通信費'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_05', 'labelIndex' => 5, 'name' => 'jigyo_eigyo_keihi_5', 'placeholder' => '例：消耗品費'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_06', 'labelIndex' => 6, 'name' => 'jigyo_eigyo_keihi_6', 'placeholder' => '例：接待交際費'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_07', 'labelIndex' => 7, 'name' => 'jigyo_eigyo_keihi_7', 'placeholder' => '例：租税公課'],
+                  ['label' => 'その他', 'name' => 'jigyo_eigyo_keihi_sonota', 'headerClass' => 'text-start u-nowrap th-ccc'],
+                  ['label' => '合 計', 'name' => 'jigyo_eigyo_keihi_gokei', 'readonly' => true, 'headerClass' => 'u-nowrap th-ccc'],
+                ])
+                @php($expenseRowspan = count($expenseFields))
+                @php($field = array_shift($expenseFields))
                 <tr>
-                  <th scope="rowgroup" rowspan="9" class="text-start align-middle ps-1">経 費</th>
-                  <th class="text-startu-nowrap th-ccc"></th>
+                  <th scope="rowgroup" rowspan="{{ $expenseRowspan }}" class="text-start align-middle ps-1">経 費</th>
+                  <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-ccc' }}">
+                    @php($labelName = $field['labelInput'] ?? null)
+                    @if($labelName)
+                      @php($placeholder = $field['placeholder'] ?? '')
+                      <input type="text"
+                             name="{{ $labelName }}"
+                             value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
+                             maxlength="64"
+                             class="form-control form-control-sm"
+                             aria-label="経費項目名{{ $field['labelIndex'] ?? '' }}"
+                             @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
+                    @else
+                      {{ $field['label'] ?? '' }}
+                    @endif
+                  </th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_1_prev" value="{{ old('jigyo_eigyo_keihi_1_prev', $inputs['jigyo_eigyo_keihi_1_prev'] ?? null) }}">
+                    @php($name = $field['name'] . '_prev')
+                    @php($readonly = $field['readonly'] ?? false)
+                    <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_1_curr" value="{{ old('jigyo_eigyo_keihi_1_curr', $inputs['jigyo_eigyo_keihi_1_curr'] ?? null) }}">
+                    @php($name = $field['name'] . '_curr')
+                    <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                   </td>
                 </tr>
-                <tr>
-                  <th class="text-start u-nowrap th-ccc"></th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_2_prev" value="{{ old('jigyo_eigyo_keihi_2_prev', $inputs['jigyo_eigyo_keihi_2_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_2_curr" value="{{ old('jigyo_eigyo_keihi_2_curr', $inputs['jigyo_eigyo_keihi_2_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="text-start u-nowrap th-ccc"></th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_3_prev" value="{{ old('jigyo_eigyo_keihi_3_prev', $inputs['jigyo_eigyo_keihi_3_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_3_curr" value="{{ old('jigyo_eigyo_keihi_3_curr', $inputs['jigyo_eigyo_keihi_3_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="text-start u-nowrap th-ccc"></th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_4_prev" value="{{ old('jigyo_eigyo_keihi_4_prev', $inputs['jigyo_eigyo_keihi_4_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_4_curr" value="{{ old('jigyo_eigyo_keihi_4_curr', $inputs['jigyo_eigyo_keihi_4_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="text-start u-nowrap th-ccc"></th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_5_prev" value="{{ old('jigyo_eigyo_keihi_5_prev', $inputs['jigyo_eigyo_keihi_5_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control  suji11" name="jigyo_eigyo_keihi_5_curr" value="{{ old('jigyo_eigyo_keihi_5_curr', $inputs['jigyo_eigyo_keihi_5_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="text-start u-nowrap th-ccc"></th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_6_prev" value="{{ old('jigyo_eigyo_keihi_6_prev', $inputs['jigyo_eigyo_keihi_6_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_6_curr" value="{{ old('jigyo_eigyo_keihi_6_curr', $inputs['jigyo_eigyo_keihi_6_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="text-start u-nowrap th-ccc"></th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_7_prev" value="{{ old('jigyo_eigyo_keihi_7_prev', $inputs['jigyo_eigyo_keihi_7_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_7_curr" value="{{ old('jigyo_eigyo_keihi_7_curr', $inputs['jigyo_eigyo_keihi_7_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="text-start u-nowrap th-ccc">その他</th>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_sonota_prev" value="{{ old('jigyo_eigyo_keihi_sonota_prev', $inputs['jigyo_eigyo_keihi_sonota_prev'] ?? null) }}">
-                  </td>
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_keihi_sonota_curr" value="{{ old('jigyo_eigyo_keihi_sonota_curr', $inputs['jigyo_eigyo_keihi_sonota_curr'] ?? null) }}">
-                  </td>
-                </tr>
-                <tr>
-                  <th class="u-nowrap th-ccc">合 計</th>
-                  <td>
-                    @php($name = 'jigyo_eigyo_keihi_gokei_prev')
-                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
-                  </td>
-                  <td>
-                    @php($name = 'jigyo_eigyo_keihi_gokei_curr')
-                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
-                  </td>
-                </tr>
+                @foreach ($expenseFields as $field)
+                  <tr>
+                    <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-ccc' }}">
+                      @php($labelName = $field['labelInput'] ?? null)
+                      @if($labelName)
+                        @php($placeholder = $field['placeholder'] ?? '')
+                        <input type="text"
+                               name="{{ $labelName }}"
+                               value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
+                               maxlength="64"
+                               class="form-control form-control-sm"
+                               aria-label="経費項目名{{ $field['labelIndex'] ?? '' }}"
+                               @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
+                      @else
+                        {{ $field['label'] ?? '' }}
+                      @endif
+                    </th>
+                    <td>
+                      @php($name = $field['name'] . '_prev')
+                      @php($readonly = $field['readonly'] ?? false)
+                      <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
+                    </td>
+                    <td>
+                      @php($name = $field['name'] . '_curr')
+                      <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
+                    </td>
+                  </tr>
+                @endforeach
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">差引金額</th>
                   <td>

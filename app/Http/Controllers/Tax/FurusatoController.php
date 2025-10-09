@@ -15,10 +15,31 @@ use App\Services\Tax\FurusatoMasterService;
 use App\Services\Tax\Result\FurusatoResultService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 final class FurusatoController extends Controller
 {
     private const MASTER_KIHU_YEAR = 2025;
+
+    private const FUDOSAN_LABEL_FIELDS = [
+        'fudosan_keihi_label_01',
+        'fudosan_keihi_label_02',
+        'fudosan_keihi_label_03',
+        'fudosan_keihi_label_04',
+        'fudosan_keihi_label_05',
+        'fudosan_keihi_label_06',
+        'fudosan_keihi_label_07',
+    ];
+
+    private const JIGYO_EIGYO_LABEL_FIELDS = [
+        'jigyo_eigyo_keihi_label_01',
+        'jigyo_eigyo_keihi_label_02',
+        'jigyo_eigyo_keihi_label_03',
+        'jigyo_eigyo_keihi_label_04',
+        'jigyo_eigyo_keihi_label_05',
+        'jigyo_eigyo_keihi_label_06',
+        'jigyo_eigyo_keihi_label_07',
+    ];
 
     public function index(Request $req)
     {
@@ -212,10 +233,13 @@ final class FurusatoController extends Controller
         $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
-        $payload = FurusatoInput::query()
+        $inputRecord = FurusatoInput::query()
             ->where('data_id', $data->id)
-            ->value('payload');
+            ->first();
+
+        $payload = $inputRecord?->payload;
         $out = ['inputs' => is_array($payload) ? $payload : []];
+        $storedLabels = $this->extractStoredLabels($inputRecord, self::JIGYO_EIGYO_LABEL_FIELDS);
 
         return view('tax.furusato.details.jigyo_eigyo_details', [
             'dataId' => $data->id,
@@ -223,6 +247,7 @@ final class FurusatoController extends Controller
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
             'out' => $out,
+            'storedLabels' => $storedLabels,
         ]);
     }
 
@@ -230,7 +255,12 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $labelUpdates = $this->validateAndNormalizeLabels($req, self::JIGYO_EIGYO_LABEL_FIELDS);
+
+        $payload = $this->sanitizeDetailPayload($req->except(array_merge(
+            ['_token', 'data_id', 'origin_tab', 'origin_anchor'],
+            self::JIGYO_EIGYO_LABEL_FIELDS,
+        )));
 
         $calculations = $this->calculateJigyoEigyo($payload);
         $payload = array_replace($payload, $calculations);
@@ -240,7 +270,7 @@ final class FurusatoController extends Controller
         $payload['shotoku_jigyo_eigyo_shotoku_prev'] = (int) ($payload['jigyo_eigyo_shotoku_prev'] ?? 0);
         $payload['shotoku_jigyo_eigyo_shotoku_curr'] = (int) ($payload['jigyo_eigyo_shotoku_curr'] ?? 0);
 
-        $this->updateFurusatoInputPayload($data, $payload);
+        $this->updateFurusatoInputPayload($data, $payload, $labelUpdates);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
 
@@ -253,10 +283,13 @@ final class FurusatoController extends Controller
         $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
-        $payload = FurusatoInput::query()
+        $inputRecord = FurusatoInput::query()
             ->where('data_id', $data->id)
-            ->value('payload');
+            ->first();
+
+        $payload = $inputRecord?->payload;
         $out = ['inputs' => is_array($payload) ? $payload : []];
+        $storedLabels = $this->extractStoredLabels($inputRecord, self::FUDOSAN_LABEL_FIELDS);
 
         return view('tax.furusato.details.fudosan_details', [
             'dataId' => $data->id,
@@ -264,6 +297,7 @@ final class FurusatoController extends Controller
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
             'out' => $out,
+            'storedLabels' => $storedLabels,
         ]);
     }
 
@@ -271,7 +305,12 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $labelUpdates = $this->validateAndNormalizeLabels($req, self::FUDOSAN_LABEL_FIELDS);
+
+        $payload = $this->sanitizeDetailPayload($req->except(array_merge(
+            ['_token', 'data_id', 'origin_tab', 'origin_anchor'],
+            self::FUDOSAN_LABEL_FIELDS,
+        )));
 
         $calculations = $this->calculateFudosan($payload);
         $payload = array_replace($payload, $calculations);
@@ -292,7 +331,7 @@ final class FurusatoController extends Controller
         $payload['shotoku_fudosan_shotoku_prev'] = $adjPrev;
         $payload['shotoku_fudosan_shotoku_curr'] = $adjCurr;
 
-        $this->updateFurusatoInputPayload($data, $payload);
+        $this->updateFurusatoInputPayload($data, $payload, $labelUpdates);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
 
@@ -503,6 +542,56 @@ final class FurusatoController extends Controller
     }
 
     /**
+     * @param array<int, string> $fields
+     * @return array<string, string|null>
+     */
+    private function validateAndNormalizeLabels(Request $request, array $fields): array
+    {
+        $inputs = [];
+        foreach ($fields as $field) {
+            $inputs[$field] = $request->input($field);
+        }
+
+        $rules = array_fill_keys($fields, ['bail', 'nullable', 'string', 'max:64']);
+
+        Validator::make($inputs, $rules)->validate();
+
+        $normalized = [];
+        foreach ($fields as $field) {
+            $value = $inputs[$field];
+
+            if ($value === null) {
+                $normalized[$field] = null;
+                continue;
+            }
+
+            $trimmed = trim((string) $value);
+            $normalized[$field] = $trimmed === '' ? null : $trimmed;
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * @param array<int, string> $fields
+     * @return array<string, string|null>
+     */
+    private function extractStoredLabels(?FurusatoInput $record, array $fields): array
+    {
+        $labels = [];
+
+        if (! $record) {
+            return $labels;
+        }
+
+        foreach ($fields as $field) {
+            $labels[$field] = $record->{$field};
+        }
+
+        return $labels;
+    }
+
+    /**
      * @return array<string, string>
      */
     private function buildOriginQuery(Request $request): array
@@ -641,11 +730,11 @@ final class FurusatoController extends Controller
         return $result;
     }
 
-    private function updateFurusatoInputPayload(Data $data, array $updates): void
+    private function updateFurusatoInputPayload(Data $data, array $updates, array $labelUpdates = []): void
     {
         $userId = (int) auth()->id();
 
-        FurusatoInput::unguarded(function () use ($data, $updates, $userId): void {
+        FurusatoInput::unguarded(function () use ($data, $updates, $labelUpdates, $userId): void {
             $record = FurusatoInput::firstOrNew(['data_id' => $data->id]);
 
             if (! $record->exists) {
@@ -655,6 +744,16 @@ final class FurusatoController extends Controller
                     'group_id'   => $data->group_id,
                     'created_by' => $userId ?: null,
                 ]);
+            }
+
+
+            $record->company_id = $data->company_id;
+            $record->group_id = $data->group_id;
+
+            if ($labelUpdates !== []) {
+                foreach ($labelUpdates as $column => $value) {
+                    $record->{$column} = $value;
+                }
             }
 
             $current = is_array($record->payload) ? $record->payload : [];

@@ -53,13 +53,13 @@
                 </td>
               </tr>
               @php($expenseFields = [
-                ['labelInput' => 'fudosan_keihi_label_01', 'labelIndex' => 1, 'name' => 'fudosan_keihi_1', 'placeholder' => '例：修繕費'],
-                ['labelInput' => 'fudosan_keihi_label_02', 'labelIndex' => 2, 'name' => 'fudosan_keihi_2', 'placeholder' => '例：地代家賃'],
-                ['labelInput' => 'fudosan_keihi_label_03', 'labelIndex' => 3, 'name' => 'fudosan_keihi_3', 'placeholder' => '例：管理費'],
-                ['labelInput' => 'fudosan_keihi_label_04', 'labelIndex' => 4, 'name' => 'fudosan_keihi_4', 'placeholder' => '例：租税公課'],
-                ['labelInput' => 'fudosan_keihi_label_05', 'labelIndex' => 5, 'name' => 'fudosan_keihi_5', 'placeholder' => '例：保険料'],
-                ['labelInput' => 'fudosan_keihi_label_06', 'labelIndex' => 6, 'name' => 'fudosan_keihi_6', 'placeholder' => '例：減価償却費'],
-                ['labelInput' => 'fudosan_keihi_label_07', 'labelIndex' => 7, 'name' => 'fudosan_keihi_7', 'placeholder' => '例：その他必要経費'],
+                ['labelInput' => 'fudosan_keihi_label_01', 'labelIndex' => 1, 'name' => 'fudosan_keihi_1'],
+                ['labelInput' => 'fudosan_keihi_label_02', 'labelIndex' => 2, 'name' => 'fudosan_keihi_2'],
+                ['labelInput' => 'fudosan_keihi_label_03', 'labelIndex' => 3, 'name' => 'fudosan_keihi_3'],
+                ['labelInput' => 'fudosan_keihi_label_04', 'labelIndex' => 4, 'name' => 'fudosan_keihi_4'],
+                ['labelInput' => 'fudosan_keihi_label_05', 'labelIndex' => 5, 'name' => 'fudosan_keihi_5'],
+                ['labelInput' => 'fudosan_keihi_label_06', 'labelIndex' => 6, 'name' => 'fudosan_keihi_6'],
+                ['labelInput' => 'fudosan_keihi_label_07', 'labelIndex' => 7, 'name' => 'fudosan_keihi_7'],
                 ['label' => 'その他', 'name' => 'fudosan_keihi_sonota'],
                 ['label' => '合計', 'name' => 'fudosan_keihi_gokei', 'readonly' => true],
               ])

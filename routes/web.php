@@ -50,7 +50,15 @@ Route::middleware([
 
 Route::middleware(['auth', 'reject.client'])->group(function () {
     Route::get('/admin/settings', [SettingsController::class, 'index'])->name('admin.settings');
-    Route::get('/admin/users', [UsersController::class, 'index'])->name('admin.users.index');
+    Route::prefix('admin/users')->name('admin.users.')->group(function () {
+        Route::get('/', [UsersController::class, 'index'])->name('index');
+        Route::get('/create', [UsersController::class, 'create'])->name('create');
+        Route::post('/', [UsersController::class, 'store'])->name('store');
+        Route::get('/{user}/edit', [UsersController::class, 'edit'])->name('edit');
+        Route::put('/{user}', [UsersController::class, 'update'])->name('update');
+        Route::patch('/{user}/deactivate', [UsersController::class, 'deactivate'])->name('deactivate');
+        Route::patch('/{user}/activate', [UsersController::class, 'activate'])->name('activate');
+    });
     Route::get('/admin/groups', [GroupsController::class, 'index'])->name('admin.groups.index');
     Route::get('/admin/billing/receipts', [BillingReceiptsController::class, 'index'])->name('admin.billing.receipts.index');
     Route::get('/admin/owner-transfer', [OwnerTransferController::class, 'form'])->name('admin.ownerTransfer.form');

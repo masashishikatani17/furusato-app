@@ -9,6 +9,7 @@ use Laravel\Horizon\Horizon;
 use Illuminate\Support\Facades\Response;
 use App\Jobs\Diagnostics\HelloQueueJob;
 use App\Http\Controllers\DataController;
+use App\Http\Controllers\DevTenantController;
 use App\Http\Controllers\Tax\FurusatoController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UsersController;
@@ -24,6 +25,12 @@ Route::get('/', function () {
 // 開発用：Horizonダッシュボード
 if (app()->environment('local')) {
     Route::get('/horizon', fn() => redirect('/horizon/dashboard'));
+}
+if (app()->environment('local')) {
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/dev/whoami', [DevTenantController::class, 'whoami'])->name('dev.whoami');
+        Route::get('/dev/seats', [DevTenantController::class, 'seats'])->name('dev.seats');
+    });
 }
 Route::middleware('auth')->group(function () {
     Route::middleware('role:admin')->group(function () {

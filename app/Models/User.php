@@ -7,10 +7,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Permission\Traits\HasRoles;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
@@ -32,6 +32,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'company_id',
+        'role',
+        'is_active',
+        'group_id',
     ];
 
     /**
@@ -53,6 +57,7 @@ class User extends Authenticatable
      */
     protected $appends = [
         'profile_photo_url',
+        'display_role',
     ];
 
     /**
@@ -65,6 +70,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -81,10 +87,44 @@ class User extends Authenticatable
      */
     public function isOwner(): bool
     {
-        if (strtolower((string) ($this->role ?? '')) === 'owner') {
-            return true;
+        $companyOwnerId = optional($this->company)->owner_user_id;
+
+        if ($companyOwnerId !== null) {
+            return (int) $companyOwnerId === (int) $this->id;
         }
 
-        return optional($this->company)->owner_user_id === $this->id;
+        return $this->getNormalizedRole() === 'owner';
+    }
+
+    public function isRegistrar(): bool
+    {
+        return $this->getNormalizedRole() === 'registrar';
+    }
+
+    public function isGroupAdmin(): bool
+    {
+        return $this->getNormalizedRole() === 'group_admin';
+    }
+
+    public function getDisplayRoleAttribute(): string
+    {
+        if ($this->isOwner()) {
+            return 'owner';
+        }
+
+        return $this->getNormalizedRole();
+    }
+
+    protected function getNormalizedRole(): string
+    {
+        $role = strtolower((string) ($this->role ?? ''));
+
+        return match ($role) {
+            'owner' => 'owner',
+            'registrar' => 'registrar',
+            'group_admin', 'groupadmin', 'group-admin' => 'group_admin',
+            'client' => 'client',
+            default => 'member',
+        };
     }
 }

@@ -15,6 +15,7 @@ use App\Services\Tax\FurusatoMasterService;
 use App\Services\Tax\Result\FurusatoResultService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 
 final class FurusatoController extends Controller
@@ -451,40 +452,79 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $fields = [
-            'kojo_seimei_kiso',
-            'kojo_seimei_tyoteki',
-            'kojo_jishin',
+        $inputKeys = [
+            'kojo_seimei_shin_prev',
+            'kojo_seimei_shin_curr',
+            'kojo_seimei_kyu_prev',
+            'kojo_seimei_kyu_curr',
+            'kojo_seimei_nenkin_shin_prev',
+            'kojo_seimei_nenkin_shin_curr',
+            'kojo_seimei_nenkin_kyu_prev',
+            'kojo_seimei_nenkin_kyu_curr',
+            'kojo_seimei_kaigo_iryo_prev',
+            'kojo_seimei_kaigo_iryo_curr',
+            'kojo_seimei_gokei_prev',
+            'kojo_seimei_gokei_curr',
+            'kojo_jishin_prev',
+            'kojo_jishin_curr',
+            'kojo_kyuchoki_songai_prev',
+            'kojo_kyuchoki_songai_curr',
+            'kojo_jishin_gokei_prev',
+            'kojo_jishin_gokei_curr',
         ];
-        $rules = [];
-        foreach ($fields as $field) {
-            foreach (['prev', 'curr'] as $period) {
-                $rules[sprintf('%s_%s', $field, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-            }
-        }
 
-        Validator::make($req->only(array_keys($rules)), $rules)->validate();
+        $rules = array_fill_keys($inputKeys, ['bail', 'nullable', 'integer', 'min:0']);
 
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        Validator::make($req->only($inputKeys), $rules)->validate();
 
-        foreach (['prev', 'curr'] as $period) {
-            $kiso = $this->valueOrZero($payload[sprintf('kojo_seimei_kiso_%s', $period)] ?? null);
-            $tyoteki = $this->valueOrZero($payload[sprintf('kojo_seimei_tyoteki_%s', $period)] ?? null);
-            $seimei = $kiso + $tyoteki;
-            $jishin = $this->valueOrZero($payload[sprintf('kojo_jishin_%s', $period)] ?? null);
+        $payload = Arr::only($req->all(), $inputKeys);
+        $payload = $this->sanitizeDetailPayload($payload);
 
-            $payload[sprintf('kojo_seimei_shotoku_%s', $period)] = $seimei;
-            $payload[sprintf('kojo_seimei_jumin_%s', $period)] = $seimei;
-            $payload[sprintf('kojo_jishin_shotoku_%s', $period)] = $jishin;
-            $payload[sprintf('kojo_jishin_jumin_%s', $period)] = $jishin;
-            $payload[sprintf('kojo_seimei_jishin_gokei_%s', $period)] = $seimei + $jishin;
-        }
+        $seimeiPrevKeys = [
+            'kojo_seimei_shin_prev',
+            'kojo_seimei_kyu_prev',
+            'kojo_seimei_nenkin_shin_prev',
+            'kojo_seimei_nenkin_kyu_prev',
+            'kojo_seimei_kaigo_iryo_prev',
+        ];
+        $seimeiCurrKeys = [
+            'kojo_seimei_shin_curr',
+            'kojo_seimei_kyu_curr',
+            'kojo_seimei_nenkin_shin_curr',
+            'kojo_seimei_nenkin_kyu_curr',
+            'kojo_seimei_kaigo_iryo_curr',
+        ];
+
+        $jishinPrevKeys = [
+            'kojo_jishin_prev',
+            'kojo_kyuchoki_songai_prev',
+        ];
+        $jishinCurrKeys = [
+            'kojo_jishin_curr',
+            'kojo_kyuchoki_songai_curr',
+        ];
+
+        $payload['kojo_seimei_gokei_prev'] = array_reduce($seimeiPrevKeys, function (int $carry, string $key) use ($payload): int {
+            return $carry + $this->valueOrZero($payload[$key] ?? null);
+        }, 0);
+
+        $payload['kojo_seimei_gokei_curr'] = array_reduce($seimeiCurrKeys, function (int $carry, string $key) use ($payload): int {
+            return $carry + $this->valueOrZero($payload[$key] ?? null);
+        }, 0);
+
+        $payload['kojo_jishin_gokei_prev'] = array_reduce($jishinPrevKeys, function (int $carry, string $key) use ($payload): int {
+            return $carry + $this->valueOrZero($payload[$key] ?? null);
+        }, 0);
+
+        $payload['kojo_jishin_gokei_curr'] = array_reduce($jishinCurrKeys, function (int $carry, string $key) use ($payload): int {
+            return $carry + $this->valueOrZero($payload[$key] ?? null);
+        }, 0);
 
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
 
-        return $this->redirectToInputWithAnchor($data, $anchor);
+        return $this->redirectToInputWithAnchor($data, $anchor ?: 'kojo_seimei_jishin');
     }
 
     public function kojoJintekiDetails(Request $req)

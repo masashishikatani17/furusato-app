@@ -5,6 +5,7 @@
 @section('content')
 @php
     $inputs = $out['inputs'] ?? [];
+    $storedLabels = $storedLabels ?? [];
     $originTabRaw = request()->input('origin_tab', 'input');
     $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
@@ -52,20 +53,35 @@
                 </td>
               </tr>
               @php($expenseFields = [
-                ['label' => '', 'name' => 'fudosan_keihi_1'],
-                ['label' => '', 'name' => 'fudosan_keihi_2'],
-                ['label' => '', 'name' => 'fudosan_keihi_3'],
-                ['label' => '', 'name' => 'fudosan_keihi_4'],
-                ['label' => '', 'name' => 'fudosan_keihi_5'],
-                ['label' => '', 'name' => 'fudosan_keihi_6'],
-                ['label' => '', 'name' => 'fudosan_keihi_7'],
+                ['labelInput' => 'fudosan_keihi_label_01', 'labelIndex' => 1, 'name' => 'fudosan_keihi_1', 'placeholder' => '例：修繕費'],
+                ['labelInput' => 'fudosan_keihi_label_02', 'labelIndex' => 2, 'name' => 'fudosan_keihi_2', 'placeholder' => '例：地代家賃'],
+                ['labelInput' => 'fudosan_keihi_label_03', 'labelIndex' => 3, 'name' => 'fudosan_keihi_3', 'placeholder' => '例：管理費'],
+                ['labelInput' => 'fudosan_keihi_label_04', 'labelIndex' => 4, 'name' => 'fudosan_keihi_4', 'placeholder' => '例：租税公課'],
+                ['labelInput' => 'fudosan_keihi_label_05', 'labelIndex' => 5, 'name' => 'fudosan_keihi_5', 'placeholder' => '例：保険料'],
+                ['labelInput' => 'fudosan_keihi_label_06', 'labelIndex' => 6, 'name' => 'fudosan_keihi_6', 'placeholder' => '例：減価償却費'],
+                ['labelInput' => 'fudosan_keihi_label_07', 'labelIndex' => 7, 'name' => 'fudosan_keihi_7', 'placeholder' => '例：その他必要経費'],
                 ['label' => 'その他', 'name' => 'fudosan_keihi_sonota'],
                 ['label' => '合計', 'name' => 'fudosan_keihi_gokei', 'readonly' => true],
               ])
+              @php($expenseRowspan = count($expenseFields))
+              @php($field = array_shift($expenseFields))
               <tr>
-                <th class="text-start align-middle" rowspan="9">必要経費</th>
-                @php($field = array_shift($expenseFields))
-                <th class="text-start u-nowrap th-ccc">{{ $field['label'] }}</td>
+                <th class="text-start align-middle" rowspan="{{ $expenseRowspan }}">必要経費</th>
+                <th class="text-start u-nowrap th-ccc">
+                  @php($labelName = $field['labelInput'] ?? null)
+                  @if($labelName)
+                    @php($placeholder = $field['placeholder'] ?? '')
+                    <input type="text"
+                           name="{{ $labelName }}"
+                           value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
+                           maxlength="64"
+                           class="form-control form-control-sm"
+                           aria-label="必要経費項目名{{ $field['labelIndex'] ?? '' }}"
+                           @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
+                  @else
+                    {{ $field['label'] ?? '' }}
+                  @endif
+                </th>
                 <td>
                   @php($name = $field['name'] . '_prev')
                   @php($readonly = $field['readonly'] ?? false)
@@ -78,7 +94,21 @@
               </tr>
               @foreach ($expenseFields as $field)
                 <tr>
-                  <th class="text-start u-nowrap th-ccc">{{ $field['label'] }}</th>
+                  <th class="text-start u-nowrap th-ccc">
+                    @php($labelName = $field['labelInput'] ?? null)
+                    @if($labelName)
+                      @php($placeholder = $field['placeholder'] ?? '')
+                      <input type="text"
+                             name="{{ $labelName }}"
+                             value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
+                             maxlength="64"
+                             class="form-control form-control-sm"
+                             aria-label="必要経費項目名{{ $field['labelIndex'] ?? '' }}"
+                             @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
+                    @else
+                      {{ $field['label'] ?? '' }}
+                    @endif
+                  </th>
                   <td>
                     @php($name = $field['name'] . '_prev')
                     @php($readonly = $field['readonly'] ?? false)

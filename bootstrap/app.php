@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'roles'       => \Spatie\Permission\Middlewares\RoleMiddleware::class, // 互換
             'permission'  => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
             'permissions' => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
+            'reject.client' => \App\Http\Middleware\RejectClientForAdmin::class,
         ]);
         // Cloud9/ALB の X-Forwarded-* を信頼（https 判定に使う）
         // すべてのプロキシを信頼し、AWS ELB ヘッダを採用

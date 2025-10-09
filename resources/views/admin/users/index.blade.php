@@ -4,6 +4,7 @@
 
 @section('content')
 @php
+    use App\Services\License\SeatService;
     use Illuminate\Contracts\Pagination\LengthAwarePaginator;
     use Illuminate\Pagination\LengthAwarePaginator as Paginator;
     use Illuminate\Support\Collection;
@@ -26,6 +27,45 @@
 
     $seatSummary = $seatSummary ?? ['active' => 0, 'reserved' => 0, 'total' => 0];
     $seatLimit = $seatLimit ?? null;
+    $seatService = app(SeatService::class);
+    $rawSeatUsage = $seatService->getSeatUsage((int) ($currentUser->company_id ?? 0));
+
+    $rawActiveSeats = $rawSeatUsage['active_seats'] ?? $seatLimit;
+
+    if ($rawActiveSeats !== null && ! is_numeric($rawActiveSeats)) {
+        $rawActiveSeats = null;
+    }
+
+    $activeSeats = isset($rawActiveSeats) ? (int) $rawActiveSeats : null;
+
+    if ($activeSeats !== null && $activeSeats < 0) {
+        $activeSeats = null;
+    }
+
+    $activeUsers = (int) ($rawSeatUsage['active_users'] ?? $seatSummary['active'] ?? 0);
+    $pendingInvites = (int) ($rawSeatUsage['pending_invites'] ?? $seatSummary['reserved'] ?? 0);
+
+    $remaining = $rawSeatUsage['remaining'] ?? null;
+
+    if ($remaining !== null) {
+        $remaining = (int) $remaining;
+    } elseif ($activeSeats !== null) {
+        $remaining = max(0, $activeSeats - ($activeUsers + $pendingInvites));
+    } else {
+        $remaining = null;
+    }
+
+    $seatUsage = [
+        'active_seats' => $activeSeats,
+        'active_users' => $activeUsers,
+        'pending_invites' => $pendingInvites,
+        'remaining' => $remaining,
+    ];
+
+    if ($activeSeats !== null) {
+        $seatLimit = $activeSeats;
+    }
+
     $hasIsActive = $hasIsActive ?? Schema::hasColumn('users', 'is_active');
 
     $createRoute = Route::has('admin.users.create') ? route('admin.users.create') : null;
@@ -36,9 +76,7 @@
     $canInviteUsers = $currentUser && ($currentUser->isOwner() || $currentUser->isRegistrar() || $currentUser->isGroupAdmin()) && $createRoute;
     $canManageSeats = $currentUser && ($currentUser->isOwner() || $currentUser->isRegistrar());
 
-    $remainingSeats = is_int($seatLimit)
-        ? max(0, $seatLimit - (int) ($seatSummary['total'] ?? 0))
-        : null;
+    $remainingSeats = $seatUsage['remaining'];
 @endphp
 
 <div class="container px-4 py-4">
@@ -60,16 +98,22 @@
                     <tbody>
                         <tr>
                             <th class="table-light" style="width: 20%">上限席数</th>
-                            <td style="width: 30%">{{ isset($seatLimit) ? number_format($seatLimit) . ' 席' : '―' }}</td>
+                            <td style="width: 30%">
+                                @if (is_int($seatUsage['active_seats']))
+                                    {{ number_format($seatUsage['active_seats']) }} 席
+                                @else
+                                    ―
+                                @endif
+                            </td>
                             <th class="table-light" style="width: 20%">在籍（有効）</th>
-                            <td style="width: 30%">{{ number_format((int) ($seatSummary['active'] ?? 0)) }} 名</td>
+                            <td style="width: 30%">{{ number_format($seatUsage['active_users']) }} 名</td>
                         </tr>
                         <tr>
                             <th class="table-light">予約（招待中）</th>
-                            <td>{{ number_format((int) ($seatSummary['reserved'] ?? 0)) }} 名</td>
+                            <td>{{ number_format($seatUsage['pending_invites']) }} 名</td>
                             <th class="table-light">残り席数</th>
                             <td>
-                                @if ($remainingSeats !== null)
+                                @if (is_int($remainingSeats))
                                     {{ number_format($remainingSeats) }} 席
                                 @else
                                     ―
@@ -153,9 +197,11 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr>
-                                <td colspan="{{ $hasIsActive ? 6 : 5 }}" class="text-center text-muted py-4">ユーザーが登録されていません。</td>
-                            </tr>
+                            @if ($seatUsage['active_users'] === 0)
+                                <tr>
+                                    <td colspan="{{ $hasIsActive ? 6 : 5 }}" class="text-center text-muted py-4">ユーザーが登録されていません。</td>
+                                </tr>
+                            @endif
                         @endforelse
                     </tbody>
                 </table>

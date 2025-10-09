@@ -3,7 +3,6 @@
 namespace App\Services\License;
 
 use App\Models\User;
-use App\Models\UserInvitation;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -14,6 +13,8 @@ class SeatService
     protected static ?bool $usersHasIsActive = null;
     protected static ?bool $invitationTableExists = null;
     protected static ?string $invitationTable = null;
+    protected static ?string $invitationModelClass = null;
+    protected static bool $invitationModelChecked = false;
     /** @var array<string, bool> */
     protected static array $invitationColumnCache = [];
 
@@ -45,7 +46,8 @@ class SeatService
             return 0;
         }
 
-        $query = UserInvitation::query()->where('company_id', $companyId);
+        $modelClass = static::$invitationModelClass;
+        $query = $modelClass::query()->where('company_id', $companyId);
 
         if ($this->invitationTableHasColumn('accepted_at')) {
             $query->whereNull('accepted_at');
@@ -140,12 +142,15 @@ class SeatService
 
     protected function invitationModelAvailable(): bool
     {
-        if (! class_exists(UserInvitation::class)) {
+        $this->resolveInvitationModelClass();
+
+        if (static::$invitationModelClass === null) {
             return false;
         }
 
         if (static::$invitationTableExists === null) {
-            $model = new UserInvitation();
+            $modelClass = static::$invitationModelClass;
+            $model = new $modelClass();
             $table = $model->getTable();
             static::$invitationTable = $table;
             static::$invitationTableExists = Schema::hasTable($table);
@@ -165,5 +170,26 @@ class SeatService
         }
 
         return static::$invitationColumnCache[$column];
+    }
+
+    protected function resolveInvitationModelClass(): void
+    {
+        if (static::$invitationModelChecked) {
+            return;
+        }
+
+        $candidates = [
+            'App\\Models\\Invitation',
+            'App\\Models\\UserInvitation',
+        ];
+
+        foreach ($candidates as $candidate) {
+            if (class_exists($candidate)) {
+                static::$invitationModelClass = $candidate;
+                break;
+            }
+        }
+
+        static::$invitationModelChecked = true;
     }
 }

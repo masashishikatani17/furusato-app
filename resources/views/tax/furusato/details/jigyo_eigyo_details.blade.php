@@ -72,13 +72,13 @@
                   </td>
                 </tr>
                 @php($expenseFields = [
-                  ['labelInput' => 'jigyo_eigyo_keihi_label_01', 'labelIndex' => 1, 'name' => 'jigyo_eigyo_keihi_1', 'placeholder' => '例：地代家賃'],
-                  ['labelInput' => 'jigyo_eigyo_keihi_label_02', 'labelIndex' => 2, 'name' => 'jigyo_eigyo_keihi_2', 'placeholder' => '例：水道光熱費'],
-                  ['labelInput' => 'jigyo_eigyo_keihi_label_03', 'labelIndex' => 3, 'name' => 'jigyo_eigyo_keihi_3', 'placeholder' => '例：旅費交通費'],
-                  ['labelInput' => 'jigyo_eigyo_keihi_label_04', 'labelIndex' => 4, 'name' => 'jigyo_eigyo_keihi_4', 'placeholder' => '例：通信費'],
-                  ['labelInput' => 'jigyo_eigyo_keihi_label_05', 'labelIndex' => 5, 'name' => 'jigyo_eigyo_keihi_5', 'placeholder' => '例：消耗品費'],
-                  ['labelInput' => 'jigyo_eigyo_keihi_label_06', 'labelIndex' => 6, 'name' => 'jigyo_eigyo_keihi_6', 'placeholder' => '例：接待交際費'],
-                  ['labelInput' => 'jigyo_eigyo_keihi_label_07', 'labelIndex' => 7, 'name' => 'jigyo_eigyo_keihi_7', 'placeholder' => '例：租税公課'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_01', 'labelIndex' => 1, 'name' => 'jigyo_eigyo_keihi_1'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_02', 'labelIndex' => 2, 'name' => 'jigyo_eigyo_keihi_2'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_03', 'labelIndex' => 3, 'name' => 'jigyo_eigyo_keihi_3'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_04', 'labelIndex' => 4, 'name' => 'jigyo_eigyo_keihi_4'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_05', 'labelIndex' => 5, 'name' => 'jigyo_eigyo_keihi_5'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_06', 'labelIndex' => 6, 'name' => 'jigyo_eigyo_keihi_6'],
+                  ['labelInput' => 'jigyo_eigyo_keihi_label_07', 'labelIndex' => 7, 'name' => 'jigyo_eigyo_keihi_7'],
                   ['label' => 'その他', 'name' => 'jigyo_eigyo_keihi_sonota', 'headerClass' => 'text-start u-nowrap th-ccc'],
                   ['label' => '合 計', 'name' => 'jigyo_eigyo_keihi_gokei', 'readonly' => true, 'headerClass' => 'u-nowrap th-ccc'],
                 ])

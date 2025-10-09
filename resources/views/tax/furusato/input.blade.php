@@ -1,5 +1,23 @@
 @extends('layouts.min')
 
+@push('styles')
+  <style>
+    :target {
+      outline: none !important;
+    }
+
+    [data-silent-focus="1"]:focus,
+    [data-silent-focus="1"]:focus-visible {
+      outline: none !important;
+      box-shadow: none !important;
+    }
+
+    [data-anchor] {
+      scroll-margin-top: var(--restore-scroll-offset, 80px);
+    }
+  </style>
+@endpush
+
 @section('content')
 <div class="container" style="min-width: 960px; max-width: 1080px;">
   <form method="POST" action="{{ route('furusato.save') }}" id="furusato-input-form">
@@ -114,7 +132,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr id="syunyu_row_jigyo_eigyo">
+              <tr id="syunyu_row_jigyo_eigyo" data-anchor>
                 <th scope="rowgroup" rowspan="{{ $syunyuRowspan }}" class="text-center align-middle bg-light">収入金額等</th>
                 <th rowspan="2" class="text-center align-middle">事業</th>
                 <th colspan="2" class="align-middle">営業等</th>
@@ -138,7 +156,7 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('syunyu_jigyo_nogyo') !!}
               </tr>
-              <tr id="syunyu_row_fudosan">
+              <tr id="syunyu_row_fudosan" data-anchor>
                 <th colspan="3" class="align-middle">不動産</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -218,7 +236,7 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('syunyu_ichiji') !!}
               </tr>
-              <tr id="shotoku_row_jigyo_eigyo">
+              <tr id="shotoku_row_jigyo_eigyo" data-anchor>
                 <th scope="rowgroup" rowspan="{{ $shotokuRowspan }}" class="text-center align-middle bg-light">所得金額等</th>
                 <th rowspan="2" class="text-center align-middle">事業</th>
                 <th colspan="2" class="align-middle">営業等</th>
@@ -242,7 +260,7 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('shotoku_jigyo_nogyo') !!}
               </tr>
-              <tr id="shotoku_row_fudosan">
+              <tr id="shotoku_row_fudosan" data-anchor>
                 <th colspan="3" class="align-middle">不動産</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -465,7 +483,7 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('kojo_iryo') !!}
               </tr>
-              <tr id="kojo_row_kifukin">
+              <tr id="kojo_row_kifukin" data-anchor>
                 <th colspan="3" class="align-middle">寄付金控除</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -1316,37 +1334,35 @@
       }
     }
 
-    const ensureFocusable = (element) => {
-      if (!(element instanceof HTMLElement)) {
-        return null;
-      }
-
-      const focusableSelector = 'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])';
-      if (element.matches(focusableSelector)) {
-        return element;
-      }
-
-      if (!element.hasAttribute('tabindex')) {
-        element.setAttribute('tabindex', '-1');
-        element.dataset.tempTabindex = 'true';
-        element.addEventListener('blur', () => {
-          if (element.dataset.tempTabindex === 'true') {
-            element.removeAttribute('tabindex');
-            delete element.dataset.tempTabindex;
-          }
-        }, { once: true });
-      }
-
-      return element;
+    const resolveRestoreScrollConfig = () => {
+      const config = window.RESTORE_SCROLL || {};
+      const rawOffset = Number(config.offsetPx);
+      const offsetPx = Number.isFinite(rawOffset) ? rawOffset : 80;
+      const rawFocusMode = typeof config.focusMode === 'string' ? config.focusMode.toLowerCase() : '';
+      const allowedModes = ['none', 'silent', 'visible'];
+      const focusMode = allowedModes.includes(rawFocusMode) ? rawFocusMode : 'none';
+      return { offsetPx, focusMode };
     };
 
-    const focusAnchor = () => {
+    const restoreScrollConfig = resolveRestoreScrollConfig();
+
+    if (document.documentElement && document.documentElement.style) {
+      document.documentElement.style.setProperty('--restore-scroll-offset', `${restoreScrollConfig.offsetPx}px`);
+    }
+
+    const scrollToAnchor = () => {
       const { hash } = window.location;
       if (!hash || hash.length <= 1) {
         return;
       }
 
-      const id = decodeURIComponent(hash.substring(1));
+      let id = hash.substring(1);
+      try {
+        id = decodeURIComponent(id);
+      } catch (error) {
+        // ignore decode errors and use raw id
+      }
+
       if (!id) {
         return;
       }
@@ -1356,28 +1372,37 @@
         return;
       }
 
-      if (typeof target.scrollIntoView === 'function') {
-        target.scrollIntoView({ behavior: 'auto', block: 'center' });
-      }
+      const currentScroll = typeof window.scrollY === 'number' ? window.scrollY : window.pageYOffset || 0;
+      const rect = target.getBoundingClientRect();
+      const top = rect.top + currentScroll - restoreScrollConfig.offsetPx;
+      window.scrollTo({ top, behavior: 'auto' });
 
-      const focusable = ensureFocusable(target);
-      if (focusable && typeof focusable.focus === 'function') {
-        focusable.focus({ preventScroll: true });
+      if (restoreScrollConfig.focusMode === 'silent' && typeof target.focus === 'function') {
+        target.setAttribute('data-silent-focus', '1');
+        target.focus({ preventScroll: true });
+        setTimeout(() => {
+          if (typeof target.blur === 'function') {
+            target.blur();
+          }
+          target.removeAttribute('data-silent-focus');
+        }, 0);
+      } else if (restoreScrollConfig.focusMode === 'visible' && typeof target.focus === 'function') {
+        target.focus({ preventScroll: true });
       }
     };
 
-    const scheduleFocus = () => {
+    const scheduleScrollToAnchor = () => {
       if (typeof window.requestAnimationFrame === 'function') {
-        window.requestAnimationFrame(focusAnchor);
+        window.requestAnimationFrame(scrollToAnchor);
       } else {
-        setTimeout(focusAnchor, 0);
+        setTimeout(scrollToAnchor, 0);
       }
     };
 
     if (initialTab === 'input') {
-      scheduleFocus();
+      scheduleScrollToAnchor();
     } else {
-      focusAnchor();
+      scrollToAnchor();
     }
   });
 </script>

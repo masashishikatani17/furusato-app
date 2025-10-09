@@ -1,16 +1,19 @@
-<x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            部署一覧（雛形）
-        </h2>
-    </x-slot>
+@extends('layouts.min')
 
-    <div class="py-12">
-        <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-            <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg p-6 space-y-3">
-                <p class="text-gray-700 text-sm">部署情報の閲覧用ページです。（Phase 1 雛形）</p>
-                <p class="text-gray-600 text-xs">※この画面では閲覧のみ可能です。編集機能はありません。</p>
+@section('title', '部署一覧')
+
+@section('content')
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="mb-3">部署一覧（雛形）</h5>
+                    <p class="text-muted small mb-2">このページはPhase 1の空ページです。部署情報の閲覧が行えます。</p>
+                    <p class="text-muted small mb-0">※閲覧専用のため、編集機能はまだ提供されていません。</p>
+                </div>
             </div>
         </div>
     </div>
-</x-app-layout>
+</div>
+@endsection

@@ -10,6 +10,13 @@ use Illuminate\Support\Facades\Response;
 use App\Jobs\Diagnostics\HelloQueueJob;
 use App\Http\Controllers\DataController;
 use App\Http\Controllers\Tax\FurusatoController;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\UsersController;
+use App\Http\Controllers\Admin\GroupsController;
+use App\Http\Controllers\Admin\BillingReceiptsController;
+use App\Http\Controllers\Admin\OwnerTransferController;
+use App\Http\Controllers\Admin\DataDownloadController;
+use App\Http\Controllers\Billing\SetupController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -33,6 +40,16 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return view('dashboard');
     })->name('dashboard');
+});
+
+Route::middleware(['auth', 'reject.client'])->group(function () {
+    Route::get('/admin/settings', [SettingsController::class, 'index'])->name('admin.settings');
+    Route::get('/admin/users', [UsersController::class, 'index'])->name('admin.users.index');
+    Route::get('/admin/groups', [GroupsController::class, 'index'])->name('admin.groups.index');
+    Route::get('/admin/billing/receipts', [BillingReceiptsController::class, 'index'])->name('admin.billing.receipts.index');
+    Route::get('/admin/owner-transfer', [OwnerTransferController::class, 'form'])->name('admin.ownerTransfer.form');
+    Route::get('/admin/data-download', [DataDownloadController::class, 'index'])->name('admin.data_download.index');
+    Route::get('/billing/setup', [SetupController::class, 'index'])->name('billing.setup');
 });
 
 // ========== PDF サンプル ==========

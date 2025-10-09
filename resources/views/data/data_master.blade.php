@@ -6,7 +6,13 @@
   <div class="card-header d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
       <h0 class="mb-0 mt-2"> お客様・年度一覧</h0>
-      <!-- ヘッダの新規作成ボタンは下部帯に集約 -->
+      @php
+        $me = $me ?? auth()->user();
+        $isClient = strtolower((string)($me->role ?? '')) === 'client';
+      @endphp
+      <div class="col-auto text-end me-3">
+        <x-gear-button position="inline" size="26" />
+      </div>
   </div>
   <div class="card-body">
     @php
@@ -26,7 +32,6 @@
         'visibility' => $d->visibility ?? null,
       ]);
     @endphp
-  
     <div x-data="masterPane(@js($guestsJson), @js($datasJson), {{ $guestId ?? 'null' }})"
          x-init="init()" x-cloak class="border rounded p-3">
   

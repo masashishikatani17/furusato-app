@@ -66,6 +66,24 @@ class DevTenantController extends Controller
             return response()->json(['message' => 'Company is not assigned.'], 404);
         }
 
-        return response()->json($svc->getSeatUsage((int) $companyId));
+        $seatUsage = $svc->getSeatUsage((int) $companyId);
+
+        if (isset($seatUsage['active_seats'], $seatUsage['active_users'], $seatUsage['pending_invites'], $seatUsage['remaining'])) {
+            return response()->json($seatUsage);
+        }
+
+        $activeSeats = (int) ($seatUsage['active_seats'] ?? $seatUsage['total'] ?? 0);
+        $activeUsers = (int) ($seatUsage['active_users'] ?? $seatUsage['active'] ?? 0);
+        $pendingInvites = (int) ($seatUsage['pending_invites'] ?? $seatUsage['reserved'] ?? 0);
+
+        $normalized = [
+            'active_seats' => $activeSeats,
+            'active_users' => $activeUsers,
+            'pending_invites' => $pendingInvites,
+        ];
+
+        $normalized['remaining'] = (int) ($seatUsage['remaining'] ?? max(0, $activeSeats - ($activeUsers + $pendingInvites)));
+
+        return response()->json($normalized);
     }
 }

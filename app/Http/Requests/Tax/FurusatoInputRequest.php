@@ -116,9 +116,7 @@ final class FurusatoInputRequest extends FormRequest
                 'zatsu_nenkin',
                 'zatsu_gyomu',
                 'zatsu_sonota',
-                'joto_tanki',
-                'joto_choki',
-                'ichiji',
+                'joto_ichiji',
                 'gokei',
             ],
             'kojo' => [
@@ -133,6 +131,7 @@ final class FurusatoInputRequest extends FormRequest
                 'haigusha',
                 'haigusha_tokubetsu',
                 'fuyo',
+                'tokutei_shinzoku',
                 'kiso',
                 'shokei',
                 'zasson',

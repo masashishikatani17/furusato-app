@@ -195,6 +195,22 @@ Route::prefix('furusato')->group(function () {
         ->name('furusato.details.fudosan');
     Route::post('/details/fudosan/save', [FurusatoController::class, 'saveFudosanDetails'])
         ->name('furusato.details.fudosan.save');
+    Route::get('/details/joto_ichiji', [FurusatoController::class, 'jotoIchijiDetails'])
+        ->name('furusato.details.joto_ichiji');
+    Route::post('/details/joto_ichiji/save', [FurusatoController::class, 'saveJotoIchijiDetails'])
+        ->name('furusato.details.joto_ichiji.save');
+    Route::get('/details/kojo_seimei_jishin', [FurusatoController::class, 'kojoSeimeiJishinDetails'])
+        ->name('furusato.details.kojo_seimei_jishin');
+    Route::post('/details/kojo_seimei_jishin/save', [FurusatoController::class, 'saveKojoSeimeiJishinDetails'])
+        ->name('furusato.details.kojo_seimei_jishin.save');
+    Route::get('/details/kojo_jinteki', [FurusatoController::class, 'kojoJintekiDetails'])
+        ->name('furusato.details.kojo_jinteki');
+    Route::post('/details/kojo_jinteki/save', [FurusatoController::class, 'saveKojoJintekiDetails'])
+        ->name('furusato.details.kojo_jinteki.save');
+    Route::get('/details/kojo_iryo', [FurusatoController::class, 'kojoIryoDetails'])
+        ->name('furusato.details.kojo_iryo');
+    Route::post('/details/kojo_iryo/save', [FurusatoController::class, 'saveKojoIryoDetails'])
+        ->name('furusato.details.kojo_iryo.save');
     Route::get('/details/kihukin', [FurusatoController::class, 'kihukinDetails'])
         ->name('furusato.details.kihukin');
     Route::post('/details/kihukin/save', [FurusatoController::class, 'saveKihukinDetails'])

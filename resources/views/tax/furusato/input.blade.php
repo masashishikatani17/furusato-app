@@ -107,8 +107,8 @@
               return $html;
           };
           $syunyuRowspan = 11;
-          $shotokuRowspan = 13;
-          $kojoRowspan = 17;
+          $shotokuRowspan = 11;
+          $kojoRowspan = 18;
           $taxRowspan = $showTokubetsu ? 10 : 9;
         @endphp
 
@@ -211,13 +211,19 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('syunyu_zatsu_sonota') !!}
               </tr>
-              <tr>
+              <tr id="income_joto_ichiji" data-anchor>
                 <th rowspan="2" class="text-center align-middle">譲渡</th>
                 <th colspan="2" class="align-middle">短期</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle" rowspan="3">
+                  <button type="button"
+                          class="btn btn-outline-secondary btn-sm js-open-details"
+                          data-redirect-to="joto_ichiji"
+                          data-origin-anchor="income_joto_ichiji"
+                          data-return-anchor="income_joto_ichiji">内訳</button>
+                </td>
                 {!! $renderInputs('syunyu_joto_tanki') !!}
               </tr>
               <tr>
@@ -225,7 +231,6 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
                 {!! $renderInputs('syunyu_joto_choki') !!}
               </tr>
               <tr>
@@ -233,7 +238,6 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
                 {!! $renderInputs('syunyu_ichiji') !!}
               </tr>
               <tr id="shotoku_row_jigyo_eigyo" data-anchor>
@@ -323,30 +327,19 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('shotoku_zatsu_sonota') !!}
               </tr>
-              <tr>
-                <th rowspan="2" class="text-center align-middle">譲渡</th>
-                <th colspan="2" class="align-middle">短期</th>
+              <tr id="shotoku_joto_ichiji" data-anchor>
+                <th colspan="3" class="align-middle">総合譲渡・一時</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
-                {!! $renderInputs('shotoku_joto_tanki') !!}
-              </tr>
-              <tr>
-                <th colspan="2" class="align-middle">長期</th>
                 <td class="text-center align-middle">
-                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                  <button type="button"
+                          class="btn btn-outline-secondary btn-sm js-open-details"
+                          data-redirect-to="joto_ichiji"
+                          data-origin-anchor="shotoku_joto_ichiji"
+                          data-return-anchor="shotoku_joto_ichiji">内訳</button>
                 </td>
-                <td class="text-center align-middle"></td>
-                {!! $renderInputs('shotoku_joto_choki') !!}
-              </tr>
-              <tr>
-                <th colspan="3" class="align-middle">一時</th>
-                <td class="text-center align-middle">
-                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
-                </td>
-                <td class="text-center align-middle"></td>
-                {!! $renderInputs('shotoku_ichiji') !!}
+                {!! $renderInputs('shotoku_joto_ichiji') !!}
               </tr>
               <tr>
                 <th colspan="3" class="align-middle">合計</th>
@@ -370,13 +363,17 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('kojo_shokibo') !!}
               </tr>
-              <tr>
+              <tr id="kojo_seimei_jishin" data-anchor>
                 <th colspan="3" class="align-middle">生命保険料控除</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle">
-                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
+                <td class="text-center align-middle" rowspan="2">
+                  <button type="button"
+                          class="btn btn-outline-secondary btn-sm js-open-details"
+                          data-redirect-to="kojo_seimei_jishin"
+                          data-origin-anchor="kojo_seimei_jishin"
+                          data-return-anchor="kojo_seimei_jishin">内訳</button>
                 </td>
                 {!! $renderInputs('kojo_seimei') !!}
               </tr>
@@ -385,17 +382,20 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle">
-                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
-                </td>
                 {!! $renderInputs('kojo_jishin') !!}
               </tr>
-              <tr>
+              <tr id="kojo_jinteki" data-anchor>
                 <th colspan="3" class="align-middle">寡婦控除</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle" rowspan="8">
+                  <button type="button"
+                          class="btn btn-outline-secondary btn-sm js-open-details"
+                          data-redirect-to="kojo_jinteki"
+                          data-origin-anchor="kojo_jinteki"
+                          data-return-anchor="kojo_jinteki">内訳</button>
+                </td>
                 {!! $renderInputs('kojo_kafu') !!}
               </tr>
               <tr>
@@ -403,7 +403,6 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
                 {!! $renderInputs('kojo_hitorioya') !!}
               </tr>
               <tr>
@@ -411,16 +410,12 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
                 {!! $renderInputs('kojo_kinrogakusei') !!}
               </tr>
               <tr>
                 <th colspan="3" class="align-middle">障害者控除</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
-                </td>
-                <td class="text-center align-middle">
-                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
                 </td>
                 {!! $renderInputs('kojo_shogaisha') !!}
               </tr>
@@ -429,18 +424,12 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle">
-                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
-                </td>
                 {!! $renderInputs('kojo_haigusha') !!}
               </tr>
               <tr>
                 <th colspan="3" class="align-middle">配偶者特別控除</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
-                </td>
-                <td class="text-center align-middle">
-                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
                 </td>
                 {!! $renderInputs('kojo_haigusha_tokubetsu') !!}
               </tr>
@@ -449,10 +438,14 @@
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle">
-                  <button type="button" class="btn btn-outline-secondary btn-sm">内訳</button>
-                </td>
                 {!! $renderInputs('kojo_fuyo') !!}
+              </tr>
+              <tr>
+                <th colspan="3" class="align-middle">特定親族特別控除</th>
+                <td class="text-center align-middle">
+                  <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
+                </td>
+                {!! $renderInputs('kojo_tokutei_shinzoku') !!}
               </tr>
               <tr>
                 <th colspan="3" class="align-middle">基礎控除</th>
@@ -475,12 +468,18 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('kojo_zasson') !!}
               </tr>
-              <tr>
+              <tr id="kojo_iryo" data-anchor>
                 <th colspan="3" class="align-middle">医療費控除</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
-                <td class="text-center align-middle"></td>
+                <td class="text-center align-middle">
+                  <button type="button"
+                          class="btn btn-outline-secondary btn-sm js-open-details"
+                          data-redirect-to="kojo_iryo"
+                          data-origin-anchor="kojo_iryo"
+                          data-return-anchor="kojo_iryo">内訳</button>
+                </td>
                 {!! $renderInputs('kojo_iryo') !!}
               </tr>
               <tr id="kojo_row_kifukin" data-anchor>
@@ -1283,6 +1282,29 @@
         ensureHiddenField('origin_tab', 'input');
         ensureHiddenField('origin_anchor', anchor);
       };
+
+      const detailButtons = form.querySelectorAll('.js-open-details');
+      detailButtons.forEach((button) => {
+        button.addEventListener('click', (event) => {
+          event.preventDefault();
+          const redirectTo = button.getAttribute('data-redirect-to') || '';
+          const anchor = button.getAttribute('data-origin-anchor')
+            || button.getAttribute('data-return-anchor')
+            || '';
+
+          if (anchor) {
+            setOriginFields(anchor);
+          } else {
+            clearOriginFields();
+          }
+
+          if (redirectTo !== '') {
+            ensureHiddenField('redirect_to', redirectTo);
+          }
+
+          form.submit();
+        });
+      });
 
       form.addEventListener('click', (event) => {
         const target = event.target instanceof Element ? event.target.closest('[data-return-anchor]') : null;

@@ -135,6 +135,7 @@ final class FurusatoController extends Controller
 
             if (is_array($stored)) {
                 $savedInputs = $stored;
+                $this->normalizeJotoIchijiKeys($savedInputs);
             }
         }
 
@@ -222,6 +223,14 @@ final class FurusatoController extends Controller
                 return redirect()->route('furusato.details.fudosan', array_merge($routeParams, $originQuery))->with('success', '保存しました');
             case 'kihukin_details':
                 return redirect()->route('furusato.details.kihukin', array_merge($routeParams, $originQuery))->with('success', '保存しました');
+            case 'joto_ichiji':
+                return redirect()->route('furusato.details.joto_ichiji', array_merge($routeParams, $originQuery))->with('success', '保存しました');
+            case 'kojo_seimei_jishin':
+                return redirect()->route('furusato.details.kojo_seimei_jishin', array_merge($routeParams, $originQuery))->with('success', '保存しました');
+            case 'kojo_jinteki':
+                return redirect()->route('furusato.details.kojo_jinteki', array_merge($routeParams, $originQuery))->with('success', '保存しました');
+            case 'kojo_iryo':
+                return redirect()->route('furusato.details.kojo_iryo', array_merge($routeParams, $originQuery))->with('success', '保存しました');
             default:
                 return redirect()->route('furusato.input', $routeParams)->with('success', '保存しました');
         }
@@ -371,6 +380,222 @@ final class FurusatoController extends Controller
         return $this->redirectToInputWithAnchor($data, $anchor);
     }
 
+    public function jotoIchijiDetails(Request $req)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $payload = $this->getFurusatoInputPayload($data);
+
+        return view('tax.furusato.details.joto_ichiji_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => ['inputs' => $payload],
+        ]);
+    }
+
+    public function saveJotoIchijiDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $bases = ['joto_ichiji_shunyu', 'joto_ichiji_keihi'];
+        $rules = [];
+        foreach ($bases as $base) {
+            foreach (['prev', 'curr'] as $period) {
+                $rules[sprintf('%s_%s', $base, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+            }
+        }
+
+        Validator::make($req->only(array_keys($rules)), $rules)->validate();
+
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $this->normalizeJotoIchijiKeys($payload);
+
+        foreach (['prev', 'curr'] as $period) {
+            $shunyu = $this->valueOrZero($payload[sprintf('joto_ichiji_shunyu_%s', $period)] ?? null);
+            $keihi = $this->valueOrZero($payload[sprintf('joto_ichiji_keihi_%s', $period)] ?? null);
+            $sashihiki = $shunyu - $keihi;
+            $payload[sprintf('joto_ichiji_sashihiki_%s', $period)] = $sashihiki;
+            $payload[sprintf('shotoku_joto_ichiji_shotoku_%s', $period)] = $sashihiki;
+            $payload[sprintf('shotoku_joto_ichiji_jumin_%s', $period)] = $sashihiki;
+        }
+
+        $this->updateFurusatoInputPayload($data, $payload);
+
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
+    }
+
+    public function kojoSeimeiJishinDetails(Request $req)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $payload = $this->getFurusatoInputPayload($data);
+
+        return view('tax.furusato.details.kojo_seimei_jishin_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => ['inputs' => $payload],
+        ]);
+    }
+
+    public function saveKojoSeimeiJishinDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $fields = [
+            'kojo_seimei_kiso',
+            'kojo_seimei_tyoteki',
+            'kojo_jishin',
+        ];
+        $rules = [];
+        foreach ($fields as $field) {
+            foreach (['prev', 'curr'] as $period) {
+                $rules[sprintf('%s_%s', $field, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+            }
+        }
+
+        Validator::make($req->only(array_keys($rules)), $rules)->validate();
+
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+
+        foreach (['prev', 'curr'] as $period) {
+            $kiso = $this->valueOrZero($payload[sprintf('kojo_seimei_kiso_%s', $period)] ?? null);
+            $tyoteki = $this->valueOrZero($payload[sprintf('kojo_seimei_tyoteki_%s', $period)] ?? null);
+            $seimei = $kiso + $tyoteki;
+            $jishin = $this->valueOrZero($payload[sprintf('kojo_jishin_%s', $period)] ?? null);
+
+            $payload[sprintf('kojo_seimei_shotoku_%s', $period)] = $seimei;
+            $payload[sprintf('kojo_seimei_jumin_%s', $period)] = $seimei;
+            $payload[sprintf('kojo_jishin_shotoku_%s', $period)] = $jishin;
+            $payload[sprintf('kojo_jishin_jumin_%s', $period)] = $jishin;
+            $payload[sprintf('kojo_seimei_jishin_gokei_%s', $period)] = $seimei + $jishin;
+        }
+
+        $this->updateFurusatoInputPayload($data, $payload);
+
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
+    }
+
+    public function kojoJintekiDetails(Request $req)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $payload = $this->getFurusatoInputPayload($data);
+
+        return view('tax.furusato.details.kojo_jinteki_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => ['inputs' => $payload],
+        ]);
+    }
+
+    public function saveKojoJintekiDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $bases = [
+            'kojo_kafu',
+            'kojo_hitorioya',
+            'kojo_kinrogakusei',
+            'kojo_shogaisha',
+            'kojo_haigusha',
+            'kojo_haigusha_tokubetsu',
+            'kojo_fuyo',
+            'kojo_tokutei_shinzoku',
+        ];
+        $rules = [];
+        foreach ($bases as $base) {
+            foreach (['prev', 'curr'] as $period) {
+                $rules[sprintf('%s_%s', $base, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+            }
+        }
+
+        Validator::make($req->only(array_keys($rules)), $rules)->validate();
+
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+
+        foreach (['prev', 'curr'] as $period) {
+            $total = 0;
+            foreach ($bases as $base) {
+                $amount = $this->valueOrZero($payload[sprintf('%s_%s', $base, $period)] ?? null);
+                $payload[sprintf('%s_shotoku_%s', $base, $period)] = $amount;
+                $payload[sprintf('%s_jumin_%s', $base, $period)] = $amount;
+                $total += $amount;
+            }
+            $payload[sprintf('kojo_jinteki_gokei_%s', $period)] = $total;
+        }
+
+        $this->updateFurusatoInputPayload($data, $payload);
+
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
+    }
+
+    public function kojoIryoDetails(Request $req)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $payload = $this->getFurusatoInputPayload($data);
+
+        return view('tax.furusato.details.kojo_iryo_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => ['inputs' => $payload],
+        ]);
+    }
+
+    public function saveKojoIryoDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $fields = ['kojo_iryo_shishutsu', 'kojo_iryo_hojokin'];
+        $rules = [];
+        foreach ($fields as $field) {
+            foreach (['prev', 'curr'] as $period) {
+                $rules[sprintf('%s_%s', $field, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+            }
+        }
+
+        Validator::make($req->only(array_keys($rules)), $rules)->validate();
+
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+
+        foreach (['prev', 'curr'] as $period) {
+            $shishutsu = $this->valueOrZero($payload[sprintf('kojo_iryo_shishutsu_%s', $period)] ?? null);
+            $hojokin = $this->valueOrZero($payload[sprintf('kojo_iryo_hojokin_%s', $period)] ?? null);
+            $kojogaku = max(0, $shishutsu - $hojokin);
+            $payload[sprintf('kojo_iryo_kojogaku_%s', $period)] = $kojogaku;
+            $payload[sprintf('kojo_iryo_shotoku_%s', $period)] = $kojogaku;
+            $payload[sprintf('kojo_iryo_jumin_%s', $period)] = $kojogaku;
+        }
+
+        $this->updateFurusatoInputPayload($data, $payload);
+
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
+    }
+
     public function syoriIndex(Request $request)
     {
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
@@ -497,9 +722,17 @@ final class FurusatoController extends Controller
 
     private function getFurusatoInputPayload(Data $data): array
     {
-        return optional(FurusatoInput::query()
+        $payload = optional(FurusatoInput::query()
             ->where('data_id', $data->id)
-            ->first())->payload ?? [];
+            ->first())->payload;
+
+        if (! is_array($payload)) {
+            return [];
+        }
+
+        $this->normalizeJotoIchijiKeys($payload);
+
+        return $payload;
     }
 
     private function getStoredFurusatoResults(int $dataId): array
@@ -609,6 +842,31 @@ final class FurusatoController extends Controller
         }
 
         return $query;
+    }
+
+    private function normalizeJotoIchijiKeys(array &$payload): void
+    {
+        $mapping = [];
+
+        foreach (['shotoku', 'jumin'] as $tax) {
+            foreach (['prev', 'curr'] as $period) {
+                $old = sprintf('shotoku_ichiji_%s_%s', $tax, $period);
+                $new = sprintf('shotoku_joto_ichiji_%s_%s', $tax, $period);
+                $mapping[$old] = $new;
+            }
+        }
+
+        foreach ($mapping as $old => $new) {
+            if (! array_key_exists($old, $payload)) {
+                continue;
+            }
+
+            if (! array_key_exists($new, $payload)) {
+                $payload[$new] = $payload[$old];
+            }
+
+            unset($payload[$old]);
+        }
     }
 
     private function sanitizeOriginAnchor($anchor): string
@@ -735,6 +993,8 @@ final class FurusatoController extends Controller
         $userId = (int) auth()->id();
 
         FurusatoInput::unguarded(function () use ($data, $updates, $labelUpdates, $userId): void {
+            $this->normalizeJotoIchijiKeys($updates);
+
             $record = FurusatoInput::firstOrNew(['data_id' => $data->id]);
 
             if (! $record->exists) {
@@ -757,6 +1017,7 @@ final class FurusatoController extends Controller
             }
 
             $current = is_array($record->payload) ? $record->payload : [];
+            $this->normalizeJotoIchijiKeys($current);
             $payload = array_replace($current, $updates);
             $payload = $this->applyAutoCalculatedFields($data, $payload);
             $record->payload = $payload;
@@ -782,6 +1043,7 @@ final class FurusatoController extends Controller
             'kojo_haigusha',
             'kojo_haigusha_tokubetsu',
             'kojo_fuyo',
+            'kojo_tokutei_shinzoku',
             'kojo_kiso',
         ];
         $kojoGokeiExtras = ['kojo_zasson', 'kojo_iryo', 'kojo_kifukin'];

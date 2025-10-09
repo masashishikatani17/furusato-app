@@ -114,7 +114,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
+              <tr id="syunyu_row_jigyo_eigyo">
                 <th scope="rowgroup" rowspan="{{ $syunyuRowspan }}" class="text-center align-middle bg-light">収入金額等</th>
                 <th rowspan="2" class="text-center align-middle">事業</th>
                 <th colspan="2" class="align-middle">営業等</th>
@@ -122,7 +122,11 @@
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
                 <td class="text-center align-middle">
-                  <button type="submit" class="btn btn-outline-secondary btn-sm" name="redirect_to" value="jigyo">内訳</button>
+                  <button type="submit"
+                          class="btn btn-outline-secondary btn-sm"
+                          name="redirect_to"
+                          value="jigyo"
+                          data-return-anchor="syunyu_row_jigyo_eigyo">内訳</button>
                 </td>
                 {!! $renderInputs('syunyu_jigyo_eigyo') !!}
               </tr>
@@ -134,13 +138,17 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('syunyu_jigyo_nogyo') !!}
               </tr>
-              <tr>
+              <tr id="syunyu_row_fudosan">
                 <th colspan="3" class="align-middle">不動産</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
                 <td class="text-center align-middle">
-                  <button type="submit" class="btn btn-outline-secondary btn-sm" name="redirect_to" value="fudosan">内訳</button>
+                  <button type="submit"
+                          class="btn btn-outline-secondary btn-sm"
+                          name="redirect_to"
+                          value="fudosan"
+                          data-return-anchor="syunyu_row_fudosan">内訳</button>
                 </td>
                 {!! $renderInputs('syunyu_fudosan') !!}
               </tr>
@@ -210,7 +218,7 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('syunyu_ichiji') !!}
               </tr>
-              <tr>
+              <tr id="shotoku_row_jigyo_eigyo">
                 <th scope="rowgroup" rowspan="{{ $shotokuRowspan }}" class="text-center align-middle bg-light">所得金額等</th>
                 <th rowspan="2" class="text-center align-middle">事業</th>
                 <th colspan="2" class="align-middle">営業等</th>
@@ -218,7 +226,11 @@
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
                 <td class="text-center align-middle">
-                  <button type="submit" class="btn btn-outline-secondary btn-sm" name="redirect_to" value="jigyo">内訳</button>
+                  <button type="submit"
+                          class="btn btn-outline-secondary btn-sm"
+                          name="redirect_to"
+                          value="jigyo"
+                          data-return-anchor="shotoku_row_jigyo_eigyo">内訳</button>
                 </td>
                 {!! $renderInputs('shotoku_jigyo_eigyo') !!}
               </tr>
@@ -230,13 +242,17 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('shotoku_jigyo_nogyo') !!}
               </tr>
-              <tr>
+              <tr id="shotoku_row_fudosan">
                 <th colspan="3" class="align-middle">不動産</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
                 <td class="text-center align-middle">
-                  <button type="submit" class="btn btn-outline-secondary btn-sm" name="redirect_to" value="fudosan">内訳</button>
+                  <button type="submit"
+                          class="btn btn-outline-secondary btn-sm"
+                          name="redirect_to"
+                          value="fudosan"
+                          data-return-anchor="shotoku_row_fudosan">内訳</button>
                 </td>
                 {!! $renderInputs('shotoku_fudosan') !!}
               </tr>
@@ -449,13 +465,17 @@
                 <td class="text-center align-middle"></td>
                 {!! $renderInputs('kojo_iryo') !!}
               </tr>
-              <tr>
+              <tr id="kojo_row_kifukin">
                 <th colspan="3" class="align-middle">寄付金控除</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
                 <td class="text-center align-middle">
-                  <button type="submit" class="btn btn-outline-secondary btn-sm" name="redirect_to" value="kihukin_details">内訳</button>
+                  <button type="submit"
+                          class="btn btn-outline-secondary btn-sm"
+                          name="redirect_to"
+                          value="kihukin_details"
+                          data-return-anchor="kojo_row_kifukin">内訳</button>
                 </td>
                 {!! $renderInputs('kojo_kifukin') !!}
               </tr>
@@ -1202,6 +1222,165 @@
 @endsection
 
 @push('scripts')
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const initialTab = @json((string) request()->query('tab', session('return_tab', '')));
+    const form = document.getElementById('furusato-input-form');
+
+    const ensureHiddenField = (name, value) => {
+      if (!form) {
+        return null;
+      }
+      let input = form.querySelector(`input[name="${name}"]`);
+      if (!input) {
+        input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        form.appendChild(input);
+      }
+      input.value = value;
+      return input;
+    };
+
+    const clearOriginFields = () => {
+      if (!form) {
+        return;
+      }
+      ['origin_tab', 'origin_anchor'].forEach((name) => {
+        const input = form.querySelector(`input[name="${name}"]`);
+        if (input) {
+          input.remove();
+        }
+      });
+      if (form.dataset) {
+        delete form.dataset.returnAnchor;
+      }
+    };
+
+    if (form) {
+      const setOriginFields = (anchor) => {
+        if (form.dataset) {
+          form.dataset.returnAnchor = anchor;
+        }
+        ensureHiddenField('origin_tab', 'input');
+        ensureHiddenField('origin_anchor', anchor);
+      };
+
+      form.addEventListener('click', (event) => {
+        const target = event.target instanceof Element ? event.target.closest('[data-return-anchor]') : null;
+        if (target) {
+          const anchor = target.getAttribute('data-return-anchor') || '';
+          setOriginFields(anchor);
+          return;
+        }
+
+        clearOriginFields();
+      });
+
+      form.addEventListener('submit', () => {
+        const anchor = form.dataset && form.dataset.returnAnchor ? form.dataset.returnAnchor : '';
+        if (anchor) {
+          setOriginFields(anchor);
+          return;
+        }
+
+        clearOriginFields();
+      });
+    }
+
+    if (initialTab === 'input') {
+      const inputTab = document.getElementById('furusato-tab-input-nav');
+      if (inputTab) {
+        if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tab !== 'undefined') {
+          bootstrap.Tab.getOrCreateInstance(inputTab).show();
+        } else {
+          const navContainer = inputTab.closest('.nav');
+          if (navContainer) {
+            navContainer.querySelectorAll('.nav-link').forEach((link) => {
+              link.classList.remove('active');
+            });
+          }
+          inputTab.classList.add('active');
+
+          const tabPane = document.getElementById('furusato-tab-input');
+          if (tabPane) {
+            const tabContent = tabPane.closest('.tab-content');
+            if (tabContent) {
+              tabContent.querySelectorAll('.tab-pane').forEach((pane) => {
+                pane.classList.remove('show', 'active');
+              });
+            }
+            tabPane.classList.add('show', 'active');
+          }
+        }
+      }
+    }
+
+    const ensureFocusable = (element) => {
+      if (!(element instanceof HTMLElement)) {
+        return null;
+      }
+
+      const focusableSelector = 'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])';
+      if (element.matches(focusableSelector)) {
+        return element;
+      }
+
+      if (!element.hasAttribute('tabindex')) {
+        element.setAttribute('tabindex', '-1');
+        element.dataset.tempTabindex = 'true';
+        element.addEventListener('blur', () => {
+          if (element.dataset.tempTabindex === 'true') {
+            element.removeAttribute('tabindex');
+            delete element.dataset.tempTabindex;
+          }
+        }, { once: true });
+      }
+
+      return element;
+    };
+
+    const focusAnchor = () => {
+      const { hash } = window.location;
+      if (!hash || hash.length <= 1) {
+        return;
+      }
+
+      const id = decodeURIComponent(hash.substring(1));
+      if (!id) {
+        return;
+      }
+
+      const target = document.getElementById(id);
+      if (!target) {
+        return;
+      }
+
+      if (typeof target.scrollIntoView === 'function') {
+        target.scrollIntoView({ behavior: 'auto', block: 'center' });
+      }
+
+      const focusable = ensureFocusable(target);
+      if (focusable && typeof focusable.focus === 'function') {
+        focusable.focus({ preventScroll: true });
+      }
+    };
+
+    const scheduleFocus = () => {
+      if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(focusAnchor);
+      } else {
+        setTimeout(focusAnchor, 0);
+      }
+    };
+
+    if (initialTab === 'input') {
+      scheduleFocus();
+    } else {
+      focusAnchor();
+    }
+  });
+</script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const shotokuRates = @json($shotokuRatesForScript);

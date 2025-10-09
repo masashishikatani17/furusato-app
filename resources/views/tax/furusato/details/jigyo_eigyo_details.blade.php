@@ -3,7 +3,12 @@
 @section('title', '事業・営業等（内訳）')
 
 @section('content')
-@php($inputs = $out['inputs'] ?? [])
+@php
+    $inputs = $out['inputs'] ?? [];
+    $originTabRaw = request()->input('origin_tab', 'input');
+    $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
+    $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
+@endphp
 <div class="container-blue mt-2" style="width:600px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
@@ -14,6 +19,8 @@
         <form method="POST" action="{{ route('furusato.details.jigyo.save') }}">
           @csrf
           <input type="hidden" name="data_id" value="{{ $dataId }}">
+          <input type="hidden" name="origin_tab" value="{{ $originTab }}">
+          <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
           @if ($errors->any())
             <div class="alert alert-danger">
               <ul class="mb-0">

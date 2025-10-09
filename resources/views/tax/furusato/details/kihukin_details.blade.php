@@ -65,11 +65,23 @@
         $referenceSymbols[$makeField('juminzei_zeigakukojo_pref', $category, 'curr')] = $symbol;
         $referenceSymbols[$makeField('juminzei_zeigakukojo_muni', $category, 'curr')] = $symbol;
     }
+
+    $originTabRaw = request()->input('origin_tab', 'input');
+    $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
+    $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
+    $inputRouteParams = ['data_id' => $dataId];
+    if ($originTab === 'input') {
+        $inputRouteParams['tab'] = 'input';
+    }
+    $returnUrl = route('furusato.input', $inputRouteParams);
+    if ($originAnchor !== '') {
+        $returnUrl .= '#' . $originAnchor;
+    }
 @endphp
 <div class="container my-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h5 mb-0">寄付金控除の内訳</h1>
-    <a href="{{ route('furusato.input', ['data_id' => $dataId]) }}" class="btn btn-link btn-sm">入力へ戻る</a>
+    <a href="{{ $returnUrl }}" class="btn btn-link btn-sm">入力へ戻る</a>
   </div>
 
   @if (session('success'))
@@ -90,6 +102,8 @@
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId }}">
     <input type="hidden" name="redirect_to" value="input">
+    <input type="hidden" name="origin_tab" value="{{ $originTab }}">
+    <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
 
     <div class="table-responsive mb-4">
       <table class="table table-bordered table-sm align-middle text-center">

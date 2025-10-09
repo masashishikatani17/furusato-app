@@ -160,7 +160,14 @@ final class FurusatoController extends Controller
     public function save(Request $request, FurusatoResultService $resultService): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
-        $updates = $request->except(['_token', 'data_id', 'redirect_to', 'show_result']);
+        $updates = $request->except([
+            '_token',
+            'data_id',
+            'redirect_to',
+            'show_result',
+            'origin_tab',
+            'origin_anchor',
+        ]);
         $this->updateFurusatoInputPayload($data, $updates);
 
         $goto = (string) $request->input('redirect_to', '');
@@ -181,17 +188,19 @@ final class FurusatoController extends Controller
 
         $routeParams = ['data_id' => $data->id];
 
+        $originQuery = $this->buildOriginQuery($request);
+
         switch ($goto) {
             case 'syori':
                 return redirect()->route('furusato.syori', $routeParams)->with('success', '保存しました');
             case 'master':
                 return redirect()->route('furusato.master', $routeParams)->with('success', '保存しました');
             case 'jigyo':
-                return redirect()->route('furusato.details.jigyo', $routeParams)->with('success', '保存しました');
+                return redirect()->route('furusato.details.jigyo', array_merge($routeParams, $originQuery))->with('success', '保存しました');
             case 'fudosan':
-                return redirect()->route('furusato.details.fudosan', $routeParams)->with('success', '保存しました');
+                return redirect()->route('furusato.details.fudosan', array_merge($routeParams, $originQuery))->with('success', '保存しました');
             case 'kihukin_details':
-                return redirect()->route('furusato.details.kihukin', $routeParams)->with('success', '保存しました');
+                return redirect()->route('furusato.details.kihukin', array_merge($routeParams, $originQuery))->with('success', '保存しました');
             default:
                 return redirect()->route('furusato.input', $routeParams)->with('success', '保存しました');
         }
@@ -221,7 +230,7 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id']));
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
 
         $calculations = $this->calculateJigyoEigyo($payload);
         $payload = array_replace($payload, $calculations);
@@ -233,7 +242,9 @@ final class FurusatoController extends Controller
 
         $this->updateFurusatoInputPayload($data, $payload);
 
-        return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
     }
 
     public function fudosanDetails(Request $req)
@@ -260,7 +271,7 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id']));
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
 
         $calculations = $this->calculateFudosan($payload);
         $payload = array_replace($payload, $calculations);
@@ -283,7 +294,9 @@ final class FurusatoController extends Controller
 
         $this->updateFurusatoInputPayload($data, $payload);
 
-        return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
     }
 
     public function kihukinDetails(Request $req)
@@ -310,11 +323,13 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'redirect_to']));
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'redirect_to', 'origin_tab', 'origin_anchor']));
 
         $this->updateFurusatoInputPayload($data, $payload);
 
-        return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
     }
 
     public function syoriIndex(Request $request)
@@ -485,6 +500,58 @@ final class FurusatoController extends Controller
         }
 
         return $payload;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function buildOriginQuery(Request $request): array
+    {
+        $query = [];
+
+        $tab = $request->input('origin_tab');
+        if (is_string($tab) && trim($tab) === 'input') {
+            $query['origin_tab'] = 'input';
+        }
+
+        $anchor = $this->sanitizeOriginAnchor($request->input('origin_anchor'));
+        if ($anchor !== '') {
+            $query['origin_anchor'] = $anchor;
+        }
+
+        return $query;
+    }
+
+    private function sanitizeOriginAnchor($anchor): string
+    {
+        if (! is_string($anchor)) {
+            return '';
+        }
+
+        $anchor = trim($anchor);
+        if ($anchor === '') {
+            return '';
+        }
+
+        $filtered = preg_replace('/[^A-Za-z0-9_-]/', '', $anchor);
+
+        return $filtered !== null ? $filtered : '';
+    }
+
+    private function redirectToInputWithAnchor(Data $data, string $anchor = '', string $message = '保存しました'): RedirectResponse
+    {
+        $params = ['data_id' => $data->id, 'tab' => 'input'];
+
+        $redirect = redirect()
+            ->route('furusato.input', $params)
+            ->with('success', $message)
+            ->with('return_tab', 'input');
+
+        if ($anchor !== '') {
+            $redirect->withFragment($anchor);
+        }
+
+        return $redirect;
     }
 
     private function calculateJigyoEigyo(array $inputs): array

@@ -5,6 +5,7 @@ namespace App\Services\License;
 use App\Models\User;
 use App\Models\UserInvitation;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use RuntimeException;
 
@@ -69,20 +70,30 @@ class SeatService
         return (int) $query->count();
     }
 
+    public function getActiveSeats(int $companyId): int
+    {
+        return (int) DB::table('subscriptions')
+            ->where('company_id', $companyId)
+            ->where('status', 'active')
+            ->sum('seats_per_subscription');
+    }
+
     /**
      * 席数の利用状況を配列で返す。
      *
-     * @return array{active:int,reserved:int,total:int}
+     * @return array{active_seats:int,active_users:int,pending_invites:int,remaining:int}
      */
     public function getSeatUsage(int $companyId): array
     {
         $activeUsers = $this->getActiveUsers($companyId)->count();
-        $reserved = $this->countPendingInvites($companyId);
+        $pending = $this->countPendingInvites($companyId);
+        $seats = $this->getActiveSeats($companyId);
 
         return [
-            'active' => $activeUsers,
-            'reserved' => $reserved,
-            'total' => $activeUsers + $reserved,
+            'active_seats' => $seats,
+            'active_users' => $activeUsers,
+            'pending_invites' => $pending,
+            'remaining' => max(0, $seats - ($activeUsers + $pending)),
         ];
     }
 
@@ -105,7 +116,7 @@ class SeatService
 
         $usage = $this->getSeatUsage($companyId);
 
-        if ($usage['total'] + $additional > $seatLimit) {
+        if ($usage['active_users'] + $usage['pending_invites'] + $additional > $seatLimit) {
             throw new RuntimeException('Seat limit exceeded.');
         }
     }

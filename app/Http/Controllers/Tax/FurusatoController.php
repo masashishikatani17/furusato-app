@@ -548,43 +548,81 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $bases = [
-            'kojo_kafu',
-            'kojo_hitorioya',
-            'kojo_kinrogakusei',
-            'kojo_shogaisha',
-            'kojo_haigusha',
-            'kojo_haigusha_tokubetsu',
-            'kojo_fuyo',
-            'kojo_tokutei_shinzoku',
+        $toggleFields = [
+            'kojo_kafu_applicable_prev',
+            'kojo_kafu_applicable_curr',
+            'kojo_hitorioya_applicable_prev',
+            'kojo_hitorioya_applicable_curr',
+            'kojo_kinrogakusei_applicable_prev',
+            'kojo_kinrogakusei_applicable_curr',
         ];
+
+        $categoryFields = [
+            'kojo_haigusha_category_prev',
+            'kojo_haigusha_category_curr',
+        ];
+
+        $numericFields = [
+            'kojo_shogaisha_count_prev',
+            'kojo_shogaisha_count_curr',
+            'kojo_tokubetsu_shogaisha_count_prev',
+            'kojo_tokubetsu_shogaisha_count_curr',
+            'kojo_doukyo_tokubetsu_shogaisha_count_prev',
+            'kojo_doukyo_tokubetsu_shogaisha_count_curr',
+            'kojo_haigusha_tokubetsu_gokeishotoku_prev',
+            'kojo_haigusha_tokubetsu_gokeishotoku_curr',
+            'kojo_fuyo_ippan_count_prev',
+            'kojo_fuyo_ippan_count_curr',
+            'kojo_fuyo_tokutei_count_prev',
+            'kojo_fuyo_tokutei_count_curr',
+            'kojo_fuyo_roujin_doukyo_count_prev',
+            'kojo_fuyo_roujin_doukyo_count_curr',
+            'kojo_fuyo_roujin_sonota_count_prev',
+            'kojo_fuyo_roujin_sonota_count_curr',
+            'kojo_tokutei_shinzoku_1_shotoku_prev',
+            'kojo_tokutei_shinzoku_1_shotoku_curr',
+            'kojo_tokutei_shinzoku_2_shotoku_prev',
+            'kojo_tokutei_shinzoku_2_shotoku_curr',
+            'kojo_tokutei_shinzoku_3_shotoku_prev',
+            'kojo_tokutei_shinzoku_3_shotoku_curr',
+        ];
+
         $rules = [];
-        foreach ($bases as $base) {
-            foreach (['prev', 'curr'] as $period) {
-                $rules[sprintf('%s_%s', $base, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-            }
+        foreach ($numericFields as $field) {
+            $rules[$field] = ['bail', 'nullable', 'integer', 'min:0'];
         }
 
-        Validator::make($req->only(array_keys($rules)), $rules)->validate();
+        foreach ($toggleFields as $field) {
+            $rules[$field] = ['bail', 'nullable', 'in:〇,×'];
+        }
 
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        foreach ($categoryFields as $field) {
+            $rules[$field] = ['bail', 'nullable', 'in:ippan,roujin,none'];
+        }
 
-        foreach (['prev', 'curr'] as $period) {
-            $total = 0;
-            foreach ($bases as $base) {
-                $amount = $this->valueOrZero($payload[sprintf('%s_%s', $base, $period)] ?? null);
-                $payload[sprintf('%s_shotoku_%s', $base, $period)] = $amount;
-                $payload[sprintf('%s_jumin_%s', $base, $period)] = $amount;
-                $total += $amount;
-            }
-            $payload[sprintf('kojo_jinteki_gokei_%s', $period)] = $total;
+        $validated = Validator::make($req->only(array_keys($rules)), $rules)->validate();
+
+        $payload = [];
+
+        foreach ($numericFields as $field) {
+            $payload[$field] = $this->toNullableInt($validated[$field] ?? $req->input($field));
+        }
+
+        foreach ($toggleFields as $field) {
+            $value = $validated[$field] ?? null;
+            $payload[$field] = $value === null || $value === '' ? null : $value;
+        }
+
+        foreach ($categoryFields as $field) {
+            $value = $validated[$field] ?? null;
+            $payload[$field] = $value === null || $value === '' ? null : $value;
         }
 
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
 
-        return $this->redirectToInputWithAnchor($data, $anchor);
+        return $this->redirectToInputWithAnchor($data, $anchor ?: 'kojo_jinteki');
     }
 
     public function kojoIryoDetails(Request $req)

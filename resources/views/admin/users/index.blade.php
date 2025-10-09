@@ -4,7 +4,6 @@
 
 @section('content')
 @php
-    use App\Services\License\SeatService;
     use Illuminate\Contracts\Pagination\LengthAwarePaginator;
     use Illuminate\Pagination\LengthAwarePaginator as Paginator;
     use Illuminate\Support\Collection;
@@ -25,34 +24,27 @@
         );
     }
 
-    $seatSummary = $seatSummary ?? ['active' => 0, 'reserved' => 0, 'total' => 0];
-    $seatLimit = $seatLimit ?? null;
-    $seatService = app(SeatService::class);
-    $rawSeatUsage = $seatService->getSeatUsage((int) ($currentUser->company_id ?? 0));
+    $seatUsageData = is_array($seatUsage ?? null) ? $seatUsage : [];
 
-    $rawActiveSeats = $rawSeatUsage['active_seats'] ?? $seatLimit;
+    $activeSeats = $seatUsageData['active_seats'] ?? null;
 
-    if ($rawActiveSeats !== null && ! is_numeric($rawActiveSeats)) {
-        $rawActiveSeats = null;
+    if ($activeSeats !== null && ! is_numeric($activeSeats)) {
+        $activeSeats = null;
     }
 
-    $activeSeats = isset($rawActiveSeats) ? (int) $rawActiveSeats : null;
+    $activeSeats = isset($activeSeats) ? (int) $activeSeats : null;
 
     if ($activeSeats !== null && $activeSeats < 0) {
         $activeSeats = null;
     }
 
-    $activeUsers = (int) ($rawSeatUsage['active_users'] ?? $seatSummary['active'] ?? 0);
-    $pendingInvites = (int) ($rawSeatUsage['pending_invites'] ?? $seatSummary['reserved'] ?? 0);
+    $activeUsers = (int) ($seatUsageData['active_users'] ?? 0);
+    $pendingInvites = (int) ($seatUsageData['pending_invites'] ?? 0);
 
-    $remaining = $rawSeatUsage['remaining'] ?? null;
+    $remaining = $seatUsageData['remaining'] ?? null;
 
     if ($remaining !== null) {
         $remaining = (int) $remaining;
-    } elseif ($activeSeats !== null) {
-        $remaining = max(0, $activeSeats - ($activeUsers + $pendingInvites));
-    } else {
-        $remaining = null;
     }
 
     $seatUsage = [
@@ -61,10 +53,6 @@
         'pending_invites' => $pendingInvites,
         'remaining' => $remaining,
     ];
-
-    if ($activeSeats !== null) {
-        $seatLimit = $activeSeats;
-    }
 
     $hasIsActive = $hasIsActive ?? Schema::hasColumn('users', 'is_active');
 
@@ -152,7 +140,7 @@
                             @php
                                 $isOwnerRow = method_exists($user, 'isOwner') ? $user->isOwner() : false;
                                 $displayRole = $user->display_role ?? ($isOwnerRow ? 'owner' : ($user->role ?? 'member'));
-                                $groupName = $user->group->name ?? '—';
+                                $groupName = $user->group_name ?? ($user->group->name ?? '—');
                                 $isActive = $hasIsActive ? (bool) ($user->is_active ?? false) : true;
                                 $canEdit = $editRouteName && $currentUser && ($currentUser->isOwner() || $currentUser->isRegistrar() || $currentUser->isGroupAdmin()) && (! $currentUser->isRegistrar() || ! $isOwnerRow);
                                 $canToggle = $hasIsActive && $canManageSeats && ! $isOwnerRow && ($activateRouteName && $deactivateRouteName);
@@ -197,7 +185,7 @@
                                 </td>
                             </tr>
                         @empty
-                            @if ($seatUsage['active_users'] === 0)
+                            @if ($usersPaginator->total() === 0)
                                 <tr>
                                     <td colspan="{{ $hasIsActive ? 6 : 5 }}" class="text-center text-muted py-4">ユーザーが登録されていません。</td>
                                 </tr>

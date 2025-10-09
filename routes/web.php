@@ -19,14 +19,13 @@ use App\Http\Controllers\Admin\DataDownloadController;
 use App\Http\Controllers\Billing\SetupController;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 // 開発用：Horizonダッシュボード
 if (app()->environment('local')) {
     Route::get('/horizon', fn() => redirect('/horizon/dashboard'));
 }
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', fn() => 'dashboard')->name('dashboard');
     Route::middleware('role:admin')->group(function () {
         Route::get('/admin', fn() => 'admin area');
     });
@@ -38,7 +37,7 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', function () {
-        return view('dashboard');
+        return redirect()->route('admin.settings');
     })->name('dashboard');
 });
 

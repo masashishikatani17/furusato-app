@@ -1,16 +1,16 @@
-
-<?php
+<?php declare(strict_types=1);
 
 namespace Tests\Feature;
 
 use App\Http\Controllers\Tax\FurusatoController;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionMethod;
 use Tests\TestCase;
 
 final class KojoKeyNormalizationTest extends TestCase
 {
-    /** @test */
+    #[Test]
     public function it_copies_legacy_values_to_canonical_keys(): void
     {
         $controller = app(FurusatoController::class);
@@ -23,7 +23,7 @@ final class KojoKeyNormalizationTest extends TestCase
             'tax_seito_shotoku_curr' => '789',
         ];
 
-        $method->invoke($controller, $payload);
+        $method->invokeArgs($controller, [&$payload]);
 
         $this->assertSame(123, $payload['shotokuzei_kojo_kiso_prev']);
         $this->assertSame(123, $payload['kojo_kiso_shotoku_prev']);
@@ -33,7 +33,7 @@ final class KojoKeyNormalizationTest extends TestCase
         $this->assertSame(789, $payload['tax_seito_shotoku_curr']);
     }
 
-    /** @test */
+    #[Test]
     public function it_backfills_legacy_aliases_from_canonical_values(): void
     {
         $controller = app(FurusatoController::class);
@@ -46,7 +46,7 @@ final class KojoKeyNormalizationTest extends TestCase
             'shotokuzei_zeigakukojo_seitoto_tokubetsu_prev' => 987,
         ];
 
-        $method->invoke($controller, $payload);
+        $method->invokeArgs($controller, [&$payload]);
 
         $this->assertSame(321, $payload['kojo_kiso_shotoku_curr']);
         $this->assertSame(654, $payload['kojo_kifukin_jumin_curr']);
@@ -55,7 +55,7 @@ final class KojoKeyNormalizationTest extends TestCase
         $this->assertArrayNotHasKey('juminzei_zeigakukojo_seitoto_tokubetsu_prev', $payload);
     }
 
-    /** @test */
+    #[Test]
     public function seitoto_service_computes_expected_tax_credit(): void
     {
         $service = app(SeitotoKihukinTokubetsuService::class);
@@ -78,7 +78,7 @@ final class KojoKeyNormalizationTest extends TestCase
         $controller = app(FurusatoController::class);
         $normalize = new ReflectionMethod($controller, 'normalizeKojoRenamedKeys');
         $normalize->setAccessible(true);
-        $normalize->invoke($controller, $results);
+        $normalize->invokeArgs($controller, [&$results]);
 
         $this->assertSame(5200, $results['tax_seito_shotoku_curr']);
         $this->assertSame(0, $results['tax_seito_jumin_curr']);

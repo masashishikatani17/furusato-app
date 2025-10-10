@@ -44,7 +44,7 @@
               <tr>
                 <th colspan="3" class="text-start ps-1">寡婦控除</th>
                 <td rowspan="2" class="text-center align-middle">
-                  <button class="btn-vp me-2" style="width: 42px;">
+                  <button class="btn-vp" style="width: 42px;">
                        HELP
                   </button>
                 </td>
@@ -84,8 +84,8 @@
               </tr>
               <tr>
                 <th colspan="3" class="text-start ps-1">勤労学生控除</th>
-                <td>
-                  <button class="btn-vp me-2">
+                <td class="text-center align-middle">
+                  <button class="btn-vp">
                        HELP
                   </button>
                 </td>
@@ -108,8 +108,8 @@
               <tr>
                 <th rowspan="3" class="text-start align-middle ps-1">障害者控除</th>
                 <th colspan="2" class="text-start ps-1 th-ddd">障害者</th>
-                <td>
-                  <button class="btn-vp me-2">
+                <td class="text-center align-middle">
+                  <button class="btn-vp">
                        HELP
                   </button>
                 </td>
@@ -129,8 +129,8 @@
               </tr>
               <tr>
                 <th colspan="2" class="text-start ps-1 th-ddd">特別障害者</th>
-                <td>
-                  <button class="btn-vp me-2">
+                <td class="text-center align-middle">
+                  <button class="btn-vp">
                        HELP
                   </button>
                 </td>
@@ -148,8 +148,8 @@
               </tr>
               <tr>
                 <th colspan="2" class="text-start ps-1 th-ddd">同居特別障害者</th>
-                <td>
-                  <button class="btn-vp me-2">
+                <td class="text-center align-middle">
+                  <button class="btn-vp">
                        HELP
                   </button>
                 </td>
@@ -167,8 +167,8 @@
               </tr>
               <tr>
                 <th colspan="3" class="text-start ps-1">配偶者控除</th>
-                <td>
-                  <button class="btn-vp me-2">
+                <td class="text-center align-middle">
+                  <button class="btn-vp">
                        HELP
                   </button>
                 </td>
@@ -192,48 +192,40 @@
               </tr>
               <tr>
                 <th colspan="3" class="text-start ps-1">配偶者特別控除</th>
-                <td>
-                  <button class="btn-vp me-2">
+                <td class="text-center align-middle">
+                  <button class="btn-vp">
                        HELP
                   </button>
                 </td>
-                <td>
+                <td nowrap="nowrap">
                   @php($haigushaTokubetsuPrev = old('kojo_haigusha_tokubetsu_gokeishotoku_prev', $inputs['kojo_haigusha_tokubetsu_gokeishotoku_prev'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_haigusha_tokubetsu_gokeishotoku_prev" value="{{ $haigushaTokubetsuPrev }}" aria-label="{{ $warekiPrevLabel }}の配偶者合計所得金額">
-                    <span class="input-group-text">円</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_haigusha_tokubetsu_gokeishotoku_prev" value="{{ $haigushaTokubetsuPrev }}" aria-label="{{ $warekiPrevLabel }}の配偶者合計所得金額">
+                    円
                 </td>
-                <td>
+                <td nowrap="nowrap">
                   @php($haigushaTokubetsuCurr = old('kojo_haigusha_tokubetsu_gokeishotoku_curr', $inputs['kojo_haigusha_tokubetsu_gokeishotoku_curr'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_haigusha_tokubetsu_gokeishotoku_curr" value="{{ $haigushaTokubetsuCurr }}" aria-label="{{ $warekiCurrLabel }}の配偶者合計所得金額">
-                    <span class="input-group-text">円</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_haigusha_tokubetsu_gokeishotoku_curr" value="{{ $haigushaTokubetsuCurr }}" aria-label="{{ $warekiCurrLabel }}の配偶者合計所得金額">
+                    円
                 </td>
                 <td class="remarks-col text-start ps-1">配偶者の合計所得金額を入力</td>
               </tr>
               <tr>
                 <th rowspan="4" class="text-start align-middle ps-1">扶養控除</th>
                 <th colspan="2" class="text-start ps-1 th-ddd">一般</th>
-                <td rowspan="4" class="align-middle">
-                  <button class="btn-vp me-2">
+                <td rowspan="4" class="text-center align-middle">
+                  <button class="btn-vp">
                        HELP
                   </button>
                 </td>
                 <td>
                   @php($fuyoIppanPrev = old('kojo_fuyo_ippan_count_prev', $inputs['kojo_fuyo_ippan_count_prev'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_fuyo_ippan_count_prev" value="{{ $fuyoIppanPrev }}" aria-label="{{ $warekiPrevLabel }}の扶養控除（一般）の人数">
-                    <span class="input-group-text">人</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji3 text-end me-2" name="kojo_fuyo_ippan_count_prev" value="{{ $fuyoIppanPrev }}" aria-label="{{ $warekiPrevLabel }}の扶養控除（一般）の人数">
+                    人
                 </td>
                 <td>
                   @php($fuyoIppanCurr = old('kojo_fuyo_ippan_count_curr', $inputs['kojo_fuyo_ippan_count_curr'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_fuyo_ippan_count_curr" value="{{ $fuyoIppanCurr }}" aria-label="{{ $warekiCurrLabel }}の扶養控除（一般）の人数">
-                    <span class="input-group-text">人</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji3 text-end me-2" name="kojo_fuyo_ippan_count_curr" value="{{ $fuyoIppanCurr }}" aria-label="{{ $warekiCurrLabel }}の扶養控除（一般）の人数">
+                    人
                 </td>
                 <td class="remarks-col text-start ps-1">それぞれの人数を入力</td>
               </tr>
@@ -241,17 +233,13 @@
                 <th colspan="2" class="text-start ps-1 th-ddd">特定扶養親族</th>
                 <td>
                   @php($fuyoTokuteiPrev = old('kojo_fuyo_tokutei_count_prev', $inputs['kojo_fuyo_tokutei_count_prev'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_fuyo_tokutei_count_prev" value="{{ $fuyoTokuteiPrev }}" aria-label="{{ $warekiPrevLabel }}の扶養控除（特定扶養親族）の人数">
-                    <span class="input-group-text">人</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji3 text-end me-2" name="kojo_fuyo_tokutei_count_prev" value="{{ $fuyoTokuteiPrev }}" aria-label="{{ $warekiPrevLabel }}の扶養控除（特定扶養親族）の人数">
+                    人
                 </td>
                 <td>
                   @php($fuyoTokuteiCurr = old('kojo_fuyo_tokutei_count_curr', $inputs['kojo_fuyo_tokutei_count_curr'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_fuyo_tokutei_count_curr" value="{{ $fuyoTokuteiCurr }}" aria-label="{{ $warekiCurrLabel }}の扶養控除（特定扶養親族）の人数">
-                    <span class="input-group-text">人</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji3 text-end me-2" name="kojo_fuyo_tokutei_count_curr" value="{{ $fuyoTokuteiCurr }}" aria-label="{{ $warekiCurrLabel }}の扶養控除（特定扶養親族）の人数">
+                    人
                 </td>
                 <td class="remarks-col">　〃　〃　</td>
               </tr>
@@ -260,17 +248,13 @@
                 <th class="text-start ps-1 pe-1 th-ddd">同居老親等</th>
                 <td>
                   @php($fuyoRoujinDoukyoPrev = old('kojo_fuyo_roujin_doukyo_count_prev', $inputs['kojo_fuyo_roujin_doukyo_count_prev'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_fuyo_roujin_doukyo_count_prev" value="{{ $fuyoRoujinDoukyoPrev }}" aria-label="{{ $warekiPrevLabel }}の扶養控除（老人扶養親族・同居老親等）の人数">
-                    <span class="input-group-text">人</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji3 text-end me-2" name="kojo_fuyo_roujin_doukyo_count_prev" value="{{ $fuyoRoujinDoukyoPrev }}" aria-label="{{ $warekiPrevLabel }}の扶養控除（老人扶養親族・同居老親等）の人数">
+                    人
                 </td>
                 <td>
                   @php($fuyoRoujinDoukyoCurr = old('kojo_fuyo_roujin_doukyo_count_curr', $inputs['kojo_fuyo_roujin_doukyo_count_curr'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_fuyo_roujin_doukyo_count_curr" value="{{ $fuyoRoujinDoukyoCurr }}" aria-label="{{ $warekiCurrLabel }}の扶養控除（老人扶養親族・同居老親等）の人数">
-                    <span class="input-group-text">人</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji3 text-end me-2" name="kojo_fuyo_roujin_doukyo_count_curr" value="{{ $fuyoRoujinDoukyoCurr }}" aria-label="{{ $warekiCurrLabel }}の扶養控除（老人扶養親族・同居老親等）の人数">
+                    人
                 </td>
                 <td class="remarks-col">　〃　〃　</td>
               </tr>
@@ -278,39 +262,33 @@
                 <th class="text-start ps-1 th-ddd">その他</th>
                 <td>
                   @php($fuyoRoujinSonotaPrev = old('kojo_fuyo_roujin_sonota_count_prev', $inputs['kojo_fuyo_roujin_sonota_count_prev'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_fuyo_roujin_sonota_count_prev" value="{{ $fuyoRoujinSonotaPrev }}" aria-label="{{ $warekiPrevLabel }}の扶養控除（老人扶養親族・その他）の人数">
-                    <span class="input-group-text">人</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji3 text-end me-2" name="kojo_fuyo_roujin_sonota_count_prev" value="{{ $fuyoRoujinSonotaPrev }}" aria-label="{{ $warekiPrevLabel }}の扶養控除（老人扶養親族・その他）の人数">
+                   人
                 </td>
                 <td>
                   @php($fuyoRoujinSonotaCurr = old('kojo_fuyo_roujin_sonota_count_curr', $inputs['kojo_fuyo_roujin_sonota_count_curr'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_fuyo_roujin_sonota_count_curr" value="{{ $fuyoRoujinSonotaCurr }}" aria-label="{{ $warekiCurrLabel }}の扶養控除（老人扶養親族・その他）の人数">
-                    <span class="input-group-text">人</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji3 text-end me-2" name="kojo_fuyo_roujin_sonota_count_curr" value="{{ $fuyoRoujinSonotaCurr }}" aria-label="{{ $warekiCurrLabel }}の扶養控除（老人扶養親族・その他）の人数">
+                    人
                 </td>
                 <td class="remarks-col">　〃　〃　</td>
               </tr>
               <tr>
                 <th rowspan="3" colspan="2" class="text-start align-middle">特定親族特別控除</th>
                 <th class="text-start ps-1 th-ddd">1人目</th>
-                <td rowspan="3" class="align-middle">
-                  <button class="btn-vp me-2">
+                <td rowspan="3" class="text-center align-middle">
+                  <button class="btn-vp">
                        HELP
                   </button>
                 </td>
-                <td>
+                <td nowrap="nowrap">
                   @php($tokutei1Prev = old('kojo_tokutei_shinzoku_1_shotoku_prev', $inputs['kojo_tokutei_shinzoku_1_shotoku_prev'] ?? null))
-                  <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_tokutei_shinzoku_1_shotoku_prev" value="{{ $tokutei1Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（1人目）の合計所得金額">
-                    <span class="input-group-text">円</span>
-                  </div>
+                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_1_shotoku_prev" value="{{ $tokutei1Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（1人目）の合計所得金額">
+                    円
                 </td>
-                <td>
+                <td nowrap="nowrap">
                   @php($tokutei1Curr = old('kojo_tokutei_shinzoku_1_shotoku_curr', $inputs['kojo_tokutei_shinzoku_1_shotoku_curr'] ?? null))
                   <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_tokutei_shinzoku_1_shotoku_curr" value="{{ $tokutei1Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（1人目）の合計所得金額">
+                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_1_shotoku_curr" value="{{ $tokutei1Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（1人目）の合計所得金額">
                     <span class="input-group-text">円</span>
                   </div>
                 </td>
@@ -318,17 +296,17 @@
               </tr>
               <tr>
                 <th class="text-start ps-1 th-ddd">2人目</th>
-                <td>
+                <td nowrap="nowrap">
                   @php($tokutei2Prev = old('kojo_tokutei_shinzoku_2_shotoku_prev', $inputs['kojo_tokutei_shinzoku_2_shotoku_prev'] ?? null))
                   <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_tokutei_shinzoku_2_shotoku_prev" value="{{ $tokutei2Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（2人目）の合計所得金額">
+                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_2_shotoku_prev" value="{{ $tokutei2Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（2人目）の合計所得金額">
                     <span class="input-group-text">円</span>
                   </div>
                 </td>
-                <td>
+                <td nowrap="nowrap">
                   @php($tokutei2Curr = old('kojo_tokutei_shinzoku_2_shotoku_curr', $inputs['kojo_tokutei_shinzoku_2_shotoku_curr'] ?? null))
                   <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_tokutei_shinzoku_2_shotoku_curr" value="{{ $tokutei2Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（2人目）の合計所得金額">
+                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_2_shotoku_curr" value="{{ $tokutei2Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（2人目）の合計所得金額">
                     <span class="input-group-text">円</span>
                   </div>
                 </td>
@@ -336,17 +314,17 @@
               </tr>
               <tr>
                 <th class="text-start ps-1 th-ddd">3人目</th>
-                <td>
+                <td nowrap="nowrap">
                   @php($tokutei3Prev = old('kojo_tokutei_shinzoku_3_shotoku_prev', $inputs['kojo_tokutei_shinzoku_3_shotoku_prev'] ?? null))
                   <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_tokutei_shinzoku_3_shotoku_prev" value="{{ $tokutei3Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（3人目）の合計所得金額">
+                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_3_shotoku_prev" value="{{ $tokutei3Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（3人目）の合計所得金額">
                     <span class="input-group-text">円</span>
                   </div>
                 </td>
-                <td>
+                <td nowrap="nowrap">
                   @php($tokutei3Curr = old('kojo_tokutei_shinzoku_3_shotoku_curr', $inputs['kojo_tokutei_shinzoku_3_shotoku_curr'] ?? null))
                   <div class="input-group input-group-sm">
-                    <input type="number" min="0" step="1" class="form-control form-control-sm suji11 text-end" name="kojo_tokutei_shinzoku_3_shotoku_curr" value="{{ $tokutei3Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（3人目）の合計所得金額">
+                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_3_shotoku_curr" value="{{ $tokutei3Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（3人目）の合計所得金額">
                     <span class="input-group-text">円</span>
                   </div>
                 </td>

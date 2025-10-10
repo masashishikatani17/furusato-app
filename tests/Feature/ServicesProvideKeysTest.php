@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace Tests\Feature;
 
@@ -9,6 +10,7 @@ use App\Services\Tax\Kojo\KifukinShotokuKojoService;
 use App\Services\Tax\Kojo\KihonService;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use ReflectionMethod;
 use Tests\TestCase;
 
@@ -16,7 +18,7 @@ final class ServicesProvideKeysTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** @test */
+    #[Test]
     public function it_populates_all_provided_keys(): void
     {
         $data = Data::create([

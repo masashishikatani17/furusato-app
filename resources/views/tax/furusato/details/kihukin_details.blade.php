@@ -78,9 +78,10 @@
         $returnUrl .= '#' . $originAnchor;
     }
 @endphp
-<div class="container my-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h5 mb-0">寄付金控除の内訳</h1>
+<div class="container-blue mt-2" style="width:800px;">
+  <div class="card-header d-flex align-items-start">
+    <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+    <h0 class="mb-0 mt-2">寄付金控除の内訳</h0>
     <a href="{{ $returnUrl }}" class="btn btn-link btn-sm">入力へ戻る</a>
   </div>
 
@@ -97,124 +98,127 @@
       </ul>
     </div>
   @endif
-
-  <form method="POST" action="{{ route('furusato.details.kihukin.save') }}">
-    @csrf
-    <input type="hidden" name="data_id" value="{{ $dataId }}">
-    <input type="hidden" name="redirect_to" value="input">
-    <input type="hidden" name="origin_tab" value="{{ $originTab }}">
-    <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
-
-    <div class="table-responsive mb-4">
-      <table class="table table-bordered table-sm align-middle text-center">
-        <thead class="table-light">
-          <tr>
-            <th rowspan="4" class="align-middle">区分</th>
-            <th colspan="4">{{ $warekiPrevLabel }}</th>
-            <th colspan="4">{{ $warekiCurrLabel }}</th>
-          </tr>
-          <tr>
-            <th colspan="2">所得税</th>
-            <th colspan="2">住民税</th>
-            <th colspan="2">所得税</th>
-            <th colspan="2">住民税</th>
-          </tr>
-          <tr>
-            <th>所得控除</th>
-            <th>税額控除</th>
-            <th>都道府県</th>
-            <th>市区町村</th>
-            <th>所得控除</th>
-            <th>税額控除</th>
-            <th>都道府県</th>
-            <th>市区町村</th>
-          </tr>
-          <tr>
-            <th>所得控除</th>
-            <th>税額控除</th>
-            <th>税額控除</th>
-            <th>税額控除</th>
-            <th>所得控除</th>
-            <th>税額控除</th>
-            <th>税額控除</th>
-            <th>税額控除</th>
-          </tr>
-        </thead>
-        <tbody>
-          @foreach ($categories as $key => $label)
-            <tr>
-              <th scope="row" class="text-start">{{ $label }}</th>
-              @foreach ($columns as $column)
-                @php($field = $makeField($column['base'], $key, $column['period']))
-                @if (isset($inputDisabled[$field]))
-                  <td class="text-center align-middle">－</td>
-                @else
-                  <td>
-                    <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $field }}" value="{{ old($field, $inputs[$field] ?? '') }}">
-                  </td>
-                @endif
-              @endforeach
-            </tr>
-          @endforeach
-        </tbody>
-      </table>
-    </div>
-
-    <div class="table-responsive mb-2">
-      <table class="table table-bordered table-sm align-middle text-center">
-        <thead class="table-light">
-          <tr>
-            <th rowspan="4" class="align-middle">区分</th>
-            <th colspan="4">{{ $warekiPrevLabel }}</th>
-            <th colspan="4">{{ $warekiCurrLabel }}</th>
-          </tr>
-          <tr>
-            <th colspan="2">所得税</th>
-            <th colspan="2">住民税</th>
-            <th colspan="2">所得税</th>
-            <th colspan="2">住民税</th>
-          </tr>
-          <tr>
-            <th>所得控除</th>
-            <th>税額控除</th>
-            <th>都道府県</th>
-            <th>市区町村</th>
-            <th>所得控除</th>
-            <th>税額控除</th>
-            <th>都道府県</th>
-            <th>市区町村</th>
-          </tr>
-          <tr>
-            <th>所得控除</th>
-            <th>税額控除</th>
-            <th>税額控除</th>
-            <th>税額控除</th>
-            <th>所得控除</th>
-            <th>税額控除</th>
-            <th>税額控除</th>
-            <th>税額控除</th>
-          </tr>
-        </thead>
-        <tbody>
-          @foreach ($categories as $key => $label)
-            <tr>
-              <th scope="row" class="text-start">{{ $label }}</th>
-              @foreach ($columns as $column)
-                @php($field = $makeField($column['base'], $key, $column['period']))
-                <td class="text-center align-middle">{{ $referenceSymbols[$field] ?? '' }}</td>
-              @endforeach
-            </tr>
-          @endforeach
-        </tbody>
-      </table>
-    </div>
-
-    <p class="text-muted small mb-4">(※) 都道府県、市区町村が条例で指定したものに限る。</p>
-
-    <div class="d-flex justify-content-end gap-2">
-      <button type="submit" class="btn btn-primary">戻る</button>
-      <a href="{{ route('furusato.input', ['data_id' => $dataId]) }}" class="btn btn-outline-secondary">キャンセル</a>
-    </div>
-  </form>
+  <div class="card-body">　
+  　<div class="wrapper">
+        <form method="POST" action="{{ route('furusato.details.kihukin.save') }}">
+          @csrf
+          <input type="hidden" name="data_id" value="{{ $dataId }}">
+          <input type="hidden" name="redirect_to" value="input">
+          <input type="hidden" name="origin_tab" value="{{ $originTab }}">
+          <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
+      
+          <div class="table-responsive mb-4">
+            <table class="table table-bordered table-sm align-middle text-center">
+              <thead class="table-light">
+                <tr>
+                  <th rowspan="4" class="align-middle">区分</th>
+                  <th colspan="4">{{ $warekiPrevLabel }}</th>
+                  <th colspan="4">{{ $warekiCurrLabel }}</th>
+                </tr>
+                <tr>
+                  <th colspan="2">所得税</th>
+                  <th colspan="2">住民税</th>
+                  <th colspan="2">所得税</th>
+                  <th colspan="2">住民税</th>
+                </tr>
+                <tr>
+                  <th>所得控除</th>
+                  <th>税額控除</th>
+                  <th>都道府県</th>
+                  <th>市区町村</th>
+                  <th>所得控除</th>
+                  <th>税額控除</th>
+                  <th>都道府県</th>
+                  <th>市区町村</th>
+                </tr>
+                <tr>
+                  <th>所得控除</th>
+                  <th>税額控除</th>
+                  <th>税額控除</th>
+                  <th>税額控除</th>
+                  <th>所得控除</th>
+                  <th>税額控除</th>
+                  <th>税額控除</th>
+                  <th>税額控除</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach ($categories as $key => $label)
+                  <tr>
+                    <th scope="row" class="text-start">{{ $label }}</th>
+                    @foreach ($columns as $column)
+                      @php($field = $makeField($column['base'], $key, $column['period']))
+                      @if (isset($inputDisabled[$field]))
+                        <td class="text-center align-middle">－</td>
+                      @else
+                        <td>
+                          <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $field }}" value="{{ old($field, $inputs[$field] ?? '') }}">
+                        </td>
+                      @endif
+                    @endforeach
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </div>
+      
+          <div class="table-responsive mb-2">
+            <table class="table table-bordered table-sm align-middle text-center">
+              <thead class="table-light">
+                <tr>
+                  <th rowspan="4" class="align-middle">区分</th>
+                  <th colspan="4">{{ $warekiPrevLabel }}</th>
+                  <th colspan="4">{{ $warekiCurrLabel }}</th>
+                </tr>
+                <tr>
+                  <th colspan="2">所得税</th>
+                  <th colspan="2">住民税</th>
+                  <th colspan="2">所得税</th>
+                  <th colspan="2">住民税</th>
+                </tr>
+                <tr>
+                  <th>所得控除</th>
+                  <th>税額控除</th>
+                  <th>都道府県</th>
+                  <th>市区町村</th>
+                  <th>所得控除</th>
+                  <th>税額控除</th>
+                  <th>都道府県</th>
+                  <th>市区町村</th>
+                </tr>
+                <tr>
+                  <th>所得控除</th>
+                  <th>税額控除</th>
+                  <th>税額控除</th>
+                  <th>税額控除</th>
+                  <th>所得控除</th>
+                  <th>税額控除</th>
+                  <th>税額控除</th>
+                  <th>税額控除</th>
+                </tr>
+              </thead>
+              <tbody>
+                @foreach ($categories as $key => $label)
+                  <tr>
+                    <th scope="row" class="text-start">{{ $label }}</th>
+                    @foreach ($columns as $column)
+                      @php($field = $makeField($column['base'], $key, $column['period']))
+                      <td class="text-center align-middle">{{ $referenceSymbols[$field] ?? '' }}</td>
+                    @endforeach
+                  </tr>
+                @endforeach
+              </tbody>
+            </table>
+          </div>
+      
+          <p class="text-muted small mb-4">(※) 都道府県、市区町村が条例で指定したものに限る。</p>
+      
+          <div class="d-flex justify-content-end gap-2">
+            <button type="submit" class="btn btn-primary">戻る</button>
+            <a href="{{ route('furusato.input', ['data_id' => $dataId]) }}" class="btn btn-outline-secondary">キャンセル</a>
+          </div>
+        </form>
+    </div>    
+  </div>      
 </div>
 @endsection

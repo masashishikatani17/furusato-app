@@ -154,8 +154,31 @@ final class HaigushaKojoService implements ProvidesKeys
 
     private function normalizeCategory(array $payload, string $period): string
     {
-        $raw = (string) ($payload[sprintf('kojo_haigusha_category_%s', $period)] ?? '');
-        $head = mb_substr(trim($raw), 0, 1) ?: '';
+        $key = sprintf('kojo_haigusha_category_%s', $period);
+        $raw = (string) ($payload[$key] ?? '');
+
+        $trimmed = trim($raw);
+        $converted = mb_convert_kana($trimmed, 'asKV', 'UTF-8');
+        $normalized = trim(mb_strtolower($converted, 'UTF-8'));
+        $roman = str_replace(['ō', 'ô'], 'o', $normalized);
+        $roman = preg_replace('/\s+/u', '', $roman) ?? '';
+
+        $latinMatches = [
+            'roujin' => '老',
+            'rojin' => '老',
+            'ippan' => '一',
+            'none' => 'なし',
+            'x' => 'なし',
+        ];
+
+        if (array_key_exists($roman, $latinMatches)) {
+            return $latinMatches[$roman];
+        }
+
+        $headSource = $trimmed === ''
+            ? ''
+            : preg_replace('/^[\h\v　]+/u', '', $trimmed) ?? $trimmed;
+        $head = mb_substr($headSource, 0, 1, 'UTF-8') ?: '';
 
         return match ($head) {
             '老' => '老',

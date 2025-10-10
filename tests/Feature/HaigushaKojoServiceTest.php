@@ -100,4 +100,61 @@ final class HaigushaKojoServiceTest extends TestCase
         $this->assertSame(0, $result['kojo_haigusha_tokubetsu_shotoku_curr']);
         $this->assertSame(0, $result['kojo_haigusha_tokubetsu_jumin_curr']);
     }
+
+
+    #[Test]
+    public function it_normalizes_spousal_category_inputs(): void
+    {
+        $service = new HaigushaKojoService();
+
+        $cases = [
+            'ippan' => [
+                'input' => 'ippan',
+                'total' => 8_000_000,
+                'expected' => [380_000, 330_000],
+            ],
+            'japanese_label' => [
+                'input' => '老人（70歳以上）',
+                'total' => 8_000_000,
+                'expected' => [480_000, 380_000],
+            ],
+            'romanized_elderly' => [
+                'input' => ' rōjin ',
+                'total' => 8_000_000,
+                'expected' => [480_000, 380_000],
+            ],
+            'none_label' => [
+                'input' => 'なし',
+                'total' => 8_000_000,
+                'expected' => [0, 0],
+            ],
+            'over_threshold' => [
+                'input' => 'ippan',
+                'total' => 10_000_001,
+                'expected' => [0, 0],
+            ],
+        ];
+
+        foreach ($cases as $case) {
+            $payload = [
+                'kojo_haigusha_category_prev' => $case['input'],
+                'kojo_haigusha_category_curr' => 'なし',
+                'shotoku_gokei_shotoku_prev' => $case['total'],
+                'shotoku_gokei_shotoku_curr' => 0,
+            ];
+
+            $result = $service->compute($payload);
+
+            $this->assertSame(
+                $case['expected'][0],
+                $result['kojo_haigusha_shotoku_prev'],
+                sprintf('Failed asserting shotoku for case "%s"', $case['input'])
+            );
+            $this->assertSame(
+                $case['expected'][1],
+                $result['kojo_haigusha_jumin_prev'],
+                sprintf('Failed asserting jumin for case "%s"', $case['input'])
+            );
+        }
+    }
 }

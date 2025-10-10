@@ -13,6 +13,7 @@ use App\Models\FurusatoResult;
 use App\Models\FurusatoSyoriSetting;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\FurusatoMasterService;
+use App\Services\Tax\Kojo\JintekiKojoService;
 use App\Services\Tax\Kojo\KifukinShotokuKojoService;
 use App\Services\Tax\Kojo\KihonService;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
@@ -1340,6 +1341,11 @@ final class FurusatoController extends Controller
         $kihonService = app(KihonService::class);
         $payload = array_replace($payload, $kihonService->computeKisoKojo($payload, (int) ($data->kihu_year ?? 0)));
         $this->assertProvidedKeys($payload, $kihonService);
+
+        /** @var JintekiKojoService $jintekiService */
+        $jintekiService = app(JintekiKojoService::class);
+        $payload = array_replace($payload, $jintekiService->compute($payload));
+        $this->assertProvidedKeys($payload, $jintekiService);
 
         foreach ($taxTypes as $tax) {
             foreach ($periods as $period) {

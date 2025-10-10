@@ -8,13 +8,13 @@
     $warekiPrevLabel = $warekiPrev ?? '前年';
     $warekiCurrLabel = $warekiCurr ?? '当年';
     $categories = [
-        'furusato' => '都道府県・市区町村に対する寄付金（ふるさと納税）',
-        'kyodobokin_nisseki' => '住所地の共同募金、日赤その他に対する寄付金',
-        'seito' => '政党等に対する寄付金',
-        'npo' => 'NPO法人等に対する寄付金',
-        'koueki' => '公益社団法人等に対する寄付金',
-        'kuni' => '国に対する寄付金',
-        'sonota' => 'その他の寄付金',
+        'furusato' => '都道府県・市区町村（ふるさと納税）',
+        'kyodobokin_nisseki' => '住所地の共同募金、日赤',
+        'seito' => '政党等',
+        'npo' => 'NPO法人等',
+        'koueki' => '公益社団法人等',
+        'kuni' => '国',
+        'sonota' => 'その他',
     ];
     $columns = [
         ['base' => 'shotokuzei_shotokukojo', 'period' => 'prev'],
@@ -78,7 +78,7 @@
         $returnUrl .= '#' . $originAnchor;
     }
 @endphp
-<div class="container-blue mt-2" style="width:800px;">
+<div class="container-blue mt-2" style="width:1100px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">寄付金控除の内訳</h0>
@@ -108,40 +108,34 @@
           <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
       
           <div class="table-responsive mb-4">
-            <table class="table table-bordered table-sm align-middle text-center">
-              <thead class="table-light">
+            <table class="table-base table-bordered align-middle text-start ms-2">
                 <tr>
-                  <th rowspan="4" class="align-middle">区分</th>
+                  <th rowspan="4" class="align-middle" style="width:120px;">寄付対象</th>
                   <th colspan="4">{{ $warekiPrevLabel }}</th>
                   <th colspan="4">{{ $warekiCurrLabel }}</th>
                 </tr>
                 <tr>
-                  <th colspan="2">所得税</th>
+                  <th colspan="2" rowspan="2">所得税</th>
                   <th colspan="2">住民税</th>
-                  <th colspan="2">所得税</th>
+                  <th colspan="2" rowspan="2">所得税</th>
                   <th colspan="2">住民税</th>
                 </tr>
                 <tr>
-                  <th>所得控除</th>
-                  <th>税額控除</th>
                   <th>都道府県</th>
                   <th>市区町村</th>
-                  <th>所得控除</th>
-                  <th>税額控除</th>
                   <th>都道府県</th>
                   <th>市区町村</th>
                 </tr>
                 <tr>
-                  <th>所得控除</th>
-                  <th>税額控除</th>
-                  <th>税額控除</th>
-                  <th>税額控除</th>
-                  <th>所得控除</th>
-                  <th>税額控除</th>
-                  <th>税額控除</th>
-                  <th>税額控除</th>
+                  <th class="th-ddd">所得控除</th>
+                  <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">所得控除</th>
+                  <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
                 </tr>
-              </thead>
               <tbody>
                 @foreach ($categories as $key => $label)
                   <tr>
@@ -152,7 +146,7 @@
                         <td class="text-center align-middle">－</td>
                       @else
                         <td>
-                          <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $field }}" value="{{ old($field, $inputs[$field] ?? '') }}">
+                          <input type="number" min="0" step="1" class="form-control suji8" name="{{ $field }}" value="{{ old($field, $inputs[$field] ?? '') }}">
                         </td>
                       @endif
                     @endforeach
@@ -162,41 +156,35 @@
             </table>
           </div>
       
-          <div class="table-responsive mb-2">
-            <table class="table table-bordered table-sm align-middle text-center">
-              <thead class="table-light">
+          <div class="table-responsive">
+            <table class="table-base table-bordered align-middle text-start ms-2">
                 <tr>
-                  <th rowspan="4" class="align-middle">区分</th>
+                  <th rowspan="4" class="align-middle" style="width:120px;">寄付対象</th>
                   <th colspan="4">{{ $warekiPrevLabel }}</th>
                   <th colspan="4">{{ $warekiCurrLabel }}</th>
                 </tr>
                 <tr>
-                  <th colspan="2">所得税</th>
+                  <th colspan="2" rowspan="2">所得税</th>
                   <th colspan="2">住民税</th>
-                  <th colspan="2">所得税</th>
+                  <th colspan="2" rowspan="2">所得税</th>
                   <th colspan="2">住民税</th>
                 </tr>
                 <tr>
-                  <th>所得控除</th>
-                  <th>税額控除</th>
                   <th>都道府県</th>
                   <th>市区町村</th>
-                  <th>所得控除</th>
-                  <th>税額控除</th>
                   <th>都道府県</th>
                   <th>市区町村</th>
                 </tr>
                 <tr>
-                  <th>所得控除</th>
-                  <th>税額控除</th>
-                  <th>税額控除</th>
-                  <th>税額控除</th>
-                  <th>所得控除</th>
-                  <th>税額控除</th>
-                  <th>税額控除</th>
-                  <th>税額控除</th>
+                  <th class="th-ddd">所得控除</th>
+                  <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">所得控除</th>
+                  <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
                 </tr>
-              </thead>
               <tbody>
                 @foreach ($categories as $key => $label)
                   <tr>
@@ -211,12 +199,12 @@
             </table>
           </div>
       
-          <p class="text-muted small mb-4">(※) 都道府県、市区町村が条例で指定したものに限る。</p>
-      
-          <div class="d-flex justify-content-end gap-2">
-            <button type="submit" class="btn btn-primary">戻る</button>
-            <a href="{{ route('furusato.input', ['data_id' => $dataId]) }}" class="btn btn-outline-secondary">キャンセル</a>
-          </div>
+          <p class="p-small">(※) 都道府県、市区町村が条例で指定したものに限る。</p>
+          <hr>
+            <div class="text-end me-2 mb-2">
+            <button type="submit" class="btn btn-base-blue me-2">戻 る</button>
+            <a href="{{ route('furusato.input', ['data_id' => $dataId]) }}" class="btn btn-base-blue">キャンセル</a>
+            </div>
         </form>
     </div>    
   </div>      

@@ -287,10 +287,8 @@
                 </td>
                 <td nowrap="nowrap">
                   @php($tokutei1Curr = old('kojo_tokutei_shinzoku_1_shotoku_curr', $inputs['kojo_tokutei_shinzoku_1_shotoku_curr'] ?? null))
-                  <div class="input-group input-group-sm">
                     <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_1_shotoku_curr" value="{{ $tokutei1Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（1人目）の合計所得金額">
-                    <span class="input-group-text">円</span>
-                  </div>
+                    円
                 </td>
                 <td class="remarks-col text-start ps-1">特定親族の合計所得金額を入力</td>
               </tr>
@@ -298,17 +296,13 @@
                 <th class="text-start ps-1 th-ddd">2人目</th>
                 <td nowrap="nowrap">
                   @php($tokutei2Prev = old('kojo_tokutei_shinzoku_2_shotoku_prev', $inputs['kojo_tokutei_shinzoku_2_shotoku_prev'] ?? null))
-                  <div class="input-group input-group-sm">
                     <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_2_shotoku_prev" value="{{ $tokutei2Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（2人目）の合計所得金額">
-                    <span class="input-group-text">円</span>
-                  </div>
+                    円
                 </td>
                 <td nowrap="nowrap">
                   @php($tokutei2Curr = old('kojo_tokutei_shinzoku_2_shotoku_curr', $inputs['kojo_tokutei_shinzoku_2_shotoku_curr'] ?? null))
-                  <div class="input-group input-group-sm">
                     <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_2_shotoku_curr" value="{{ $tokutei2Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（2人目）の合計所得金額">
-                    <span class="input-group-text">円</span>
-                  </div>
+                    円
                 </td>
                 <td class="remarks-col">　〃　〃　</td>
               </tr>
@@ -316,17 +310,13 @@
                 <th class="text-start ps-1 th-ddd">3人目</th>
                 <td nowrap="nowrap">
                   @php($tokutei3Prev = old('kojo_tokutei_shinzoku_3_shotoku_prev', $inputs['kojo_tokutei_shinzoku_3_shotoku_prev'] ?? null))
-                  <div class="input-group input-group-sm">
                     <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_3_shotoku_prev" value="{{ $tokutei3Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（3人目）の合計所得金額">
-                    <span class="input-group-text">円</span>
-                  </div>
+                    円
                 </td>
                 <td nowrap="nowrap">
                   @php($tokutei3Curr = old('kojo_tokutei_shinzoku_3_shotoku_curr', $inputs['kojo_tokutei_shinzoku_3_shotoku_curr'] ?? null))
-                  <div class="input-group input-group-sm">
                     <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_3_shotoku_curr" value="{{ $tokutei3Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（3人目）の合計所得金額">
-                    <span class="input-group-text">円</span>
-                  </div>
+                    円
                 </td>
                 <td class="remarks-col">　〃　〃　</td>
               </tr>

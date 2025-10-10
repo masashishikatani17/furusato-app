@@ -3,16 +3,18 @@
 
 @section('content')
 <div class="container-blue">
-  <div class="card-header d-flex align-items-start">
+  <div class="card-header d-flex justify-content-between gap-2">
+    <div>
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
       <h0 class="mb-0 mt-2"> お客様・年度一覧</h0>
       @php
         $me = $me ?? auth()->user();
         $isClient = strtolower((string)($me->role ?? '')) === 'client';
       @endphp
-      <div class="col-auto text-end me-3">
+    </div>
+    <div class="d-flex me-3 mt-2">
         <x-gear-button position="inline" size="26" />
-      </div>
+    </div>
   </div>
   <div class="card-body">
     @php

@@ -1425,12 +1425,31 @@ final class FurusatoController extends Controller
     private function syoriDefaultPayload(): array
     {
         return [
+            'detail_mode_prev' => 1,
+            'detail_mode_curr' => 1,
+            'bunri_flag_prev' => 0,
+            'bunri_flag_curr' => 0,
+            'one_stop_flag_prev' => 1,
+            'one_stop_flag_curr' => 1,
+            'shitei_toshi_flag_prev' => 0,
+            'shitei_toshi_flag_curr' => 0,
+            'pref_standard_rate' => 0.04,
+            'muni_standard_rate' => 0.06,
+            'pref_applied_rate_prev' => 0.04,
+            'pref_applied_rate_curr' => 0.04,
+            'muni_applied_rate_prev' => 0.06,
+            'muni_applied_rate_curr' => 0.06,
+            'pref_equal_share_prev' => 1500,
+            'pref_equal_share_curr' => 1500,
+            'muni_equal_share_prev' => 3500,
+            'muni_equal_share_curr' => 3500,
+            'other_taxes_amount_prev' => 0,
+            'other_taxes_amount_curr' => 0,
+            // Legacy keys for backward compatibility
             'detail_mode' => 1,
             'bunri_flag' => 0,
             'one_stop_flag' => 1,
             'shitei_toshi_flag' => 0,
-            'pref_standard_rate' => 0.04,
-            'muni_standard_rate' => 0.06,
             'pref_applied_rate' => 0.04,
             'muni_applied_rate' => 0.06,
             'pref_equal_share' => 1500,
@@ -1441,35 +1460,94 @@ final class FurusatoController extends Controller
 
     private function applyStandardRates(array $payload): array
     {
-        $shitei = (int) ($payload['shitei_toshi_flag'] ?? 0);
+        $detailPrev = (int) ($payload['detail_mode_prev'] ?? $payload['detail_mode'] ?? 1);
+        $detailCurr = (int) ($payload['detail_mode_curr'] ?? $payload['detail_mode'] ?? $detailPrev);
 
-        if ($shitei === 1) {
-            $payload['pref_standard_rate'] = 0.02;
-            $payload['muni_standard_rate'] = 0.08;
+        $bunriPrev = (int) ($payload['bunri_flag_prev'] ?? $payload['bunri_flag'] ?? 0);
+        $bunriCurr = (int) ($payload['bunri_flag_curr'] ?? $payload['bunri_flag'] ?? $bunriPrev);
+
+        $oneStopPrev = (int) ($payload['one_stop_flag_prev'] ?? $payload['one_stop_flag'] ?? 1);
+        $oneStopCurr = (int) ($payload['one_stop_flag_curr'] ?? $payload['one_stop_flag'] ?? $oneStopPrev);
+
+        $shiteiPrev = (int) ($payload['shitei_toshi_flag_prev'] ?? $payload['shitei_toshi_flag'] ?? 0);
+        $shiteiCurr = (int) ($payload['shitei_toshi_flag_curr'] ?? $payload['shitei_toshi_flag'] ?? $shiteiPrev);
+        $shiteiForStandard = $shiteiCurr;
+
+        if ($shiteiForStandard === 1) {
+            $prefStandard = 0.02;
+            $muniStandard = 0.08;
         } else {
-            $payload['pref_standard_rate'] = 0.04;
-            $payload['muni_standard_rate'] = 0.06;
+            $prefStandard = 0.04;
+            $muniStandard = 0.06;
         }
 
-        if (! array_key_exists('pref_applied_rate', $payload) || $payload['pref_applied_rate'] === null) {
-            $payload['pref_applied_rate'] = $payload['pref_standard_rate'];
+        $prefAppliedPrev = $payload['pref_applied_rate_prev'] ?? $payload['pref_applied_rate'] ?? null;
+        if ($prefAppliedPrev === null) {
+            $prefAppliedPrev = $prefStandard;
         }
 
-        if (! array_key_exists('muni_applied_rate', $payload) || $payload['muni_applied_rate'] === null) {
-            $payload['muni_applied_rate'] = $payload['muni_standard_rate'];
+        $prefAppliedCurr = $payload['pref_applied_rate_curr'] ?? $payload['pref_applied_rate'] ?? null;
+        if ($prefAppliedCurr === null) {
+            $prefAppliedCurr = $prefAppliedPrev;
         }
 
-        $payload['detail_mode'] = (int) ($payload['detail_mode'] ?? 1);
-        $payload['bunri_flag'] = (int) ($payload['bunri_flag'] ?? 0);
-        $payload['one_stop_flag'] = (int) ($payload['one_stop_flag'] ?? 1);
-        $payload['shitei_toshi_flag'] = $shitei;
-        $payload['pref_applied_rate'] = (float) $payload['pref_applied_rate'];
-        $payload['muni_applied_rate'] = (float) $payload['muni_applied_rate'];
-        $payload['pref_standard_rate'] = (float) $payload['pref_standard_rate'];
-        $payload['muni_standard_rate'] = (float) $payload['muni_standard_rate'];
-        $payload['pref_equal_share'] = (int) ($payload['pref_equal_share'] ?? 1500);
-        $payload['muni_equal_share'] = (int) ($payload['muni_equal_share'] ?? 3500);
-        $payload['other_taxes_amount'] = (int) ($payload['other_taxes_amount'] ?? 0);
+        $muniAppliedPrev = $payload['muni_applied_rate_prev'] ?? $payload['muni_applied_rate'] ?? null;
+        if ($muniAppliedPrev === null) {
+            $muniAppliedPrev = $muniStandard;
+        }
+
+        $muniAppliedCurr = $payload['muni_applied_rate_curr'] ?? $payload['muni_applied_rate'] ?? null;
+        if ($muniAppliedCurr === null) {
+            $muniAppliedCurr = $muniAppliedPrev;
+        }
+
+        $prefEqualPrev = (int) ($payload['pref_equal_share_prev'] ?? $payload['pref_equal_share'] ?? 1500);
+        $prefEqualCurr = (int) ($payload['pref_equal_share_curr'] ?? $payload['pref_equal_share'] ?? $prefEqualPrev);
+
+        $muniEqualPrev = (int) ($payload['muni_equal_share_prev'] ?? $payload['muni_equal_share'] ?? 3500);
+        $muniEqualCurr = (int) ($payload['muni_equal_share_curr'] ?? $payload['muni_equal_share'] ?? $muniEqualPrev);
+
+        $otherTaxesPrev = (int) ($payload['other_taxes_amount_prev'] ?? $payload['other_taxes_amount'] ?? 0);
+        $otherTaxesCurr = (int) ($payload['other_taxes_amount_curr'] ?? $payload['other_taxes_amount'] ?? $otherTaxesPrev);
+
+        $payload['pref_standard_rate'] = (float) $prefStandard;
+        $payload['muni_standard_rate'] = (float) $muniStandard;
+
+        $payload['detail_mode_prev'] = $detailPrev;
+        $payload['detail_mode_curr'] = $detailCurr;
+        $payload['detail_mode'] = $detailPrev;
+
+        $payload['bunri_flag_prev'] = $bunriPrev;
+        $payload['bunri_flag_curr'] = $bunriCurr;
+        $payload['bunri_flag'] = $bunriPrev;
+
+        $payload['one_stop_flag_prev'] = $oneStopPrev;
+        $payload['one_stop_flag_curr'] = $oneStopCurr;
+        $payload['one_stop_flag'] = $oneStopPrev;
+
+        $payload['shitei_toshi_flag_prev'] = $shiteiPrev;
+        $payload['shitei_toshi_flag_curr'] = $shiteiCurr;
+        $payload['shitei_toshi_flag'] = $shiteiPrev;
+
+        $payload['pref_applied_rate_prev'] = (float) $prefAppliedPrev;
+        $payload['pref_applied_rate_curr'] = (float) $prefAppliedCurr;
+        $payload['pref_applied_rate'] = (float) $prefAppliedPrev;
+
+        $payload['muni_applied_rate_prev'] = (float) $muniAppliedPrev;
+        $payload['muni_applied_rate_curr'] = (float) $muniAppliedCurr;
+        $payload['muni_applied_rate'] = (float) $muniAppliedPrev;
+
+        $payload['pref_equal_share_prev'] = $prefEqualPrev;
+        $payload['pref_equal_share_curr'] = $prefEqualCurr;
+        $payload['pref_equal_share'] = $prefEqualPrev;
+
+        $payload['muni_equal_share_prev'] = $muniEqualPrev;
+        $payload['muni_equal_share_curr'] = $muniEqualCurr;
+        $payload['muni_equal_share'] = $muniEqualPrev;
+
+        $payload['other_taxes_amount_prev'] = $otherTaxesPrev;
+        $payload['other_taxes_amount_curr'] = $otherTaxesCurr;
+        $payload['other_taxes_amount'] = $otherTaxesPrev;
 
         return $payload;
     }

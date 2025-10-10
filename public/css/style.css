@@ -308,8 +308,8 @@
         
         /* セル共通設定（Bootstrapの.tableを上書きできるよう強めのセレクタに） */
         table.table-base th {
-          background-color: #666;
-          color: #fff;
+          background-color: #e9eff7;
+          color: #333;
           font-weight: bold;
           padding: 2px;           /* セル内余白 */
           text-align: center;     /* 横方向中央寄せ */
@@ -335,8 +335,8 @@
         /* ---------------------------
            セルの色そのthだけに適用
         --------------------------- */
-        .table-base .th-ccc   { background-color: #ccc; color: #000; }  /* 薄グレー地＋黒文字 */
-        .table-base .th-cream { background-color: #FCEEBF; color: #000; } /* クリーム地＋黒文字 */
+        .table-base .th-ccc   { background-color: #a6a6a6; color: #000; }  /* 薄グレー地＋黒文字 */
+        .table-base .th-cream { background-color: #F4F1E8; color: #000; } /* クリーム地＋黒文字 */
          
           /* html側の指定 <th class="u-nowrap th-ccc">続柄</th> */
           
@@ -344,8 +344,8 @@
         
           　/* 見出しセルの背景色を変える */
             /* ★ 必ず <th> に付けてください（<table>/<tr> に付けると子孫に継承されます） */
-               .table-base .th-ccc   { background-color: #ccc; color: #000; }  /* 薄グレー地＋黒文字 */
-               .table-base .th-cream { background-color: #FCEEBF; color: #000; } /* クリーム地＋黒文字 */
+               .table-base .th-ccc   { background-color: #a6a6a6; color: #000; }  /* 薄グレー地＋黒文字 */
+               .table-base .th-cream { background-color: #F4F1E8; color: #000; } /* クリーム地＋黒文字 */
 
             /* html側の指定 
             　　 <th class="u-nowrap th-ccc">番号</th>

@@ -79,14 +79,14 @@
                   ['labelInput' => 'jigyo_eigyo_keihi_label_05', 'labelIndex' => 5, 'name' => 'jigyo_eigyo_keihi_5'],
                   ['labelInput' => 'jigyo_eigyo_keihi_label_06', 'labelIndex' => 6, 'name' => 'jigyo_eigyo_keihi_6'],
                   ['labelInput' => 'jigyo_eigyo_keihi_label_07', 'labelIndex' => 7, 'name' => 'jigyo_eigyo_keihi_7'],
-                  ['label' => 'その他', 'name' => 'jigyo_eigyo_keihi_sonota', 'headerClass' => 'text-start u-nowrap th-ccc'],
-                  ['label' => '合 計', 'name' => 'jigyo_eigyo_keihi_gokei', 'readonly' => true, 'headerClass' => 'u-nowrap th-ccc'],
+                  ['label' => 'その他', 'name' => 'jigyo_eigyo_keihi_sonota', 'headerClass' => 'text-start u-nowrap th-cream'],
+                  ['label' => '合 計', 'name' => 'jigyo_eigyo_keihi_gokei', 'readonly' => true, 'headerClass' => 'u-nowrap th-cream'],
                 ])
                 @php($expenseRowspan = count($expenseFields))
                 @php($field = array_shift($expenseFields))
                 <tr>
                   <th scope="rowgroup" rowspan="{{ $expenseRowspan }}" class="text-start align-middle ps-1">経 費</th>
-                  <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-ccc' }}">
+                  <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-cream' }}">
                     @php($labelName = $field['labelInput'] ?? null)
                     @if($labelName)
                       @php($placeholder = $field['placeholder'] ?? '')
@@ -113,7 +113,7 @@
                 </tr>
                 @foreach ($expenseFields as $field)
                   <tr>
-                    <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-ccc' }}">
+                    <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-cream' }}">
                       @php($labelName = $field['labelInput'] ?? null)
                       @if($labelName)
                         @php($placeholder = $field['placeholder'] ?? '')

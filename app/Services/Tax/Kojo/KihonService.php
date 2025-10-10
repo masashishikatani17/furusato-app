@@ -113,10 +113,10 @@ final class KihonService
             return 0;
         }
 
-        if (is_numeric($value)) {
-            return (int) round((float) $value);
+        if (is_string($value)) {
+            $value = str_replace([',', ' '], '', $value);
         }
 
-        return 0;
+        return is_numeric($value) ? (int) floor((float) $value) : 0;
     }
 }

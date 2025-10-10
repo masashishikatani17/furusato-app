@@ -2,6 +2,7 @@
   $details = $results['details'] ?? [];
   $prevDetails = $details['prev'] ?? [];
   $currDetails = $details['curr'] ?? [];
+  $jintekiDiff = $jintekiDiff ?? [];
   $formatRate = static function (?float $rate): string {
       if ($rate === null) {
           return '';
@@ -14,6 +15,39 @@
 @endphp
 
 <div class="py-3">
+  <div class="table-responsive mb-3">
+    <table class="table table-bordered table-sm align-middle text-end">
+      <thead class="table-light">
+        <tr>
+          <th class="text-start">人的控除額の差</th>
+          <th class="text-center">{{ $warekiPrevLabel }}</th>
+          <th class="text-center">{{ $warekiCurrLabel }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        @php
+          $rows = [
+            ['label' => '寡婦控除', 'key' => 'kafu'],
+            ['label' => 'ひとり親控除', 'key' => 'hitorioya'],
+            ['label' => '勤労学生控除', 'key' => 'kinrogakusei'],
+            ['label' => '障害者控除', 'key' => 'shogaisyo'],
+            ['label' => '配偶者控除', 'key' => 'haigusha'],
+            ['label' => '配偶者特別控除', 'key' => 'haigusha_tokubetsu'],
+            ['label' => '扶養控除', 'key' => 'fuyo'],
+            ['label' => '基礎控除', 'key' => 'kiso'],
+            ['label' => '人的控除額の差の合計額', 'key' => 'sum'],
+          ];
+        @endphp
+        @foreach ($rows as $row)
+          <tr>
+            <th class="text-start">{{ $row['label'] }}</th>
+            <td>{{ number_format((int) ($jintekiDiff[$row['key']]['prev'] ?? 0)) }}</td>
+            <td>{{ number_format((int) ($jintekiDiff[$row['key']]['curr'] ?? 0)) }}</td>
+          </tr>
+        @endforeach
+      </tbody>
+    </table>
+  </div>
   <div class="table-responsive">
     <table class="table table-bordered table-sm align-middle">
       <thead class="table-light">

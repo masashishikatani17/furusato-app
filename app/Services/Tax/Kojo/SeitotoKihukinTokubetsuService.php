@@ -2,7 +2,9 @@
 
 namespace App\Services\Tax\Kojo;
 
-final class SeitotoKihukinTokubetsuService
+use App\Services\Tax\Contracts\ProvidesKeys;
+
+final class SeitotoKihukinTokubetsuService implements ProvidesKeys
 {
     private const PERIODS = ['prev', 'curr'];
 
@@ -39,12 +41,25 @@ final class SeitotoKihukinTokubetsuService
     ];
 
     /**
+     * @return array<int, string>
+     */
+    public static function provides(): array
+    {
+        return [
+            'shotokuzei_zeigakukojo_seitoto_tokubetsu_prev',
+            'shotokuzei_zeigakukojo_seitoto_tokubetsu_curr',
+            'juminzei_zeigakukojo_seitoto_tokubetsu_prev',
+            'juminzei_zeigakukojo_seitoto_tokubetsu_curr',
+        ];
+    }
+
+    /**
      * @param array $payload
      * @return array{
-     *     shotokuzei_kojo_seitoto_tokubetsu_prev:int,
-     *     shotokuzei_kojo_seitoto_tokubetsu_curr:int,
-     *     juminzei_kojo_seitoto_tokubetsu_prev:int,
-     *     juminzei_kojo_seitoto_tokubetsu_curr:int,
+     *     shotokuzei_zeigakukojo_seitoto_tokubetsu_prev:int,
+     *     shotokuzei_zeigakukojo_seitoto_tokubetsu_curr:int,
+     *     juminzei_zeigakukojo_seitoto_tokubetsu_prev:int,
+     *     juminzei_zeigakukojo_seitoto_tokubetsu_curr:int,
      * }
      */
     public function compute(array $payload): array
@@ -52,8 +67,8 @@ final class SeitotoKihukinTokubetsuService
         $results = [];
 
         foreach (self::PERIODS as $period) {
-            $results[sprintf('shotokuzei_kojo_seitoto_tokubetsu_%s', $period)] = $this->calculateShotokuzei($payload, $period);
-            $results[sprintf('juminzei_kojo_seitoto_tokubetsu_%s', $period)] = 0;
+            $results[sprintf('shotokuzei_zeigakukojo_seitoto_tokubetsu_%s', $period)] = $this->calculateShotokuzei($payload, $period);
+            $results[sprintf('juminzei_zeigakukojo_seitoto_tokubetsu_%s', $period)] = 0;
         }
 
         return $results;
@@ -124,13 +139,17 @@ final class SeitotoKihukinTokubetsuService
         return $total;
     }
 
-    private function n(mixed $value): float
+    private function n(mixed $value): int
     {
-        if (is_numeric($value)) {
-            return max(0.0, (float) $value);
+        if ($value === null || $value === '') {
+            return 0;
         }
 
-        return 0.0;
+        if (is_string($value)) {
+            $value = str_replace([',', ' '], '', $value);
+        }
+
+        return is_numeric($value) ? (int) floor((float) $value) : 0;
     }
 
     private function min(float $first, float $second): float

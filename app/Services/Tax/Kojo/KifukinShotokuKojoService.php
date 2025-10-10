@@ -2,7 +2,9 @@
 
 namespace App\Services\Tax\Kojo;
 
-final class KifukinShotokuKojoService
+use App\Services\Tax\Contracts\ProvidesKeys;
+
+final class KifukinShotokuKojoService implements ProvidesKeys
 {
     private const TOTAL_KEYS = [
         'shotoku_gokei_shotoku',
@@ -29,6 +31,19 @@ final class KifukinShotokuKojoService
         'shotokuzei_shotokukojo_kuni',
         'shotokuzei_shotokukojo_sonota',
     ];
+
+    /**
+     * @return array<int, string>
+     */
+    public static function provides(): array
+    {
+        return [
+            'shotokuzei_kojo_kifukin_prev',
+            'shotokuzei_kojo_kifukin_curr',
+            'juminzei_kojo_kifukin_prev',
+            'juminzei_kojo_kifukin_curr',
+        ];
+    }
 
     public function compute(array $payload, array $settings = []): array
     {

@@ -106,6 +106,10 @@
                   'shotoku' => 'shotokuzei_kojo_kifukin_%s',
                   'jumin' => 'juminzei_kojo_kifukin_%s',
               ],
+              'tax_seito' => [
+                  'shotoku' => 'shotokuzei_zeigakukojo_seitoto_tokubetsu_%s',
+                  'jumin' => 'juminzei_zeigakukojo_seitoto_tokubetsu_%s',
+              ],
           ];
           $shotokuRatesForScript = collect($shotokuRates ?? [])->values()->toArray();
           $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides) {

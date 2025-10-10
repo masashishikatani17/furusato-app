@@ -284,6 +284,34 @@
             cursor: pointer;
             vertical-align: middle;            /* ← 行内での縦位置（隣の要素と揃える用） */
         }
+        
+        /* マスター見出しイメージ_ボタンとしての機能無し */
+        .btn-vp {
+            display: inline-block;
+            /* 縦横のパディングを抑えつつ高さを調整 */
+            cursor: default;          /* 通常の矢印に固定 */
+            font-size: 12px;
+            height: 22px;
+            font-weight: bold;
+            text-align: center;
+            vertical-align: middle;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            border: 2px solid #ccc; 
+            background-color: #E9EFF7; 
+            color: #444444; 
+            padding: 0 5px;            /* 左右の余白だけ設定 */
+            line-height: 1;
+            border-color:#a9a9a9;
+        }
+        
+        .btn-vp:hover,
+        .btn-vp:focus {
+            cursor: default;
+            outline: none;            /* フォーカス枠が邪魔な場合は消す */
+        }
+
 
 /* --------------------------------------
   * テーブル

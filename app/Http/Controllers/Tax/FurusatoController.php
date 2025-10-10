@@ -265,6 +265,34 @@ final class FurusatoController extends Controller
         return $diffs;
     }
 
+    private function computeJintekiDiff(array $payload): array
+    {
+        $periods = ['prev', 'curr'];
+        $diffs = [];
+        $totals = array_fill_keys($periods, 0);
+
+        foreach (self::JINTEKI_DIFF_MAP as $key => $entry) {
+            foreach ($periods as $period) {
+                $shotokuKey = sprintf('%s_%s', $entry['shotoku'], $period);
+                $juminKey = sprintf('%s_%s', $entry['jumin'], $period);
+
+                $shotoku = $this->valueOrZero($this->toNullableInt($payload[$shotokuKey] ?? null));
+                $jumin = $this->valueOrZero($this->toNullableInt($payload[$juminKey] ?? null));
+
+                $diff = $shotoku - $jumin;
+                $diffs[$key][$period] = $diff;
+                $totals[$period] += $diff;
+            }
+        }
+
+        $diffs['sum'] = [
+            'prev' => $totals['prev'],
+            'curr' => $totals['curr'],
+        ];
+
+        return $diffs;
+    }
+
     private function findDataForInput(Request $request, int $dataId): ?Data
     {
         if ($request->user()) {

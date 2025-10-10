@@ -22,6 +22,17 @@ final class FurusatoController extends Controller
 {
     private const MASTER_KIHU_YEAR = 2025;
 
+    private const BUNRI_CHOKI_SHOTOKU_FIELDS = [
+        'bunri_choki_tokutei_under_shotoku_prev',
+        'bunri_choki_tokutei_under_shotoku_curr',
+        'bunri_choki_tokutei_over_shotoku_prev',
+        'bunri_choki_tokutei_over_shotoku_curr',
+        'bunri_choki_keika_under_shotoku_prev',
+        'bunri_choki_keika_under_shotoku_curr',
+        'bunri_choki_keika_over_shotoku_prev',
+        'bunri_choki_keika_over_shotoku_curr',
+    ];
+
     private const FUDOSAN_LABEL_FIELDS = [
         'fudosan_keihi_label_01',
         'fudosan_keihi_label_02',
@@ -137,6 +148,7 @@ final class FurusatoController extends Controller
             if (is_array($stored)) {
                 $savedInputs = $stored;
                 $this->normalizeJotoIchijiKeys($savedInputs);
+                $this->normalizeBunriChokiShotokuKeys($savedInputs);
             }
         }
 
@@ -180,6 +192,23 @@ final class FurusatoController extends Controller
         return sprintf('平成%d年', $year - 1988);
     }
 
+    private function toWarekiShortYear(int $year): string
+    {
+        if ($year >= 2019) {
+            return sprintf('R%02d', $year - 2018);
+        }
+
+        if ($year >= 1989) {
+            return sprintf('H%02d', $year - 1988);
+        }
+
+        if ($year >= 1926) {
+            return sprintf('S%02d', $year - 1925);
+        }
+
+        return (string) $year;
+    }
+
     public function save(Request $request, FurusatoResultService $resultService): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
@@ -191,6 +220,7 @@ final class FurusatoController extends Controller
             'origin_tab',
             'origin_anchor',
         ]);
+        $this->validateBunriChokiShotokuInputs($request);
         $this->updateFurusatoInputPayload($data, $updates);
 
         $goto = (string) $request->input('redirect_to', '');
@@ -629,9 +659,26 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req);
         $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
-        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
-        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $warekiPrev = $kihuYear ? $this->toWarekiShortYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiShortYear($kihuYear) : '当年';
         $payload = $this->getFurusatoInputPayload($data);
+
+        $legacyMappings = [
+            'kojo_iryo_shishutsu_prev' => 'kojo_iryo_shiharai_prev',
+            'kojo_iryo_shishutsu_curr' => 'kojo_iryo_shiharai_curr',
+            'kojo_iryo_hojokin_prev' => 'kojo_iryo_hotengaku_prev',
+            'kojo_iryo_hojokin_curr' => 'kojo_iryo_hotengaku_curr',
+        ];
+
+        foreach ($legacyMappings as $legacy => $current) {
+            if (! array_key_exists($current, $payload) && array_key_exists($legacy, $payload)) {
+                $payload[$current] = $payload[$legacy];
+            }
+        }
+
+        [$shotokuGokeiPrev, $shotokuGokeiCurr] = $this->resolveShotokuGokei($data->id);
+        $payload['kojo_iryo_shotoku_gokei_prev'] = $shotokuGokeiPrev;
+        $payload['kojo_iryo_shotoku_gokei_curr'] = $shotokuGokeiCurr;
 
         return view('tax.furusato.details.kojo_iryo_details', [
             'dataId' => $data->id,
@@ -646,32 +693,64 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $fields = ['kojo_iryo_shishutsu', 'kojo_iryo_hojokin'];
-        $rules = [];
-        foreach ($fields as $field) {
-            foreach (['prev', 'curr'] as $period) {
-                $rules[sprintf('%s_%s', $field, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+        $inputFields = [
+            'kojo_iryo_shiharai_prev',
+            'kojo_iryo_shiharai_curr',
+            'kojo_iryo_hotengaku_prev',
+            'kojo_iryo_hotengaku_curr',
+        ];
+
+        $rules = array_fill_keys($inputFields, ['bail', 'nullable', 'integer', 'min:0']);
+        Validator::make($req->only($inputFields), $rules)->validate();
+
+        $payload = $this->sanitizeDetailPayload(Arr::only($req->all(), $inputFields));
+
+        [$shotokuGokeiPrev, $shotokuGokeiCurr] = $this->resolveShotokuGokei($data->id);
+        $shotokuGokeiMap = [
+            'prev' => $shotokuGokeiPrev,
+            'curr' => $shotokuGokeiCurr,
+        ];
+
+        foreach ($shotokuGokeiMap as $period => $shotokuGokei) {
+            $shiharaiKey = sprintf('kojo_iryo_shiharai_%s', $period);
+            $hotenKey = sprintf('kojo_iryo_hotengaku_%s', $period);
+            $sashihikiKey = sprintf('kojo_iryo_sashihiki_%s', $period);
+            $shotokuGokeiKey = sprintf('kojo_iryo_shotoku_gokei_%s', $period);
+            $shotoku5pctKey = sprintf('kojo_iryo_shotoku_5pct_%s', $period);
+            $minThresholdKey = sprintf('kojo_iryo_min_threshold_%s', $period);
+            $kojogakuKey = sprintf('kojo_iryo_kojogaku_%s', $period);
+            $shotokuKey = sprintf('kojo_iryo_shotoku_%s', $period);
+            $juminKey = sprintf('kojo_iryo_jumin_%s', $period);
+
+            $shiharai = $this->valueOrZero($payload[$shiharaiKey] ?? null);
+            $hoten = $this->valueOrZero($payload[$hotenKey] ?? null);
+            $sashihiki = $shiharai - $hoten;
+            if ($shotokuGokei >= 0) {
+                $shotoku5pct = intdiv($shotokuGokei, 20);
+            } else {
+                $shotoku5pct = -intdiv(abs($shotokuGokei) + 19, 20);
             }
+            $minThreshold = min($shotoku5pct, 100000);
+            $kojogaku = max($sashihiki - $minThreshold, 0);
+
+            $payload[$sashihikiKey] = $sashihiki;
+            $payload[$shotokuGokeiKey] = $shotokuGokei;
+            $payload[$shotoku5pctKey] = $shotoku5pct;
+            $payload[$minThresholdKey] = $minThreshold;
+            $payload[$kojogakuKey] = $kojogaku;
+            $payload[$shotokuKey] = $kojogaku;
+            $payload[$juminKey] = $kojogaku;
         }
 
-        Validator::make($req->only(array_keys($rules)), $rules)->validate();
-
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
-
-        foreach (['prev', 'curr'] as $period) {
-            $shishutsu = $this->valueOrZero($payload[sprintf('kojo_iryo_shishutsu_%s', $period)] ?? null);
-            $hojokin = $this->valueOrZero($payload[sprintf('kojo_iryo_hojokin_%s', $period)] ?? null);
-            $kojogaku = max(0, $shishutsu - $hojokin);
-            $payload[sprintf('kojo_iryo_kojogaku_%s', $period)] = $kojogaku;
-            $payload[sprintf('kojo_iryo_shotoku_%s', $period)] = $kojogaku;
-            $payload[sprintf('kojo_iryo_jumin_%s', $period)] = $kojogaku;
+        foreach (['kojo_iryo_shishutsu_prev', 'kojo_iryo_shishutsu_curr', 'kojo_iryo_hojokin_prev', 'kojo_iryo_hojokin_curr'] as $legacyKey) {
+            $payload[$legacyKey] = null;
         }
 
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
 
-        return $this->redirectToInputWithAnchor($data, $anchor);
+        return $this->redirectToInputWithAnchor($data, $anchor ?: 'kojo_iryo');
     }
 
     public function syoriIndex(Request $request)
@@ -809,6 +888,7 @@ final class FurusatoController extends Controller
         }
 
         $this->normalizeJotoIchijiKeys($payload);
+        $this->normalizeBunriChokiShotokuKeys($payload);
 
         return $payload;
     }
@@ -841,6 +921,62 @@ final class FurusatoController extends Controller
 
             $record->save();
         });
+    }
+
+    private function validateBunriChokiShotokuInputs(Request $request): void
+    {
+        if (self::BUNRI_CHOKI_SHOTOKU_FIELDS === []) {
+            return;
+        }
+
+        $rules = array_fill_keys(self::BUNRI_CHOKI_SHOTOKU_FIELDS, ['bail', 'nullable', 'integer', 'min:0']);
+
+        Validator::make($request->only(self::BUNRI_CHOKI_SHOTOKU_FIELDS), $rules)->validate();
+    }
+
+    /**
+     * @return array{int, int}
+     */
+    private function resolveShotokuGokei(int $dataId): array
+    {
+        $payload = [];
+
+        $sessionResults = session('furusato_results');
+        if (is_array($sessionResults)) {
+            $candidate = $sessionResults['upper'] ?? $sessionResults;
+            if (is_array($candidate)) {
+                $payload = $candidate;
+            }
+        }
+
+        if ($payload === []) {
+            $storedResults = $this->getStoredFurusatoResults($dataId);
+            $candidate = $storedResults['upper'] ?? $storedResults;
+            if (is_array($candidate)) {
+                $payload = $candidate;
+            }
+        }
+
+        if ($payload === []) {
+            $payloadFromInput = FurusatoInput::query()
+                ->where('data_id', $dataId)
+                ->value('payload');
+
+            if (is_array($payloadFromInput)) {
+                $this->normalizeJotoIchijiKeys($payloadFromInput);
+                $payload = $payloadFromInput;
+            }
+        }
+
+        $prev = $this->valueOrZero($this->toNullableInt($payload['shotoku_gokei_shotoku_prev'] ?? null));
+        $curr = $this->valueOrZero($this->toNullableInt($payload['shotoku_gokei_shotoku_curr'] ?? null));
+
+        if ($this->resolveBunriFlag($dataId) === 1) {
+            $prev += $this->valueOrZero($this->toNullableInt($payload['bunri_sogo_gokeigaku_shotoku_prev'] ?? null));
+            $curr += $this->valueOrZero($this->toNullableInt($payload['bunri_sogo_gokeigaku_shotoku_curr'] ?? null));
+        }
+
+        return [$prev, $curr];
     }
 
     private function sanitizeDetailPayload(array $payload): array
@@ -920,6 +1056,42 @@ final class FurusatoController extends Controller
         }
 
         return $query;
+    }
+    
+    private function normalizeBunriChokiShotokuKeys(array &$payload): void
+    {
+        $types = ['tokutei', 'keika'];
+        $periods = ['prev', 'curr'];
+
+        foreach ($types as $type) {
+            foreach ($periods as $period) {
+                $legacyKey = sprintf('bunri_choki_%s_shotoku_%s', $type, $period);
+                $underKey = sprintf('bunri_choki_%s_under_shotoku_%s', $type, $period);
+                $overKey = sprintf('bunri_choki_%s_over_shotoku_%s', $type, $period);
+
+                $legacyExists = array_key_exists($legacyKey, $payload);
+                $legacyValue = $legacyExists ? $this->toNullableInt($payload[$legacyKey]) : null;
+
+                $underExists = array_key_exists($underKey, $payload);
+                $underValue = $underExists ? $this->toNullableInt($payload[$underKey]) : null;
+
+                if ($legacyExists && $underValue === null) {
+                    $underValue = $legacyValue;
+                }
+
+                if ($underExists || $underValue !== null) {
+                    $payload[$underKey] = $underValue;
+                }
+
+                if ($legacyExists) {
+                    unset($payload[$legacyKey]);
+                }
+
+                if (array_key_exists($overKey, $payload)) {
+                    $payload[$overKey] = $this->toNullableInt($payload[$overKey]);
+                }
+            }
+        }
     }
 
     private function normalizeJotoIchijiKeys(array &$payload): void
@@ -1072,6 +1244,7 @@ final class FurusatoController extends Controller
 
         FurusatoInput::unguarded(function () use ($data, $updates, $labelUpdates, $userId): void {
             $this->normalizeJotoIchijiKeys($updates);
+            $this->normalizeBunriChokiShotokuKeys($updates);
 
             $record = FurusatoInput::firstOrNew(['data_id' => $data->id]);
 
@@ -1096,7 +1269,9 @@ final class FurusatoController extends Controller
 
             $current = is_array($record->payload) ? $record->payload : [];
             $this->normalizeJotoIchijiKeys($current);
+            $this->normalizeBunriChokiShotokuKeys($current);
             $payload = array_replace($current, $updates);
+            $this->normalizeBunriChokiShotokuKeys($payload);
             $payload = $this->applyAutoCalculatedFields($data, $payload);
             $record->payload = $payload;
             $record->updated_by = $userId ?: null;

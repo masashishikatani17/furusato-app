@@ -3,17 +3,146 @@
 @section('content')
 @php
   $settings = $settings ?? [];
-  $detailMode = old('detail_mode', (string)($settings['detail_mode'] ?? 1));
-  $bunriFlag = old('bunri_flag', (string)($settings['bunri_flag'] ?? 0));
-  $oneStopFlag = old('one_stop_flag', (string)($settings['one_stop_flag'] ?? 1));
-  $shiteiFlag = old('shitei_toshi_flag', (string)($settings['shitei_toshi_flag'] ?? 0));
+
+  $detailModePrev = old('detail_mode_prev');
+  if ($detailModePrev === null) {
+      $detailModePrev = (string)($settings['detail_mode_prev'] ?? $settings['detail_mode'] ?? 1);
+  }
+
+  $detailModeCurr = old('detail_mode_curr');
+  if ($detailModeCurr === null) {
+      $detailModeCurr = (string)($settings['detail_mode_curr'] ?? $settings['detail_mode_prev'] ?? $settings['detail_mode'] ?? $detailModePrev);
+  }
+
+  $bunriFlagPrev = old('bunri_flag_prev');
+  if ($bunriFlagPrev === null) {
+      $bunriFlagPrev = (string)($settings['bunri_flag_prev'] ?? $settings['bunri_flag'] ?? 0);
+  }
+
+  $bunriFlagCurr = old('bunri_flag_curr');
+  if ($bunriFlagCurr === null) {
+      $bunriFlagCurr = (string)($settings['bunri_flag_curr'] ?? $settings['bunri_flag_prev'] ?? $settings['bunri_flag'] ?? $bunriFlagPrev);
+  }
+
+  $oneStopFlagPrev = old('one_stop_flag_prev');
+  if ($oneStopFlagPrev === null) {
+      $oneStopFlagPrev = (string)($settings['one_stop_flag_prev'] ?? $settings['one_stop_flag'] ?? 1);
+  }
+
+  $oneStopFlagCurr = old('one_stop_flag_curr');
+  if ($oneStopFlagCurr === null) {
+      $oneStopFlagCurr = (string)($settings['one_stop_flag_curr'] ?? $settings['one_stop_flag_prev'] ?? $settings['one_stop_flag'] ?? $oneStopFlagPrev);
+  }
+
+  $shiteiFlagPrev = old('shitei_toshi_flag_prev');
+  if ($shiteiFlagPrev === null) {
+      $shiteiFlagPrev = (string)($settings['shitei_toshi_flag_prev'] ?? $settings['shitei_toshi_flag'] ?? 0);
+  }
+
+  $shiteiFlagCurr = old('shitei_toshi_flag_curr');
+  if ($shiteiFlagCurr === null) {
+      $shiteiFlagCurr = (string)($settings['shitei_toshi_flag_curr'] ?? $settings['shitei_toshi_flag_prev'] ?? $settings['shitei_toshi_flag'] ?? $shiteiFlagPrev);
+  }
+
   $prefStandard = old('pref_standard_rate', $settings['pref_standard_rate'] ?? 0.04);
   $muniStandard = old('muni_standard_rate', $settings['muni_standard_rate'] ?? 0.06);
-  $prefApplied = old('pref_applied_rate', $settings['pref_applied_rate'] ?? $prefStandard);
-  $muniApplied = old('muni_applied_rate', $settings['muni_applied_rate'] ?? $muniStandard);
-  $prefEqual = old('pref_equal_share', $settings['pref_equal_share'] ?? 1500);
-  $muniEqual = old('muni_equal_share', $settings['muni_equal_share'] ?? 3500);
-  $otherTaxes = old('other_taxes_amount', $settings['other_taxes_amount'] ?? 0);
+
+  $prefAppliedPrev = old('pref_applied_rate_prev');
+  if ($prefAppliedPrev === null) {
+      $prefAppliedPrev = $settings['pref_applied_rate_prev'] ?? $settings['pref_applied_rate'] ?? $prefStandard;
+  }
+
+  $prefAppliedCurr = old('pref_applied_rate_curr');
+  if ($prefAppliedCurr === null) {
+      $prefAppliedCurr = $settings['pref_applied_rate_curr'] ?? $settings['pref_applied_rate_prev'] ?? $settings['pref_applied_rate'] ?? $prefAppliedPrev;
+  }
+
+  $muniAppliedPrev = old('muni_applied_rate_prev');
+  if ($muniAppliedPrev === null) {
+      $muniAppliedPrev = $settings['muni_applied_rate_prev'] ?? $settings['muni_applied_rate'] ?? $muniStandard;
+  }
+
+  $muniAppliedCurr = old('muni_applied_rate_curr');
+  if ($muniAppliedCurr === null) {
+      $muniAppliedCurr = $settings['muni_applied_rate_curr'] ?? $settings['muni_applied_rate_prev'] ?? $settings['muni_applied_rate'] ?? $muniAppliedPrev;
+  }
+
+  $prefEqualPrev = old('pref_equal_share_prev');
+  if ($prefEqualPrev === null) {
+      $prefEqualPrev = $settings['pref_equal_share_prev'] ?? $settings['pref_equal_share'] ?? 1500;
+  }
+
+  $prefEqualCurr = old('pref_equal_share_curr');
+  if ($prefEqualCurr === null) {
+      $prefEqualCurr = $settings['pref_equal_share_curr'] ?? $settings['pref_equal_share_prev'] ?? $settings['pref_equal_share'] ?? $prefEqualPrev;
+  }
+
+  $muniEqualPrev = old('muni_equal_share_prev');
+  if ($muniEqualPrev === null) {
+      $muniEqualPrev = $settings['muni_equal_share_prev'] ?? $settings['muni_equal_share'] ?? 3500;
+  }
+
+  $muniEqualCurr = old('muni_equal_share_curr');
+  if ($muniEqualCurr === null) {
+      $muniEqualCurr = $settings['muni_equal_share_curr'] ?? $settings['muni_equal_share_prev'] ?? $settings['muni_equal_share'] ?? $muniEqualPrev;
+  }
+
+  $otherTaxesPrev = old('other_taxes_amount_prev');
+  if ($otherTaxesPrev === null) {
+      $otherTaxesPrev = $settings['other_taxes_amount_prev'] ?? $settings['other_taxes_amount'] ?? 0;
+  }
+
+  $otherTaxesCurr = old('other_taxes_amount_curr');
+  if ($otherTaxesCurr === null) {
+      $otherTaxesCurr = $settings['other_taxes_amount_curr'] ?? $settings['other_taxes_amount_prev'] ?? $settings['other_taxes_amount'] ?? $otherTaxesPrev;
+  }
+
+  $periods = [
+      'prev' => [
+          'title' => '前期',
+          'detail_mode' => $detailModePrev,
+          'bunri_flag' => $bunriFlagPrev,
+          'one_stop_flag' => $oneStopFlagPrev,
+          'shitei_toshi_flag' => $shiteiFlagPrev,
+          'pref_applied_rate' => $prefAppliedPrev,
+          'muni_applied_rate' => $muniAppliedPrev,
+          'pref_equal_share' => $prefEqualPrev,
+          'muni_equal_share' => $muniEqualPrev,
+          'other_taxes_amount' => $otherTaxesPrev,
+      ],
+      'curr' => [
+          'title' => '当期',
+          'detail_mode' => $detailModeCurr,
+          'bunri_flag' => $bunriFlagCurr,
+          'one_stop_flag' => $oneStopFlagCurr,
+          'shitei_toshi_flag' => $shiteiFlagCurr,
+          'pref_applied_rate' => $prefAppliedCurr,
+          'muni_applied_rate' => $muniAppliedCurr,
+          'pref_equal_share' => $prefEqualCurr,
+          'muni_equal_share' => $muniEqualCurr,
+          'other_taxes_amount' => $otherTaxesCurr,
+      ],
+  ];
+
+  $detailOptions = [
+      '1' => '詳細版',
+      '0' => '簡便版',
+  ];
+
+  $bunriOptions = [
+      '0' => 'なし',
+      '1' => 'あり',
+  ];
+
+  $oneStopOptions = [
+      '1' => '利用する',
+      '0' => '利用しない',
+  ];
+
+  $shiteiOptions = [
+      '1' => '指定都市',
+      '0' => '指定都市以外',
+  ];
 @endphp
 <div class="container-blue mt-2" style="max-width: 840px;">
   <div class="card-header d-flex align-items-start">
@@ -34,121 +163,109 @@
           </ul>
         </div>
       @endif
-      <div class="mb-4 mt-3">
-        <h1 class="ms-3">○処理モード</h1>
-          <table class="table-base" align="center">
-            <tr>
-              <td style="width:100px;background-color:#f9f8ee">
-                  <div class="text-start ms-1 me-1">
-                    <hb class="d-block mt-2 text-center">処理タイプ</hb><hr>
-                    <div class="form-check">
-                      <input class="form-check-input" type="radio" name="detail_mode" id="detailModeDetail" value="1" @checked($detailMode === '1')>
-                      <label class="form-check-label" for="detailModeDetail">詳細版</label>
-                    </div>
-                    <div class="form-check">
-                      <input class="form-check-input" type="radio" name="detail_mode" id="detailModeSimple" value="0" @checked($detailMode === '0')>
-                      <label class="form-check-label" for="detailModeSimple">簡便版</label>
-                    </div>
-                  </div>
-              </td>
-              <td class="b-none" style="width:20px;">
-              </td>
-              <td style="width:100px;background-color:#f9f8ee">
-                  <div class="text-start ms-1 me-1">
-                    <hb class="d-block mt-2 text-center">分離課税</hb><hr>
-                    <div class="form-check">
-                      <input class="form-check-input" type="radio" name="bunri_flag" id="bunriOff" value="0" @checked($bunriFlag === '0')>
-                      <label class="form-check-label" for="bunriOff">なし</label>
-                    </div>
-                    <div class="form-check">
-                      <input class="form-check-input" type="radio" name="bunri_flag" id="bunriOn" value="1" @checked($bunriFlag === '1')>
-                      <label class="form-check-label" for="bunriOn">あり</label>
-                    </div>
-                  </div>
-              </td>
-              <td class="b-none" style="width:20px;">
-              </td>
-              <td style="width:120px;background-color:#f9f8ee;">
-                  <div class="text-start ms-1 me-1">
-                    <hb class="d-block mt-2 text-center">ワンストップ特例</hb><hr>
-                    <div class="form-check">
-                      <input class="form-check-input" type="radio" name="one_stop_flag" id="oneStopUse" value="1" @checked($oneStopFlag === '1')>
-                      <label class="form-check-label" for="oneStopUse">利用する</label>
-                    </div>
-                    <div class="form-check">
-                      <input class="form-check-input" type="radio" name="one_stop_flag" id="oneStopNotUse" value="0" @checked($oneStopFlag === '0')>
-                      <label class="form-check-label" for="oneStopNotUse">利用しない</label>
-                    </div>
-                  </div>
-              </td>
-              <td class="b-none" style="width:20px;">
-              </td>
-              <td style="width:120px;background-color:#f9f8ee;">
-                  <div class="text-start ms-1 me-1">
-                    <hb class="d-block mt-2 text-center">指定都市区分</hb><hr>
-                    <div class="form-check">
-                      <input class="form-check-input" type="radio" name="shitei_toshi_flag" id="shiteiMuni" value="1" @checked($shiteiFlag === '1')>
-                      <label class="form-check-label" for="shiteiMuni">指定都市</label>
-                    </div>
-                    <div class="form-check">
-                      <input class="form-check-input" type="radio" name="shitei_toshi_flag" id="shiteiOther" value="0" @checked($shiteiFlag === '0')>
-                      <label class="form-check-label" for="shiteiOther">指定都市以外</label>
-                    </div>
-                  </div>
-              </td>
-            </tr>
-          </table>
-      </div>
-      <div class="mb-4">
-        <h1 class="ms-3 mb-3">○所得割の税率</h1>
-        <div class="row g-3 align-items-end">
+      <div class="row g-4 mt-3">
+        @foreach ($periods as $key => $period)
           <div class="col-md-6">
-            <div class="d-flex align-items-center gap-2 ms-5">
-              <label class="form-label">都道府県（標準）</label>
-              <input type="text" class="form-control suji4 comma decimal3 floor integer_comma" id="pref-standard-rate" value="{{ number_format((float) $prefStandard, 2, '.', '') }}" readonly>
-            </div>  
-          </div>
-          <div class="col-md-6">
-            <div class="d-flex align-items-center gap-2">
-              <label class="form-label">市区町村（標準）</label>
-              <input type="text" class="form-control suji4 comma decimal3 floor integer_comma" id="muni-standard-rate" value="{{ number_format((float) $muniStandard, 2, '.', '') }}" readonly>
-            </div>  
-          </div>
-          <div class="col-md-6">
-            <div class="d-flex align-items-center gap-2 ms-5">
-              <label class="form-label">都道府県（適用）</label>
-              <input type="number" class="form-control suji7 comma decimal3 floor integer_comma" name="pref_applied_rate" id="pref-applied-rate" value="{{ $prefApplied }}" min="0" max="1" step="0.001" required>
+            <div class="card h-100">
+              <div class="card-header text-center fw-bold">{{ $period['title'] }}</div>
+              <div class="card-body">
+                <div class="mb-4">
+                  <h1 class="h5 mb-3">○処理モード</h1>
+                  <div class="row g-3">
+                    <div class="col-12">
+                      <div class="p-2 bg-light">
+                        <hb class="d-block text-center">処理タイプ</hb>
+                        <hr class="my-2">
+                        @foreach ($detailOptions as $value => $label)
+                          @php $id = sprintf('detail-mode-%s-%s', $key, $value); @endphp
+                          <div class="form-check">
+                            <input class="form-check-input" type="radio" name="detail_mode_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['detail_mode'] === (string) $value) required>
+                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                          </div>
+                        @endforeach
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="p-2 bg-light">
+                        <hb class="d-block text-center">分離課税</hb>
+                        <hr class="my-2">
+                        @foreach ($bunriOptions as $value => $label)
+                          @php $id = sprintf('bunri-flag-%s-%s', $key, $value); @endphp
+                          <div class="form-check">
+                            <input class="form-check-input" type="radio" name="bunri_flag_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['bunri_flag'] === (string) $value) required>
+                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                          </div>
+                        @endforeach
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="p-2 bg-light">
+                        <hb class="d-block text-center">ワンストップ特例</hb>
+                        <hr class="my-2">
+                        @foreach ($oneStopOptions as $value => $label)
+                          @php $id = sprintf('one-stop-flag-%s-%s', $key, $value); @endphp
+                          <div class="form-check">
+                            <input class="form-check-input" type="radio" name="one_stop_flag_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['one_stop_flag'] === (string) $value) required>
+                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                          </div>
+                        @endforeach
+                      </div>
+                    </div>
+                    <div class="col-12">
+                      <div class="p-2 bg-light">
+                        <hb class="d-block text-center">指定都市区分</hb>
+                        <hr class="my-2">
+                        @foreach ($shiteiOptions as $value => $label)
+                          @php $id = sprintf('shitei-flag-%s-%s', $key, $value); @endphp
+                          <div class="form-check">
+                            <input class="form-check-input" type="radio" name="shitei_toshi_flag_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['shitei_toshi_flag'] === (string) $value) required>
+                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                          </div>
+                        @endforeach
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="mb-4">
+                  <h1 class="h5 mb-3">○所得割の税率</h1>
+                  <div class="mb-3">
+                    <label class="form-label">都道府県（標準）</label>
+                    <input type="text" class="form-control suji4 comma decimal3 floor integer_comma" value="{{ number_format((float) $prefStandard, 2, '.', '') }}" readonly>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">市区町村（標準）</label>
+                    <input type="text" class="form-control suji4 comma decimal3 floor integer_comma" value="{{ number_format((float) $muniStandard, 2, '.', '') }}" readonly>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">都道府県（適用）</label>
+                    <input type="number" class="form-control suji7 comma decimal3 floor integer_comma" name="pref_applied_rate_{{ $key }}" value="{{ $period['pref_applied_rate'] }}" min="0" max="1" step="0.001" required>
+                  </div>
+                  <div>
+                    <label class="form-label">市区町村（適用）</label>
+                    <input type="number" class="form-control suji7 comma decimal3 floor integer_comma" name="muni_applied_rate_{{ $key }}" value="{{ $period['muni_applied_rate'] }}" min="0" max="1" step="0.001" required>
+                  </div>
+                </div>
+                <div>
+                  <h1 class="h5 mb-3">○均等割・その他税額</h1>
+                  <div class="mb-3">
+                    <label class="form-label">都道府県 均等割</label>
+                    <input type="number" class="form-control suji7 comma floor integer_comma" name="pref_equal_share_{{ $key }}" value="{{ $period['pref_equal_share'] }}" min="0" step="1" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">市区町村 均等割</label>
+                    <input type="number" class="form-control suji7 comma floor integer_comma" name="muni_equal_share_{{ $key }}" value="{{ $period['muni_equal_share'] }}" min="0" step="1" required>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">その他の税額</label>
+                    <input type="number" class="form-control suji7 comma floor integer_comma" name="other_taxes_amount_{{ $key }}" value="{{ $period['other_taxes_amount'] }}" min="0" step="1" required>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="col-md-6">
-            <div class="d-flex align-items-center gap-2">
-              <label class="form-label">市区町村（適用）</label>
-              <input type="number" class="form-control suji7 comma decimal3 floor integer_comma" name="muni_applied_rate" id="muni-applied-rate" value="{{ $muniApplied }}" min="0" max="1" step="0.001" required>
-            </div>
-          </div>
-        </div>
+        @endforeach
       </div>
-      <div>
-        <h1 class="ms-3 mb-3">○均等割・その他税額</h1>
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label ms-5 me-1">都道府県 均等割</label>
-            <input type="number" class="form-control suji7 comma floor integer_comma" name="pref_equal_share" value="{{ $prefEqual }}" min="0" step="1" required>
-            円
-          </div>
-          <div class="col-md-6">
-            <label class="form-label me-1">市区町村 均等割</label>
-            <input type="number" class="form-control suji7 comma floor integer_comma" name="muni_equal_share" value="{{ $muniEqual }}" min="0" step="1" required>
-            円
-          </div>
-        </div>  
-          <div class="col-md-12">
-            <label class="form-label ms-5 me-4">その他の税額 </label>
-            <input type="number" class="form-control suji7 comma floor integer_comma" name="other_taxes_amount" value="{{ $otherTaxes }}" min="0" step="1" required>
-            円
-          </div>
-      <hr>  
-      </div>
+      <hr>
       <div class="btn-footer">
         <div class="d-flex justify-content-end gap-2 me-3 mb-3">
           <button type="submit" class="btn-base-green" formnovalidate>保 存</button>
@@ -167,7 +284,7 @@
                   formnovalidate
                   name="redirect_to"
                   value="master">マスター</button>
-        </div>          
+        </div>
       </div>
     </form>
   </div>

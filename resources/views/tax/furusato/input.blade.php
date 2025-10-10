@@ -19,7 +19,7 @@
 @endpush
 
 @section('content')
-<div class="container" style="min-width: 960px; max-width: 1080px;">
+<div class="container-blue" style="width: 1080px;">
   <form method="POST" action="{{ route('furusato.save') }}" id="furusato-input-form">
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId ?? '' }}">
@@ -35,8 +35,10 @@
       $detailsPaneActiveClass = $showResultFlag ? 'show active' : '';
     @endphp
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h5 class="mb-0">インプット表</h5>
+    <div class="d-flex justify-content-between mb-3">
+      <div>
+      <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+      <h0 class="mb-0 mt-2"> インプット表</h0>
       <div class="d-flex flex-wrap justify-content-end gap-2">
         <button type="submit"
                 class="btn btn-outline-secondary btn-sm"

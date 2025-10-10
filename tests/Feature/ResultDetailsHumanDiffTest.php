@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Http\Controllers\Tax\FurusatoController;
+use App\Services\Tax\Kojo\JintekiKojoService;
 use ReflectionMethod;
 use Tests\TestCase;
 
@@ -20,6 +21,7 @@ class ResultDetailsHumanDiffTest extends TestCase
             'haigusha' => ['shotoku' => 'kojo_haigusha_shotoku', 'jumin' => 'kojo_haigusha_jumin'],
             'haigusha_tokubetsu' => ['shotoku' => 'kojo_haigusha_tokubetsu_shotoku', 'jumin' => 'kojo_haigusha_tokubetsu_jumin'],
             'fuyo' => ['shotoku' => 'kojo_fuyo_shotoku', 'jumin' => 'kojo_fuyo_jumin'],
+            'tokutei_shinzoku' => ['shotoku' => 'kojo_tokutei_shinzoku_shotoku', 'jumin' => 'kojo_tokutei_shinzoku_jumin'],
             'kiso' => ['shotoku' => 'shotokuzei_kojo_kiso', 'jumin' => 'juminzei_kojo_kiso'],
         ];
 
@@ -51,6 +53,10 @@ class ResultDetailsHumanDiffTest extends TestCase
             'fuyo' => [
                 'prev' => ['shotoku' => 80000, 'jumin' => 60000],
                 'curr' => ['shotoku' => 82000, 'jumin' => 62000],
+            ],
+            'tokutei_shinzoku' => [
+                'prev' => ['shotoku' => 210000, 'jumin' => 0],
+                'curr' => ['shotoku' => 310000, 'jumin' => 0],
             ],
             'kiso' => [
                 'prev' => ['shotoku' => 430000, 'jumin' => 330000],
@@ -86,4 +92,41 @@ class ResultDetailsHumanDiffTest extends TestCase
 
         $this->assertSame($expected, $diff);
     }
+
+    public function testTokuteiShinzokuDiffReflectsServiceOutput(): void
+    {
+        $controller = $this->app->make(FurusatoController::class);
+
+        $service = $this->app->make(JintekiKojoService::class);
+
+        $basePayload = [
+            'kojo_tokutei_shinzoku_1_shotoku_prev' => '580,001',
+            'kojo_tokutei_shinzoku_2_shotoku_prev' => '1,000,001',
+            'kojo_tokutei_shinzoku_3_shotoku_prev' => '1,230,001',
+            'kojo_tokutei_shinzoku_1_shotoku_curr' => '580,001',
+            'kojo_tokutei_shinzoku_2_shotoku_curr' => '1,000,001',
+            'kojo_tokutei_shinzoku_3_shotoku_curr' => '1,230,001',
+        ];
+
+        $payload2024 = $service->compute($basePayload, 2024);
+
+        $method = new ReflectionMethod(FurusatoController::class, 'computeJintekiDiff');
+        $method->setAccessible(true);
+
+        $diff2024 = $method->invoke($controller, $payload2024);
+
+        $this->assertSame(940000, $diff2024['tokutei_shinzoku']['prev']);
+        $this->assertSame(940000, $diff2024['sum']['prev']);
+        $this->assertSame(940000, $diff2024['tokutei_shinzoku']['curr']);
+        $this->assertSame(940000, $diff2024['sum']['curr']);
+
+        $payload2025 = $service->compute($basePayload, 2025);
+        $diff2025 = $method->invoke($controller, $payload2025);
+
+        $this->assertSame(0, $diff2025['tokutei_shinzoku']['prev']);
+        $this->assertSame(0, $diff2025['sum']['prev']);
+        $this->assertSame(940000, $diff2025['tokutei_shinzoku']['curr']);
+        $this->assertSame(940000, $diff2025['sum']['curr']);
+    }
 }
+

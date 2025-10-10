@@ -697,7 +697,11 @@
                         @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                           @foreach ($periods as $period)
                             @php
-                              $name = sprintf('bunri_choki_tokutei_%s_%s', $tax, $period);
+                              if ($tax === 'shotoku') {
+                                  $name = sprintf('bunri_choki_tokutei_over_%s_%s', $tax, $period);
+                              } else {
+                                  $name = sprintf('bunri_choki_tokutei_%s_%s', $tax, $period);
+                              }
                               $value = old($name, $inputs[$name] ?? null);
                             @endphp
                             <td>
@@ -714,7 +718,11 @@
                         @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                           @foreach ($periods as $period)
                             @php
-                              $name = sprintf('bunri_choki_tokutei_%s_%s', $tax, $period);
+                              if ($tax === 'shotoku') {
+                                  $name = sprintf('bunri_choki_tokutei_under_%s_%s', $tax, $period);
+                              } else {
+                                  $name = sprintf('bunri_choki_tokutei_%s_%s', $tax, $period);
+                              }
                               $value = old($name, $inputs[$name] ?? null);
                             @endphp
                             <td>
@@ -732,7 +740,11 @@
                         @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                           @foreach ($periods as $period)
                             @php
-                              $name = sprintf('bunri_choki_keika_%s_%s', $tax, $period);
+                              if ($tax === 'shotoku') {
+                                  $name = sprintf('bunri_choki_keika_over_%s_%s', $tax, $period);
+                              } else {
+                                  $name = sprintf('bunri_choki_keika_%s_%s', $tax, $period);
+                              }
                               $value = old($name, $inputs[$name] ?? null);
                             @endphp
                             <td>
@@ -749,7 +761,11 @@
                         @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                           @foreach ($periods as $period)
                             @php
-                              $name = sprintf('bunri_choki_keika_%s_%s', $tax, $period);
+                              if ($tax === 'shotoku') {
+                                  $name = sprintf('bunri_choki_keika_under_%s_%s', $tax, $period);
+                              } else {
+                                  $name = sprintf('bunri_choki_keika_%s_%s', $tax, $period);
+                              }
                               $value = old($name, $inputs[$name] ?? null);
                             @endphp
                             <td>

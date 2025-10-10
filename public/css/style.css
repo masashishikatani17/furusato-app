@@ -285,7 +285,9 @@
             vertical-align: middle;            /* ← 行内での縦位置（隣の要素と揃える用） */
         }
 
-       
+/* --------------------------------------
+  * テーブル
+  * ------------------------------------ */         
        
         
         /* 選択系の軽量テーブル（行間詰め、左寄せ） */
@@ -302,6 +304,7 @@
           border-collapse: collapse;
           margin: 10px auto; /* 上下10px, 左右 auto */
           font-size: 13px;
+          border: 1px solid #999;
           /* padding/text-align/vertical-alignはセル側に移動 */
           /* display: table は <table> では不要 */
         }
@@ -309,6 +312,7 @@
         /* セル共通設定（Bootstrapの.tableを上書きできるよう強めのセレクタに） */
         table.table-base th {
           background-color: #e9eff7;
+          border: 1px solid #999;
           color: #333;
           font-weight: bold;
           padding: 2px;           /* セル内余白 */
@@ -336,16 +340,12 @@
            セルの色そのthだけに適用
         --------------------------- */
         .table-base .th-ccc   { background-color: #a6a6a6; color: #000; }  /* 薄グレー地＋黒文字 */
+        .table-base .th-ddd   { background-color: #F7F9FB; color: #000; }  /* 薄ボタン地色＋黒文字 */
         .table-base .th-cream { background-color: #F4F1E8; color: #000; } /* クリーム地＋黒文字 */
          
           /* html側の指定 <th class="u-nowrap th-ccc">続柄</th> */
           
         table.table-base th.th-ccc { background-color:#ccc !important; color:#000 !important; }
-        
-          　/* 見出しセルの背景色を変える */
-            /* ★ 必ず <th> に付けてください（<table>/<tr> に付けると子孫に継承されます） */
-               .table-base .th-ccc   { background-color: #a6a6a6; color: #000; }  /* 薄グレー地＋黒文字 */
-               .table-base .th-cream { background-color: #F4F1E8; color: #000; } /* クリーム地＋黒文字 */
 
             /* html側の指定 
             　　 <th class="u-nowrap th-ccc">番号</th>

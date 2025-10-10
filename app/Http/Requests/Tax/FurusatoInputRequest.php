@@ -163,6 +163,13 @@ final class FurusatoInputRequest extends FormRequest
             }
         }
 
+        foreach (['prev', 'curr'] as $period) {
+            $rules[sprintf('shotokuzei_kojo_kifukin_%s', $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+            $rules[sprintf('juminzei_kojo_kifukin_%s', $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+            $rules[sprintf('shotokuzei_kojo_kiso_%s', $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+            $rules[sprintf('juminzei_kojo_kiso_%s', $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+        }
+
         $bunriBases = [
             'tanki_ippan',
             'tanki_keigen',

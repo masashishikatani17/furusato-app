@@ -12,6 +12,9 @@ use App\Models\FurusatoInput;
 use App\Models\FurusatoResult;
 use App\Models\FurusatoSyoriSetting;
 use App\Services\Tax\FurusatoMasterService;
+use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
+use App\Services\Tax\Kojo\KifukinShotokuKojoService;
+use App\Services\Tax\Kojo\KihonService;
 use App\Services\Tax\Result\FurusatoResultService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -41,6 +44,17 @@ final class FurusatoController extends Controller
         'fudosan_keihi_label_05',
         'fudosan_keihi_label_06',
         'fudosan_keihi_label_07',
+    ];
+
+    private const KOJO_FIELD_OVERRIDES = [
+        'kojo_kiso' => [
+            'shotoku' => 'shotokuzei_kojo_kiso_%s',
+            'jumin' => 'juminzei_kojo_kiso_%s',
+        ],
+        'kojo_kifukin' => [
+            'shotoku' => 'shotokuzei_kojo_kifukin_%s',
+            'jumin' => 'juminzei_kojo_kifukin_%s',
+        ],
     ];
 
     private const JIGYO_EIGYO_LABEL_FIELDS = [
@@ -149,6 +163,7 @@ final class FurusatoController extends Controller
                 $savedInputs = $stored;
                 $this->normalizeJotoIchijiKeys($savedInputs);
                 $this->normalizeBunriChokiShotokuKeys($savedInputs);
+                $this->normalizeKojoRenamedKeys($savedInputs);
             }
         }
 
@@ -889,6 +904,7 @@ final class FurusatoController extends Controller
 
         $this->normalizeJotoIchijiKeys($payload);
         $this->normalizeBunriChokiShotokuKeys($payload);
+        $this->normalizeKojoRenamedKeys($payload);
 
         return $payload;
     }
@@ -964,6 +980,7 @@ final class FurusatoController extends Controller
 
             if (is_array($payloadFromInput)) {
                 $this->normalizeJotoIchijiKeys($payloadFromInput);
+                $this->normalizeKojoRenamedKeys($payloadFromInput);
                 $payload = $payloadFromInput;
             }
         }
@@ -1245,6 +1262,7 @@ final class FurusatoController extends Controller
         FurusatoInput::unguarded(function () use ($data, $updates, $labelUpdates, $userId): void {
             $this->normalizeJotoIchijiKeys($updates);
             $this->normalizeBunriChokiShotokuKeys($updates);
+            $this->normalizeKojoRenamedKeys($updates);
 
             $record = FurusatoInput::firstOrNew(['data_id' => $data->id]);
 
@@ -1270,9 +1288,12 @@ final class FurusatoController extends Controller
             $current = is_array($record->payload) ? $record->payload : [];
             $this->normalizeJotoIchijiKeys($current);
             $this->normalizeBunriChokiShotokuKeys($current);
+            $this->normalizeKojoRenamedKeys($current);
             $payload = array_replace($current, $updates);
             $this->normalizeBunriChokiShotokuKeys($payload);
-            $payload = $this->applyAutoCalculatedFields($data, $payload);
+            $this->normalizeKojoRenamedKeys($payload);
+            $settings = $this->getSyoriSettings($data->id);
+            $payload = $this->applyAutoCalculatedFields($data, $payload, $settings);
             $record->payload = $payload;
             $record->updated_by = $userId ?: null;
 
@@ -1280,7 +1301,7 @@ final class FurusatoController extends Controller
         });
     }
 
-    private function applyAutoCalculatedFields(Data $data, array $payload): array
+    private function applyAutoCalculatedFields(Data $data, array $payload, array $settings): array
     {
         $taxTypes = ['shotoku', 'jumin'];
         $periods = ['prev', 'curr'];
@@ -1300,7 +1321,153 @@ final class FurusatoController extends Controller
             'kojo_kiso',
         ];
         $kojoGokeiExtras = ['kojo_zasson', 'kojo_iryo', 'kojo_kifukin'];
+        $shotokuIncomeFields = [
+            'shotoku_gokei_shotoku',
+            'bunri_tanki_ippan_shotoku',
+            'bunri_tanki_keigen_shotoku',
+            'bunri_choki_ippan_shotoku',
+            'bunri_choki_tokutei_under_shotoku',
+            'bunri_choki_tokutei_over_shotoku',
+            'bunri_choki_keika_under_shotoku',
+            'bunri_choki_keika_over_shotoku',
+            'bunri_ippan_kabuteki_joto_shotoku',
+            'bunri_jojo_kabuteki_joto_shotoku',
+            'bunri_jojo_kabuteki_haito_shotoku',
+            'bunri_sakimono_shotoku',
+            'bunri_sanrin_shotoku',
+            'bunri_taishoku_shotoku',
+        ];
+        $donationCategories = [
+            'kyodobokin_nisseki',
+            'seito',
+            'npo',
+            'koueki',
+            'kuni',
+            'sonota',
+            'furusato',
+        ];
 
+        $valueForKey = fn (string $key): int => $this->valueOrZero($this->toNullableInt($payload[$key] ?? null));
+
+        $incomeSums = [];
+        foreach ($periods as $period) {
+            $sum = 0;
+            foreach ($shotokuIncomeFields as $field) {
+                $sum += $valueForKey(sprintf('%s_%s', $field, $period));
+            }
+            $incomeSums[$period] = $sum;
+        }
+
+        $donationSums = [];
+        $furusatoDonations = ['prev' => 0, 'curr' => 0];
+        foreach ($periods as $period) {
+            $total = 0;
+            foreach ($donationCategories as $category) {
+                $key = sprintf('shotokuzei_shotokukojo_%s_%s', $category, $period);
+                $value = $valueForKey($key);
+                $total += $value;
+
+                if ($category === 'furusato') {
+                    $furusatoDonations[$period] = $value;
+                }
+            }
+            $donationSums[$period] = $total;
+        }
+
+        $oneStopPrev = $payload['one_stop_flag_prev'] ?? $payload['one_stop_flag'] ?? null;
+        $oneStopCurr = $payload['one_stop_flag_curr'] ?? $payload['one_stop_flag'] ?? null;
+        if ($oneStopPrev === null || $oneStopCurr === null) {
+            $settingPayload = FurusatoSyoriSetting::query()
+                ->where('data_id', $data->id)
+                ->value('payload');
+
+            if (is_array($settingPayload)) {
+                $oneStopPrev ??= $settingPayload['one_stop_flag_prev'] ?? $settingPayload['one_stop_flag'] ?? null;
+                $oneStopCurr ??= $settingPayload['one_stop_flag_curr'] ?? $settingPayload['one_stop_flag'] ?? null;
+            }
+        }
+
+        $oneStopPrev = (int) ($oneStopPrev ?? 1);
+        $oneStopCurr = (int) ($oneStopCurr ?? $oneStopPrev);
+
+        $shotokuKifukin = ['prev' => 0, 'curr' => 0];
+        foreach ($periods as $period) {
+            $oneStopFlag = $period === 'prev' ? $oneStopPrev : $oneStopCurr;
+            $totalDonation = $donationSums[$period] ?? 0;
+            $incomeSum = max(0, $incomeSums[$period] ?? 0);
+
+            if ($oneStopFlag === 0 && $totalDonation >= 2000) {
+                $limit = (int) floor($incomeSum * 0.4);
+                $limitedDonation = min($totalDonation, $limit);
+                $value = $limitedDonation + ($furusatoDonations[$period] ?? 0) - 2000;
+                $shotokuKifukin[$period] = max(0, (int) $value);
+            }
+        }
+
+        $payload['kojo_kifukin_shotoku_prev'] = $shotokuKifukin['prev'];
+        $payload['kojo_kifukin_shotoku_curr'] = $shotokuKifukin['curr'];
+        $payload['kojo_kifukin_jumin_prev'] = 0;
+        $payload['kojo_kifukin_jumin_curr'] = 0;
+
+        $matchWithThresholds = static function (int $amount, array $thresholds): int {
+            $result = 0;
+            foreach ($thresholds as $threshold => $value) {
+                if ($amount >= $threshold) {
+                    $result = $value;
+                    continue;
+                }
+
+                break;
+            }
+
+            return $result;
+        };
+
+        $year = (int) ($data->kihu_year ?? 0);
+        if ($year >= 2026) {
+            $shotokuThresholds = [
+                0 => 950000,
+                1320001 => 880000,
+                3360001 => 680000,
+                4890001 => 630000,
+                6550001 => 580000,
+                23500001 => 480000,
+                24000001 => 320000,
+                24500001 => 160000,
+                25000001 => 0,
+            ];
+            $payload['kojo_kiso_shotoku_prev'] = $matchWithThresholds($incomeSums['prev'] ?? 0, $shotokuThresholds);
+            $payload['kojo_kiso_shotoku_curr'] = $matchWithThresholds($incomeSums['curr'] ?? 0, $shotokuThresholds);
+        } else {
+            $shotokuPrevThresholds = [
+                0 => 480000,
+                24000001 => 320000,
+                24500001 => 160000,
+                25000001 => 0,
+            ];
+            $shotokuCurrThresholds = [
+                0 => 950000,
+                1320001 => 880000,
+                3360001 => 680000,
+                4890001 => 630000,
+                6550001 => 580000,
+                23500001 => 480000,
+                24000001 => 320000,
+                24500001 => 160000,
+                25000001 => 0,
+            ];
+            $payload['kojo_kiso_shotoku_prev'] = $matchWithThresholds($incomeSums['prev'] ?? 0, $shotokuPrevThresholds);
+            $payload['kojo_kiso_shotoku_curr'] = $matchWithThresholds($incomeSums['curr'] ?? 0, $shotokuCurrThresholds);
+        }
+
+        $juminThresholds = [
+            0 => 430000,
+            24000001 => 290000,
+            24500001 => 150000,
+            25000001 => 0,
+        ];
+        $payload['kojo_kiso_jumin_prev'] = $matchWithThresholds($incomeSums['prev'] ?? 0, $juminThresholds);
+        $payload['kojo_kiso_jumin_curr'] = $matchWithThresholds($incomeSums['curr'] ?? 0, $juminThresholds);
         /** @var FurusatoMasterService $masterService */
         $masterService = app(FurusatoMasterService::class);
         $companyId = $data->company_id !== null ? (int) $data->company_id : null;
@@ -1308,18 +1475,24 @@ final class FurusatoController extends Controller
             ->getShotokuRates(self::MASTER_KIHU_YEAR, $companyId)
             ->all();
 
+        $payload = array_replace(
+            $payload,
+            app(KifukinShotokuKojoService::class)->compute($payload, $settings),
+            app(KihonService::class)->computeKisoKojo($payload, (int) ($data->kihu_year ?? 0))
+        );
+
         foreach ($taxTypes as $tax) {
             foreach ($periods as $period) {
                 $shokei = 0;
                 foreach ($kojoShokeiBases as $base) {
-                    $key = sprintf('%s_%s_%s', $base, $tax, $period);
+                    $key = $this->formatKojoFieldName($base, $tax, $period);
                     $shokei += $this->valueOrZero($this->toNullableInt($payload[$key] ?? null));
                 }
                 $payload[sprintf('kojo_shokei_%s_%s', $tax, $period)] = $shokei;
 
                 $gokei = $shokei;
                 foreach ($kojoGokeiExtras as $base) {
-                    $key = sprintf('%s_%s_%s', $base, $tax, $period);
+                    $key = $this->formatKojoFieldName($base, $tax, $period);
                     $gokei += $this->valueOrZero($this->toNullableInt($payload[$key] ?? null));
                 }
                 $payload[sprintf('kojo_gokei_%s_%s', $tax, $period)] = $gokei;
@@ -1336,7 +1509,60 @@ final class FurusatoController extends Controller
             $payload[sprintf('tax_zeigaku_jumin_%s', $period)] = (int) ($juminAmount * 0.1);
         }
 
+        $seitotoService = app(SeitotoKihukinTokubetsuService::class);
+        $payload = array_replace($payload, $seitotoService->compute($payload));
+
         return $payload;
+    }
+
+    private function formatKojoFieldName(string $base, string $tax, string $period): string
+    {
+        $override = self::KOJO_FIELD_OVERRIDES[$base][$tax] ?? null;
+
+        if ($override) {
+            return sprintf($override, $period);
+        }
+
+        return sprintf('%s_%s_%s', $base, $tax, $period);
+    }
+
+    private function normalizeKojoRenamedKeys(array &$payload): void
+    {
+        $periods = ['prev', 'curr'];
+        foreach ($periods as $period) {
+            $shotokuKifukin = sprintf('kojo_kifukin_shotoku_%s', $period);
+            if (array_key_exists($shotokuKifukin, $payload)) {
+                $payload[sprintf('shotokuzei_kojo_kifukin_%s', $period)] = $this->toNullableInt($payload[$shotokuKifukin]);
+                unset($payload[$shotokuKifukin]);
+            }
+
+            $juminKifukin = sprintf('kojo_kifukin_jumin_%s', $period);
+            if (array_key_exists($juminKifukin, $payload)) {
+                $payload[sprintf('juminzei_kojo_kifukin_%s', $period)] = $this->toNullableInt($payload[$juminKifukin]);
+                unset($payload[$juminKifukin]);
+            }
+
+            $shotokuKiso = sprintf('kojo_kiso_shotoku_%s', $period);
+            if (array_key_exists($shotokuKiso, $payload)) {
+                $payload[sprintf('shotokuzei_kojo_kiso_%s', $period)] = $this->toNullableInt($payload[$shotokuKiso]);
+                unset($payload[$shotokuKiso]);
+            }
+
+            $juminKiso = sprintf('kojo_kiso_jumin_%s', $period);
+            if (array_key_exists($juminKiso, $payload)) {
+                $payload[sprintf('juminzei_kojo_kiso_%s', $period)] = $this->toNullableInt($payload[$juminKiso]);
+                unset($payload[$juminKiso]);
+            }
+        }
+    }
+
+    private function getSyoriSettings(int $dataId): array
+    {
+        $payload = FurusatoSyoriSetting::query()
+            ->where('data_id', $dataId)
+            ->value('payload');
+
+        return is_array($payload) ? $payload : [];
     }
 
     /**

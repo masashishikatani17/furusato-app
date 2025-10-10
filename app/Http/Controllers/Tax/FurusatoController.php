@@ -1349,7 +1349,10 @@ final class FurusatoController extends Controller
 
         /** @var JintekiKojoService $jintekiService */
         $jintekiService = app(JintekiKojoService::class);
-        $payload = array_replace($payload, $jintekiService->compute($payload));
+        $payload = array_replace(
+            $payload,
+            $jintekiService->compute($payload, (int) ($data->kihu_year ?? 0))
+        );
         $this->assertProvidedKeys($payload, $jintekiService);
 
         /** @var HaigushaKojoService $haigushaService */

@@ -75,6 +75,41 @@ final class FurusatoController extends Controller
         'jigyo_eigyo_keihi_label_07',
     ];
 
+    private const JINTEKI_DIFF_MAP = [
+        'kafu' => [
+            'shotoku' => 'kojo_kafu_shotoku',
+            'jumin' => 'kojo_kafu_jumin',
+        ],
+        'hitorioya' => [
+            'shotoku' => 'kojo_hitorioya_shotoku',
+            'jumin' => 'kojo_hitorioya_jumin',
+        ],
+        'kinrogakusei' => [
+            'shotoku' => 'kojo_kinrogakusei_shotoku',
+            'jumin' => 'kojo_kinrogakusei_jumin',
+        ],
+        'shogaisyo' => [
+            'shotoku' => 'kojo_shogaisyo_shotoku',
+            'jumin' => 'kojo_shogaisyo_jumin',
+        ],
+        'haigusha' => [
+            'shotoku' => 'kojo_haigusha_shotoku',
+            'jumin' => 'kojo_haigusha_jumin',
+        ],
+        'haigusha_tokubetsu' => [
+            'shotoku' => 'kojo_haigusha_tokubetsu_shotoku',
+            'jumin' => 'kojo_haigusha_tokubetsu_jumin',
+        ],
+        'fuyo' => [
+            'shotoku' => 'kojo_fuyo_shotoku',
+            'jumin' => 'kojo_fuyo_jumin',
+        ],
+        'kiso' => [
+            'shotoku' => 'shotokuzei_kojo_kiso',
+            'jumin' => 'juminzei_kojo_kiso',
+        ],
+    ];
+
     public function index(Request $req)
     {
         $dataId = $req->integer('data_id') ?: null;
@@ -194,7 +229,36 @@ final class FurusatoController extends Controller
             'results' => [],
             'showResult' => false,
             'shotokuRates' => $shotokuRates,
+            'jintekiDiff' => $this->computeJintekiDiff($savedInputs),
         ];
+    }
+
+    private function computeJintekiDiff(array $payload): array
+    {
+        $periods = ['prev', 'curr'];
+        $diffs = [];
+        $totals = array_fill_keys($periods, 0);
+
+        foreach (self::JINTEKI_DIFF_MAP as $key => $entry) {
+            foreach ($periods as $period) {
+                $shotokuKey = sprintf('%s_%s', $entry['shotoku'], $period);
+                $juminKey = sprintf('%s_%s', $entry['jumin'], $period);
+
+                $shotoku = $this->valueOrZero($this->toNullableInt($payload[$shotokuKey] ?? null));
+                $jumin = $this->valueOrZero($this->toNullableInt($payload[$juminKey] ?? null));
+
+                $diff = $shotoku - $jumin;
+                $diffs[$key][$period] = $diff;
+                $totals[$period] += $diff;
+            }
+        }
+
+        $diffs['sum'] = [
+            'prev' => $totals['prev'],
+            'curr' => $totals['curr'],
+        ];
+
+        return $diffs;
     }
 
     private function findDataForInput(Request $request, int $dataId): ?Data

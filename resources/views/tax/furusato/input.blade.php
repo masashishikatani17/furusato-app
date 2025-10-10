@@ -28,6 +28,7 @@
 
     @php
       $resultsData = $results ?? [];
+      $jintekiDiffData = $jintekiDiff ?? [];
       $showResultFlag = (bool) ($showResult ?? false);
       $inputTabActiveClass = $showResultFlag ? '' : 'active';
       $inputPaneActiveClass = $showResultFlag ? '' : 'show active';
@@ -1266,7 +1267,7 @@
     @endif
       </div>
       <div class="tab-pane fade {{ $detailsPaneActiveClass }}" id="furusato-tab-result-details" role="tabpanel" aria-labelledby="furusato-tab-result-details-nav">
-        @include('tax.furusato.tabs.result_details', ['results' => $resultsData])
+        @include('tax.furusato.tabs.result_details', ['results' => $resultsData, 'jintekiDiff' => $jintekiDiffData])
       </div>
       <div class="tab-pane fade" id="furusato-tab-result-upper" role="tabpanel" aria-labelledby="furusato-tab-result-upper-nav">
         @include('tax.furusato.tabs.result_upper_furusato', ['results' => $resultsData])

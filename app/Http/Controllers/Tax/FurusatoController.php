@@ -59,6 +59,10 @@ final class FurusatoController extends Controller
             'shotoku' => 'shotokuzei_kojo_kifukin_%s',
             'jumin' => 'juminzei_kojo_kifukin_%s',
         ],
+        'kojo_shogaisha' => [
+            'shotoku' => 'kojo_shogaisyo_shotoku_%s',
+            'jumin' => 'kojo_shogaisyo_jumin_%s',
+        ],
     ];
 
     private const JIGYO_EIGYO_LABEL_FIELDS = [
@@ -1436,6 +1440,8 @@ final class FurusatoController extends Controller
             'juminzei_kojo_kifukin_%s' => 'kojo_kifukin_jumin_%s',
             'shotokuzei_kojo_kiso_%s' => 'kojo_kiso_shotoku_%s',
             'juminzei_kojo_kiso_%s' => 'kojo_kiso_jumin_%s',
+            'kojo_shogaisyo_shotoku_%s' => 'kojo_shogaisha_shotoku_%s',
+            'kojo_shogaisyo_jumin_%s' => 'kojo_shogaisha_jumin_%s',
         ];
 
         foreach ($mappings as $canonicalFormat => $legacyFormat) {

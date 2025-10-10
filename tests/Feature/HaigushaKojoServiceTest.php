@@ -61,22 +61,22 @@ final class HaigushaKojoServiceTest extends TestCase
         $payload = [
             'kojo_haigusha_category_prev' => '一般',
             'kojo_haigusha_category_curr' => '一般',
-            'shotoku_gokei_shotoku_prev' => 8_500_000,
-            'shotoku_gokei_shotoku_curr' => 9_700_000,
-            'kojo_haigusha_tokubetsu_gokeishotoku_prev' => 1_200_000,
-            'kojo_haigusha_tokubetsu_gokeishotoku_curr' => 1_050_000,
+            'shotoku_gokei_shotoku_prev' => 8_000_000,
+            'shotoku_gokei_shotoku_curr' => 9_200_000,
+            'kojo_haigusha_tokubetsu_gokeishotoku_prev' => 600_000,
+            'kojo_haigusha_tokubetsu_gokeishotoku_curr' => 960_000,
         ];
 
         $result = $service->compute($payload);
 
         $this->assertSame(380000, $result['kojo_haigusha_shotoku_prev']);
         $this->assertSame(330000, $result['kojo_haigusha_jumin_prev']);
-        $this->assertSame(130000, $result['kojo_haigusha_shotoku_curr']);
-        $this->assertSame(110000, $result['kojo_haigusha_jumin_curr']);
-        $this->assertSame(110000, $result['kojo_haigusha_tokubetsu_shotoku_prev']);
-        $this->assertSame(110000, $result['kojo_haigusha_tokubetsu_jumin_prev']);
-        $this->assertSame(90000, $result['kojo_haigusha_tokubetsu_shotoku_curr']);
-        $this->assertSame(90000, $result['kojo_haigusha_tokubetsu_jumin_curr']);
+        $this->assertSame(260000, $result['kojo_haigusha_shotoku_curr']);
+        $this->assertSame(220000, $result['kojo_haigusha_jumin_curr']);
+        $this->assertSame(380000, $result['kojo_haigusha_tokubetsu_shotoku_prev']);
+        $this->assertSame(330000, $result['kojo_haigusha_tokubetsu_jumin_prev']);
+        $this->assertSame(240000, $result['kojo_haigusha_tokubetsu_shotoku_curr']);
+        $this->assertSame(220000, $result['kojo_haigusha_tokubetsu_jumin_curr']);
     }
 
     #[Test]

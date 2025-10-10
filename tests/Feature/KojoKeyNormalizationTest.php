@@ -21,6 +21,8 @@ final class KojoKeyNormalizationTest extends TestCase
             'kojo_kiso_shotoku_prev' => '123',
             'kojo_kifukin_jumin_prev' => '456',
             'tax_seito_shotoku_curr' => '789',
+            'kojo_shogaisha_shotoku_prev' => '1420000',
+            'kojo_shogaisha_jumin_prev' => '1090000',
         ];
 
         $method->invokeArgs($controller, [&$payload]);
@@ -31,6 +33,10 @@ final class KojoKeyNormalizationTest extends TestCase
         $this->assertSame(456, $payload['kojo_kifukin_jumin_prev']);
         $this->assertSame(789, $payload['shotokuzei_zeigakukojo_seitoto_tokubetsu_curr']);
         $this->assertSame(789, $payload['tax_seito_shotoku_curr']);
+        $this->assertSame(1_420_000, $payload['kojo_shogaisyo_shotoku_prev']);
+        $this->assertSame(1_420_000, $payload['kojo_shogaisha_shotoku_prev']);
+        $this->assertSame(1_090_000, $payload['kojo_shogaisyo_jumin_prev']);
+        $this->assertSame(1_090_000, $payload['kojo_shogaisha_jumin_prev']);
     }
 
     #[Test]
@@ -44,6 +50,8 @@ final class KojoKeyNormalizationTest extends TestCase
             'shotokuzei_kojo_kiso_curr' => 321,
             'juminzei_kojo_kifukin_curr' => 654,
             'shotokuzei_zeigakukojo_seitoto_tokubetsu_prev' => 987,
+            'kojo_shogaisyo_shotoku_curr' => 200_000,
+            'kojo_shogaisyo_jumin_curr' => 150_000,
         ];
 
         $method->invokeArgs($controller, [&$payload]);
@@ -53,6 +61,8 @@ final class KojoKeyNormalizationTest extends TestCase
         $this->assertSame(987, $payload['tax_seito_shotoku_prev']);
         $this->assertArrayNotHasKey('tax_seito_jumin_prev', $payload);
         $this->assertArrayNotHasKey('juminzei_zeigakukojo_seitoto_tokubetsu_prev', $payload);
+        $this->assertSame(200_000, $payload['kojo_shogaisha_shotoku_curr']);
+        $this->assertSame(150_000, $payload['kojo_shogaisha_jumin_curr']);
     }
 
     #[Test]

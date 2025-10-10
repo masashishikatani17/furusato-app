@@ -57,7 +57,13 @@ final class HaigushaKojoService implements ProvidesKeys
 
     private const SPECIAL_SPOUSE_INDICES = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-    private const SPECIAL_BAND_VALUES = [
+    private const SPECIAL_BAND_VALUES_SHOTOKU = [
+        1 => [380_000, 360_000, 310_000, 260_000, 210_000, 160_000, 110_000, 60_000, 30_000],
+        2 => [260_000, 240_000, 210_000, 180_000, 140_000, 110_000, 80_000, 40_000, 20_000],
+        3 => [130_000, 120_000, 110_000, 90_000, 70_000, 60_000, 40_000, 20_000, 10_000],
+    ];
+
+    private const SPECIAL_BAND_VALUES_JUMIN = [
         1 => [330_000, 330_000, 310_000, 260_000, 210_000, 160_000, 110_000, 60_000, 30_000],
         2 => [220_000, 220_000, 210_000, 180_000, 140_000, 110_000, 80_000, 40_000, 20_000],
         3 => [110_000, 110_000, 110_000, 90_000, 70_000, 60_000, 40_000, 20_000, 10_000],
@@ -79,9 +85,9 @@ final class HaigushaKojoService implements ProvidesKeys
             $result[sprintf('kojo_haigusha_jumin_%s', $period)] = $jumin;
 
             $spouseIncome = $this->n($payload[sprintf('kojo_haigusha_tokubetsu_gokeishotoku_%s', $period)] ?? null);
-            $special = $this->calculateSpecialDeduction($total, $spouseIncome);
-            $result[sprintf('kojo_haigusha_tokubetsu_shotoku_%s', $period)] = $special;
-            $result[sprintf('kojo_haigusha_tokubetsu_jumin_%s', $period)] = $special;
+            [$specialShotoku, $specialJumin] = $this->calculateSpecialDeduction($total, $spouseIncome);
+            $result[sprintf('kojo_haigusha_tokubetsu_shotoku_%s', $period)] = $specialShotoku;
+            $result[sprintf('kojo_haigusha_tokubetsu_jumin_%s', $period)] = $specialJumin;
         }
 
         return $result;
@@ -116,30 +122,34 @@ final class HaigushaKojoService implements ProvidesKeys
         };
     }
 
-    private function calculateSpecialDeduction(int $total, int $spouseIncome): int
+    private function calculateSpecialDeduction(int $total, int $spouseIncome): array
     {
         if (
             $total > self::SPOUSAL_THRESHOLD
             || $spouseIncome <= 480_000
             || $spouseIncome > 1_330_000
         ) {
-            return 0;
+            return [0, 0];
         }
 
         $band = $this->matchValue($total, self::SPECIAL_TOTAL_THRESHOLDS, self::SPECIAL_TOTAL_BANDS);
         $index = $this->matchValue($spouseIncome, self::SPECIAL_SPOUSE_THRESHOLDS, self::SPECIAL_SPOUSE_INDICES);
 
         if ($band === 0 || $index === 0) {
-            return 0;
+            return [0, 0];
         }
 
-        $table = self::SPECIAL_BAND_VALUES[$band] ?? null;
+        $shotokuTable = self::SPECIAL_BAND_VALUES_SHOTOKU[$band] ?? null;
+        $juminTable = self::SPECIAL_BAND_VALUES_JUMIN[$band] ?? null;
 
-        if ($table === null) {
-            return 0;
+        if ($shotokuTable === null || $juminTable === null) {
+            return [0, 0];
         }
 
-        return $table[$index - 1] ?? 0;
+        return [
+            $shotokuTable[$index - 1] ?? 0,
+            $juminTable[$index - 1] ?? 0,
+        ];
     }
 
     private function normalizeCategory(array $payload, string $period): string

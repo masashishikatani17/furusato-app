@@ -69,4 +69,26 @@ final class JintekiKojoServiceTest extends TestCase
         $this->assertSame(0, $result['kojo_kinrogakusei_shotoku_curr']);
         $this->assertSame(0, $result['kojo_kinrogakusei_jumin_curr']);
     }
+
+    #[Test]
+    public function it_calculates_shogaisyo_deductions_from_counts(): void
+    {
+        $service = new JintekiKojoService();
+
+        $payload = [
+            'kojo_shogaisha_count_prev' => '1',
+            'kojo_tokubetsu_shogaisha_count_prev' => '1',
+            'kojo_doukyo_tokubetsu_shogaisha_count_prev' => '1',
+            'kojo_shogaisha_count_curr' => '0',
+            'kojo_tokubetsu_shogaisha_count_curr' => null,
+            'kojo_doukyo_tokubetsu_shogaisha_count_curr' => '',
+        ];
+
+        $result = $service->compute($payload);
+
+        $this->assertSame(1_420_000, $result['kojo_shogaisyo_shotoku_prev']);
+        $this->assertSame(1_090_000, $result['kojo_shogaisyo_jumin_prev']);
+        $this->assertSame(0, $result['kojo_shogaisyo_shotoku_curr']);
+        $this->assertSame(0, $result['kojo_shogaisyo_jumin_curr']);
+    }
 }

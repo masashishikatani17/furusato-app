@@ -41,6 +41,15 @@ final class JintekiKojoService implements ProvidesKeys
     private const KINROGAKUSEI_SHOTOKU = 270_000;
     private const KINROGAKUSEI_JUMIN = 260_000;
 
+    private const SHOGAISHA_SHOTOKU = 270_000;
+    private const SHOGAISHA_JUMIN = 260_000;
+
+    private const TOKUBETSU_SHOGAISHA_SHOTOKU = 400_000;
+    private const TOKUBETSU_SHOGAISHA_JUMIN = 300_000;
+
+    private const DOUKYO_TOKUBETSU_SHOGAISHA_SHOTOKU = 750_000;
+    private const DOUKYO_TOKUBETSU_SHOGAISHA_JUMIN = 530_000;
+
     /**
      * @return array<string, int>
      */
@@ -65,6 +74,21 @@ final class JintekiKojoService implements ProvidesKeys
                 $result[sprintf('kojo_kinrogakusei_shotoku_%s', $period)] = self::KINROGAKUSEI_SHOTOKU;
                 $result[sprintf('kojo_kinrogakusei_jumin_%s', $period)] = self::KINROGAKUSEI_JUMIN;
             }
+
+            $shogaishaCount = $this->n($payload[sprintf('kojo_shogaisha_count_%s', $period)] ?? null);
+            $tokubetsuShogaishaCount = $this->n($payload[sprintf('kojo_tokubetsu_shogaisha_count_%s', $period)] ?? null);
+            $doukyoTokubetsuShogaishaCount = $this->n($payload[sprintf('kojo_doukyo_tokubetsu_shogaisha_count_%s', $period)] ?? null);
+
+            $shotoku = $shogaishaCount * self::SHOGAISHA_SHOTOKU
+                + $tokubetsuShogaishaCount * self::TOKUBETSU_SHOGAISHA_SHOTOKU
+                + $doukyoTokubetsuShogaishaCount * self::DOUKYO_TOKUBETSU_SHOGAISHA_SHOTOKU;
+
+            $jumin = $shogaishaCount * self::SHOGAISHA_JUMIN
+                + $tokubetsuShogaishaCount * self::TOKUBETSU_SHOGAISHA_JUMIN
+                + $doukyoTokubetsuShogaishaCount * self::DOUKYO_TOKUBETSU_SHOGAISHA_JUMIN;
+
+            $result[sprintf('kojo_shogaisyo_shotoku_%s', $period)] = $shotoku;
+            $result[sprintf('kojo_shogaisyo_jumin_%s', $period)] = $jumin;
         }
 
         return $result;
@@ -79,6 +103,8 @@ final class JintekiKojoService implements ProvidesKeys
             'kojo_hitorioya_jumin_prev', 'kojo_hitorioya_jumin_curr',
             'kojo_kinrogakusei_shotoku_prev', 'kojo_kinrogakusei_shotoku_curr',
             'kojo_kinrogakusei_jumin_prev', 'kojo_kinrogakusei_jumin_curr',
+            'kojo_shogaisyo_shotoku_prev', 'kojo_shogaisyo_shotoku_curr',
+            'kojo_shogaisyo_jumin_prev', 'kojo_shogaisyo_jumin_curr',
         ];
     }
 

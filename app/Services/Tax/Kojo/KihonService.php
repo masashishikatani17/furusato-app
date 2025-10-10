@@ -2,7 +2,9 @@
 
 namespace App\Services\Tax\Kojo;
 
-final class KihonService
+use App\Services\Tax\Contracts\ProvidesKeys;
+
+final class KihonService implements ProvidesKeys
 {
     private const TOTAL_KEYS = [
         'shotoku_gokei_shotoku',
@@ -50,6 +52,19 @@ final class KihonService
 
     private const JUMIN_THRESHOLDS = [0, 24000001, 24500001, 25000001];
     private const JUMIN_VALUES = [430000, 290000, 150000, 0];
+
+    /**
+     * @return array<int, string>
+     */
+    public static function provides(): array
+    {
+        return [
+            'shotokuzei_kojo_kiso_prev',
+            'shotokuzei_kojo_kiso_curr',
+            'juminzei_kojo_kiso_prev',
+            'juminzei_kojo_kiso_curr',
+        ];
+    }
 
     public function computeKisoKojo(array $payload, int $kihuYear): array
     {

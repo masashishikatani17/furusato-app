@@ -11,15 +11,17 @@ use App\Models\Data;
 use App\Models\FurusatoInput;
 use App\Models\FurusatoResult;
 use App\Models\FurusatoSyoriSetting;
+use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\FurusatoMasterService;
-use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use App\Services\Tax\Kojo\KifukinShotokuKojoService;
 use App\Services\Tax\Kojo\KihonService;
+use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use App\Services\Tax\Result\FurusatoResultService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 final class FurusatoController extends Controller
 {
@@ -1262,7 +1264,7 @@ final class FurusatoController extends Controller
         FurusatoInput::unguarded(function () use ($data, $updates, $labelUpdates, $userId): void {
             $this->normalizeJotoIchijiKeys($updates);
             $this->normalizeBunriChokiShotokuKeys($updates);
-            $this->normalizeKojoRenamedKeys($updates);
+            $this->normalizeKojoRenamedKeys($updates, true);
 
             $record = FurusatoInput::firstOrNew(['data_id' => $data->id]);
 
@@ -1288,12 +1290,13 @@ final class FurusatoController extends Controller
             $current = is_array($record->payload) ? $record->payload : [];
             $this->normalizeJotoIchijiKeys($current);
             $this->normalizeBunriChokiShotokuKeys($current);
-            $this->normalizeKojoRenamedKeys($current);
+            $this->normalizeKojoRenamedKeys($current, true);
             $payload = array_replace($current, $updates);
             $this->normalizeBunriChokiShotokuKeys($payload);
-            $this->normalizeKojoRenamedKeys($payload);
+            $this->normalizeKojoRenamedKeys($payload, true);
             $settings = $this->getSyoriSettings($data->id);
             $payload = $this->applyAutoCalculatedFields($data, $payload, $settings);
+            $this->normalizeKojoRenamedKeys($payload, true);
             $record->payload = $payload;
             $record->updated_by = $userId ?: null;
 
@@ -1328,11 +1331,15 @@ final class FurusatoController extends Controller
             ->getShotokuRates(self::MASTER_KIHU_YEAR, $companyId)
             ->all();
 
-        $payload = array_replace(
-            $payload,
-            app(KifukinShotokuKojoService::class)->compute($payload, $settings),
-            app(KihonService::class)->computeKisoKojo($payload, (int) ($data->kihu_year ?? 0))
-        );
+        /** @var KifukinShotokuKojoService $kifukinService */
+        $kifukinService = app(KifukinShotokuKojoService::class);
+        $payload = array_replace($payload, $kifukinService->compute($payload, $settings));
+        $this->assertProvidedKeys($payload, $kifukinService);
+
+        /** @var KihonService $kihonService */
+        $kihonService = app(KihonService::class);
+        $payload = array_replace($payload, $kihonService->computeKisoKojo($payload, (int) ($data->kihu_year ?? 0)));
+        $this->assertProvidedKeys($payload, $kihonService);
 
         foreach ($taxTypes as $tax) {
             foreach ($periods as $period) {
@@ -1362,10 +1369,38 @@ final class FurusatoController extends Controller
             $payload[sprintf('tax_zeigaku_jumin_%s', $period)] = (int) ($juminAmount * 0.1);
         }
 
+        /** @var SeitotoKihukinTokubetsuService $seitotoService */
         $seitotoService = app(SeitotoKihukinTokubetsuService::class);
         $payload = array_replace($payload, $seitotoService->compute($payload));
+        $this->assertProvidedKeys($payload, $seitotoService);
 
         return $payload;
+    }
+
+    private function assertProvidedKeys(array $payload, ProvidesKeys $service): void
+    {
+        if (! config('app.debug')) {
+            return;
+        }
+
+        $missing = [];
+        foreach ($service::provides() as $key) {
+            if (! array_key_exists($key, $payload)) {
+                $missing[] = $key;
+            }
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        $class = $service::class;
+        $message = sprintf('%s missing keys: %s', $class, implode(', ', $missing));
+        Log::warning($message);
+
+        $existing = session()->get('warning');
+        $combined = $existing ? $existing . PHP_EOL . $message : $message;
+        session()->flash('warning', $combined);
     }
 
     private function formatKojoFieldName(string $base, string $tax, string $period): string
@@ -1379,32 +1414,43 @@ final class FurusatoController extends Controller
         return sprintf('%s_%s_%s', $base, $tax, $period);
     }
 
-    private function normalizeKojoRenamedKeys(array &$payload): void
+    private function normalizeKojoRenamedKeys(array &$payload, bool $removeLegacy = false): void
     {
         $periods = ['prev', 'curr'];
-        foreach ($periods as $period) {
-            $shotokuKifukin = sprintf('kojo_kifukin_shotoku_%s', $period);
-            if (array_key_exists($shotokuKifukin, $payload)) {
-                $payload[sprintf('shotokuzei_kojo_kifukin_%s', $period)] = $this->toNullableInt($payload[$shotokuKifukin]);
-                unset($payload[$shotokuKifukin]);
-            }
+        $mappings = [
+            'shotokuzei_zeigakukojo_seitoto_tokubetsu_%s' => 'tax_seito_shotoku_%s',
+            'juminzei_zeigakukojo_seitoto_tokubetsu_%s' => 'tax_seito_jumin_%s',
+            'shotokuzei_kojo_kifukin_%s' => 'kojo_kifukin_shotoku_%s',
+            'juminzei_kojo_kifukin_%s' => 'kojo_kifukin_jumin_%s',
+            'shotokuzei_kojo_kiso_%s' => 'kojo_kiso_shotoku_%s',
+            'juminzei_kojo_kiso_%s' => 'kojo_kiso_jumin_%s',
+        ];
 
-            $juminKifukin = sprintf('kojo_kifukin_jumin_%s', $period);
-            if (array_key_exists($juminKifukin, $payload)) {
-                $payload[sprintf('juminzei_kojo_kifukin_%s', $period)] = $this->toNullableInt($payload[$juminKifukin]);
-                unset($payload[$juminKifukin]);
-            }
+        foreach ($mappings as $canonicalFormat => $legacyFormat) {
+            foreach ($periods as $period) {
+                $canonicalKey = sprintf($canonicalFormat, $period);
+                $legacyKey = sprintf($legacyFormat, $period);
 
-            $shotokuKiso = sprintf('kojo_kiso_shotoku_%s', $period);
-            if (array_key_exists($shotokuKiso, $payload)) {
-                $payload[sprintf('shotokuzei_kojo_kiso_%s', $period)] = $this->toNullableInt($payload[$shotokuKiso]);
-                unset($payload[$shotokuKiso]);
-            }
+                $canonicalExists = array_key_exists($canonicalKey, $payload);
+                $legacyExists = array_key_exists($legacyKey, $payload);
 
-            $juminKiso = sprintf('kojo_kiso_jumin_%s', $period);
-            if (array_key_exists($juminKiso, $payload)) {
-                $payload[sprintf('juminzei_kojo_kiso_%s', $period)] = $this->toNullableInt($payload[$juminKiso]);
-                unset($payload[$juminKiso]);
+                $canonicalValue = $canonicalExists ? $this->toNullableInt($payload[$canonicalKey]) : null;
+                $legacyValue = $legacyExists ? $this->toNullableInt($payload[$legacyKey]) : null;
+
+                $normalized = $canonicalValue;
+                if ($normalized === null && $legacyExists) {
+                    $normalized = $legacyValue;
+                }
+
+                if ($canonicalExists || $legacyExists) {
+                    $payload[$canonicalKey] = $normalized;
+
+                    if ($removeLegacy) {
+                        unset($payload[$legacyKey]);
+                    } else {
+                        $payload[$legacyKey] = $normalized;
+                    }
+                }
             }
         }
     }

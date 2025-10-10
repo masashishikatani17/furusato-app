@@ -103,7 +103,7 @@
                 <td class="bg-light"></td>
               </tr>
               <tr>
-                <th scope="row" class="text-start th-cream">医療費控除額（Ⓖ＝Ⓒ－Ⓕ）</th>
+                <th scope="row" class="text-center th-cream">医療費控除額（Ⓖ＝Ⓒ－Ⓕ）</th>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_kojogaku_prev" value="{{ $inputs['kojo_iryo_kojogaku_prev'] ?? 0 }}" readonly>
                 </td>

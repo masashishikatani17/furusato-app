@@ -13,6 +13,7 @@ use App\Models\FurusatoResult;
 use App\Models\FurusatoSyoriSetting;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\FurusatoMasterService;
+use App\Services\Tax\Kojo\HaigushaKojoService;
 use App\Services\Tax\Kojo\JintekiKojoService;
 use App\Services\Tax\Kojo\KifukinShotokuKojoService;
 use App\Services\Tax\Kojo\KihonService;
@@ -1346,6 +1347,11 @@ final class FurusatoController extends Controller
         $jintekiService = app(JintekiKojoService::class);
         $payload = array_replace($payload, $jintekiService->compute($payload));
         $this->assertProvidedKeys($payload, $jintekiService);
+
+        /** @var HaigushaKojoService $haigushaService */
+        $haigushaService = app(HaigushaKojoService::class);
+        $payload = array_replace($payload, $haigushaService->compute($payload));
+        $this->assertProvidedKeys($payload, $haigushaService);
 
         foreach ($taxTypes as $tax) {
             foreach ($periods as $period) {

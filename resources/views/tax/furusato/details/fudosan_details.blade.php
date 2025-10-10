@@ -67,7 +67,7 @@
               @php($field = array_shift($expenseFields))
               <tr>
                 <th class="text-center align-middle" rowspan="{{ $expenseRowspan }}" style="width: 30px;">必<br>要<br>経<br>費</th>
-                <th class="text-start u-nowrap th-cream">
+                <th class="text-start u-nowrap th-ddd">
                   @php($labelName = $field['labelInput'] ?? null)
                   @if($labelName)
                     @php($placeholder = $field['placeholder'] ?? '')
@@ -94,7 +94,7 @@
               </tr>
               @foreach ($expenseFields as $field)
                 <tr>
-                  <th class="text-start u-nowrap th-cream">
+                  <th class="text-center u-nowrap th-ddd">
                     @php($labelName = $field['labelInput'] ?? null)
                     @if($labelName)
                       @php($placeholder = $field['placeholder'] ?? '')

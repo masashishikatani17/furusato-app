@@ -149,7 +149,6 @@
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">処理メニュー設定</h0>
   </div>
-  <div class="card-body">
     <form method="POST" action="{{ route('furusato.syori.save') }}" id="furusato-syori-form" class="card">
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId }}">
@@ -163,7 +162,7 @@
           </ul>
         </div>
       @endif
-      <div class="row g-4 mt-3">
+      <div class="row g-4 ms-2 me-2">
         @foreach ($periods as $key => $period)
           <div class="col-md-6">
             <div class="card h-100">
@@ -287,6 +286,5 @@
         </div>
       </div>
     </form>
-  </div>
 </div>
 @endsection

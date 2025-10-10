@@ -104,6 +104,10 @@ final class FurusatoController extends Controller
             'shotoku' => 'kojo_fuyo_shotoku',
             'jumin' => 'kojo_fuyo_jumin',
         ],
+        'tokutei_shinzoku' => [
+            'shotoku' => 'kojo_tokutei_shinzoku_shotoku',
+            'jumin' => 'kojo_tokutei_shinzoku_jumin',
+        ],
         'kiso' => [
             'shotoku' => 'shotokuzei_kojo_kiso',
             'jumin' => 'juminzei_kojo_kiso',

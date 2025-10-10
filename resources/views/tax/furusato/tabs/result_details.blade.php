@@ -34,6 +34,7 @@
             ['label' => '配偶者控除', 'key' => 'haigusha'],
             ['label' => '配偶者特別控除', 'key' => 'haigusha_tokubetsu'],
             ['label' => '扶養控除', 'key' => 'fuyo'],
+            ['label' => '特定親族特別控除', 'key' => 'tokutei_shinzoku'],
             ['label' => '基礎控除', 'key' => 'kiso'],
             ['label' => '人的控除額の差の合計額', 'key' => 'sum'],
           ];

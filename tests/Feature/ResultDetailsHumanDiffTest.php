@@ -129,3 +129,4 @@ class ResultDetailsHumanDiffTest extends TestCase
         $this->assertSame(940000, $diff2025['sum']['curr']);
     }
 }
+

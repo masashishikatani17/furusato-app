@@ -91,4 +91,72 @@ final class JintekiKojoServiceTest extends TestCase
         $this->assertSame(0, $result['kojo_shogaisyo_shotoku_curr']);
         $this->assertSame(0, $result['kojo_shogaisyo_jumin_curr']);
     }
+
+    #[Test]
+    public function it_calculates_fuyo_deductions_from_counts(): void
+    {
+        $service = new JintekiKojoService();
+
+        $payload = [
+            'kojo_fuyo_ippan_count_prev' => '1',
+            'kojo_fuyo_tokutei_count_prev' => '1',
+            'kojo_fuyo_roujin_doukyo_count_prev' => '1',
+            'kojo_fuyo_roujin_sonota_count_prev' => '1',
+            'kojo_fuyo_ippan_count_curr' => '1',
+            'kojo_fuyo_tokutei_count_curr' => '1',
+            'kojo_fuyo_roujin_doukyo_count_curr' => '1',
+            'kojo_fuyo_roujin_sonota_count_curr' => '1',
+        ];
+
+        $result = $service->compute($payload);
+
+        $this->assertSame(2_070_000, $result['kojo_fuyo_shotoku_prev']);
+        $this->assertSame(2_070_000, $result['kojo_fuyo_shotoku_curr']);
+        $this->assertSame(1_610_000, $result['kojo_fuyo_jumin_prev']);
+        $this->assertSame(1_610_000, $result['kojo_fuyo_jumin_curr']);
+    }
+
+    #[Test]
+    public function it_calculates_tokutei_shinzoku_deduction_from_incomes(): void
+    {
+        $service = new JintekiKojoService();
+
+        $payload = [
+            'kojo_tokutei_shinzoku_1_shotoku_prev' => '580,001',
+            'kojo_tokutei_shinzoku_2_shotoku_prev' => '1,000,001',
+            'kojo_tokutei_shinzoku_3_shotoku_prev' => '1,230,001',
+            'kojo_tokutei_shinzoku_1_shotoku_curr' => '900,001',
+            'kojo_tokutei_shinzoku_2_shotoku_curr' => '1,050,001',
+            'kojo_tokutei_shinzoku_3_shotoku_curr' => '1,150,001',
+        ];
+
+        $result = $service->compute($payload, 2024);
+
+        $this->assertSame(940_000, $result['kojo_tokutei_shinzoku_shotoku_prev']);
+        $this->assertSame(780_000, $result['kojo_tokutei_shinzoku_shotoku_curr']);
+        $this->assertSame(0, $result['kojo_tokutei_shinzoku_jumin_prev']);
+        $this->assertSame(0, $result['kojo_tokutei_shinzoku_jumin_curr']);
+    }
+
+    #[Test]
+    public function it_sets_prev_tokutei_deduction_to_zero_for_2025(): void
+    {
+        $service = new JintekiKojoService();
+
+        $payload = [
+            'kojo_tokutei_shinzoku_1_shotoku_prev' => '580,001',
+            'kojo_tokutei_shinzoku_2_shotoku_prev' => '1,000,001',
+            'kojo_tokutei_shinzoku_3_shotoku_prev' => '1,230,001',
+            'kojo_tokutei_shinzoku_1_shotoku_curr' => '580,001',
+            'kojo_tokutei_shinzoku_2_shotoku_curr' => '1,000,001',
+            'kojo_tokutei_shinzoku_3_shotoku_curr' => '1,230,001',
+        ];
+
+        $result = $service->compute($payload, 2025);
+
+        $this->assertSame(0, $result['kojo_tokutei_shinzoku_shotoku_prev']);
+        $this->assertSame(940_000, $result['kojo_tokutei_shinzoku_shotoku_curr']);
+        $this->assertSame(0, $result['kojo_tokutei_shinzoku_jumin_prev']);
+        $this->assertSame(0, $result['kojo_tokutei_shinzoku_jumin_curr']);
+    }
 }

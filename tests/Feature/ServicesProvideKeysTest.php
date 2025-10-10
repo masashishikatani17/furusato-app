@@ -6,6 +6,7 @@ namespace Tests\Feature;
 use App\Http\Controllers\Tax\FurusatoController;
 use App\Models\Data;
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Services\Tax\Kojo\HaigushaKojoService;
 use App\Services\Tax\Kojo\JintekiKojoService;
 use App\Services\Tax\Kojo\KifukinShotokuKojoService;
 use App\Services\Tax\Kojo\KihonService;
@@ -43,6 +44,7 @@ final class ServicesProvideKeysTest extends TestCase
             app(KifukinShotokuKojoService::class),
             app(KihonService::class),
             app(JintekiKojoService::class),
+            app(HaigushaKojoService::class),
             app(SeitotoKihukinTokubetsuService::class),
         ];
 

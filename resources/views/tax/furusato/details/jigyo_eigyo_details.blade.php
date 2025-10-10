@@ -79,14 +79,14 @@
                   ['labelInput' => 'jigyo_eigyo_keihi_label_05', 'labelIndex' => 5, 'name' => 'jigyo_eigyo_keihi_5'],
                   ['labelInput' => 'jigyo_eigyo_keihi_label_06', 'labelIndex' => 6, 'name' => 'jigyo_eigyo_keihi_6'],
                   ['labelInput' => 'jigyo_eigyo_keihi_label_07', 'labelIndex' => 7, 'name' => 'jigyo_eigyo_keihi_7'],
-                  ['label' => 'その他', 'name' => 'jigyo_eigyo_keihi_sonota', 'headerClass' => 'text-start u-nowrap th-cream'],
-                  ['label' => '合 計', 'name' => 'jigyo_eigyo_keihi_gokei', 'readonly' => true, 'headerClass' => 'u-nowrap th-cream'],
+                  ['label' => 'その他', 'name' => 'jigyo_eigyo_keihi_sonota', 'headerClass' => 'text-start u-nowrap th-ddd'],
+                  ['label' => '合 計', 'name' => 'jigyo_eigyo_keihi_gokei', 'readonly' => true, 'headerClass' => 'u-nowrap th-ddd'],
                 ])
                 @php($expenseRowspan = count($expenseFields))
                 @php($field = array_shift($expenseFields))
                 <tr>
                   <th scope="rowgroup" rowspan="{{ $expenseRowspan }}" class="text-start align-middle ps-1">経 費</th>
-                  <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-cream' }}">
+                  <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-ddd' }}">
                     @php($labelName = $field['labelInput'] ?? null)
                     @if($labelName)
                       @php($placeholder = $field['placeholder'] ?? '')
@@ -113,7 +113,7 @@
                 </tr>
                 @foreach ($expenseFields as $field)
                   <tr>
-                    <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-cream' }}">
+                    <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-ddd' }}">
                       @php($labelName = $field['labelInput'] ?? null)
                       @if($labelName)
                         @php($placeholder = $field['placeholder'] ?? '')
@@ -180,7 +180,7 @@
                   </td>
                 </tr>
                 <tr>
-                  <th colspan="2" class="text-start align-middle ps-1">所得金額</th>
+                  <th colspan="2" class="text-center align-middle ps-1 th-cream">所得金額</th>
                   <td>
                     @php($name = 'jigyo_eigyo_shotoku_prev')
                     <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>

@@ -251,7 +251,7 @@ final class FurusatoController extends Controller
         $resultService = app(FurusatoResultService::class);
         $previewResults = $resultService->buildFromPayload($targetYear, $companyId, $savedInputs);
 
-        return [
+        $context = [
             'dataId' => $dataId,
             'bunriFlag' => $bunriFlag,
             'kihuYear' => $kihuYear,

@@ -11,6 +11,9 @@
 
       return number_format($rate * 100, 3) . '%';
   };
+  $formatStandardRate = static fn(?float $value): string => $value !== null ? rtrim(rtrim(number_format($value, 3), '0'), '.') . '%' : '';
+  $standardPrevRate = $formatStandardRate($tokureiStandardRate['prev'] ?? null);
+  $standardCurrRate = $formatStandardRate($tokureiStandardRate['curr'] ?? null);
   $warekiPrevLabel = $warekiPrev ?? '前年';
   $warekiCurrLabel = $warekiCurr ?? '当年';
 @endphp
@@ -56,13 +59,8 @@
     </table>
   </div>
   <div class="mb-2 small text-end">
-    @php
-      $prevRate = $tokureiStandardRate['prev'] ?? null;
-      $currRate = $tokureiStandardRate['curr'] ?? null;
-      $fmt = static fn($v) => $v !== null ? rtrim(rtrim(number_format($v, 3), '0'), '.') . '%' : '';
-    @endphp
-    <span class="me-3">特例控除率（標準） 前年：{{ $fmt($prevRate) }}</span>
-    <span>当年：{{ $fmt($currRate) }}</span>
+    <span class="me-3">特例控除率（標準） 前年：{{ $standardPrevRate }}</span>
+    <span>当年：{{ $standardCurrRate }}</span>
   </div>
   <div class="table-responsive">
     <table class="table table-bordered table-sm align-middle">

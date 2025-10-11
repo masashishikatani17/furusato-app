@@ -56,16 +56,13 @@
     </table>
   </div>
   <div class="mb-2 small text-end">
-    <span class="me-3">
-      特例控除率（標準） 前年：
-      @php $r = $tokureiStandardRate['prev'] ?? null; @endphp
-      {{ $r !== null ? rtrim(rtrim(number_format($r, 3), '0'), '.') . '%' : '' }}
-    </span>
-    <span>
-      当年：
-      @php $r = $tokureiStandardRate['curr'] ?? null; @endphp
-      {{ $r !== null ? rtrim(rtrim(number_format($r, 3), '0'), '.') . '%' : '' }}
-    </span>
+    @php
+      $prevRate = $tokureiStandardRate['prev'] ?? null;
+      $currRate = $tokureiStandardRate['curr'] ?? null;
+      $fmt = static fn($v) => $v !== null ? rtrim(rtrim(number_format($v, 3), '0'), '.') . '%' : '';
+    @endphp
+    <span class="me-3">特例控除率（標準） 前年：{{ $fmt($prevRate) }}</span>
+    <span>当年：{{ $fmt($currRate) }}</span>
   </div>
   <div class="table-responsive">
     <table class="table table-bordered table-sm align-middle">

@@ -11,6 +11,7 @@ use App\Models\Data;
 use App\Models\FurusatoInput;
 use App\Models\FurusatoResult;
 use App\Models\FurusatoSyoriSetting;
+use App\Models\TokureiRate;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\FurusatoMasterService;
 use App\Services\Tax\Kojo\HaigushaKojoService;
@@ -223,6 +224,29 @@ final class FurusatoController extends Controller
         $shotokuRates = app(FurusatoMasterService::class)
             ->getShotokuRates(self::MASTER_KIHU_YEAR, $companyId);
 
+        $jintekiDiff = $this->computeJintekiDiff($savedInputs);
+
+        $taxablePrev = $this->valueOrZero($this->toNullableInt($savedInputs['tax_kazeishotoku_shotoku_prev'] ?? null));
+        $taxableCurr = $this->valueOrZero($this->toNullableInt($savedInputs['tax_kazeishotoku_shotoku_curr'] ?? null));
+
+        $jintekiSumPrev = $this->valueOrZero($this->toNullableInt($jintekiDiff['sum']['prev'] ?? null));
+        $jintekiSumCurr = $this->valueOrZero($this->toNullableInt($jintekiDiff['sum']['curr'] ?? null));
+
+        $adjustedTaxablePrev = max(0, $taxablePrev - $jintekiSumPrev);
+        $adjustedTaxableCurr = max(0, $taxableCurr - $jintekiSumCurr);
+
+        $jintekiDiff['adjusted_taxable'] = [
+            'prev' => $adjustedTaxablePrev,
+            'curr' => $adjustedTaxableCurr,
+        ];
+
+        $targetYear = (int) ($kihuYear ?? self::MASTER_KIHU_YEAR);
+
+        $tokureiStandardRate = [
+            'prev' => $this->lookupTokureiStandardRate($adjustedTaxablePrev, $companyId, $targetYear),
+            'curr' => $this->lookupTokureiStandardRate($adjustedTaxableCurr, $companyId, $targetYear),
+        ];
+
         return [
             'dataId' => $dataId,
             'bunriFlag' => $bunriFlag,
@@ -233,7 +257,8 @@ final class FurusatoController extends Controller
             'results' => [],
             'showResult' => false,
             'shotokuRates' => $shotokuRates,
-            'jintekiDiff' => $this->computeJintekiDiff($savedInputs),
+            'jintekiDiff' => $jintekiDiff,
+            'tokureiStandardRate' => $tokureiStandardRate,
         ];
     }
 
@@ -263,6 +288,27 @@ final class FurusatoController extends Controller
         ];
 
         return $diffs;
+    }
+
+    private function lookupTokureiStandardRate(int $amount, ?int $companyId, int $kihuYear): ?float
+    {
+        $x = max(0, $amount);
+
+        $row = TokureiRate::query()
+            ->where('kihu_year', $kihuYear)
+            ->where(function ($query) use ($companyId): void {
+                $query->whereNull('company_id');
+
+                if ($companyId !== null) {
+                    $query->orWhere('company_id', $companyId);
+                }
+            })
+            ->whereNotNull('lower')
+            ->where('lower', '<=', $x)
+            ->orderByDesc('lower')
+            ->first();
+
+        return $row ? (float) $row->tokurei_deduction_rate : null;
     }
 
     private function findDataForInput(Request $request, int $dataId): ?Data

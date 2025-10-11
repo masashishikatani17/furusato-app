@@ -247,6 +247,10 @@ final class FurusatoController extends Controller
             'curr' => $this->lookupTokureiStandardRate($adjustedTaxableCurr, $companyId, $targetYear),
         ];
 
+        /** @var FurusatoResultService $resultService */
+        $resultService = app(FurusatoResultService::class);
+        $previewResults = $resultService->buildFromPayload($targetYear, $companyId, $savedInputs);
+
         return [
             'dataId' => $dataId,
             'bunriFlag' => $bunriFlag,
@@ -254,7 +258,7 @@ final class FurusatoController extends Controller
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
             'savedInputs' => $savedInputs,
-            'results' => [],
+            'results' => $previewResults,
             'showResult' => false,
             'shotokuRates' => $shotokuRates,
             'jintekiDiff' => $jintekiDiff,

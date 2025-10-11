@@ -46,7 +46,7 @@ final class FurusatoResultService
         $sanrinRaw = PayloadAccessor::intOrNull($payload, $sanrinKey);
         $aa52 = null;
         if ($sanrinRaw !== null) {
-            $sanrinAmount = PayloadAccessor::floorToThousands(PayloadAccessor::nonNegativeFloat($sanrinRaw));
+            $sanrinAmount = PayloadAccessor::nonNegativeFloat($sanrinRaw);
 
             if ($sanrinAmount > 0.0) {
                 $divided = PayloadAccessor::floorToThousands($sanrinAmount / 5);

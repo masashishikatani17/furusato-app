@@ -3,12 +3,23 @@
   $prevDetails = $details['prev'] ?? [];
   $currDetails = $details['curr'] ?? [];
   $jintekiDiff = $jintekiDiff ?? [];
+  $tokureiStandardRate = $tokureiStandardRate ?? [];
   $formatRate = static function (?float $rate): string {
       if ($rate === null) {
           return '';
       }
 
       return number_format($rate * 100, 3) . '%';
+  };
+  $formatStandardRate = static function (?float $rate): string {
+      if ($rate === null) {
+          return '';
+      }
+
+      $formatted = number_format($rate, 3);
+      $formatted = rtrim(rtrim($formatted, '0'), '.');
+
+      return $formatted . '%';
   };
   $warekiPrevLabel = $warekiPrev ?? '前年';
   $warekiCurrLabel = $warekiCurr ?? '当年';
@@ -46,8 +57,21 @@
             <td>{{ number_format((int) ($jintekiDiff[$row['key']]['curr'] ?? 0)) }}</td>
           </tr>
         @endforeach
+        <tr>
+          <th class="text-start">課税総所得金額-人的控除差調整額</th>
+          <td>{{ number_format((int) ($jintekiDiff['adjusted_taxable']['prev'] ?? 0)) }}</td>
+          <td>{{ number_format((int) ($jintekiDiff['adjusted_taxable']['curr'] ?? 0)) }}</td>
+        </tr>
       </tbody>
     </table>
+  </div>
+  <div class="mb-2 small text-end">
+    <span class="me-3">
+      特例控除率（標準） 前年：{{ $formatStandardRate($tokureiStandardRate['prev'] ?? null) }}
+    </span>
+    <span>
+      当年：{{ $formatStandardRate($tokureiStandardRate['curr'] ?? null) }}
+    </span>
   </div>
   <div class="table-responsive">
     <table class="table table-bordered table-sm align-middle">

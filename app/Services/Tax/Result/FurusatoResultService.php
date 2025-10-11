@@ -34,14 +34,10 @@ final class FurusatoResultService
 
     private function buildPeriodDetails(array $payload, array $tokureiRows, string $period): array
     {
-        $taxableKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
-        $taxableRaw = PayloadAccessor::intOrNull($payload, $taxableKey);
-        $taxableAmount = $taxableRaw !== null
-            ? PayloadAccessor::floorToThousands(PayloadAccessor::nonNegativeFloat($taxableRaw))
-            : null;
+        $adjustedTaxable = $this->adjustedTaxable($payload, $period);
 
-        $aa50 = $taxableAmount !== null
-            ? $this->tokureiRateService->lowerBoundRate($taxableAmount, $tokureiRows)
+        $aa50 = $adjustedTaxable !== null
+            ? $this->tokureiRateService->lowerBoundRate($adjustedTaxable, $tokureiRows)
             : null;
 
         $aa51 = self::FIXED_90_RATE;
@@ -97,5 +93,61 @@ final class FurusatoResultService
             'AA55' => $aa55,
             'AA56' => $aa56,
         ];
+    }
+
+    private function taxableShotoku(array $payload, string $period): ?float
+    {
+        $key = sprintf('tax_kazeishotoku_shotoku_%s', $period);
+        $raw = PayloadAccessor::intOrNull($payload, $key);
+
+        if ($raw === null) {
+            return null;
+        }
+
+        return PayloadAccessor::floorToThousands(PayloadAccessor::nonNegativeFloat($raw));
+    }
+
+    private function sumHumanDiff(array $payload, string $period): float
+    {
+        $bases = [
+            'kojo_kafu',
+            'kojo_hitorioya',
+            'kojo_kinrogakusei',
+            'kojo_shogaisyo',
+            'kojo_haigusha',
+            'kojo_haigusha_tokubetsu',
+            'kojo_fuyo',
+            'kojo_tokutei_shinzoku',
+            'kojo_kiso',
+        ];
+
+        $sum = 0.0;
+
+        foreach ($bases as $base) {
+            $shotokuKey = sprintf('%s_shotoku_%s', $base, $period);
+            $juminKey = sprintf('%s_jumin_%s', $base, $period);
+
+            $shotoku = PayloadAccessor::intOrNull($payload, $shotokuKey) ?? 0;
+            $jumin = PayloadAccessor::intOrNull($payload, $juminKey) ?? 0;
+
+            $sum += ($shotoku - $jumin);
+        }
+
+        return (float) $sum;
+    }
+
+    private function adjustedTaxable(array $payload, string $period): ?float
+    {
+        $taxableShotoku = $this->taxableShotoku($payload, $period);
+
+        if ($taxableShotoku === null) {
+            return null;
+        }
+
+        $adjusted = $taxableShotoku - $this->sumHumanDiff($payload, $period);
+
+        return PayloadAccessor::floorToThousands(
+            PayloadAccessor::nonNegativeFloat($adjusted)
+        );
     }
 }

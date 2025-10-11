@@ -1272,6 +1272,7 @@
           'results' => $resultsData,
           'jintekiDiff' => $jintekiDiffData,
           'tokureiStandardRate' => $tokureiStandardRateData,
+          'inputs' => $out['inputs'] ?? [],
         ])
       </div>
       <div class="tab-pane fade" id="furusato-tab-result-upper" role="tabpanel" aria-labelledby="furusato-tab-result-upper-nav">

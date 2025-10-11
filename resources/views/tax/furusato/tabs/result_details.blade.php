@@ -3,12 +3,20 @@
   $prevDetails = $details['prev'] ?? [];
   $currDetails = $details['curr'] ?? [];
   $jintekiDiff = $jintekiDiff ?? [];
+  $inputs = $inputs ?? [];
   $formatRate = static function (?float $rate): string {
       if ($rate === null) {
           return '';
       }
 
       return number_format($rate * 100, 3) . '%';
+  };
+  $val = static function (array $inputs, string $key, ?float $fallback): string {
+      if (array_key_exists($key, $inputs) && $inputs[$key] !== null && $inputs[$key] !== '') {
+          return (string) $inputs[$key];
+      }
+
+      return $fallback !== null ? rtrim(rtrim(number_format($fallback, 6), '0'), '.') : '';
   };
   $warekiPrevLabel = $warekiPrev ?? '前年';
   $warekiCurrLabel = $warekiCurr ?? '当年';
@@ -76,28 +84,77 @@
         </tr>
         <tr>
           <th scope="row">山林所得（1/5）ベース</th>
-          <td class="text-end">{{ $formatRate($prevDetails['AA52'] ?? null) }}</td>
-          <td class="text-end">{{ $formatRate($currDetails['AA52'] ?? null) }}</td>
+            <input name="tokurei_rate_sanrin_div5_prev" type="number" inputmode="decimal"
+                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
+                   value="{{ $val($inputs, 'tokurei_rate_sanrin_div5_prev', $prevDetails['AA52'] ?? null) }}"
+                   placeholder="0.000000">
+          </td>
+          <td class="text-end">
+            <input name="tokurei_rate_sanrin_div5_curr" type="number" inputmode="decimal"
+                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
+                   value="{{ $val($inputs, 'tokurei_rate_sanrin_div5_curr', $currDetails['AA52'] ?? null) }}"
+                   placeholder="0.000000">
+          </td>
         </tr>
         <tr>
           <th scope="row">退職所得ベース</th>
-          <td class="text-end">{{ $formatRate($prevDetails['AA53'] ?? null) }}</td>
-          <td class="text-end">{{ $formatRate($currDetails['AA53'] ?? null) }}</td>
+          <td class="text-end">
+            <input name="tokurei_rate_taishoku_prev" type="number" inputmode="decimal"
+                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
+                   value="{{ $val($inputs, 'tokurei_rate_taishoku_prev', $prevDetails['AA53'] ?? null) }}"
+                   placeholder="0.000000">
+          </td>
+          <td class="text-end">
+            <input name="tokurei_rate_taishoku_curr" type="number" inputmode="decimal"
+                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
+                   value="{{ $val($inputs, 'tokurei_rate_taishoku_curr', $currDetails['AA53'] ?? null) }}"
+                   placeholder="0.000000">
+          </td>
         </tr>
         <tr>
           <th scope="row">採用率（山林／退職の小さい方）</th>
-          <td class="text-end">{{ $formatRate($prevDetails['AA54'] ?? null) }}</td>
-          <td class="text-end">{{ $formatRate($currDetails['AA54'] ?? null) }}</td>
+          <td class="text-end">
+            <input name="tokurei_rate_adopted_prev" type="number" inputmode="decimal"
+                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
+                   value="{{ $val($inputs, 'tokurei_rate_adopted_prev', $prevDetails['AA54'] ?? null) }}"
+                   placeholder="0.000000">
+          </td>
+          <td class="text-end">
+            <input name="tokurei_rate_adopted_curr" type="number" inputmode="decimal"
+                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
+                   value="{{ $val($inputs, 'tokurei_rate_adopted_curr', $currDetails['AA54'] ?? null) }}"
+                   placeholder="0.000000">
+          </td>
         </tr>
         <tr>
           <th scope="row">分離課税に基づく率（最小）</th>
-          <td class="text-end">{{ $formatRate($prevDetails['AA55'] ?? null) }}</td>
-          <td class="text-end">{{ $formatRate($currDetails['AA55'] ?? null) }}</td>
+          <td class="text-end">
+            <input name="tokurei_rate_bunri_min_prev" type="number" inputmode="decimal"
+                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
+                   value="{{ $val($inputs, 'tokurei_rate_bunri_min_prev', $prevDetails['AA55'] ?? null) }}"
+                   placeholder="0.000000">
+          </td>
+          <td class="text-end">
+            <input name="tokurei_rate_bunri_min_curr" type="number" inputmode="decimal"
+                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
+                   value="{{ $val($inputs, 'tokurei_rate_bunri_min_curr', $currDetails['AA55'] ?? null) }}"
+                   placeholder="0.000000">
+          </td>
         </tr>
         <tr class="table-primary">
           <th scope="row" class="fw-bold">特例控除 最終率</th>
-          <td class="text-end fw-bold">{{ $formatRate($prevDetails['AA56'] ?? null) }}</td>
-          <td class="text-end fw-bold">{{ $formatRate($currDetails['AA56'] ?? null) }}</td>
+          <td class="text-end">
+            <input name="tokurei_rate_final_prev" type="number" inputmode="decimal"
+                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end fw-bold"
+                   value="{{ $val($inputs, 'tokurei_rate_final_prev', $prevDetails['AA56'] ?? null) }}"
+                   placeholder="0.000000">
+          </td>
+          <td class="text-end">
+            <input name="tokurei_rate_final_curr" type="number" inputmode="decimal"
+                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end fw-bold"
+                   value="{{ $val($inputs, 'tokurei_rate_final_curr', $currDetails['AA56'] ?? null) }}"
+                   placeholder="0.000000">
+          </td>
         </tr>
       </tbody>
     </table>

@@ -258,12 +258,25 @@ final class FurusatoController extends Controller
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
             'savedInputs' => $savedInputs,
-            'results' => $previewResults,
+            'results' => [],
             'showResult' => false,
             'shotokuRates' => $shotokuRates,
             'jintekiDiff' => $jintekiDiff,
             'tokureiStandardRate' => $tokureiStandardRate,
         ];
+
+        $session = session();
+        if ($session->has('furusato_results')) {
+            $context['results'] = (array) $session->get('furusato_results');
+        } elseif ($dataId) {
+            $context['results'] = $this->getStoredFurusatoResults($dataId);
+        }
+
+        if (($context['results'] ?? []) === []) {
+            $context['results'] = $previewResults;
+        }
+
+        return $context;
     }
 
     private function computeJintekiDiff(array $payload): array

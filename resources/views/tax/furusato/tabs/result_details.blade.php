@@ -11,6 +11,9 @@
 
       return number_format($rate * 100, 3) . '%';
   };
+  $formatPercent = static function (?float $v): string {
+      return $v === null ? '' : rtrim(rtrim(number_format($v, 3), '0'), '.') . '%';
+  };
   $warekiPrevLabel = $warekiPrev ?? '前年';
   $warekiCurrLabel = $warekiCurr ?? '当年';
 @endphp
@@ -68,12 +71,26 @@
         <tr>
           <th scope="row">特例控除率（標準）</th>
           <td class="text-end">
-            @php $r = $tokureiStandardRate['prev'] ?? null; @endphp
-            {{ $r !== null ? rtrim(rtrim(number_format($r, 3), '0'), '.') . '%' : '' }}
+            @php
+              $aa50Prev = $prevDetails['AA50'] ?? null;
+              $stdPrev = $tokureiStandardRate['prev'] ?? null;
+            @endphp
+            @if ($aa50Prev !== null)
+              {{ $formatRate($aa50Prev) }}
+            @else
+              {{ $formatPercent($stdPrev) }}
+            @endif
           </td>
           <td class="text-end">
-            @php $r = $tokureiStandardRate['curr'] ?? null; @endphp
-            {{ $r !== null ? rtrim(rtrim(number_format($r, 3), '0'), '.') . '%' : '' }}
+            @php
+              $aa50Curr = $currDetails['AA50'] ?? null;
+              $stdCurr = $tokureiStandardRate['curr'] ?? null;
+            @endphp
+            @if ($aa50Curr !== null)
+              {{ $formatRate($aa50Curr) }}
+            @else
+              {{ $formatPercent($stdCurr) }}
+            @endif
           </td>
         </tr>
         <tr>

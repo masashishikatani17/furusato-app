@@ -252,17 +252,52 @@ final class FurusatoController extends Controller
             'curr' => $this->lookupTokureiStandardRate($adjustedTaxableCurr, $companyId, $targetYear),
         ];
 
-        $sanrinPrevPct = $this->calcSanrinDiv5Percent($savedInputs, 'prev', $yearForRate, $companyIdForRate);
-        $sanrinCurrPct = $this->calcSanrinDiv5Percent($savedInputs, 'curr', $yearForRate, $companyIdForRate);
+        $sanrinBasePrev = PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_sanrin_shotoku_prev') ?? 0;
+        $sanrinBaseCurr = PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_sanrin_shotoku_curr') ?? 0;
+        $taishokuBasePrev = PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_taishoku_shotoku_prev') ?? 0;
+        $taishokuBaseCurr = PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_taishoku_shotoku_curr') ?? 0;
 
-        $taishokuPrevPct = $this->calcTaishokuPercent($savedInputs, 'prev', $yearForRate, $companyIdForRate);
-        $taishokuCurrPct = $this->calcTaishokuPercent($savedInputs, 'curr', $yearForRate, $companyIdForRate);
+        $hasSanrinPrev = $sanrinBasePrev > 0;
+        $hasSanrinCurr = $sanrinBaseCurr > 0;
+        $hasTaishokuPrev = $taishokuBasePrev > 0;
+        $hasTaishokuCurr = $taishokuBaseCurr > 0;
 
-        $adoptedPrevPct = $this->calcAdoptedPercent($sanrinPrevPct, $taishokuPrevPct);
-        $adoptedCurrPct = $this->calcAdoptedPercent($sanrinCurrPct, $taishokuCurrPct);
+        $hasBunriPrev = (
+            (PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_tanki_shotoku_prev') ?? 0) > 0
+            || (PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_choki_shotoku_prev') ?? 0) > 0
+            || (PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_haito_shotoku_prev') ?? 0) > 0
+            || (PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_joto_shotoku_prev') ?? 0) > 0
+        );
+        $hasBunriCurr = (
+            (PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_tanki_shotoku_curr') ?? 0) > 0
+            || (PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_choki_shotoku_curr') ?? 0) > 0
+            || (PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_haito_shotoku_curr') ?? 0) > 0
+            || (PayloadAccessor::intOrNull($savedInputs, 'bunri_kazeishotoku_joto_shotoku_curr') ?? 0) > 0
+        );
 
-        $bunriMinPrevPct = $this->calcBunriMinPercent($savedInputs, 'prev');
-        $bunriMinCurrPct = $this->calcBunriMinPercent($savedInputs, 'curr');
+        $sanrinPrevPct = $hasSanrinPrev
+            ? $this->calcSanrinDiv5Percent($savedInputs, 'prev', $yearForRate, $companyIdForRate)
+            : null;
+        $sanrinCurrPct = $hasSanrinCurr
+            ? $this->calcSanrinDiv5Percent($savedInputs, 'curr', $yearForRate, $companyIdForRate)
+            : null;
+
+        $taishokuPrevPct = $hasTaishokuPrev
+            ? $this->calcTaishokuPercent($savedInputs, 'prev', $yearForRate, $companyIdForRate)
+            : null;
+        $taishokuCurrPct = $hasTaishokuCurr
+            ? $this->calcTaishokuPercent($savedInputs, 'curr', $yearForRate, $companyIdForRate)
+            : null;
+
+        $adoptedPrevPct = ($sanrinPrevPct !== null || $taishokuPrevPct !== null)
+            ? $this->calcAdoptedPercent($sanrinPrevPct, $taishokuPrevPct)
+            : null;
+        $adoptedCurrPct = ($sanrinCurrPct !== null || $taishokuCurrPct !== null)
+            ? $this->calcAdoptedPercent($sanrinCurrPct, $taishokuCurrPct)
+            : null;
+
+        $bunriMinPrevPct = $hasBunriPrev ? $this->calcBunriMinPercent($savedInputs, 'prev') : null;
+        $bunriMinCurrPct = $hasBunriCurr ? $this->calcBunriMinPercent($savedInputs, 'curr') : null;
 
         $stdPrevPct = $tokureiStandardRate['prev'] ?? null;
         $stdCurrPct = $tokureiStandardRate['curr'] ?? null;
@@ -305,11 +340,6 @@ final class FurusatoController extends Controller
             'final_curr' => $finalCurrPct,
         ];
 
-        $tokureiFallbackPercent = [
-            'sanrin_div5_prev' => $sanrinPrevPct,
-            'sanrin_div5_curr' => $sanrinCurrPct,
-        ];
-
         /** @var FurusatoResultService $resultService */
         $resultService = app(FurusatoResultService::class);
         $previewResults = $resultService->buildFromPayload($targetYear, $companyId, $savedInputs);
@@ -326,8 +356,15 @@ final class FurusatoController extends Controller
             'shotokuRates' => $shotokuRates,
             'jintekiDiff' => $jintekiDiff,
             'tokureiStandardRate' => $tokureiStandardRate,
-            'tokureiFallbackPercent' => $tokureiFallbackPercent,
             'tokureiComputedPercent' => $tokureiComputedPercent,
+            'tokureiEnabled' => [
+                'sanrin_prev' => $hasSanrinPrev,
+                'sanrin_curr' => $hasSanrinCurr,
+                'taishoku_prev' => $hasTaishokuPrev,
+                'taishoku_curr' => $hasTaishokuCurr,
+                'bunri_prev' => $hasBunriPrev,
+                'bunri_curr' => $hasBunriCurr,
+            ],
         ];
 
         $session = session();

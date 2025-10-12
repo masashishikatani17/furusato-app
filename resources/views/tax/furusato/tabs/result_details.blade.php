@@ -134,15 +134,13 @@
               $raw = $rawInt($inputs, 'human_adjusted_taxable_prev', $fallbackPrev);
               $displayValue = $fallbackPrev !== null ? (int) $fallbackPrev : (is_numeric($raw) ? (int) $raw : null);
             @endphp
-            <input type="hidden" name="human_adjusted_taxable_prev" value="{{ $raw }}">{{ $dispInt($displayValue) }}
-          </td>
+            <input type="hidden" name="human_adjusted_taxable_prev" value="{{ $raw }}">{{ $dispInt($displayValue) }}</td>
           <td class="text-end">
             @php
               $raw = $rawInt($inputs, 'human_adjusted_taxable_curr', $fallbackCurr);
               $displayValue = $fallbackCurr !== null ? (int) $fallbackCurr : (is_numeric($raw) ? (int) $raw : null);
             @endphp
-            <input type="hidden" name="human_adjusted_taxable_curr" value="{{ $raw }}">{{ $dispInt($displayValue) }}
-          </td>
+            <input type="hidden" name="human_adjusted_taxable_curr" value="{{ $raw }}">{{ $dispInt($displayValue) }}</td>
         </tr>
       </tbody>
     </table>

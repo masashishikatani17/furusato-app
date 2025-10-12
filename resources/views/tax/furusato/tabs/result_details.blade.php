@@ -4,28 +4,55 @@
   $currDetails = $details['curr'] ?? [];
   $jintekiDiff = $jintekiDiff ?? [];
   $inputs = $inputs ?? [];
-  $tkFallback = $tokureiFallbackPercent ?? [];
   $tokureiStandardRate = $tokureiStandardRate ?? [];
   $tkComputed = $tokureiComputedPercent ?? [];
-  $valInt = static function (array $ins, string $key, ?int $fallback): string {
+
+  // hiddenの値：payload 優先、なければ計算結果をそのままraw整数（カンマなし）
+  $rawInt = static function (array $ins, string $key, ?int $fallback): string {
       if (array_key_exists($key, $ins) && $ins[$key] !== null && $ins[$key] !== '') {
           return (string) (int) $ins[$key];
       }
 
       return $fallback !== null ? (string) (int) $fallback : '';
   };
-  $valPercent = static function (array $ins, string $key, ?float $fallbackPercent, ?float $aa): string {
-      if (array_key_exists($key, $ins) && $ins[$key] !== null && $ins[$key] !== '') {
-          return (string) $ins[$key];
-      }
-      if ($fallbackPercent !== null) {
-          return rtrim(rtrim(number_format($fallbackPercent, 3), '0'), '.');
-      }
-      if ($aa !== null) {
-          return rtrim(rtrim(number_format($aa * 100, 3), '0'), '.');
+
+  // 表示（素テキスト）用：rawをカンマ区切り、nullなら空
+  $dispInt = static function (?int $v): string {
+      return $v === null ? '' : number_format((int) $v);
+  };
+
+  $formatRawPercent = static function (float $num): string {
+      $str = number_format($num, 6, '.', '');
+
+      if (strpos($str, '.') !== false) {
+          $str = rtrim(rtrim($str, '0'), '.');
       }
 
-      return '';
+      return $str === '' ? '0' : $str;
+  };
+  $formatDisplayPercent = static function (float $num): string {
+      return rtrim(rtrim(number_format($num, 3), '0'), '.') . '%';
+  };
+
+  // 百分率hidden値：payload優先→computed fallback→AA*100
+  $valPercent = static function (array $ins, string $key, ?float $fallbackPercent, ?float $aa) use ($formatRawPercent, $formatDisplayPercent): array {
+      if (array_key_exists($key, $ins) && $ins[$key] !== null && $ins[$key] !== '') {
+          $num = (float) $ins[$key];
+
+          return [$formatRawPercent($num), $formatDisplayPercent($num)];
+      }
+      if ($fallbackPercent !== null) {
+          $num = (float) $fallbackPercent;
+
+          return [$formatRawPercent($num), $formatDisplayPercent($num)];
+      }
+      if ($aa !== null) {
+          $num = (float) ($aa * 100.0);
+
+          return [$formatRawPercent($num), $formatDisplayPercent($num)];
+      }
+
+      return ['', ''];
   };
   $warekiPrevLabel = $warekiPrev ?? '前年';
   $warekiCurrLabel = $warekiCurr ?? '当年';
@@ -65,15 +92,19 @@
           @endphp
           <tr>
             <th class="text-start">{{ $row['label'] }}</th>
-            <td>
-              <input name="{{ $inputPrev }}" type="number" step="1"
-                     class="form-control form-control-sm text-end"
-                     value="{{ $valInt($inputs, $inputPrev, $fallbackPrev) }}" readonly>
+            <td class="text-end">
+              @php
+                $raw = $rawInt($inputs, $inputPrev, $fallbackPrev);
+                $displayValue = $fallbackPrev !== null ? (int) $fallbackPrev : (is_numeric($raw) ? (int) $raw : null);
+              @endphp
+              <input type="hidden" name="{{ $inputPrev }}" value="{{ $raw }}">{{ $dispInt($displayValue) }}
             </td>
-            <td>
-              <input name="{{ $inputCurr }}" type="number" step="1"
-                     class="form-control form-control-sm text-end"
-                     value="{{ $valInt($inputs, $inputCurr, $fallbackCurr) }}" readonly>
+            <td class="text-end">
+              @php
+                $raw = $rawInt($inputs, $inputCurr, $fallbackCurr);
+                $displayValue = $fallbackCurr !== null ? (int) $fallbackCurr : (is_numeric($raw) ? (int) $raw : null);
+              @endphp
+              <input type="hidden" name="{{ $inputCurr }}" value="{{ $raw }}">{{ $dispInt($displayValue) }}
             </td>
           </tr>
         @endforeach
@@ -83,15 +114,19 @@
             $fallbackPrev = $jintekiDiff['adjusted_taxable']['prev'] ?? null;
             $fallbackCurr = $jintekiDiff['adjusted_taxable']['curr'] ?? null;
           @endphp
-          <td>
-            <input name="human_adjusted_taxable_prev" type="number" step="1"
-                   class="form-control form-control-sm text-end"
-                   value="{{ $valInt($inputs, 'human_adjusted_taxable_prev', $fallbackPrev) }}" readonly>
+          <td class="text-end">
+            @php
+              $raw = $rawInt($inputs, 'human_adjusted_taxable_prev', $fallbackPrev);
+              $displayValue = $fallbackPrev !== null ? (int) $fallbackPrev : (is_numeric($raw) ? (int) $raw : null);
+            @endphp
+            <input type="hidden" name="human_adjusted_taxable_prev" value="{{ $raw }}">{{ $dispInt($displayValue) }}
           </td>
-          <td>
-            <input name="human_adjusted_taxable_curr" type="number" step="1"
-                   class="form-control form-control-sm text-end"
-                   value="{{ $valInt($inputs, 'human_adjusted_taxable_curr', $fallbackCurr) }}" readonly>
+          <td class="text-end">
+            @php
+              $raw = $rawInt($inputs, 'human_adjusted_taxable_curr', $fallbackCurr);
+              $displayValue = $fallbackCurr !== null ? (int) $fallbackCurr : (is_numeric($raw) ? (int) $raw : null);
+            @endphp
+            <input type="hidden" name="human_adjusted_taxable_curr" value="{{ $raw }}">{{ $dispInt($displayValue) }}
           </td>
         </tr>
       </tbody>
@@ -120,148 +155,78 @@
         <tr>
           <th scope="row">特例控除率（標準）</th>
           <td class="text-end">
-            @php $v = $valPercent($inputs, 'tokurei_rate_standard_prev', $tkComputed['standard_prev'] ?? null, $prevDetails['AA50'] ?? null); @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_standard_prev" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_standard_prev', $tkComputed['standard_prev'] ?? null, $prevDetails['AA50'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_standard_prev" value="{{ $raw }}">{{ $disp }}
           </td>
           <td class="text-end">
-            @php $v = $valPercent($inputs, 'tokurei_rate_standard_curr', $tkComputed['standard_curr'] ?? null, $currDetails['AA50'] ?? null); @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_standard_curr" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_standard_curr', $tkComputed['standard_curr'] ?? null, $currDetails['AA50'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_standard_curr" value="{{ $raw }}">{{ $disp }}
           </td>
         </tr>
         <tr>
           <th scope="row">特例控除率（90％）</th>
           <td class="text-end">
-            @php
-              $aa = $prevDetails['AA51'] ?? 0.90;
-              $v = $valPercent($inputs, 'tokurei_rate_90_prev', $tkComputed['ninety_prev'] ?? null, $aa);
-            @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_90_prev" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_90_prev', $tkComputed['ninety_prev'] ?? 90.000, $prevDetails['AA51'] ?? 0.90); @endphp
+            <input type="hidden" name="tokurei_rate_90_prev" value="{{ $raw }}">{{ $disp }}
           </td>
           <td class="text-end">
-            @php
-              $aa = $currDetails['AA51'] ?? 0.90;
-              $v = $valPercent($inputs, 'tokurei_rate_90_curr', $tkComputed['ninety_curr'] ?? null, $aa);
-            @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_90_curr" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_90_curr', $tkComputed['ninety_curr'] ?? 90.000, $currDetails['AA51'] ?? 0.90); @endphp
+            <input type="hidden" name="tokurei_rate_90_curr" value="{{ $raw }}">{{ $disp }}
           </td>
         </tr>
         <tr>
           <th scope="row">山林所得（1/5）ベース</th>
           <td class="text-end">
-            @php
-              $fallback = $tkComputed['sanrin_prev'] ?? ($tkFallback['sanrin_div5_prev'] ?? null);
-              $aa = $prevDetails['AA52'] ?? null;
-              $v = $valPercent($inputs, 'tokurei_rate_sanrin_div5_prev', $fallback, $aa);
-            @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_sanrin_div5_prev" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_sanrin_div5_prev', $tkComputed['sanrin_prev'] ?? null, $prevDetails['AA52'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_sanrin_div5_prev" value="{{ $raw }}">{{ $disp }}
           </td>
           <td class="text-end">
-            @php
-              $fallback = $tkComputed['sanrin_curr'] ?? ($tkFallback['sanrin_div5_curr'] ?? null);
-              $aa = $currDetails['AA52'] ?? null;
-              $v = $valPercent($inputs, 'tokurei_rate_sanrin_div5_curr', $fallback, $aa);
-            @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_sanrin_div5_curr" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_sanrin_div5_curr', $tkComputed['sanrin_curr'] ?? null, $currDetails['AA52'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_sanrin_div5_curr" value="{{ $raw }}">{{ $disp }}
           </td>
         </tr>
         <tr>
           <th scope="row">退職所得ベース</th>
           <td class="text-end">
-            @php $v = $valPercent($inputs, 'tokurei_rate_taishoku_prev', $tkComputed['taishoku_prev'] ?? null, $prevDetails['AA53'] ?? null); @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_taishoku_prev" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_taishoku_prev', $tkComputed['taishoku_prev'] ?? null, $prevDetails['AA53'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_taishoku_prev" value="{{ $raw }}">{{ $disp }}
           </td>
           <td class="text-end">
-            @php $v = $valPercent($inputs, 'tokurei_rate_taishoku_curr', $tkComputed['taishoku_curr'] ?? null, $currDetails['AA53'] ?? null); @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_taishoku_curr" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_taishoku_curr', $tkComputed['taishoku_curr'] ?? null, $currDetails['AA53'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_taishoku_curr" value="{{ $raw }}">{{ $disp }}
           </td>
         </tr>
         <tr>
           <th scope="row">採用率（山林／退職の小さい方）</th>
           <td class="text-end">
-            @php $v = $valPercent($inputs, 'tokurei_rate_adopted_prev', $tkComputed['adopted_prev'] ?? null, $prevDetails['AA54'] ?? null); @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_adopted_prev" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_adopted_prev', $tkComputed['adopted_prev'] ?? null, $prevDetails['AA54'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_adopted_prev" value="{{ $raw }}">{{ $disp }}
           </td>
           <td class="text-end">
-            @php $v = $valPercent($inputs, 'tokurei_rate_adopted_curr', $tkComputed['adopted_curr'] ?? null, $currDetails['AA54'] ?? null); @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_adopted_curr" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_adopted_curr', $tkComputed['adopted_curr'] ?? null, $currDetails['AA54'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_adopted_curr" value="{{ $raw }}">{{ $disp }}
           </td>
         </tr>
         <tr>
           <th scope="row">分離課税に基づく率（最小）</th>
           <td class="text-end">
-            @php $v = $valPercent($inputs, 'tokurei_rate_bunri_min_prev', $tkComputed['bunri_min_prev'] ?? null, $prevDetails['AA55'] ?? null); @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_bunri_min_prev" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_bunri_min_prev', $tkComputed['bunri_min_prev'] ?? null, $prevDetails['AA55'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_bunri_min_prev" value="{{ $raw }}">{{ $disp }}
           </td>
           <td class="text-end">
-            @php $v = $valPercent($inputs, 'tokurei_rate_bunri_min_curr', $tkComputed['bunri_min_curr'] ?? null, $currDetails['AA55'] ?? null); @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_bunri_min_curr" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_bunri_min_curr', $tkComputed['bunri_min_curr'] ?? null, $currDetails['AA55'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_bunri_min_curr" value="{{ $raw }}">{{ $disp }}
           </td>
         </tr>
         <tr class="table-primary">
           <th scope="row" class="fw-bold">特例控除 最終率</th>
           <td class="text-end">
-            @php $v = $valPercent($inputs, 'tokurei_rate_final_prev', $tkComputed['final_prev'] ?? null, $prevDetails['AA56'] ?? null); @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_final_prev" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end fw-bold" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_final_prev', $tkComputed['final_prev'] ?? null, $prevDetails['AA56'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_final_prev" value="{{ $raw }}"><span class="fw-bold">{{ $disp }}</span>
           </td>
           <td class="text-end">
-            @php $v = $valPercent($inputs, 'tokurei_rate_final_curr', $tkComputed['final_curr'] ?? null, $currDetails['AA56'] ?? null); @endphp
-            <div class="input-group input-group-sm">
-              <input name="tokurei_rate_final_curr" type="number" inputmode="decimal" step="0.001" min="0"
-                     class="form-control form-control-sm text-end fw-bold" value="{{ $v }}" readonly>
-              <span class="input-group-text">%</span>
-            </div>
+            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_final_curr', $tkComputed['final_curr'] ?? null, $currDetails['AA56'] ?? null); @endphp
+            <input type="hidden" name="tokurei_rate_final_curr" value="{{ $raw }}"><span class="fw-bold">{{ $disp }}</span>
           </td>
         </tr>
       </tbody>

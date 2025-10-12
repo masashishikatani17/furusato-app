@@ -5,6 +5,7 @@
   $jintekiDiff = $jintekiDiff ?? [];
   $inputs = $inputs ?? [];
   $tkFallback = $tokureiFallbackPercent ?? [];
+  $tokureiStandardRate = $tokureiStandardRate ?? [];
   $valPercent = static function (array $ins, string $key, ?float $fallbackPercent, ?float $aa): string {
       if (array_key_exists($key, $ins) && $ins[$key] !== null && $ins[$key] !== '') {
           return (string) $ins[$key];
@@ -62,6 +63,16 @@
       </tbody>
     </table>
   </div>
+  @php
+    $stdPrev = $tokureiStandardRate['prev'] ?? (isset($prevDetails['AA50']) ? $prevDetails['AA50'] * 100 : null);
+    $stdCurr = $tokureiStandardRate['curr'] ?? (isset($currDetails['AA50']) ? $currDetails['AA50'] * 100 : null);
+    $fmt = static fn($v) => $v === null ? '' : rtrim(rtrim(number_format($v, 3), '0'), '.') . '%';
+  @endphp
+  @if ($stdPrev !== null || $stdCurr !== null)
+    <div class="mb-1 small">
+      特例控除率（標準） 前年：{{ $fmt($stdPrev) }}　当年：{{ $fmt($stdCurr) }}
+    </div>
+  @endif
   <div class="table-responsive">
     <table class="table table-bordered table-sm align-middle">
       <thead class="table-light">

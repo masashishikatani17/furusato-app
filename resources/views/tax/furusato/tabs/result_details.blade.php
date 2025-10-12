@@ -6,6 +6,13 @@
   $inputs = $inputs ?? [];
   $tkFallback = $tokureiFallbackPercent ?? [];
   $tokureiStandardRate = $tokureiStandardRate ?? [];
+  $valInt = static function (array $ins, string $key, ?int $fallback): string {
+      if (array_key_exists($key, $ins) && $ins[$key] !== null && $ins[$key] !== '') {
+          return (string) (int) $ins[$key];
+      }
+
+      return $fallback !== null ? (string) (int) $fallback : '';
+  };
   $valPercent = static function (array $ins, string $key, ?float $fallbackPercent, ?float $aa): string {
       if (array_key_exists($key, $ins) && $ins[$key] !== null && $ins[$key] !== '') {
           return (string) $ins[$key];
@@ -36,29 +43,55 @@
       <tbody>
         @php
           $rows = [
-            ['label' => '寡婦控除', 'key' => 'kafu'],
-            ['label' => 'ひとり親控除', 'key' => 'hitorioya'],
-            ['label' => '勤労学生控除', 'key' => 'kinrogakusei'],
-            ['label' => '障害者控除', 'key' => 'shogaisyo'],
-            ['label' => '配偶者控除', 'key' => 'haigusha'],
-            ['label' => '配偶者特別控除', 'key' => 'haigusha_tokubetsu'],
-            ['label' => '扶養控除', 'key' => 'fuyo'],
-            ['label' => '特定親族特別控除', 'key' => 'tokutei_shinzoku'],
-            ['label' => '基礎控除', 'key' => 'kiso'],
-            ['label' => '人的控除額の差の合計額', 'key' => 'sum'],
+            ['label' => '寡婦控除', 'key' => 'kafu', 'input' => 'human_diff_kafu'],
+            ['label' => 'ひとり親控除', 'key' => 'hitorioya', 'input' => 'human_diff_hitorioya'],
+            ['label' => '勤労学生控除', 'key' => 'kinrogakusei', 'input' => 'human_diff_kinrogakusei'],
+            ['label' => '障害者控除', 'key' => 'shogaisyo', 'input' => 'human_diff_shogaisyo'],
+            ['label' => '配偶者控除', 'key' => 'haigusha', 'input' => 'human_diff_haigusha'],
+            ['label' => '配偶者特別控除', 'key' => 'haigusha_tokubetsu', 'input' => 'human_diff_haigusha_tokubetsu'],
+            ['label' => '扶養控除', 'key' => 'fuyo', 'input' => 'human_diff_fuyo'],
+            ['label' => '特定親族特別控除', 'key' => 'tokutei_shinzoku', 'input' => 'human_diff_tokutei_shinzoku'],
+            ['label' => '基礎控除', 'key' => 'kiso', 'input' => 'human_diff_kiso'],
+            ['label' => '人的控除額の差の合計額', 'key' => 'sum', 'input' => 'human_diff_sum'],
           ];
         @endphp
         @foreach ($rows as $row)
+          @php
+            $inputPrev = $row['input'] . '_prev';
+            $inputCurr = $row['input'] . '_curr';
+            $fallbackPrev = $jintekiDiff[$row['key']]['prev'] ?? null;
+            $fallbackCurr = $jintekiDiff[$row['key']]['curr'] ?? null;
+          @endphp
           <tr>
             <th class="text-start">{{ $row['label'] }}</th>
-            <td>{{ number_format((int) ($jintekiDiff[$row['key']]['prev'] ?? 0)) }}</td>
-            <td>{{ number_format((int) ($jintekiDiff[$row['key']]['curr'] ?? 0)) }}</td>
+            <td>
+              <input name="{{ $inputPrev }}" type="number" step="1"
+                     class="form-control form-control-sm text-end"
+                     value="{{ $valInt($inputs, $inputPrev, $fallbackPrev) }}" readonly>
+            </td>
+            <td>
+              <input name="{{ $inputCurr }}" type="number" step="1"
+                     class="form-control form-control-sm text-end"
+                     value="{{ $valInt($inputs, $inputCurr, $fallbackCurr) }}" readonly>
+            </td>
           </tr>
         @endforeach
         <tr>
           <th class="text-start">課税総所得金額-人的控除差調整額</th>
-          <td>{{ number_format((int) ($jintekiDiff['adjusted_taxable']['prev'] ?? 0)) }}</td>
-          <td>{{ number_format((int) ($jintekiDiff['adjusted_taxable']['curr'] ?? 0)) }}</td>
+          @php
+            $fallbackPrev = $jintekiDiff['adjusted_taxable']['prev'] ?? null;
+            $fallbackCurr = $jintekiDiff['adjusted_taxable']['curr'] ?? null;
+          @endphp
+          <td>
+            <input name="human_adjusted_taxable_prev" type="number" step="1"
+                   class="form-control form-control-sm text-end"
+                   value="{{ $valInt($inputs, 'human_adjusted_taxable_prev', $fallbackPrev) }}" readonly>
+          </td>
+          <td>
+            <input name="human_adjusted_taxable_curr" type="number" step="1"
+                   class="form-control form-control-sm text-end"
+                   value="{{ $valInt($inputs, 'human_adjusted_taxable_curr', $fallbackCurr) }}" readonly>
+          </td>
         </tr>
       </tbody>
     </table>

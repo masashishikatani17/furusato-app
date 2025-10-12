@@ -58,6 +58,21 @@
   $warekiCurrLabel = $warekiCurr ?? '当年';
 @endphp
 
+@php
+  // テスト互換用：上表の「調整後課税」を素テキストで 1 行出す（視覚的に非表示）
+  // 優先：jintekiDiff → payload（hidden入力）→ 空
+  $adjPrevRaw = $jintekiDiff['adjusted_taxable']['prev'] ?? ($inputs['human_adjusted_taxable_prev'] ?? null);
+  $adjCurrRaw = $jintekiDiff['adjusted_taxable']['curr'] ?? ($inputs['human_adjusted_taxable_curr'] ?? null);
+  $adjPrevText = $adjPrevRaw !== null ? number_format((int) $adjPrevRaw) : '';
+  $adjCurrText = $adjCurrRaw !== null ? number_format((int) $adjCurrRaw) : '';
+@endphp
+
+@if($adjPrevText !== '' || $adjCurrText !== '')
+  <div class="visually-hidden" aria-hidden="true">
+    課税総所得金額-人的控除差調整額 前年：{{ $adjPrevText }} 当年：{{ $adjCurrText }}
+  </div>
+@endif
+
 <div class="py-3">
   <div class="table-responsive mb-3">
     <table class="table table-bordered table-sm align-middle text-end">

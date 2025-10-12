@@ -4,19 +4,19 @@
   $currDetails = $details['curr'] ?? [];
   $jintekiDiff = $jintekiDiff ?? [];
   $inputs = $inputs ?? [];
-  $formatRate = static function (?float $rate): string {
-      if ($rate === null) {
-          return '';
+  $tkFallback = $tokureiFallbackPercent ?? [];
+  $valPercent = static function (array $ins, string $key, ?float $fallbackPercent, ?float $aa): string {
+      if (array_key_exists($key, $ins) && $ins[$key] !== null && $ins[$key] !== '') {
+          return (string) $ins[$key];
+      }
+      if ($fallbackPercent !== null) {
+          return rtrim(rtrim(number_format($fallbackPercent, 3), '0'), '.');
+      }
+      if ($aa !== null) {
+          return rtrim(rtrim(number_format($aa * 100, 3), '0'), '.');
       }
 
-      return number_format($rate * 100, 3) . '%';
-  };
-  $val = static function (array $inputs, string $key, ?float $fallback): string {
-      if (array_key_exists($key, $inputs) && $inputs[$key] !== null && $inputs[$key] !== '') {
-          return (string) $inputs[$key];
-      }
-
-      return $fallback !== null ? rtrim(rtrim(number_format($fallback, 6), '0'), '.') : '';
+      return '';
   };
   $warekiPrevLabel = $warekiPrev ?? '前年';
   $warekiCurrLabel = $warekiCurr ?? '当年';
@@ -74,86 +74,149 @@
       <tbody>
         <tr>
           <th scope="row">特例控除率（標準）</th>
-          <td class="text-end">{{ $formatRate($prevDetails['AA50'] ?? null) }}</td>
-          <td class="text-end">{{ $formatRate($currDetails['AA50'] ?? null) }}</td>
+          <td class="text-end">
+            @php $v = $valPercent($inputs, 'tokurei_rate_standard_prev', null, $prevDetails['AA50'] ?? null); @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_standard_prev" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
+          </td>
+          <td class="text-end">
+            @php $v = $valPercent($inputs, 'tokurei_rate_standard_curr', null, $currDetails['AA50'] ?? null); @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_standard_curr" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
+          </td>
         </tr>
         <tr>
           <th scope="row">特例控除率（90％）</th>
-          <td class="text-end">{{ $formatRate($prevDetails['AA51'] ?? null) }}</td>
-          <td class="text-end">{{ $formatRate($currDetails['AA51'] ?? null) }}</td>
+          <td class="text-end">
+            @php
+              $aa = $prevDetails['AA51'] ?? 0.90;
+              $v = $valPercent($inputs, 'tokurei_rate_90_prev', null, $aa);
+            @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_90_prev" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
+          </td>
+          <td class="text-end">
+            @php
+              $aa = $currDetails['AA51'] ?? 0.90;
+              $v = $valPercent($inputs, 'tokurei_rate_90_curr', null, $aa);
+            @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_90_curr" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
+          </td>
         </tr>
         <tr>
           <th scope="row">山林所得（1/5）ベース</th>
-            <input name="tokurei_rate_sanrin_div5_prev" type="number" inputmode="decimal"
-                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
-                   value="{{ $val($inputs, 'tokurei_rate_sanrin_div5_prev', $prevDetails['AA52'] ?? null) }}"
-                   placeholder="0.000000">
+          <td class="text-end">
+            @php
+              $fallback = $tkFallback['sanrin_div5_prev'] ?? null;
+              $aa = $prevDetails['AA52'] ?? null;
+              $v = $valPercent($inputs, 'tokurei_rate_sanrin_div5_prev', $fallback, $aa);
+            @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_sanrin_div5_prev" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
           </td>
           <td class="text-end">
-            <input name="tokurei_rate_sanrin_div5_curr" type="number" inputmode="decimal"
-                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
-                   value="{{ $val($inputs, 'tokurei_rate_sanrin_div5_curr', $currDetails['AA52'] ?? null) }}"
-                   placeholder="0.000000">
+            @php
+              $fallback = $tkFallback['sanrin_div5_curr'] ?? null;
+              $aa = $currDetails['AA52'] ?? null;
+              $v = $valPercent($inputs, 'tokurei_rate_sanrin_div5_curr', $fallback, $aa);
+            @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_sanrin_div5_curr" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
           </td>
         </tr>
         <tr>
           <th scope="row">退職所得ベース</th>
           <td class="text-end">
-            <input name="tokurei_rate_taishoku_prev" type="number" inputmode="decimal"
-                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
-                   value="{{ $val($inputs, 'tokurei_rate_taishoku_prev', $prevDetails['AA53'] ?? null) }}"
-                   placeholder="0.000000">
+            @php $v = $valPercent($inputs, 'tokurei_rate_taishoku_prev', null, $prevDetails['AA53'] ?? null); @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_taishoku_prev" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
           </td>
           <td class="text-end">
-            <input name="tokurei_rate_taishoku_curr" type="number" inputmode="decimal"
-                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
-                   value="{{ $val($inputs, 'tokurei_rate_taishoku_curr', $currDetails['AA53'] ?? null) }}"
-                   placeholder="0.000000">
+            @php $v = $valPercent($inputs, 'tokurei_rate_taishoku_curr', null, $currDetails['AA53'] ?? null); @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_taishoku_curr" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
           </td>
         </tr>
         <tr>
           <th scope="row">採用率（山林／退職の小さい方）</th>
           <td class="text-end">
-            <input name="tokurei_rate_adopted_prev" type="number" inputmode="decimal"
-                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
-                   value="{{ $val($inputs, 'tokurei_rate_adopted_prev', $prevDetails['AA54'] ?? null) }}"
-                   placeholder="0.000000">
+            @php $v = $valPercent($inputs, 'tokurei_rate_adopted_prev', null, $prevDetails['AA54'] ?? null); @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_adopted_prev" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
           </td>
           <td class="text-end">
-            <input name="tokurei_rate_adopted_curr" type="number" inputmode="decimal"
-                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
-                   value="{{ $val($inputs, 'tokurei_rate_adopted_curr', $currDetails['AA54'] ?? null) }}"
-                   placeholder="0.000000">
+            @php $v = $valPercent($inputs, 'tokurei_rate_adopted_curr', null, $currDetails['AA54'] ?? null); @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_adopted_curr" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
           </td>
         </tr>
         <tr>
           <th scope="row">分離課税に基づく率（最小）</th>
           <td class="text-end">
-            <input name="tokurei_rate_bunri_min_prev" type="number" inputmode="decimal"
-                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
-                   value="{{ $val($inputs, 'tokurei_rate_bunri_min_prev', $prevDetails['AA55'] ?? null) }}"
-                   placeholder="0.000000">
+            @php $v = $valPercent($inputs, 'tokurei_rate_bunri_min_prev', null, $prevDetails['AA55'] ?? null); @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_bunri_min_prev" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
           </td>
           <td class="text-end">
-            <input name="tokurei_rate_bunri_min_curr" type="number" inputmode="decimal"
-                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end"
-                   value="{{ $val($inputs, 'tokurei_rate_bunri_min_curr', $currDetails['AA55'] ?? null) }}"
-                   placeholder="0.000000">
+            @php $v = $valPercent($inputs, 'tokurei_rate_bunri_min_curr', null, $currDetails['AA55'] ?? null); @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_bunri_min_curr" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
           </td>
         </tr>
         <tr class="table-primary">
           <th scope="row" class="fw-bold">特例控除 最終率</th>
           <td class="text-end">
-            <input name="tokurei_rate_final_prev" type="number" inputmode="decimal"
-                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end fw-bold"
-                   value="{{ $val($inputs, 'tokurei_rate_final_prev', $prevDetails['AA56'] ?? null) }}"
-                   placeholder="0.000000">
+            @php $v = $valPercent($inputs, 'tokurei_rate_final_prev', null, $prevDetails['AA56'] ?? null); @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_final_prev" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end fw-bold" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
           </td>
           <td class="text-end">
-            <input name="tokurei_rate_final_curr" type="number" inputmode="decimal"
-                   min="0" max="1" step="0.000001" class="form-control form-control-sm text-end fw-bold"
-                   value="{{ $val($inputs, 'tokurei_rate_final_curr', $currDetails['AA56'] ?? null) }}"
-                   placeholder="0.000000">
+            @php $v = $valPercent($inputs, 'tokurei_rate_final_curr', null, $currDetails['AA56'] ?? null); @endphp
+            <div class="input-group input-group-sm">
+              <input name="tokurei_rate_final_curr" type="number" inputmode="decimal" step="0.001" min="0"
+                     class="form-control form-control-sm text-end fw-bold" value="{{ $v }}" readonly>
+              <span class="input-group-text">%</span>
+            </div>
           </td>
         </tr>
       </tbody>

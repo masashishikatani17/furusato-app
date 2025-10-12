@@ -20,6 +20,8 @@ use App\Services\Tax\Kojo\KifukinShotokuKojoService;
 use App\Services\Tax\Kojo\KihonService;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use App\Services\Tax\Result\FurusatoResultService;
+use App\Services\Tax\Result\Rate\TokureiRateService;
+use App\Services\Tax\Result\Support\PayloadAccessor;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -221,6 +223,12 @@ final class FurusatoController extends Controller
         }
         $companyId = $companyId !== null ? (int) $companyId : null;
 
+        $yearForRate = (int) ($kihuYear ?? self::MASTER_KIHU_YEAR);
+        $tokureiFallbackPercent = [
+            'sanrin_div5_prev' => $this->calcSanrinDiv5Percent($savedInputs, 'prev', $yearForRate, $companyId),
+            'sanrin_div5_curr' => $this->calcSanrinDiv5Percent($savedInputs, 'curr', $yearForRate, $companyId),
+        ];
+
         $shotokuRates = app(FurusatoMasterService::class)
             ->getShotokuRates(self::MASTER_KIHU_YEAR, $companyId);
 
@@ -263,6 +271,7 @@ final class FurusatoController extends Controller
             'shotokuRates' => $shotokuRates,
             'jintekiDiff' => $jintekiDiff,
             'tokureiStandardRate' => $tokureiStandardRate,
+            'tokureiFallbackPercent' => $tokureiFallbackPercent,
         ];
 
         $session = session();
@@ -277,6 +286,49 @@ final class FurusatoController extends Controller
         }
 
         return $context;
+    }
+
+    /**
+     * TokureiRate の標準レンジから lower ≤ amount の最大一致で tokurei_deduction_rate(%) を返す。
+     *
+     * @param  float  $amount  課税総所得-人的控除差調整額などの金額（千円未満は切り捨て済み想定）
+     */
+    private function tokureiPercentForAmount(int $kihuYear, ?int $companyId, float $amount): ?float
+    {
+        /** @var TokureiRateService $svc */
+        $svc = app(TokureiRateService::class);
+        $rows = $svc->getRows($kihuYear, $companyId);
+        if ($amount <= 0) {
+            return null;
+        }
+
+        $floored = PayloadAccessor::floorToThousands($amount);
+        if ($floored === null || $floored <= 0) {
+            return null;
+        }
+
+        $rate = $svc->lowerBoundRate($floored, $rows);
+
+        return $rate !== null ? round($rate * 100, 3) : null;
+    }
+
+    /**
+     * 山林(1/5)ベースの特例控除率（百分率）を求める。
+     */
+    private function calcSanrinDiv5Percent(array $payload, string $period, int $kihuYear, ?int $companyId): ?float
+    {
+        $key = sprintf('bunri_kazeishotoku_sanrin_shotoku_%s', $period);
+        $raw = PayloadAccessor::intOrNull($payload, $key);
+        if ($raw === null || $raw <= 0) {
+            return null;
+        }
+
+        $divided = PayloadAccessor::floorToThousands($raw / 5.0);
+        if ($divided === null || $divided <= 0) {
+            return null;
+        }
+
+        return $this->tokureiPercentForAmount($kihuYear, $companyId, $divided);
     }
 
     private function computeJintekiDiff(array $payload): array

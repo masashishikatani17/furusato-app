@@ -224,10 +224,7 @@ final class FurusatoController extends Controller
         $companyId = $companyId !== null ? (int) $companyId : null;
 
         $yearForRate = (int) ($kihuYear ?? self::MASTER_KIHU_YEAR);
-        $tokureiFallbackPercent = [
-            'sanrin_div5_prev' => $this->calcSanrinDiv5Percent($savedInputs, 'prev', $yearForRate, $companyId),
-            'sanrin_div5_curr' => $this->calcSanrinDiv5Percent($savedInputs, 'curr', $yearForRate, $companyId),
-        ];
+        $companyIdForRate = $companyId;
 
         $shotokuRates = app(FurusatoMasterService::class)
             ->getShotokuRates(self::MASTER_KIHU_YEAR, $companyId);
@@ -255,6 +252,64 @@ final class FurusatoController extends Controller
             'curr' => $this->lookupTokureiStandardRate($adjustedTaxableCurr, $companyId, $targetYear),
         ];
 
+        $sanrinPrevPct = $this->calcSanrinDiv5Percent($savedInputs, 'prev', $yearForRate, $companyIdForRate);
+        $sanrinCurrPct = $this->calcSanrinDiv5Percent($savedInputs, 'curr', $yearForRate, $companyIdForRate);
+
+        $taishokuPrevPct = $this->calcTaishokuPercent($savedInputs, 'prev', $yearForRate, $companyIdForRate);
+        $taishokuCurrPct = $this->calcTaishokuPercent($savedInputs, 'curr', $yearForRate, $companyIdForRate);
+
+        $adoptedPrevPct = $this->calcAdoptedPercent($sanrinPrevPct, $taishokuPrevPct);
+        $adoptedCurrPct = $this->calcAdoptedPercent($sanrinCurrPct, $taishokuCurrPct);
+
+        $bunriMinPrevPct = $this->calcBunriMinPercent($savedInputs, 'prev');
+        $bunriMinCurrPct = $this->calcBunriMinPercent($savedInputs, 'curr');
+
+        $stdPrevPct = $tokureiStandardRate['prev'] ?? null;
+        $stdCurrPct = $tokureiStandardRate['curr'] ?? null;
+
+        $finalPrevPct = $this->calcFinalPercent(
+            $savedInputs,
+            'prev',
+            $yearForRate,
+            $companyIdForRate,
+            $stdPrevPct,
+            $adoptedPrevPct,
+            $bunriMinPrevPct,
+            $adjustedTaxablePrev,
+        );
+        $finalCurrPct = $this->calcFinalPercent(
+            $savedInputs,
+            'curr',
+            $yearForRate,
+            $companyIdForRate,
+            $stdCurrPct,
+            $adoptedCurrPct,
+            $bunriMinCurrPct,
+            $adjustedTaxableCurr,
+        );
+
+        $tokureiComputedPercent = [
+            'standard_prev' => $stdPrevPct,
+            'standard_curr' => $stdCurrPct,
+            'ninety_prev' => 90.000,
+            'ninety_curr' => 90.000,
+            'sanrin_prev' => $sanrinPrevPct,
+            'sanrin_curr' => $sanrinCurrPct,
+            'taishoku_prev' => $taishokuPrevPct,
+            'taishoku_curr' => $taishokuCurrPct,
+            'adopted_prev' => $adoptedPrevPct,
+            'adopted_curr' => $adoptedCurrPct,
+            'bunri_min_prev' => $bunriMinPrevPct,
+            'bunri_min_curr' => $bunriMinCurrPct,
+            'final_prev' => $finalPrevPct,
+            'final_curr' => $finalCurrPct,
+        ];
+
+        $tokureiFallbackPercent = [
+            'sanrin_div5_prev' => $sanrinPrevPct,
+            'sanrin_div5_curr' => $sanrinCurrPct,
+        ];
+
         /** @var FurusatoResultService $resultService */
         $resultService = app(FurusatoResultService::class);
         $previewResults = $resultService->buildFromPayload($targetYear, $companyId, $savedInputs);
@@ -272,6 +327,7 @@ final class FurusatoController extends Controller
             'jintekiDiff' => $jintekiDiff,
             'tokureiStandardRate' => $tokureiStandardRate,
             'tokureiFallbackPercent' => $tokureiFallbackPercent,
+            'tokureiComputedPercent' => $tokureiComputedPercent,
         ];
 
         $session = session();
@@ -329,6 +385,104 @@ final class FurusatoController extends Controller
         }
 
         return $this->tokureiPercentForAmount($kihuYear, $companyId, $divided);
+    }
+
+    private function calcTaishokuPercent(array $payload, string $period, int $kihuYear, ?int $companyId): ?float
+    {
+        $key = sprintf('bunri_kazeishotoku_taishoku_shotoku_%s', $period);
+        $raw = PayloadAccessor::intOrNull($payload, $key);
+        if ($raw === null || $raw <= 0) {
+            return null;
+        }
+
+        $amount = PayloadAccessor::floorToThousands($raw);
+        if ($amount === null || $amount <= 0) {
+            return null;
+        }
+
+        return $this->tokureiPercentForAmount($kihuYear, $companyId, $amount);
+    }
+
+    private function calcAdoptedPercent(?float $sanrinPct, ?float $taishokuPct): ?float
+    {
+        if ($sanrinPct === null && $taishokuPct === null) {
+            return null;
+        }
+
+        $a = $sanrinPct ?? 100.000;
+        $b = $taishokuPct ?? 100.000;
+
+        return min($a, $b);
+    }
+
+    private function calcBunriMinPercent(array $payload, string $period): ?float
+    {
+        $tankiKey = sprintf('bunri_kazeishotoku_tanki_shotoku_%s', $period);
+        $tanki = PayloadAccessor::intOrNull($payload, $tankiKey) ?? 0;
+        if ($tanki > 0) {
+            return 59.370;
+        }
+
+        $others = [
+            sprintf('bunri_kazeishotoku_choki_shotoku_%s', $period),
+            sprintf('bunri_kazeishotoku_haito_shotoku_%s', $period),
+            sprintf('bunri_kazeishotoku_joto_shotoku_%s', $period),
+        ];
+
+        foreach ($others as $key) {
+            $value = PayloadAccessor::intOrNull($payload, $key) ?? 0;
+            if ($value > 0) {
+                return 74.685;
+            }
+        }
+
+        return null;
+    }
+
+    private function calcFinalPercent(
+        array $payload,
+        string $period,
+        int $kihuYear,
+        ?int $companyId,
+        ?float $standardPct,
+        ?float $adoptedPct,
+        ?float $bunriMinPct,
+        int $adjustedTaxable
+    ): ?float {
+        $taxShotoku = PayloadAccessor::intOrNull($payload, sprintf('tax_kazeishotoku_shotoku_%s', $period)) ?? 0;
+        $sanrinShotoku = PayloadAccessor::intOrNull($payload, sprintf('bunri_kazeishotoku_sanrin_shotoku_%s', $period)) ?? 0;
+        $taishokuShotoku = PayloadAccessor::intOrNull($payload, sprintf('bunri_kazeishotoku_taishoku_shotoku_%s', $period)) ?? 0;
+
+        if ($taxShotoku === 0 && $sanrinShotoku === 0 && $taishokuShotoku === 0) {
+            return 90.000;
+        }
+
+        $candidates = [];
+
+        if ($standardPct !== null) {
+            $candidates[] = $standardPct;
+        }
+
+        $humanDiffSumKey = sprintf('human_diff_sum_%s', $period);
+        $humanDiffSum = PayloadAccessor::intOrNull($payload, $humanDiffSumKey) ?? 0;
+        $aa49IsNegative = $adjustedTaxable === 0 && (($taxShotoku - $humanDiffSum) < 0);
+        if ($aa49IsNegative && $sanrinShotoku === 0 && $taishokuShotoku === 0) {
+            $candidates[] = 90.000;
+        }
+
+        if ($adoptedPct !== null) {
+            $candidates[] = $adoptedPct;
+        }
+
+        if ($bunriMinPct !== null) {
+            $candidates[] = $bunriMinPct;
+        }
+
+        if ($candidates === []) {
+            return null;
+        }
+
+        return min($candidates);
     }
 
     private function computeJintekiDiff(array $payload): array

@@ -6,6 +6,7 @@
   $inputs = $inputs ?? [];
   $tokureiStandardRate = $tokureiStandardRate ?? [];
   $tkComputed = $tokureiComputedPercent ?? [];
+  $tkEnabled = $tokureiEnabled ?? [];
 
   // hiddenの値：payload 優先、なければ計算結果をそのままraw整数（カンマなし）
   $rawInt = static function (array $ins, string $key, ?int $fallback): string {
@@ -48,6 +49,26 @@
       }
       if ($aa !== null) {
           $num = (float) ($aa * 100.0);
+
+          return [$formatRawPercent($num), $formatDisplayPercent($num)];
+      }
+
+      return ['', ''];
+  };
+  // 百分率hidden値：有効フラグが false の場合は空欄を返す
+  $valPercentEnabled = static function (array $ins, string $key, bool $enabled, ?float $computedPercent) use ($formatRawPercent, $formatDisplayPercent): array {
+      if (! $enabled) {
+          return ['', ''];
+      }
+
+      if (array_key_exists($key, $ins) && $ins[$key] !== null && $ins[$key] !== '') {
+          $num = (float) $ins[$key];
+
+          return [$formatRawPercent($num), $formatDisplayPercent($num)];
+      }
+
+      if ($computedPercent !== null) {
+          $num = (float) $computedPercent;
 
           return [$formatRawPercent($num), $formatDisplayPercent($num)];
       }
@@ -150,11 +171,6 @@
     $stdCurr = $tokureiStandardRate['curr'] ?? (isset($currDetails['AA50']) ? $currDetails['AA50'] * 100 : null);
     $fmt = static fn($v) => $v === null ? '' : rtrim(rtrim(number_format($v, 3), '0'), '.') . '%';
   @endphp
-  @if ($stdPrev !== null || $stdCurr !== null)
-    <div class="mb-1 small">
-      特例控除率（標準） 前年：{{ $fmt($stdPrev) }}　当年：{{ $fmt($stdCurr) }}
-    </div>
-  @endif
   <div class="table-responsive">
     <table class="table table-bordered table-sm align-middle">
       <thead class="table-light">
@@ -190,44 +206,44 @@
         <tr>
           <th scope="row">山林所得（1/5）ベース</th>
           <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_sanrin_div5_prev', $tkComputed['sanrin_prev'] ?? null, $prevDetails['AA52'] ?? null); @endphp
+            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_sanrin_div5_prev', $tkEnabled['sanrin_prev'] ?? false, $tkComputed['sanrin_prev'] ?? null); @endphp
             <input type="hidden" name="tokurei_rate_sanrin_div5_prev" value="{{ $raw }}">{{ $disp }}
           </td>
           <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_sanrin_div5_curr', $tkComputed['sanrin_curr'] ?? null, $currDetails['AA52'] ?? null); @endphp
+            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_sanrin_div5_curr', $tkEnabled['sanrin_curr'] ?? false, $tkComputed['sanrin_curr'] ?? null); @endphp
             <input type="hidden" name="tokurei_rate_sanrin_div5_curr" value="{{ $raw }}">{{ $disp }}
           </td>
         </tr>
         <tr>
           <th scope="row">退職所得ベース</th>
           <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_taishoku_prev', $tkComputed['taishoku_prev'] ?? null, $prevDetails['AA53'] ?? null); @endphp
+            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_taishoku_prev', $tkEnabled['taishoku_prev'] ?? false, $tkComputed['taishoku_prev'] ?? null); @endphp
             <input type="hidden" name="tokurei_rate_taishoku_prev" value="{{ $raw }}">{{ $disp }}
           </td>
           <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_taishoku_curr', $tkComputed['taishoku_curr'] ?? null, $currDetails['AA53'] ?? null); @endphp
+            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_taishoku_curr', $tkEnabled['taishoku_curr'] ?? false, $tkComputed['taishoku_curr'] ?? null); @endphp
             <input type="hidden" name="tokurei_rate_taishoku_curr" value="{{ $raw }}">{{ $disp }}
           </td>
         </tr>
         <tr>
           <th scope="row">採用率（山林／退職の小さい方）</th>
           <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_adopted_prev', $tkComputed['adopted_prev'] ?? null, $prevDetails['AA54'] ?? null); @endphp
+            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_adopted_prev', ($tkEnabled['sanrin_prev'] ?? false) || ($tkEnabled['taishoku_prev'] ?? false), $tkComputed['adopted_prev'] ?? null); @endphp
             <input type="hidden" name="tokurei_rate_adopted_prev" value="{{ $raw }}">{{ $disp }}
           </td>
           <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_adopted_curr', $tkComputed['adopted_curr'] ?? null, $currDetails['AA54'] ?? null); @endphp
+            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_adopted_curr', ($tkEnabled['sanrin_curr'] ?? false) || ($tkEnabled['taishoku_curr'] ?? false), $tkComputed['adopted_curr'] ?? null); @endphp
             <input type="hidden" name="tokurei_rate_adopted_curr" value="{{ $raw }}">{{ $disp }}
           </td>
         </tr>
         <tr>
           <th scope="row">分離課税に基づく率（最小）</th>
           <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_bunri_min_prev', $tkComputed['bunri_min_prev'] ?? null, $prevDetails['AA55'] ?? null); @endphp
+            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_bunri_min_prev', $tkEnabled['bunri_prev'] ?? false, $tkComputed['bunri_min_prev'] ?? null); @endphp
             <input type="hidden" name="tokurei_rate_bunri_min_prev" value="{{ $raw }}">{{ $disp }}
           </td>
           <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_bunri_min_curr', $tkComputed['bunri_min_curr'] ?? null, $currDetails['AA55'] ?? null); @endphp
+            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_bunri_min_curr', $tkEnabled['bunri_curr'] ?? false, $tkComputed['bunri_min_curr'] ?? null); @endphp
             <input type="hidden" name="tokurei_rate_bunri_min_curr" value="{{ $raw }}">{{ $disp }}
           </td>
         </tr>

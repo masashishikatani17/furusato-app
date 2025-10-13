@@ -197,39 +197,63 @@
                       <div class="p-2 bg-cream mt-1">
                         <hb class="d-block text-center">分離課税</hb>
                         <hr class="my-2">
-                        @foreach ($bunriOptions as $value => $label)
-                          @php $id = sprintf('bunri-flag-%s-%s', $key, $value); @endphp
-                          <div class="form-check ms-5">
-                            <input class="form-check-input" type="radio" name="bunri_flag_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['bunri_flag'] === (string) $value) required>
-                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                          </div>
-                        @endforeach
+                        <div class="d-flex ms-5 gap-3 flex-wrap">
+                          @foreach ($bunriOptions as $value => $label)
+                            @php $id = sprintf('bunri-flag-%s-%s', $key, $value); @endphp
+                            <div class="form-check form-check-inline">
+                              <input class="form-check-input"
+                                     type="radio"
+                                     name="bunri_flag_{{ $key }}"
+                                     id="{{ $id }}"
+                                     value="{{ $value }}"
+                                     @checked($period['bunri_flag'] === (string) $value)
+                                     required>
+                              <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                            </div>
+                          @endforeach
+                        </div>
                       </div>
                     </div>
                     <div class="col-12">
                       <div class="p-2 bg-cream mt-1">
                         <hb class="d-block text-center">ワンストップ特例</hb>
                         <hr class="my-2">
-                        @foreach ($oneStopOptions as $value => $label)
-                          @php $id = sprintf('one-stop-flag-%s-%s', $key, $value); @endphp
-                          <div class="form-check ms-5">
-                            <input class="form-check-input" type="radio" name="one_stop_flag_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['one_stop_flag'] === (string) $value) required>
-                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                          </div>
-                        @endforeach
+                        <div class="d-flex ms-3 gap-3 flex-wrap">
+                          @foreach ($oneStopOptions as $value => $label)
+                            @php $id = sprintf('one-stop-flag-%s-%s', $key, $value); @endphp
+                            <div class="form-check form-check-inline">
+                              <input class="form-check-input"
+                                     type="radio"
+                                     name="one_stop_flag_{{ $key }}"
+                                     id="{{ $id }}"
+                                     value="{{ $value }}"
+                                     @checked($period['one_stop_flag'] === (string) $value)
+                                     required>
+                              <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                            </div>
+                          @endforeach
+                        </div>
                       </div>
                     </div>
                     <div class="col-12">
                       <div class="p-2 bg-cream mt-1">
                         <hb class="d-block text-center">指定都市区分</hb>
                         <hr class="my-2">
-                        @foreach ($shiteiOptions as $value => $label)
-                          @php $id = sprintf('shitei-flag-%s-%s', $key, $value); @endphp
-                          <div class="form-check ms-5">
-                            <input class="form-check-input" type="radio" name="shitei_toshi_flag_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['shitei_toshi_flag'] === (string) $value) required>
-                            <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                          </div>
-                        @endforeach
+                        <div class="d-flex ms-3 gap-1 flex-nowrap">
+                          @foreach ($shiteiOptions as $value => $label)
+                            @php $id = sprintf('shitei-flag-%s-%s', $key, $value); @endphp
+                            <div class="form-check form-check-inline" style="white-space: nowrap;">
+                              <input class="form-check-input"
+                                     type="radio"
+                                     name="shitei_toshi_flag_{{ $key }}"
+                                     id="{{ $id }}"
+                                     value="{{ $value }}"
+                                     @checked($period['shitei_toshi_flag'] === (string) $value)
+                                     required>
+                              <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
+                            </div>
+                          @endforeach
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
+use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
 use App\Domain\Tax\Calculators\JintekiKojoCalculator;
@@ -10,10 +11,9 @@ use App\Domain\Tax\Calculators\JuminTaxCalculator;
 use App\Domain\Tax\Calculators\KifukinCalculator;
 use App\Domain\Tax\Calculators\KisoKojoCalculator;
 use App\Domain\Tax\Calculators\KojoAggregationCalculator;
-use App\Domain\Tax\Calculators\TokureiRateCalculator;
-use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\SeitotoTokubetsuZeigakuKojoCalculator;
 use App\Domain\Tax\Calculators\ShotokuTaxCalculator;
+use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Domain\Tax\Providers\MasterProvider;
 use App\Domain\Tax\Support\PayloadNormalizer;
@@ -61,7 +61,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(RecalculateFurusatoPayload::class, function ($app) {
             return new RecalculateFurusatoPayload(
                 $app->make(PayloadNormalizer::class),
-                $app->tagged('tax.furusato.calculators')
+                $app->tagged('tax.furusato.calculators'),
+                $app->make(FurusatoResultCalculator::class),
             );
         });
     }

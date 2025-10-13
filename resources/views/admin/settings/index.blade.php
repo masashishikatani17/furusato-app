@@ -78,30 +78,32 @@
     ];
 @endphp
 
-<div class="container">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <h5 class="mb-0">設定TOP</h5>
-        <form method="POST" action="{{ route('logout') }}">
-            @csrf
-            <button type="submit" class="btn btn-sm btn-outline-secondary">ログアウト</button>
-        </form>
-    </div>
-
-    <div class="row g-3 g-md-4">
-        @foreach ($cards as $card)
-            @if (in_array($role, $card['roles'], true))
-                <div class="col-12 col-md-6 col-xl-4">
-                    <div class="card h-100 shadow-sm">
-                        <div class="card-body">
-                            <h5 class="mb-1">
-                                <a href="{{ $card['route'] }}" class="text-decoration-none">{{ $card['title'] }}</a>
-                            </h5>
-                            <p class="text-muted small mb-0">{{ $card['description'] }}</p>
+<div class="container" style="width:600px; background-color:#E8EFF0;">
+    <div class="wrapper mt-3 ma-2" style="background-color:#E8EFF0;">
+        <div class="d-flex align-items-center justify-content-between mt-2 mb-4">
+            <hb class="mb-2">○設定TOP</hb>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" class="btn btn-base-blue me-2">ログアウト</button>
+            </form>
+        </div>
+    
+        <div class="row g-4 g-md-4 mb-3">
+            @foreach ($cards as $card)
+                @if (in_array($role, $card['roles'], true))
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="card h-100 shadow-sm text-center">
+                            <div class="card-body">
+                                <h0 class="mb-1">
+                                    <a href="{{ $card['route'] }}" class="text-decoration-none">{{ $card['title'] }}</a>
+                                </h0>
+                                <p class="text-muted small mb-0">{{ $card['description'] }}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            @endif
-        @endforeach
-    </div>
+                @endif
+            @endforeach
+        </div>
+    </div>    
 </div>
 @endsection

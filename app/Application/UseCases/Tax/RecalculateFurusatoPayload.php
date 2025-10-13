@@ -7,11 +7,6 @@ use App\Models\Data;
 use App\Models\FurusatoInput;
 use App\Models\FurusatoSyoriSetting;
 use App\Services\Tax\Contracts\ProvidesKeys;
-use App\Services\Tax\FurusatoMasterService;
-use App\Services\Tax\Kojo\HaigushaKojoService;
-use App\Services\Tax\Kojo\JintekiKojoService;
-use App\Services\Tax\Kojo\KifukinShotokuKojoService;
-use App\Services\Tax\Kojo\KihonService;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use App\Services\Tax\Result\Rate\TokureiRateService;
 use Illuminate\Support\Facades\Log;
@@ -19,21 +14,6 @@ use Illuminate\Support\Facades\Log;
 class RecalculateFurusatoPayload
 {
     private const MASTER_KIHU_YEAR = 2025;
-
-    private const KOJO_FIELD_OVERRIDES = [
-        'kojo_kiso' => [
-            'shotoku' => 'shotokuzei_kojo_kiso_%s',
-            'jumin' => 'juminzei_kojo_kiso_%s',
-        ],
-        'kojo_kifukin' => [
-            'shotoku' => 'shotokuzei_kojo_kifukin_%s',
-            'jumin' => 'juminzei_kojo_kifukin_%s',
-        ],
-        'kojo_shogaisha' => [
-            'shotoku' => 'kojo_shogaisyo_shotoku_%s',
-            'jumin' => 'kojo_shogaisyo_jumin_%s',
-        ],
-    ];
 
     /** @var array<int, object> */
     private array $calculators;
@@ -56,8 +36,11 @@ class RecalculateFurusatoPayload
         [$payloadUpdates, $labelUpdates] = $this->partitionUpdates($normalizedDiff);
         $userId = isset($ctx['user_id']) ? (int) $ctx['user_id'] : null;
 
-        $payload = $this->saveDiff($data, $payloadUpdates, $labelUpdates, $userId);
-        $finalPayload = $this->runCalculators($payload, $this->buildContext($data, $ctx));
+        $syoriSettings = $this->getSyoriSettings($data->id);
+
+        $payload = $this->saveDiff($data, $payloadUpdates, $labelUpdates, $syoriSettings, $userId);
+        $calculatorCtx = array_merge($ctx, ['syori_settings' => $syoriSettings]);
+        $finalPayload = $this->runCalculators($payload, $this->buildContext($data, $calculatorCtx));
 
         $this->persistFinalPayload($data, $finalPayload, $userId);
 
@@ -92,7 +75,7 @@ class RecalculateFurusatoPayload
      * @param  array<string, mixed>  $labelUpdates
      * @return array<string, mixed>
      */
-    private function saveDiff(Data $data, array $updates, array $labelUpdates, ?int $userId): array
+    private function saveDiff(Data $data, array $updates, array $labelUpdates, array $syoriSettings, ?int $userId): array
     {
         $payload = [];
 
@@ -125,8 +108,7 @@ class RecalculateFurusatoPayload
             $companyId = $data->company_id !== null ? (int) $data->company_id : null;
             $merged = array_replace($merged, $this->computeTokureiPercentBundle($merged, $kihuYear, $companyId));
 
-            $settings = $this->getSyoriSettings($data->id);
-            $payload = $this->applyAutoCalculatedFields($data, $merged, $settings);
+            $payload = $this->applyAutoCalculatedFields($data, $merged, $syoriSettings);
 
             $record->payload = $payload;
             $record->updated_by = $userId ?: null;
@@ -290,6 +272,12 @@ class RecalculateFurusatoPayload
     private function buildContext(Data $data, array $ctx): array
     {
         $ctx['data'] = $data;
+        $ctx['kihu_year'] = isset($data->kihu_year) ? (int) $data->kihu_year : 0;
+        $ctx['master_kihu_year'] = self::MASTER_KIHU_YEAR;
+        $ctx['company_id'] = $data->company_id !== null ? (int) $data->company_id : null;
+        if (! isset($ctx['syori_settings']) || ! is_array($ctx['syori_settings'])) {
+            $ctx['syori_settings'] = [];
+        }
 
         return $ctx;
     }
@@ -402,83 +390,8 @@ class RecalculateFurusatoPayload
      */
     private function applyAutoCalculatedFields(Data $data, array $payload, array $settings): array
     {
-        $taxTypes = ['shotoku', 'jumin'];
-        $periods = ['prev', 'curr'];
-        $kojoShokeiBases = [
-            'kojo_shakaihoken',
-            'kojo_shokibo',
-            'kojo_seimei',
-            'kojo_jishin',
-            'kojo_kafu',
-            'kojo_hitorioya',
-            'kojo_kinrogakusei',
-            'kojo_shogaisha',
-            'kojo_haigusha',
-            'kojo_haigusha_tokubetsu',
-            'kojo_fuyo',
-            'kojo_tokutei_shinzoku',
-            'kojo_kiso',
-        ];
-        $kojoGokeiExtras = ['kojo_zasson', 'kojo_iryo', 'kojo_kifukin'];
-
-        /** @var FurusatoMasterService $masterService */
-        $masterService = app(FurusatoMasterService::class);
-        $companyId = $data->company_id !== null ? (int) $data->company_id : null;
-        $shotokuRates = $masterService
-            ->getShotokuRates(self::MASTER_KIHU_YEAR, $companyId)
-            ->all();
-
-        /** @var KifukinShotokuKojoService $kifukinService */
-        $kifukinService = app(KifukinShotokuKojoService::class);
-        $payload = array_replace($payload, $kifukinService->compute($payload, $settings));
-        $this->assertProvidedKeys($payload, $kifukinService);
-
-        /** @var KihonService $kihonService */
-        $kihonService = app(KihonService::class);
-        $payload = array_replace($payload, $kihonService->computeKisoKojo($payload, (int) ($data->kihu_year ?? 0)));
-        $this->assertProvidedKeys($payload, $kihonService);
-
-        /** @var JintekiKojoService $jintekiService */
-        $jintekiService = app(JintekiKojoService::class);
-        $payload = array_replace(
-            $payload,
-            $jintekiService->compute($payload, (int) ($data->kihu_year ?? 0))
-        );
-        $this->assertProvidedKeys($payload, $jintekiService);
-
-        /** @var HaigushaKojoService $haigushaService */
-        $haigushaService = app(HaigushaKojoService::class);
-        $payload = array_replace($payload, $haigushaService->compute($payload));
-        $this->assertProvidedKeys($payload, $haigushaService);
-
-        foreach ($taxTypes as $tax) {
-            foreach ($periods as $period) {
-                $shokei = 0;
-                foreach ($kojoShokeiBases as $base) {
-                    $key = $this->formatKojoFieldName($base, $tax, $period);
-                    $shokei += $this->valueOrZero($this->toNullableInt($payload[$key] ?? null));
-                }
-                $payload[sprintf('kojo_shokei_%s_%s', $tax, $period)] = $shokei;
-
-                $gokei = $shokei;
-                foreach ($kojoGokeiExtras as $base) {
-                    $key = $this->formatKojoFieldName($base, $tax, $period);
-                    $gokei += $this->valueOrZero($this->toNullableInt($payload[$key] ?? null));
-                }
-                $payload[sprintf('kojo_gokei_%s_%s', $tax, $period)] = $gokei;
-            }
-        }
-
-        foreach ($periods as $period) {
-            $shotokuKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
-            $shotokuAmount = $this->valueOrZero($this->toNullableInt($payload[$shotokuKey] ?? null));
-            $payload[sprintf('tax_zeigaku_shotoku_%s', $period)] = $this->calculateShotokuTaxAmount($shotokuRates, $shotokuAmount);
-
-            $juminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
-            $juminAmount = max(0, $this->valueOrZero($this->toNullableInt($payload[$juminKey] ?? null)));
-            $payload[sprintf('tax_zeigaku_jumin_%s', $period)] = (int) ($juminAmount * 0.1);
-        }
-
+        unset($data, $settings);
+        
         /** @var SeitotoKihukinTokubetsuService $seitotoService */
         $seitotoService = app(SeitotoKihukinTokubetsuService::class);
         $payload = array_replace($payload, $seitotoService->compute($payload));
@@ -513,43 +426,6 @@ class RecalculateFurusatoPayload
         session()->flash('warning', $combined);
     }
 
-    private function formatKojoFieldName(string $base, string $tax, string $period): string
-    {
-        $override = self::KOJO_FIELD_OVERRIDES[$base][$tax] ?? null;
-
-        if ($override) {
-            return sprintf($override, $period);
-        }
-
-        return sprintf('%s_%s_%s', $base, $tax, $period);
-    }
-
-    private function calculateShotokuTaxAmount(array $rates, int $taxable): int
-    {
-        $amount = max(0, $taxable);
-
-        foreach ($rates as $rate) {
-            $lower = (int) ($rate['lower'] ?? 0);
-            $upper = array_key_exists('upper', $rate) ? $rate['upper'] : null;
-
-            if ($amount < $lower) {
-                continue;
-            }
-
-            if ($upper !== null && $amount > $upper) {
-                continue;
-            }
-
-            $rateDecimal = (float) ($rate['rate'] ?? 0) / 100;
-            $deduction = (int) ($rate['deduction_amount'] ?? 0);
-            $value = $amount * $rateDecimal - $deduction;
-
-            return (int) $value;
-        }
-
-        return 0;
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -560,19 +436,5 @@ class RecalculateFurusatoPayload
             ->value('payload');
 
         return is_array($payload) ? $payload : [];
-    }
-
-    private function valueOrZero(?int $value): int
-    {
-        return $value ?? 0;
-    }
-
-    private function toNullableInt(mixed $value): ?int
-    {
-        if ($value === null || $value === '') {
-            return null;
-        }
-
-        return (int) round((float) $value);
     }
 }

@@ -172,7 +172,7 @@ Route::get('/diag/csp/ping', function () {
     return Response::make('<!doctype html><title>CSP ping</title><h1>pong</h1>', 200, ['Content-Type' => 'text/html; charset=UTF-8']);
 });
 
-Route::prefix('furusato')->group(function () {
+Route::middleware(['auth'])->prefix('furusato')->group(function () {
     Route::get('/', [FurusatoController::class, 'index'])->name('furusato.index');
     Route::get('/input', [FurusatoController::class, 'index'])->name('furusato.input');
     Route::get('/master', [FurusatoController::class, 'master'])->name('furusato.master');

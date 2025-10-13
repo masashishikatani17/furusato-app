@@ -377,13 +377,13 @@
         /* ---------------------------
            セルの色そのthだけに適用
         --------------------------- */
-        .table-base .th-ccc   { background-color: #a6a6a6; color: #000; }  /* 薄グレー地＋黒文字 */
-        .table-base .th-ddd   { background-color: #F7F9FB; color: #000; }  /* 薄ボタン地色＋黒文字 */
-        .table-base .th-cream { background-color: #F4F1E8; color: #000; } /* クリーム地＋黒文字 */
+        .table-base .th-ccc   { background-color: #a6a6a6; color: #333; }  /* 薄グレー地＋黒文字 */
+        .table-base .th-ddd   { background-color: #F7F9FB; color: #333; }  /* 薄ボタン地色＋黒文字 */
+        .table-base .th-cream { background-color: #F4F1E8; color: #333; } /* クリーム地＋黒文字 */
          
           /* html側の指定 <th class="u-nowrap th-ccc">続柄</th> */
           
-        table.table-base th.th-ccc { background-color:#ccc !important; color:#000 !important; }
+        table.table-base th.th-ccc { background-color:#ccc !important; color:#333 !important; }
 
             /* html側の指定 
             　　 <th class="u-nowrap th-ccc">番号</th>

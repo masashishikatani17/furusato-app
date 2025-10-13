@@ -19,7 +19,7 @@
 @endpush
 
 @section('content')
-<div class="container-blue" style="width: 1080px;">
+<div class="container-blue" style="width: 1200px;">
   <form method="POST" action="{{ route('furusato.save') }}" id="furusato-input-form">
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId ?? '' }}">
@@ -167,7 +167,7 @@
                             class="btn-base-green"
                             name="redirect_to"
                             value="jigyo"
-                            data-return-anchor="syunyu_row_jigyo_eigyo">内 訳</button>
+                            data-return-anchor="syunyu_row_jigyo_eigyo">内訳</button>
                   </td>
                   {!! $renderInputs('syunyu_jigyo_eigyo') !!}
                 </tr>
@@ -295,9 +295,10 @@
                   <td class="text-center align-middle">
                     <button type="submit"
                             class="btn-base-green"
+                            nowrap=”nowrap”
                             name="redirect_to"
                             value="fudosan"
-                            data-return-anchor="shotoku_row_fudosan">内 訳</button>
+                            data-return-anchor="shotoku_row_fudosan">内訳</button>
                   </td>
                   {!! $renderInputs('shotoku_fudosan') !!}
                 </tr>
@@ -379,7 +380,7 @@
                   {!! $renderInputs('kojo_shakaihoken') !!}
                 </tr>
                 <tr>
-                  <th colspan="3" class="text-start align-middle ps-1 pe-1">小規模企業共済等掛金控除</th>
+                  <th colspan="3" class="text-start align-middle ps-1 pe-1" nowrap=”nowrap”>小規模企業共済等掛金控除</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
@@ -417,7 +418,7 @@
                             class="btn-base-green js-open-details"
                             data-redirect-to="kojo_jinteki"
                             data-origin-anchor="kojo_jinteki"
-                            data-return-anchor="kojo_jinteki">内 訳</button>
+                            data-return-anchor="kojo_jinteki">内訳</button>
                   </td>
                   {!! $renderInputs('kojo_kafu') !!}
                 </tr>
@@ -501,7 +502,7 @@
                             class="btn-base-green js-open-details"
                             data-redirect-to="kojo_iryo"
                             data-origin-anchor="kojo_iryo"
-                            data-return-anchor="kojo_iryo">内 訳</button>
+                            data-return-anchor="kojo_iryo">内訳</button>
                   </td>
                   {!! $renderInputs('kojo_iryo') !!}
                 </tr>
@@ -515,7 +516,7 @@
                             class="btn-base-green"
                             name="redirect_to"
                             value="kihukin_details"
-                            data-return-anchor="kojo_row_kifukin">内 訳</button>
+                            data-return-anchor="kojo_row_kifukin">内訳</button>
                   </td>
                   {!! $renderInputs('kojo_kifukin') !!}
                 </tr>
@@ -655,8 +656,8 @@
                         <tr>
                           <th scope="rowgroup" rowspan="13" class="text-center align-middle th-ccc">所得金額</th>
                           <th scope="rowgroup" rowspan="11" class="text-start align-middle ps-1">分離課税</th>
-                          <th scope="rowgroup" rowspan="2" class="text-start align-middle th-ddd">短期</th>
-                          <th scope="row" class="align-middle text-start th-ddd">一般分</th>
+                          <th scope="rowgroup" rowspan="2" class="text-start align-middle th-ddd ps-1">短 期</th>
+                          <th scope="row" class="align-middle text-start th-ddd ps-1">一般分</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -674,7 +675,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" class="align-middle text-start th-ddd">軽減分</th>
+                          <th scope="row" class="align-middle text-start th-ddd ps-1">軽減分</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -692,8 +693,8 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="5" class="text-start th-ddd align-middle">長期</th>
-                          <th scope="row" class="align-middle text-start th-ddd">一般分</th>
+                          <th scope="rowgroup" rowspan="5" class="text-start th-ddd align-middle ps-1">長 期</th>
+                          <th scope="row" class="align-middle text-start th-ddd ps-1">一般分</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -711,7 +712,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="2" class="align-middle text-start th-ddd">特定分</th>
+                          <th scope="rowgroup" rowspan="2" class="align-middle text-start th-ddd ps-1">特定分</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -754,7 +755,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="2" class="align-middle text-start th-ddd">軽課分</th>
+                          <th scope="rowgroup" rowspan="2" class="align-middle text-start th-ddd ps-1">軽課分</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -797,7 +798,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle text-start th-ddd">一般株式等の譲渡</th>
+                          <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">一般株式等の譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -815,7 +816,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle text-start th-ddd">上場株式等の譲渡</th>
+                          <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">上場株式等の譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -833,7 +834,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle text-start th-ddd">上場株式等の配当等</th>
+                          <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">上場株式等の配当等</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -851,7 +852,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">先物取引</th>
+                          <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">先物取引</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -869,7 +870,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="3" class="align-middle">山林</th>
+                          <th scope="row" colspan="3" class="align-middle text-start ps-1">山林</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -887,7 +888,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="3" class="align-middle">退職</th>
+                          <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -905,8 +906,8 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="19" class="text-center align-middle bg-light">税金の計算</th>
-                          <th scope="row" colspan="3" class="align-middle">総合課税の合計額</th>
+                          <th scope="rowgroup" rowspan="19" class="text-center align-middle th-ccc ps-1 pe-1" nowrap="nowrap">税金の計算</th>
+                          <th scope="row" colspan="3" class="align-middle text-start ps-1">総合課税の合計額</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -924,7 +925,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="3" class="align-middle">所得から差し<br>引かれる金額</th>
+                          <th scope="row" colspan="3" class="align-middle text-start ps-1">所得から差し引かれる金額</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -942,8 +943,8 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="8" class="text-center align-middle bg-light">課税所得金額</th>
-                          <th scope="row" colspan="2" class="align-middle">総合課税</th>
+                          <th scope="rowgroup" rowspan="8" class="text-center align-middle text-start ps-1" nowrap=”nowrap”>課税所得<br>金額</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">総合課税</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -961,7 +962,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">短期譲渡</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">短期譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -979,7 +980,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">長期譲渡</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">長期譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -997,7 +998,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">一般・上場株式の譲渡</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 pe-1 th-ddd" nowrap="nowrap">一般・上場株式の譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1015,7 +1016,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">上場株式の配当等</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">上場株式の配当等</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1033,7 +1034,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">先物取引</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">先物取引</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1051,7 +1052,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">山林</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">山林</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1069,7 +1070,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">退職</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">退職</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1087,8 +1088,8 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="8" class="text-center align-middle bg-light">税額</th>
-                          <th scope="row" colspan="2" class="align-middle">総合課税</th>
+                          <th scope="rowgroup" rowspan="8" class="text-center align-middle text-start ps-1">税 額</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">総合課税</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1106,7 +1107,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">短期譲渡</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">短期譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1124,7 +1125,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">長期譲渡</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">長期譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1142,7 +1143,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">一般・上場株式の譲渡</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">一般・上場株式の譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1160,7 +1161,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">上場株式の配当等</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">上場株式の配当等</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1178,7 +1179,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">先物取引</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">先物取引</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1196,7 +1197,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">山林</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">山林</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1214,7 +1215,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="2" class="align-middle">退職</th>
+                          <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">退職</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1232,7 +1233,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="3" class="align-middle">税額合計</th>
+                          <th scope="row" colspan="3" class="align-middle text-center th-cream">税額合計</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>

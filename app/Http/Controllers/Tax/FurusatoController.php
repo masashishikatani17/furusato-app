@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Tax;
 
+use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Http\Controllers\Controller;
@@ -712,8 +713,36 @@ final class FurusatoController extends Controller
         return (string) $year;
     }
 
-    public function save(Request $request, FurusatoResultService $resultService): RedirectResponse
+    public function save(Request $request, FurusatoResultService $resultService, RecalculateFurusatoPayload $recalculateUseCase): RedirectResponse
     {
+        if ((int) $request->input('recalc_all') === 1) {
+            $data = $this->resolveAuthorizedDataOrFail($request, 'update');
+
+            $updates = $request->except([
+                '_token',
+                'data_id',
+                'redirect_to',
+                'show_result',
+                'origin_tab',
+                'origin_anchor',
+                'recalc_all',
+            ]);
+
+            $this->validateBunriChokiShotokuInputs($request);
+
+            $userId = $request->user()?->id;
+            $ctx = [];
+            if ($userId) {
+                $ctx['user_id'] = (int) $userId;
+            }
+
+            $recalculateUseCase->handle($data, $updates, $ctx);
+
+            session()->flash('show_furusato_result', true);
+
+            return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+        }
+
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
         $updates = $request->except([
             '_token',
@@ -722,6 +751,7 @@ final class FurusatoController extends Controller
             'show_result',
             'origin_tab',
             'origin_anchor',
+            'recalc_all',
         ]);
         $this->validateBunriChokiShotokuInputs($request);
 

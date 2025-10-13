@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Tax\Contracts\MasterProviderContract;
+use App\Domain\Tax\Providers\MasterProvider;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\URL;
@@ -18,6 +20,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton('files', function () {
             return new Filesystem();
         });
+
+        $this->app->singleton(MasterProviderContract::class, MasterProvider::class);
     }
 
     /**

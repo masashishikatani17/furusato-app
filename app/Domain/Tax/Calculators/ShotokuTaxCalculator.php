@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tax\Calculators;
 
+use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Services\Tax\Contracts\ProvidesKeys;
 
 class ShotokuTaxCalculator implements ProvidesKeys
@@ -11,6 +12,14 @@ class ShotokuTaxCalculator implements ProvidesKeys
     public const ANCHOR = 'tax';
     public const BEFORE = [];
     public const AFTER = [KojoAggregationCalculator::ID];
+
+    /** @var string[] */
+    private const PERIODS = ['prev', 'curr'];
+
+    public function __construct(
+        private readonly MasterProviderContract $masterProvider,
+    ) {
+    }
 
     public static function provides(): array
     {

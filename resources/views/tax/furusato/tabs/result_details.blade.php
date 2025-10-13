@@ -171,6 +171,10 @@
     $fmt = static fn($v) => $v === null ? '' : rtrim(rtrim(number_format($v, 3), '0'), '.') . '%';
   @endphp
   <div class="table-responsive">
+    @php
+      [$stdPrevRaw, $stdPrevDisp] = $valPercent($inputs, 'tokurei_rate_standard_prev', $tkComputed['standard_prev'] ?? null, $prevDetails['AA50'] ?? null);
+      [$stdCurrRaw, $stdCurrDisp] = $valPercent($inputs, 'tokurei_rate_standard_curr', $tkComputed['standard_curr'] ?? null, $currDetails['AA50'] ?? null);
+    @endphp
     <table class="table table-base align-middle" style="width:580px">
         <tr>
           <th scope="col" class="w-50 th-ccc" style="height:30px;">項  目</th>
@@ -181,12 +185,10 @@
         <tr>
           <th scope="row" class="text-start ps-1">特例控除率（標準）</th>
           <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_standard_prev', $tkComputed['standard_prev'] ?? null, $prevDetails['AA50'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_standard_prev" value="{{ $raw }}">{{ $disp }}
+            <input type="hidden" name="tokurei_rate_standard_prev" value="{{ $stdPrevRaw }}">{{ $stdPrevDisp }}
           </td>
           <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_standard_curr', $tkComputed['standard_curr'] ?? null, $currDetails['AA50'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_standard_curr" value="{{ $raw }}">{{ $disp }}
+            <input type="hidden" name="tokurei_rate_standard_curr" value="{{ $stdCurrRaw }}">{{ $stdCurrDisp }}
           </td>
         </tr>
         <tr>
@@ -257,5 +259,10 @@
         </tr>
       </tbody>
     </table>
+    @if($stdPrevDisp !== '' || $stdCurrDisp !== '')
+      <div class="visually-hidden" aria-hidden="true">
+        特例控除率（標準） 前年：{{ $stdPrevDisp }} 当年：{{ $stdCurrDisp }}
+      </div>
+    @endif
   </div>
 </div>

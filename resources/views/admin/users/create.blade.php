@@ -75,33 +75,74 @@
                     @enderror
                 </div>
 
-                <div class="mb-3 ms-3 me-3">
-                    <label for="invite-email" class="form-label me-2">・メールアドレス<span class="text-danger">*</span></label>
-                    <input type="email" id="invite-email" name="email" style="width: 500px;" value="{{ old('email') }}" class="form-control" required {{ $canSubmit ? '' : 'disabled' }}>
-                    @error('email')
-                        <div class="text-danger small mt-1">{{ $message }}</div>
-                    @enderror
+                <div class="d-flex align-items-center mb-3 ms-3 me-3">
+                  <label for="invite-email" class="form-label me-2 mb-0">
+                    ・メールアドレス<span class="text-danger">*</span>
+                  </label>
+                  <input type="email"
+                         id="invite-email"
+                         name="email"
+                         style="width: 500px;"
+                         value="{{ old('email') }}"
+                         class="form-control"
+                         required {{ $canSubmit ? '' : 'disabled' }}>
+                  @error('email')
+                    <div class="text-danger small ms-2">{{ $message }}</div>
+                  @enderror
                 </div>
-
-                <div class="mb-3 ms-3 me-3">
-                    <label for="invite-role" class="form-label">・付与する役割<span class="text-danger">*</span></label>
-                    <select id="invite-role" name="role" class="form-select" style="width: 200px;" required {{ $canSubmit ? '' : 'disabled' }}>
-                        @foreach ($roleOptions as $value => $label)
-                            <option value="{{ $value }}" @selected($defaultRole === $value)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    <div class="text-muted small mt-1">Owner の招待はできません。必要な場合は代表者権限の譲渡をご利用ください。</div>
+                
+                {{-- 付与する役割 --}}
+                <div class="d-flex align-items-center mb-3 ms-3 me-3">
+                  <label for="invite-role" class="form-label me-2 mb-0">
+                    ・付与する役割<span class="text-danger">*</span>
+                  </label>
+                  <select id="invite-role"
+                          name="role"
+                          class="form-select"
+                          style="width: 200px;"
+                          required {{ $canSubmit ? '' : 'disabled' }}>
+                    @foreach ($roleOptions as $value => $label)
+                      <option value="{{ $value }}" @selected($defaultRole === $value)>{{ $label }}</option>
+                    @endforeach
+                  </select>
                 </div>
-
-                <div class="ms-3 me-3">
-                    <label for="invite-group" class="form-label">・部署</label>
-                    <select id="invite-group" name="group_id" class="form-select" {{ $canSubmit ? '' : 'disabled' }} style="width: 200px;">
-                        <option value="">（指定なし）</option>
-                        @foreach ($groups as $group)
-                            <option value="{{ $group->id }}" @selected((string) old('group_id') === (string) $group->id)>{{ $group->name }}</option>
-                        @endforeach
-                    </select>
-                    <div class="text-muted small mt-1">Registrar を付与する場合は部署を空欄にしてください。</div>
+                
+                {{-- 部署 --}}
+                <div class="d-flex align-items-center mb-3 ms-3 me-3">
+                  <label for="invite-dept" class="form-label me-2 mb-0">・部署</label>
+                  <input type="text"
+                         id="invite-dept"
+                         name="department"
+                         class="form-control"
+                         style="width: 300px;"
+                         value="{{ old('department') }}"
+                         {{ $canSubmit ? '' : 'disabled' }}>
+                </div>
+                
+                {{-- 注意文 --}}
+                <div class="ms-3 me-3 text-muted small">
+                  Owner の招待はできません。必要な場合は代表者権限の譲渡をご利用ください。
+                </div>
+                <div class="d-flex align-items-center mb-3 ms-3 me-3">
+                  <label for="invite-group" class="form-label me-2 mb-0">
+                    ・部署
+                  </label>
+                  <select id="invite-group"
+                          name="group_id"
+                          class="form-select"
+                          style="width: 200px;"
+                          {{ $canSubmit ? '' : 'disabled' }}>
+                    <option value="">（指定なし）</option>
+                    @foreach ($groups as $group)
+                      <option value="{{ $group->id }}" @selected((string) old('group_id') === (string) $group->id)>
+                        {{ $group->name }}
+                      </option>
+                    @endforeach
+                  </select>
+                </div>
+                
+                <div class="ms-3 me-3 text-muted small">
+                  Registrar を付与する場合は部署を空欄にしてください。
                 </div>
 　　　　　　　　<hr>
                 <div class="d-flex justify-content-between">

@@ -448,7 +448,7 @@
             vertical-align: middle !important;
             font-size: 13px;
             padding: 6px; /* cellpaddingと同様の効果 */
-            background-color: #f9f8ee !important;
+            background-color: #F4F1E8 !important;
           }
     
     /* --- 罫線をセル単位で透明化する --- */
@@ -464,6 +464,65 @@
         .b-r-strong { border-right:  2px solid #333 !important; }
         .b-b-strong { border-bottom: 2px solid #333 !important; }
         .b-l-strong { border-left:   2px solid #333 !important; }
+
+/* --------------------------------------
+  * タブ
+  * ------------------------------------ */
+
+        /*タブのスタイル　後で消す。*/
+        .tab_menu {
+          width: calc(100%/5);
+          height: 30px;
+          line-height: 30px;
+          font-size: 13px;
+          text-align: center;
+          color: #000;
+          border-bottom: 3px solid #4193d0;
+          background-color: #d9d9d9;
+          display: block;
+          float: left;
+          font-weight: bold;
+          transition: all 0.2s ease;
+        }
+        .tab_menu:hover {
+          opacity: 0.75;
+        }
+        
+        /* ① タブ全体を 100% 幅に */
+        .nav-tabs {
+          width: 100%;
+          display: flex;      /* これは Bootstrap がもともと付与している場合が多いです */
+          justify-content: flex-start; /* タブを左から詰めるなど必要に応じ変更 */
+        }
+        
+        /* ② li 要素(.nav-item)を均等幅にする */
+        .nav-tabs .nav-item {
+          flex: 1;  /* 各アイテムが等分に伸びる */
+        }
+        
+        /* ③ ボタン(.nav-link)を幅いっぱいに広げ、中央寄せしたい場合 */
+        .nav-tabs .nav-link {
+          width: 100%;
+          text-align: center;
+          /* 高さ中央揃えのために flex 指定するなら */
+          display: flex;
+          justify-content: center;
+          border-bottom: 3px solid #4193d0;
+          background-color: #e8e3e6;
+          color: #000 !important; 
+          align-items: center;
+          font-weight: bold;
+          height: 40px;         /* 好みの高さ */
+          line-height: 16px;    /* 同上 */
+        }
+        
+        /* nav-link がアクティブ（選択されているタブ）の場合 */
+        .nav-tabs .nav-link.active {
+          background-color: #4193d0 !important;   /* 背景色：青 */
+          color: #fff !important;          /* 文字色：白 */
+          border-bottom: 3px solid #4193d0;
+        }
+
 
 /* --------------------------------------
   * フォームコントロール

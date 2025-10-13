@@ -1352,6 +1352,19 @@
         });
       });
 
+      const readLocationHash = () => {
+        if (typeof window === 'undefined' || !window.location) {
+          return '';
+        }
+
+        const { hash } = window.location;
+        if (!hash || hash.length <= 1) {
+          return '';
+        }
+
+        return hash.substring(1);
+      };
+
       form.addEventListener('click', (event) => {
         const target = event.target instanceof Element ? event.target.closest('[data-return-anchor]') : null;
         if (target) {
@@ -1364,9 +1377,16 @@
       });
 
       form.addEventListener('submit', () => {
-        const anchor = form.dataset && form.dataset.returnAnchor ? form.dataset.returnAnchor : '';
-        if (anchor) {
-          setOriginFields(anchor);
+        const datasetAnchor = form.dataset && form.dataset.returnAnchor ? form.dataset.returnAnchor : '';
+        if (datasetAnchor) {
+          setOriginFields(datasetAnchor);
+          return;
+        }
+
+        const hashAnchor = readLocationHash();
+        if (hashAnchor) {
+          ensureHiddenField('origin_tab', 'input');
+          ensureHiddenField('origin_anchor', hashAnchor);
           return;
         }
 

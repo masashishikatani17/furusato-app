@@ -39,9 +39,7 @@ class RecalculateFurusatoPayload
         [$payloadUpdates, $labelUpdates] = $this->partitionUpdates($normalizedDiff);
         $userId = isset($ctx['user_id']) ? (int) $ctx['user_id'] : null;
 
-        $syoriSettings = $this->getSyoriSettings($data->id);
-
-        $payload = $this->saveDiff($data, $payloadUpdates, $labelUpdates, $syoriSettings, $userId);
+        [$payload, $syoriSettings] = $this->saveDiff($data, $payloadUpdates, $labelUpdates, $userId);
         $calculatorCtx = array_merge($ctx, ['syori_settings' => $syoriSettings]);
         $builtCtx = $this->buildContext($data, $calculatorCtx);
         $finalPayload = $this->runCalculators($payload, $builtCtx);
@@ -111,13 +109,14 @@ class RecalculateFurusatoPayload
     /**
      * @param  array<string, mixed>  $updates
      * @param  array<string, mixed>  $labelUpdates
-     * @return array<string, mixed>
+     * @return array{0: array<string, mixed>, 1: array<string, mixed>}
      */
-    private function saveDiff(Data $data, array $updates, array $labelUpdates, array $syoriSettings, ?int $userId): array
+    private function saveDiff(Data $data, array $updates, array $labelUpdates, ?int $userId): array
     {
         $payload = [];
+        $syoriSettings = [];
 
-        FurusatoInput::unguarded(function () use (&$payload, $data, $updates, $labelUpdates, $userId): void {
+        FurusatoInput::unguarded(function () use (&$payload, &$syoriSettings, $data, $updates, $labelUpdates, $userId): void {
             $record = FurusatoInput::firstOrNew(['data_id' => $data->id]);
 
             if (! $record->exists) {
@@ -142,6 +141,8 @@ class RecalculateFurusatoPayload
             $current = $this->normalizer->normalize($current);
             $merged = array_replace($current, $updates);
 
+            $syoriSettings = $this->getSyoriSettings($data->id);
+
             $payload = $this->applyAutoCalculatedFields($data, $merged, $syoriSettings);
 
             $record->payload = $payload;
@@ -151,7 +152,7 @@ class RecalculateFurusatoPayload
             $payload = is_array($record->payload) ? $record->payload : [];
         });
 
-        return $payload;
+        return [$payload, $syoriSettings];
     }
 
     /**

@@ -53,8 +53,8 @@ class StoreIntendedOnUnauthenticated
     protected function determineIntendedUrl(Request $request): string
     {
         $redirect = (string) $request->input('redirect_to', '');
-        $dataId = (int) ($request->input('data_id') ?? 0);
-        $anchor = $this->sanitizeAnchor($request->input('origin_anchor'));
+        $dataId = (int) ($request->input('data_id') ?? $request->query('data_id') ?? 0);
+        $anchor = $this->sanitizeAnchor($request->input('origin_anchor') ?? $request->query('origin_anchor'));
 
         $url = match ($redirect) {
             '', 'input' => $this->buildInputUrl($dataId, $request->boolean('recalc_all')),
@@ -67,7 +67,7 @@ class StoreIntendedOnUnauthenticated
             'kojo_seimei_jishin' => $this->buildRouteUrl('furusato.details.kojo_seimei_jishin', $dataId),
             'kojo_jinteki' => $this->buildRouteUrl('furusato.details.kojo_jinteki', $dataId),
             'kojo_iryo' => $this->buildRouteUrl('furusato.details.kojo_iryo', $dataId),
-            default => URL::previous(),
+            default => URL::previous() ?: route('data.index'),
         };
 
         if ($anchor !== '') {

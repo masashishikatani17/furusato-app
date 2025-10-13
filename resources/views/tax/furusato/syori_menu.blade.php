@@ -175,13 +175,22 @@
                       <div class="p-2 bg-cream mt-1">
                         <hb class="d-block text-center">処理タイプ</hb>
                         <hr class="my-2">
+                      <div class="d-flex ms-5 gap-3 flex-wrap">
                         @foreach ($detailOptions as $value => $label)
                           @php $id = sprintf('detail-mode-%s-%s', $key, $value); @endphp
-                          <div class="form-check ms-5">
-                            <input class="form-check-input" type="radio" name="detail_mode_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['detail_mode'] === (string) $value) required>
+                          <div class="form-check form-check-inline">
+                            <input class="form-check-input"
+                                   type="radio"
+                                   name="detail_mode_{{ $key }}"
+                                   id="{{ $id }}"
+                                   value="{{ $value }}"
+                                   @checked($period['detail_mode'] === (string) $value)
+                                   required>
                             <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
                           </div>
                         @endforeach
+</div>
+
                       </div>
                     </div>
                     <div class="col-12">

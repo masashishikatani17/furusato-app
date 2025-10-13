@@ -755,16 +755,6 @@ final class FurusatoController extends Controller
         ]);
         $this->validateBunriChokiShotokuInputs($request);
 
-        $existing = $this->getFurusatoInputPayload($data);
-        $merged = array_replace($existing, $updates);
-
-        $kihuYear = self::MASTER_KIHU_YEAR;
-        $companyId = $request->user()?->company_id;
-        $companyId = $companyId !== null ? (int) $companyId : null;
-
-        $tokureiBundle = $this->computeTokureiPercentBundle($merged, $kihuYear, $companyId);
-        $updates = array_replace($updates, $tokureiBundle);
-
         $this->updateFurusatoInputPayload($data, $updates);
 
         $goto = (string) $request->input('redirect_to', '');

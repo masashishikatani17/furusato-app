@@ -79,7 +79,7 @@
 @endphp
 
 <div class="container" style="width:600px; background-color:#E8EFF0;">
-    <div class="wrapper mt-3 ma-2" style="background-color:#E8EFF0;">
+    <div class="wrapper mt-3 ms-2" style="background-color:#E8EFF0;">
         <div class="d-flex align-items-center justify-content-between mt-2 mb-4">
             <hb class="mb-2">○設定TOP</hb>
             <form method="POST" action="{{ route('logout') }}">

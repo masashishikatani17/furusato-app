@@ -9,4 +9,6 @@ return [
     'activity'  => (bool) env('FEATURE_ACTIVITY', false),
     'settings'  => (bool) env('FEATURE_SETTINGS', false),
     'data_privacy' => (bool) env('FEATURE_DATA_PRIVACY', true),
+
+    'furusato_pipeline' => true,
 ];

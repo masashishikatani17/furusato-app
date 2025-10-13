@@ -53,7 +53,7 @@
                   name="redirect_to"
                   value="master">マスター</button>
           <button type="submit" class="btn-base-blue" formnovalidate>保 存</button>
-          <button type="submit" class="btn-base-green">再 計 算</button>
+          <button type="submit" class="btn-base-green" name="recalc_all" value="1">再 計 算</button>
         </div>
       </div>
     <div class="wrapper">

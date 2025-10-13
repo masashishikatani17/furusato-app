@@ -189,7 +189,7 @@
                             class="btn-base-green"
                             name="redirect_to"
                             value="fudosan"
-                            data-return-anchor="syunyu_row_fudosan">内 訳</button>
+                            data-return-anchor="syunyu_row_fudosan">内訳</button>
                   </td>
                   {!! $renderInputs('syunyu_fudosan') !!}
                 </tr>
@@ -245,7 +245,7 @@
                             class="btn-base-green js-open-details"
                             data-redirect-to="joto_ichiji"
                             data-origin-anchor="income_joto_ichiji"
-                            data-return-anchor="income_joto_ichiji">内 訳</button>
+                            data-return-anchor="income_joto_ichiji">内訳</button>
                   </td>
                   {!! $renderInputs('syunyu_joto_tanki') !!}
                 </tr>
@@ -275,7 +275,7 @@
                             class="btn-base-green"
                             name="redirect_to"
                             value="jigyo"
-                            data-return-anchor="shotoku_row_jigyo_eigyo">内 訳</button>
+                            data-return-anchor="shotoku_row_jigyo_eigyo">内訳</button>
                   </td>
                   {!! $renderInputs('shotoku_jigyo_eigyo') !!}
                 </tr>
@@ -361,7 +361,7 @@
                             class="btn-base-green js-open-details"
                             data-redirect-to="joto_ichiji"
                             data-origin-anchor="shotoku_joto_ichiji"
-                            data-return-anchor="shotoku_joto_ichiji">内 訳</button>
+                            data-return-anchor="shotoku_joto_ichiji">内訳</button>
                   </td>
                   {!! $renderInputs('shotoku_joto_ichiji') !!}
                 </tr>
@@ -397,7 +397,7 @@
                             class="btn-base-green js-open-details"
                             data-redirect-to="kojo_seimei_jishin"
                             data-origin-anchor="kojo_seimei_jishin"
-                            data-return-anchor="kojo_seimei_jishin">内 訳</button>
+                            data-return-anchor="kojo_seimei_jishin">内訳</button>
                   </td>
                   {!! $renderInputs('kojo_seimei') !!}
                 </tr>

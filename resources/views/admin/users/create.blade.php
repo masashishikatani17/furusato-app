@@ -108,7 +108,7 @@
                 </div>
                 
                 {{-- 注意文 --}}
-                <p-small class="ms-3 mb-3">
+                <p-small class="ms-5 mb-3">
                   Owner の招待はできません。必要な場合は代表者権限の譲渡をご利用ください。
                 </p-small>
                 <div class="d-flex align-items-center mt-3 mb-1 ms-3 me-3">
@@ -129,13 +129,13 @@
                   </select>
                 </div>
                 
-                <p-small class="ms-3">
+                <p-small class="ms-5">
                   Registrar を付与する場合は部署を空欄にしてください。
                 </p-small>
 　　　　　　　　<hr>
                 <div class="d-flex justify-content-between">
                     @if ($indexRoute)
-                        <a href="{{ $indexRoute }}" class="btn-base">一覧に戻る</a>
+                        <a href="{{ $indexRoute }}" class="btn-base-blue">一覧に戻る</a>
                     @endif
                     <button type="submit" class="btn-base-blue" {{ $canSubmit ? '' : 'disabled' }}>招待メールを送信</button>
                 </div>

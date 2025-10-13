@@ -2,9 +2,9 @@
 @extends('layouts.min')
 
 @section('content')
-<div class="container" style="max-width: 760px;">
+<div class="container px-2" style="width: 600px;">
   <div class="d-flex justify-content-between align-items-center py-3">
-    <h5 class="mb-0">▶ 新規データ作成</h5>
+    <hb class="mb-0">▶ 新規データ作成</hb>
   </div>
 
   {{-- ▼ バリデーションエラー（通常の入力エラーのみ。重複年度はここに出さない） --}}
@@ -21,12 +21,12 @@
   <form action="{{ route('data.store') }}" method="POST" id="data-create-form" class="mt-3">
     @csrf
 
-    <table class="table table-bordered align-middle w-auto mx-auto">
+    <table class="table-base table-bordered align-middle w-auto mx-auto">
       <tbody>
       {{-- 1) お客様の指定 --}}
       <tr>
-        <th style="width:160px;">お客様の指定</th>
-        <td>
+        <th style="width:120px;">お客様の指定</th>
+        <td class="th-cream">
           <div class="form-check form-check-inline">
             <input class="form-check-input" type="radio" name="guest_mode" id="gm_new" value="new"
                    {{ old('guest_mode','new') === 'new' ? 'checked' : '' }}>
@@ -90,10 +90,10 @@
       </tr>
       </tbody>
     </table>
-
-    <div class="d-flex justify-content-end gap-2 mt-3">
-      <button type="submit" class="btn btn-primary">作 成</button>
-      <a href="{{ route('data.index') }}" class="btn btn-secondary">キャンセル</a>
+    <hr>
+    <div class="d-flex justify-content-end gap-2 mb-3">
+      <button type="submit" class="btn-base-blue">作 成</button>
+      <a href="{{ route('data.index') }}" class="btn-base-blue">キャンセル</a>
     </div>
   </form>
 </div>

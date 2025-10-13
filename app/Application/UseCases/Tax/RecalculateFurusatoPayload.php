@@ -2,9 +2,11 @@
 
 namespace App\Application\UseCases\Tax;
 
+use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Models\Data;
 use App\Models\FurusatoInput;
+use App\Models\FurusatoResult;
 use App\Models\FurusatoSyoriSetting;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
@@ -19,7 +21,8 @@ class RecalculateFurusatoPayload
 
     public function __construct(
         private readonly PayloadNormalizer $normalizer,
-        iterable $calculators
+        iterable $calculators,
+        private readonly FurusatoResultCalculator $resultCalculator,
     ) {
         $this->calculators = $this->sortCalculators($calculators);
     }
@@ -39,9 +42,12 @@ class RecalculateFurusatoPayload
 
         $payload = $this->saveDiff($data, $payloadUpdates, $labelUpdates, $syoriSettings, $userId);
         $calculatorCtx = array_merge($ctx, ['syori_settings' => $syoriSettings]);
-        $finalPayload = $this->runCalculators($payload, $this->buildContext($data, $calculatorCtx));
+        $builtCtx = $this->buildContext($data, $calculatorCtx);
+        $finalPayload = $this->runCalculators($payload, $builtCtx);
 
         $this->persistFinalPayload($data, $finalPayload, $userId);
+
+        $this->persistResults($data, $finalPayload, $builtCtx, $userId);
 
         session()->flash('show_furusato_result', true);
 
@@ -67,6 +73,38 @@ class RecalculateFurusatoPayload
         }
 
         return [$payload, $labels];
+    }
+
+    private function persistResults(Data $data, array $payload, array $ctx, ?int $userId): void
+    {
+        $details = $this->resultCalculator->buildDetails($payload, $ctx);
+        $results = [
+            'details' => $details,
+            'upper' => $payload,
+        ];
+
+        $this->storeResults($data, $results, $userId);
+
+        session()->flash('furusato_results', $results);
+    }
+
+    private function storeResults(Data $data, array $results, ?int $userId): void
+    {
+        FurusatoResult::unguarded(function () use ($data, $results, $userId): void {
+            $record = FurusatoResult::firstOrNew(['data_id' => $data->id]);
+
+            if (! $record->exists) {
+                $record->data_id = $data->id;
+                $record->created_by = $userId ?: null;
+            }
+
+            $record->company_id = $data->company_id;
+            $record->group_id = $data->group_id;
+            $record->payload = $results;
+            $record->updated_by = $userId ?: null;
+
+            $record->save();
+        });
     }
 
     /**

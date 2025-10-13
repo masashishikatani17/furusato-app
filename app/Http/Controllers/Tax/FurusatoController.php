@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Tax;
 
 use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
+use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Http\Controllers\Controller;
@@ -20,7 +21,6 @@ use App\Services\Tax\Kojo\JintekiKojoService;
 use App\Services\Tax\Kojo\KifukinShotokuKojoService;
 use App\Services\Tax\Kojo\KihonService;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
-use App\Services\Tax\Result\FurusatoResultService;
 use App\Services\Tax\Result\Rate\TokureiRateService;
 use App\Services\Tax\Result\Support\PayloadAccessor;
 use Illuminate\Http\RedirectResponse;
@@ -341,10 +341,18 @@ final class FurusatoController extends Controller
             'final_curr' => $finalCurrPct,
         ];
 
-        /** @var FurusatoResultService $resultService */
-        $resultService = app(FurusatoResultService::class);
-        $previewResults = $resultService->buildFromPayload($targetYear, $companyId, $savedInputs);
-
+        /** @var FurusatoResultCalculator $resultCalculator */
+        $resultCalculator = app(FurusatoResultCalculator::class);
+        $previewDetails = $resultCalculator->buildDetails($savedInputs, [
+            'master_kihu_year' => self::MASTER_KIHU_YEAR,
+            'kihu_year' => $targetYear,
+            'company_id' => $companyId,
+        ]);
+        $previewResults = [
+            'details' => $previewDetails,
+            'upper' => $savedInputs,
+        ];
+        
         $context = [
             'dataId' => $dataId,
             'bunriFlag' => $bunriFlag,
@@ -713,7 +721,11 @@ final class FurusatoController extends Controller
         return (string) $year;
     }
 
-    public function save(Request $request, FurusatoResultService $resultService, RecalculateFurusatoPayload $recalculateUseCase): RedirectResponse
+    public function save(
+        Request $request,
+        RecalculateFurusatoPayload $recalculateUseCase,
+        FurusatoResultCalculator $resultCalculator,
+    ): RedirectResponse
     {
         if ((int) $request->input('recalc_all') === 1) {
             $data = $this->resolveAuthorizedDataOrFail($request, 'update');
@@ -737,8 +749,6 @@ final class FurusatoController extends Controller
             }
 
             $recalculateUseCase->handle($data, $updates, $ctx);
-
-            session()->flash('show_furusato_result', true);
 
             return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
         }
@@ -765,7 +775,15 @@ final class FurusatoController extends Controller
             $kihuYear = self::MASTER_KIHU_YEAR;
             $companyId = $request->user()?->company_id;
             $companyId = $companyId !== null ? (int) $companyId : null;
-            $results = $resultService->buildFromPayload($kihuYear, $companyId, $payload);
+            $details = $resultCalculator->buildDetails($payload, [
+                'master_kihu_year' => self::MASTER_KIHU_YEAR,
+                'kihu_year' => $kihuYear,
+                'company_id' => $companyId,
+            ]);
+            $results = [
+                'details' => $details,
+                'upper' => $payload,
+            ];
 
             $this->storeFurusatoResults($data, $results);
 

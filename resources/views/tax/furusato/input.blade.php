@@ -943,7 +943,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="8" class="text-center align-middle text-start ps-1" nowrap=”nowrap”>課税所得<br>金額</th>
+                          <th scope="rowgroup" rowspan="8" class="align-middle text-start ps-1" nowrap=”nowrap”>課税所得<br>金額</th>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">総合課税</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>

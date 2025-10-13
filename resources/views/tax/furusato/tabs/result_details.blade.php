@@ -97,7 +97,7 @@
 
 <div class="wrapper pt-2">
   <div class="table-responsive">
-    <table class="table table-base align-middle">
+    <table class="table table-base align-middle" style="width:580px">
         <tr>
           <th class="text-center th-ccc" style="height:30px;">人的控除額の差</th>
           <th class="text-center th-ccc">{{ $warekiPrevLabel }}</th>
@@ -171,7 +171,7 @@
     $fmt = static fn($v) => $v === null ? '' : rtrim(rtrim(number_format($v, 3), '0'), '.') . '%';
   @endphp
   <div class="table-responsive">
-    <table class="table table-base align-middle">
+    <table class="table table-base align-middle" style="width:580px">
         <tr>
           <th scope="col" class="w-50 th-ccc" style="height:30px;">項  目</th>
           <th scope="col" class="text-center th-ccc">{{ $warekiPrevLabel }}</th>

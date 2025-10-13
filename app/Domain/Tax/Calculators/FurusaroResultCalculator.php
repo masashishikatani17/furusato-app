@@ -14,7 +14,6 @@ class FurusatoResultCalculator implements ProvidesKeys
     public const AFTER = [
         TokureiRateCalculator::ID,
         BunriSeparatedMinRateCalculator::ID,
-        JuminTaxCalculator::ID,
     ];
 
     private const PERIODS = ['prev', 'curr'];

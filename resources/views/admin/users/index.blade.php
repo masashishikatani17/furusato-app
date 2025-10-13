@@ -67,25 +67,26 @@
     $remainingSeats = $seatUsage['remaining'];
 @endphp
 
-<div class="container px-4 py-4">
+<div class="container px-4 py-4" style="width:600px; background-color:#E8EFF0;">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
         <div class="mb-3 mb-md-0">
-            <h1 class="h5 mb-1">ユーザー管理</h1>
-            <p-small>在籍ユーザーや招待状況を確認し、新しいユーザーの招待・編集を行います。</p-small>
+            <hb class="mt-3 ms-2">ユーザー管理</hb>
         </div>
         @if ($canInviteUsers)
             <a href="{{ $createRoute }}" class="btn-base-blue">ユーザーを招待</a>
         @endif
     </div>
-
+        <hs class="ms-3 me-3">
+            在籍ユーザーや招待状況を確認し、新しいユーザーの招待・編集を行います。
+        </hs>
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <hb>席数の利用状況</hb>
-            <div class="table-responsive table-m-top">
-                <table class="table table-sm mb-0 align-middle">
+            <hb>○席数の利用状況</hb>
+            <div class="table-responsive table-m-top mt-1">
+                <table class="table-base table-bordered align-middle">
                     <tbody>
                         <tr>
-                            <th class="table-light" style="width: 20%">上限席数</th>
+                            <th style="width: 20%">上限席数</th>
                             <td style="width: 30%">
                                 @if (is_int($seatUsage['active_seats']))
                                     {{ number_format($seatUsage['active_seats']) }} 席
@@ -111,7 +112,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="text-muted small mb-0 mt-2">※ Client ロールと停止中ユーザーは席数に含まれません。</p>
+            <hs class="ms-3 me-3">※ Client ロールと停止中ユーザーは席数に含まれません。</ps
         </div>
     </div>
 

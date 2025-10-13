@@ -10,7 +10,7 @@ class SeitotoTokubetsuZeigakuKojoCalculator implements ProvidesKeys
     public const ORDER = 6000;
     public const ANCHOR = 'credits';
     public const BEFORE = [];
-    public const AFTER = [];
+    public const AFTER = [JuminTaxCalculator::ID];
 
     public static function provides(): array
     {

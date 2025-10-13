@@ -58,10 +58,12 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->tag($calculatorClasses, 'tax.furusato.calculators');
 
-        $this->app->bind(RecalculateFurusatoPayload::class, function ($app) {
+        $this->app->bind(RecalculateFurusatoPayload::class, function ($app) use ($calculatorClasses) {
+            $calculators = array_map(static fn (string $class) => $app->make($class), $calculatorClasses);
+
             return new RecalculateFurusatoPayload(
                 $app->make(PayloadNormalizer::class),
-                $app->tagged('tax.furusato.calculators'),
+                $calculators,
                 $app->make(FurusatoResultCalculator::class),
             );
         });

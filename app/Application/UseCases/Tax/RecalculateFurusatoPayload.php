@@ -11,6 +11,7 @@ use App\Models\FurusatoSyoriSetting;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use Illuminate\Support\Facades\Log;
+use InvalidArgumentException;
 
 class RecalculateFurusatoPayload
 {
@@ -205,6 +206,14 @@ class RecalculateFurusatoPayload
             $before = defined($class . '::BEFORE') ? (array) $class::BEFORE : [];
             $after = defined($class . '::AFTER') ? (array) $class::AFTER : [];
 
+            if (isset($nodes[$id])) {
+                if (config('app.debug')) {
+                    throw new InvalidArgumentException(sprintf('Duplicate calculator id detected: %s', $id));
+                }
+
+                continue;
+            }
+
             $nodes[$id] = [
                 'calculator' => $calculator,
                 'order' => (int) $order,
@@ -215,6 +224,7 @@ class RecalculateFurusatoPayload
 
         $edges = [];
         $inDegree = [];
+        $missingDependencies = [];
         foreach ($nodes as $id => $meta) {
             $edges[$id] = [];
             $inDegree[$id] = 0;
@@ -223,6 +233,7 @@ class RecalculateFurusatoPayload
         foreach ($nodes as $id => $meta) {
             foreach ($meta['after'] as $afterId) {
                 if (! isset($nodes[$afterId])) {
+                    $missingDependencies[] = sprintf('%s.after -> %s', $id, $afterId);
                     continue;
                 }
 
@@ -232,12 +243,18 @@ class RecalculateFurusatoPayload
 
             foreach ($meta['before'] as $beforeId) {
                 if (! isset($nodes[$beforeId])) {
+                    $missingDependencies[] = sprintf('%s.before -> %s', $id, $beforeId);
                     continue;
                 }
 
                 $edges[$id][] = $beforeId;
                 $inDegree[$beforeId]++;
             }
+        }
+
+        if ($missingDependencies !== [] && config('app.debug')) {
+            $message = sprintf('Missing calculator dependencies detected: %s', implode(', ', $missingDependencies));
+            throw new InvalidArgumentException($message);
         }
 
         $queue = [];
@@ -273,9 +290,7 @@ class RecalculateFurusatoPayload
         }
 
         if (count($sortedIds) !== count($nodes)) {
-            if (config('app.debug')) {
-                Log::warning('RecalculateFurusatoPayload: calculator ordering contains a cycle.');
-            }
+            Log::warning('RecalculateFurusatoPayload: calculator ordering contains a cycle.');
 
             $remaining = array_diff(array_keys($nodes), $sortedIds);
             if ($remaining !== []) {
@@ -291,6 +306,10 @@ class RecalculateFurusatoPayload
 
                 $sortedIds = array_merge($sortedIds, $remaining);
             }
+        }
+
+        if (config('app.debug')) {
+            Log::info('[furusato.pipeline] order=[' . implode(', ', $sortedIds) . ']');
         }
 
         return array_map(function ($id) use ($nodes) {

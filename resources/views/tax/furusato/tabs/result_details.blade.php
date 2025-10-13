@@ -175,15 +175,6 @@
       [$stdPrevRaw, $stdPrevDisp] = $valPercent($inputs, 'tokurei_rate_standard_prev', $tkComputed['standard_prev'] ?? null, $prevDetails['AA50'] ?? null);
       [$stdCurrRaw, $stdCurrDisp] = $valPercent($inputs, 'tokurei_rate_standard_curr', $tkComputed['standard_curr'] ?? null, $currDetails['AA50'] ?? null);
     @endphp
-    @php
-      $stdPrevHidden = $stdPrevDisp !== '' ? $stdPrevDisp : '';
-      $stdCurrHidden = $stdCurrDisp !== '' ? $stdCurrDisp : '';
-    @endphp
-    @if($stdPrevHidden !== '' || $stdCurrHidden !== '')
-      <div class="visually-hidden" aria-hidden="true">
-        特例控除率（標準） 前年：{{ $stdPrevHidden }} 当年：{{ $stdCurrHidden }}
-      </div>
-    @endif
     <table class="table table-base align-middle" style="width:580px">
         <tr>
           <th scope="col" class="w-50 th-ccc" style="height:30px;">項  目</th>
@@ -268,8 +259,10 @@
         </tr>
       </tbody>
     </table>
-    <div class="visually-hidden" aria-hidden="true">
-      特例控除率（標準） 前年：{{ $stdPrevDisp }} 当年：{{ $stdCurrDisp }}
-    </div>
+    @if($stdPrevDisp !== '' || $stdCurrDisp !== '')
+      <div class="visually-hidden" aria-hidden="true">
+        特例控除率（標準） 前年：{{ $stdPrevDisp }} 当年：{{ $stdCurrDisp }}
+      </div>
+    @endif
   </div>
 </div>

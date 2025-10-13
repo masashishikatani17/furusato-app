@@ -53,7 +53,7 @@
                   name="redirect_to"
                   value="master">マスター</button>
           <button type="submit" class="btn-base-blue" formnovalidate>保 存</button>
-          <button type="submit" class="btn-base-green">送 信</button>
+          <button type="submit" class="btn-base-green">再 計 算</button>
         </div>
       </div>
     <div class="wrapper">
@@ -1287,6 +1287,7 @@
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const initialTab = @json((string) request()->query('tab', session('return_tab', '')));
+    const showResultFlag = Boolean(@json($showResultFlag));
     const form = document.getElementById('furusato-input-form');
 
     const ensureHiddenField = (name, value) => {
@@ -1373,7 +1374,7 @@
       });
     }
 
-    if (initialTab === 'input') {
+    if (!showResultFlag && initialTab === 'input') {
       const inputTab = document.getElementById('furusato-tab-input-nav');
       if (inputTab) {
         if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tab !== 'undefined') {
@@ -1466,7 +1467,7 @@
       }
     };
 
-    if (initialTab === 'input') {
+    if (!showResultFlag && initialTab === 'input') {
       scheduleScrollToAnchor();
     } else {
       scrollToAnchor();

@@ -79,15 +79,15 @@
         <hs class="ms-3 me-3">
             在籍ユーザーや招待状況を確認し、新しいユーザーの招待・編集を行います。
         </hs>
-    <div class="card shadow-sm mb-4">
+    <div class="card shadow-sm mt-3 mb-4">
         <div class="card-body">
             <hb>○席数の利用状況</hb>
             <div class="table-responsive table-m-top mt-1">
-                <table class="table-base table-bordered align-middle">
+                <table class="table-base table-bordered align-middle w-auto">
                     <tbody>
                         <tr>
-                            <th style="width: 20%">上限席数</th>
-                            <td style="width: 30%">
+                            <th style="width: 60px">上限席数</th>
+                            <td style="width: 60px">
                                 @if (is_int($seatUsage['active_seats']))
                                     {{ number_format($seatUsage['active_seats']) }} 席
                                 @else
@@ -112,15 +112,15 @@
                     </tbody>
                 </table>
             </div>
-            <hs class="ms-3 me-3">※ Client ロールと停止中ユーザーは席数に含まれません。</ps
+            <hs class="ms-3 me-3">※ Client ロールと停止中ユーザーは席数に含まれません。</hs>
         </div>
     </div>
 
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
-                <hb>ユーザー一覧</hb>
-                <div class="text-muted small">全 {{ number_format($usersPaginator->total()) }} 名</div>
+                <hb>○ユーザー一覧</hb>
+                <hs>全 {{ number_format($usersPaginator->total()) }} 名</div>
             </div>
             <div class="table-responsive table-m-top">
                 <table class="table table-hover align-middle mb-0">

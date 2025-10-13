@@ -186,11 +186,11 @@ class TokureiRateCalculator implements ProvidesKeys
 
     private function rateForAmount(array $rows, int $amount): ?float
     {
-        if ($amount <= 0 || $rows === []) {
+        if ($rows === []) {
             return null;
         }
 
-        $rate = $this->lowerBoundRate($amount, $rows);
+        $rate = $this->lowerBoundRate(max(0, $amount), $rows);
 
         if ($rate === null) {
             return null;
@@ -207,24 +207,22 @@ class TokureiRateCalculator implements ProvidesKeys
             return null;
         }
 
-        $lowest = $rows[0]['lower'];
-        if ($amount < $lowest) {
-            return null;
+        if ($amount < $rows[0]['lower']) {
+            return $rows[0]['rate'];
         }
 
-        foreach ($rows as $row) {
-            $upper = $row['upper'];
-            if ($upper === null) {
-                if ($amount >= $row['lower']) {
-                    return $row['rate'];
-                }
+        for ($index = count($rows) - 1; $index >= 0; $index--) {
+            $row = $rows[$index];
 
+            if ($row['lower'] > $amount) {
                 continue;
             }
 
-            if ($row['lower'] <= $amount && $amount <= $upper) {
-                return $row['rate'];
+            $upper = $row['upper'];
+            if ($upper !== null && $amount > $upper) {
+                continue;
             }
+            return $row['rate'];
         }
 
         return null;

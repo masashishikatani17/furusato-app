@@ -384,9 +384,9 @@ final class FurusatoController extends Controller
     /**
      * TokureiRate の標準レンジから lower ≤ amount の最大一致で tokurei_deduction_rate(%) を返す。
      *
-     * @param  float  $amount  課税総所得-人的控除差調整額などの金額（千円未満は切り捨て済み想定）
+     * @param  int  $amount  課税総所得-人的控除差調整額などの金額（千円未満は切り捨て済み想定）
      */
-    private function tokureiPercentForAmount(int $kihuYear, ?int $companyId, float $amount): ?float
+    private function tokureiPercentForAmount(int $kihuYear, ?int $companyId, int $amount): ?float
     {
         /** @var TokureiRateService $svc */
         $svc = app(TokureiRateService::class);
@@ -395,14 +395,120 @@ final class FurusatoController extends Controller
             return null;
         }
 
-        $floored = PayloadAccessor::floorToThousands($amount);
-        if ($floored === null || $floored <= 0) {
-            return null;
-        }
-
-        $rate = $svc->lowerBoundRate($floored, $rows);
+        $rate = $svc->lowerBoundRate($amount, $rows);
 
         return $rate !== null ? round($rate * 100, 3) : null;
+    }
+
+    /** 千円未満切捨て（負値は 0 とみなす） */
+    private function floorToThousands(mixed $n): int
+    {
+        $v = (int) floor((float) ($n ?? 0));
+        if ($v <= 0) {
+            return 0;
+        }
+
+        return $v - ($v % 1000);
+    }
+
+    /**
+     * 特例率 bundle を再計算し、payload 更新用の配列を返す（百分率）。無効時は null（キーは入れる）。
+     *
+     * @param  array<string, mixed>  $basePayload
+     * @return array<string, float|null>
+     */
+    private function computeTokureiPercentBundle(array $basePayload, int $kihuYear, ?int $companyId): array
+    {
+        $result = [
+            'tokurei_rate_sanrin_div5_prev' => null,
+            'tokurei_rate_sanrin_div5_curr' => null,
+            'tokurei_rate_taishoku_prev' => null,
+            'tokurei_rate_taishoku_curr' => null,
+            'tokurei_rate_adopted_prev' => null,
+            'tokurei_rate_adopted_curr' => null,
+            'tokurei_rate_bunri_min_prev' => null,
+            'tokurei_rate_bunri_min_curr' => null,
+            'tokurei_rate_final_prev' => null,
+            'tokurei_rate_final_curr' => null,
+        ];
+
+        foreach (['prev', 'curr'] as $period) {
+            $sanrinKey = sprintf('bunri_kazeishotoku_sanrin_shotoku_%s', $period);
+            $sanrinRaw = (int) ($basePayload[$sanrinKey] ?? 0);
+            if ($sanrinRaw > 0) {
+                $div5 = $this->floorToThousands($sanrinRaw / 5);
+                if ($div5 > 0) {
+                    $rate = $this->tokureiPercentForAmount($kihuYear, $companyId, $div5);
+                    $result[sprintf('tokurei_rate_sanrin_div5_%s', $period)] = $rate;
+                }
+            }
+        }
+
+        foreach (['prev', 'curr'] as $period) {
+            $taishokuKey = sprintf('bunri_kazeishotoku_taishoku_shotoku_%s', $period);
+            $taishokuRaw = (int) ($basePayload[$taishokuKey] ?? 0);
+            if ($taishokuRaw > 0) {
+                $amount = $this->floorToThousands($taishokuRaw);
+                if ($amount > 0) {
+                    $rate = $this->tokureiPercentForAmount($kihuYear, $companyId, $amount);
+                    $result[sprintf('tokurei_rate_taishoku_%s', $period)] = $rate;
+                }
+            }
+        }
+
+        foreach (['prev', 'curr'] as $period) {
+            $a = $result[sprintf('tokurei_rate_sanrin_div5_%s', $period)];
+            $b = $result[sprintf('tokurei_rate_taishoku_%s', $period)];
+            if ($a !== null || $b !== null) {
+                $result[sprintf('tokurei_rate_adopted_%s', $period)] = min($a ?? 100.000, $b ?? 100.000);
+            }
+        }
+
+        foreach (['prev', 'curr'] as $period) {
+            $short = (int) ($basePayload[sprintf('bunri_kazeishotoku_tanki_shotoku_%s', $period)] ?? 0);
+            $long = (int) ($basePayload[sprintf('bunri_kazeishotoku_choki_shotoku_%s', $period)] ?? 0);
+            $haito = (int) ($basePayload[sprintf('bunri_kazeishotoku_haito_shotoku_%s', $period)] ?? 0);
+            $joto = (int) ($basePayload[sprintf('bunri_kazeishotoku_joto_shotoku_%s', $period)] ?? 0);
+            $key = sprintf('tokurei_rate_bunri_min_%s', $period);
+            if ($short > 0) {
+                $result[$key] = 59.370;
+            } elseif ($long > 0 || $haito > 0 || $joto > 0) {
+                $result[$key] = 74.685;
+            }
+        }
+
+        foreach (['prev', 'curr'] as $period) {
+            $candidates = [];
+            $stdKey = sprintf('tokurei_rate_standard_%s', $period);
+            $standardRaw = $basePayload[$stdKey] ?? null;
+            if (is_string($standardRaw)) {
+                $standardRaw = trim($standardRaw);
+                if ($standardRaw === '') {
+                    $standardRaw = null;
+                }
+            }
+            if ($standardRaw !== null) {
+                $candidates[] = (float) $standardRaw;
+            }
+
+            $candidates[] = 90.000;
+
+            $adopted = $result[sprintf('tokurei_rate_adopted_%s', $period)];
+            if ($adopted !== null) {
+                $candidates[] = $adopted;
+            }
+
+            $bunri = $result[sprintf('tokurei_rate_bunri_min_%s', $period)];
+            if ($bunri !== null) {
+                $candidates[] = $bunri;
+            }
+
+            if ($candidates !== []) {
+                $result[sprintf('tokurei_rate_final_%s', $period)] = min($candidates);
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -416,8 +522,8 @@ final class FurusatoController extends Controller
             return null;
         }
 
-        $divided = PayloadAccessor::floorToThousands($raw / 5.0);
-        if ($divided === null || $divided <= 0) {
+        $divided = $this->floorToThousands($raw / 5.0);
+        if ($divided <= 0) {
             return null;
         }
 
@@ -432,8 +538,8 @@ final class FurusatoController extends Controller
             return null;
         }
 
-        $amount = PayloadAccessor::floorToThousands($raw);
-        if ($amount === null || $amount <= 0) {
+        $amount = $this->floorToThousands($raw);
+        if ($amount <= 0) {
             return null;
         }
 
@@ -618,6 +724,17 @@ final class FurusatoController extends Controller
             'origin_anchor',
         ]);
         $this->validateBunriChokiShotokuInputs($request);
+
+        $existing = $this->getFurusatoInputPayload($data);
+        $merged = array_replace($existing, $updates);
+
+        $kihuYear = self::MASTER_KIHU_YEAR;
+        $companyId = $request->user()?->company_id;
+        $companyId = $companyId !== null ? (int) $companyId : null;
+
+        $tokureiBundle = $this->computeTokureiPercentBundle($merged, $kihuYear, $companyId);
+        $updates = array_replace($updates, $tokureiBundle);
+
         $this->updateFurusatoInputPayload($data, $updates);
 
         $goto = (string) $request->input('redirect_to', '');

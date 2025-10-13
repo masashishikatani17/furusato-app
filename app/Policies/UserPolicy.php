@@ -70,4 +70,6 @@ class UserPolicy
 
         return $actor->isOwner() || $actor->isRegistrar();
     }
+
+    
 }

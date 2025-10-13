@@ -366,7 +366,7 @@
                 {!! $renderInputs('shotoku_joto_ichiji') !!}
               </tr>
               <tr>
-                <th colspan="3" class="align-middle">合  計</th>
+                <th colspan="3" class="align-middle th-cream">合  計</th>
                 <td colspan="2" class="text-center align-middle"></td>
                 {!! $renderInputs('shotoku_gokei') !!}
               </tr>
@@ -521,7 +521,7 @@
                 {!! $renderInputs('kojo_kifukin') !!}
               </tr>
               <tr>
-                <th colspan="3" class="align-middle">合  計</th>
+                <th colspan="3" class="align-middle th-cream">合  計</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
@@ -604,7 +604,7 @@
                 {!! $renderInputs('tax_fukkou') !!}
               </tr>
               <tr>
-                <th colspan="3" class="align-middle">合  計</th>
+                <th colspan="3" class="align-middle th-cream">合  計</th>
                 <td class="text-center align-middle">
                   <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                 </td>
@@ -638,16 +638,15 @@
               <div>
                 <hb class="card-title mb-3">確定申告書(分離課税)</hb>
                 <div class="table-responsive">
-                  <table class="table table-bordered table-sm align-middle mb-0">
+                  <table class="table table-base align-middle">
                     <thead class="table-light text-center align-middle">
-                      <tr>
-                        <th rowspan="2" colspan="4">項目</th>
-                        <th rowspan="2" colspan="2"></th>
-                        <th colspan="2">所得税</th>
-                        <th colspan="2">住民税</th>
+                      <tr style="height:30px;">
+                        <th rowspan="2" colspan="6" class="th-ccc">項  目</th>
+                        <th colspan="2" class="th-ccc">所得税</th>
+                        <th colspan="2" class="th-ccc">住民税</th>
                       </tr>
                       <tr>
-                        <th>{{ $warekiPrevLabel }}</th>
+                        <th style="height:30px;">{{ $warekiPrevLabel }}</th>
                         <th>{{ $warekiCurrLabel }}</th>
                         <th>{{ $warekiPrevLabel }}</th>
                         <th>{{ $warekiCurrLabel }}</th>

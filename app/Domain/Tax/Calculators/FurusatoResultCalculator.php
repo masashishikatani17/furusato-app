@@ -321,13 +321,19 @@ class FurusatoResultCalculator implements ProvidesKeys
             return null;
         }
 
-        $amount = max(0, $amount);
-        $amount = $this->floorToThousands($amount);
+        $amount = $this->floorToThousands(max(0, $amount));
 
-        $fallbackRate = $rows[0]['rate'];
+        $fallbackRate = null;
+        $fallbackLower = PHP_INT_MAX;
 
         foreach ($rows as $row) {
-            if ($row['lower'] > $amount) {
+            $lower = (int) $row['lower'];
+            if ($lower < $fallbackLower) {
+                $fallbackLower = $lower;
+                $fallbackRate = $row['rate'];
+            }
+
+            if ($lower > $amount) {
                 continue;
             }
 

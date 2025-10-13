@@ -205,15 +205,19 @@ class TokureiRateCalculator implements ProvidesKeys
             return null;
         }
 
-        $amount = max(0.0, $amount);
-        $amount = $this->floorToThousands((int) floor($amount));
+        $amount = $this->floorToThousands((int) max(0, floor($amount)));
 
-        $fallbackRate = $rows[0]['rate'];
+        $fallbackRate = null;
+        $fallbackLower = PHP_INT_MAX;
 
-        for ($index = count($rows) - 1; $index >= 0; $index--) {
-            $row = $rows[$index];
+        foreach ($rows as $row) {
+            $lower = (int) $row['lower'];
+            if ($lower < $fallbackLower) {
+                $fallbackLower = $lower;
+                $fallbackRate = $row['rate'];
+            }
 
-            if ($row['lower'] > $amount) {
+            if ($lower > $amount) {
                 continue;
             }
 

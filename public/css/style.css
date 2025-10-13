@@ -556,7 +556,29 @@
             border-radius: 5px;
             border-color:#d0d0d0;
         }  
-          
+        
+        .kana9 {
+            font-size: 13px;
+            margin: auto;
+            height: 22px;
+            width: 150px;
+            text-align: left;
+            line-height: 1.3;
+            border-radius: 5px;
+            border-color:#d0d0d0;
+        }
+        
+        .kana10 {
+            font-size: 13px;
+            margin: auto;
+            height: 22px;
+            width: 160px;
+            text-align: left;
+            line-height: 1.3;
+            border-radius: 5px;
+            border-color:#d0d0d0;
+        }
+  
         .suji2 {
             width: 45px !important;
             height: 22px;

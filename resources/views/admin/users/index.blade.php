@@ -67,7 +67,7 @@
     $remainingSeats = $seatUsage['remaining'];
 @endphp
 
-<div class="container px-4 py-4" style="width:600px; background-color:#E8EFF0;">
+<div class="container px-4 py-4" style="width:800px; background-color:#E8EFF0;">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
         <div class="mb-3 mb-md-0">
             <hb class="mt-3 ms-2">ユーザー管理</hb>
@@ -120,20 +120,20 @@
         <div class="card-body">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
                 <hb>○ユーザー一覧</hb>
-                <hs>全 {{ number_format($usersPaginator->total()) }} 名</div>
+                <hs>全 {{ number_format($usersPaginator->total()) }} 名</hs>
             </div>
             <div class="table-responsive table-m-top">
-                <table class="table table-hover align-middle mb-0">
+                <table class="table-base table-bordered align-middle w-auto">
                     <thead>
                         <tr>
-                            <th scope="col">氏名</th>
-                            <th scope="col">メールアドレス</th>
-                            <th scope="col" class="text-center">部署</th>
-                            <th scope="col" class="text-center">役割</th>
+                            <th scope="col" class="text-center" style="width: 140px;">氏名</th>
+                            <th scope="col" class="text-center" style="width: 220px;">メールアドレス</th>
+                            <th scope="col" class="text-center" style="width: 100px;">部署</th>
+                            <th scope="col" class="text-center" style="width: 60px;">役割</th>
                             @if ($hasIsActive)
                                 <th scope="col" class="text-center">状態</th>
                             @endif
-                            <th scope="col" class="text-center" style="width: 170px;">操作</th>
+                            <th scope="col" class="text-center" style="width: 60px;">操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -147,7 +147,7 @@
                                 $canToggle = $hasIsActive && $canManageSeats && ! $isOwnerRow && ($activateRouteName && $deactivateRouteName);
                             @endphp
                             <tr @class(['table-secondary' => ! $isActive && $hasIsActive])>
-                                <td>
+                                <td class="text-start">
                                     <div class="fw-semibold">{{ $user->name }}</div>
                                     <div class="text-muted small">ID: {{ $user->id }}</div>
                                 </td>

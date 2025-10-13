@@ -22,6 +22,7 @@ use App\Services\Tax\Kojo\JintekiKojoService;
 use App\Services\Tax\Kojo\KifukinShotokuKojoService;
 use App\Services\Tax\Kojo\KihonService;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -1761,7 +1762,9 @@ final class FurusatoController extends Controller
         $data = Data::with('guest')->findOrFail($id);
         $me = $request->user();
 
-        abort_unless($me, 401);
+        if (! $me) {
+            throw new AuthenticationException();
+        }
 
         if ((int) $data->company_id !== (int) ($me->company_id ?? 0)) {
             abort(403);
@@ -1785,7 +1788,10 @@ final class FurusatoController extends Controller
         $data = Data::with('guest')->findOrFail($id);
         $me = $request->user();
 
-        abort_unless($me, 401);
+        if (! $me) {
+            throw new AuthenticationException();
+        }
+
 
         if ((int) $data->company_id !== (int) ($me->company_id ?? 0)) {
             abort(403);

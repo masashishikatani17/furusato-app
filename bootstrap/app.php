@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         // Spatie Permission middleware aliases（Laravel 12 ではここに書く）
         $middleware->alias([
+            'auth'        => \App\Http\Middleware\Authenticate::class,
             'role'        => \Spatie\Permission\Middlewares\RoleMiddleware::class,
             'roles'       => \Spatie\Permission\Middlewares\RoleMiddleware::class, // 互換
             'permission'  => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
@@ -28,7 +29,10 @@ return Application::configure(basePath: dirname(__DIR__))
             headers: Request::HEADER_X_FORWARDED_AWS_ELB
         );
         // 有効時かつパッケージ存在時のみ CSP ヘッダを付与（安全）
-        $middleware->web(append: [\App\Http\Middleware\AddCspIfEnabled::class]);
+        $middleware->web(append: [
+            \App\Http\Middleware\StoreIntendedOnUnauthenticated::class,
+            \App\Http\Middleware\AddCspIfEnabled::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

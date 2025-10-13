@@ -317,33 +317,29 @@ class FurusatoResultCalculator implements ProvidesKeys
 
     private function lowerBoundRate(int $amount, array $rows): ?float
     {
+        if ($rows === []) {
+            return null;
+        }
+
         $amount = max(0, $amount);
+        $amount = $this->floorToThousands($amount);
 
-        if ($amount <= 0 || $rows === []) {
-            return null;
-        }
-
-        $lowest = $rows[0]['lower'];
-        if ($amount < $lowest) {
-            return null;
-        }
+        $fallbackRate = $rows[0]['rate'];
 
         foreach ($rows as $row) {
-            $upper = $row['upper'];
-            if ($upper === null) {
-                if ($amount >= $row['lower']) {
-                    return $row['rate'];
-                }
-
+            if ($row['lower'] > $amount) {
                 continue;
             }
 
-            if ($row['lower'] <= $amount && $amount <= $upper) {
-                return $row['rate'];
+            $upper = $row['upper'];
+            if ($upper !== null && $amount > $upper) {
+                continue;
             }
+
+            return $row['rate'];
         }
 
-        return null;
+        return $fallbackRate;
     }
 
     private function resolveMasterYear(array $ctx): int

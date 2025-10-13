@@ -201,15 +201,14 @@ class TokureiRateCalculator implements ProvidesKeys
 
     private function lowerBoundRate(float $amount, array $rows): ?float
     {
-        $amount = max(0.0, $amount);
-
         if ($rows === []) {
             return null;
         }
 
-        if ($amount < $rows[0]['lower']) {
-            return $rows[0]['rate'];
-        }
+        $amount = max(0.0, $amount);
+        $amount = $this->floorToThousands((int) floor($amount));
+
+        $fallbackRate = $rows[0]['rate'];
 
         for ($index = count($rows) - 1; $index >= 0; $index--) {
             $row = $rows[$index];
@@ -222,10 +221,11 @@ class TokureiRateCalculator implements ProvidesKeys
             if ($upper !== null && $amount > $upper) {
                 continue;
             }
+            
             return $row['rate'];
         }
 
-        return null;
+        return $fallbackRate;
     }
 
     private function separatedIncomeAmount(array $payload, string $baseKey, string $period): int

@@ -144,7 +144,7 @@
       '0' => '指定都市以外',
   ];
 @endphp
-<div class="container-blue mt-2" style="max-width: 840px;">
+<div class="container-blue mt-2" style="max-width: 700px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">処理メニュー設定</h0>
@@ -169,15 +169,15 @@
               <div class="card-header text-center fw-bold">{{ $period['title'] }}</div>
               <div class="card-body">
                 <div class="mb-4">
-                  <h1 class="h5 mb-3">○処理モード</h1>
+                  <h1>○処理モード</h1>
                   <div class="row g-3">
                     <div class="col-12">
-                      <div class="p-2 bg-light">
+                      <div class="p-2 bg-cream mt-1">
                         <hb class="d-block text-center">処理タイプ</hb>
                         <hr class="my-2">
                         @foreach ($detailOptions as $value => $label)
                           @php $id = sprintf('detail-mode-%s-%s', $key, $value); @endphp
-                          <div class="form-check">
+                          <div class="form-check ms-5">
                             <input class="form-check-input" type="radio" name="detail_mode_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['detail_mode'] === (string) $value) required>
                             <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
                           </div>
@@ -185,12 +185,12 @@
                       </div>
                     </div>
                     <div class="col-12">
-                      <div class="p-2 bg-light">
+                      <div class="p-2 bg-cream mt-1">
                         <hb class="d-block text-center">分離課税</hb>
                         <hr class="my-2">
                         @foreach ($bunriOptions as $value => $label)
                           @php $id = sprintf('bunri-flag-%s-%s', $key, $value); @endphp
-                          <div class="form-check">
+                          <div class="form-check ms-5">
                             <input class="form-check-input" type="radio" name="bunri_flag_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['bunri_flag'] === (string) $value) required>
                             <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
                           </div>
@@ -198,12 +198,12 @@
                       </div>
                     </div>
                     <div class="col-12">
-                      <div class="p-2 bg-light">
+                      <div class="p-2 bg-cream mt-1">
                         <hb class="d-block text-center">ワンストップ特例</hb>
                         <hr class="my-2">
                         @foreach ($oneStopOptions as $value => $label)
                           @php $id = sprintf('one-stop-flag-%s-%s', $key, $value); @endphp
-                          <div class="form-check">
+                          <div class="form-check ms-5">
                             <input class="form-check-input" type="radio" name="one_stop_flag_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['one_stop_flag'] === (string) $value) required>
                             <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
                           </div>
@@ -211,12 +211,12 @@
                       </div>
                     </div>
                     <div class="col-12">
-                      <div class="p-2 bg-light">
+                      <div class="p-2 bg-cream mt-1">
                         <hb class="d-block text-center">指定都市区分</hb>
                         <hr class="my-2">
                         @foreach ($shiteiOptions as $value => $label)
                           @php $id = sprintf('shitei-flag-%s-%s', $key, $value); @endphp
-                          <div class="form-check">
+                          <div class="form-check ms-5">
                             <input class="form-check-input" type="radio" name="shitei_toshi_flag_{{ $key }}" id="{{ $id }}" value="{{ $value }}" @checked($period['shitei_toshi_flag'] === (string) $value) required>
                             <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
                           </div>
@@ -226,35 +226,35 @@
                   </div>
                 </div>
                 <div class="mb-4">
-                  <h1 class="h5 mb-3">○所得割の税率</h1>
-                  <div class="mb-3">
+                  <h1>○所得割の税率</h1>
+                  <div class="mt-1 mb-1 ms-3">
                     <label class="form-label">都道府県（標準）</label>
                     <input type="text" class="form-control suji4 comma decimal3 floor integer_comma" value="{{ number_format((float) $prefStandard, 2, '.', '') }}" readonly>
                   </div>
-                  <div class="mb-3">
+                  <div class="mb-1 ms-3">
                     <label class="form-label">市区町村（標準）</label>
                     <input type="text" class="form-control suji4 comma decimal3 floor integer_comma" value="{{ number_format((float) $muniStandard, 2, '.', '') }}" readonly>
                   </div>
-                  <div class="mb-3">
+                  <div class="mb-1 ms-3">
                     <label class="form-label">都道府県（適用）</label>
                     <input type="number" class="form-control suji7 comma decimal3 floor integer_comma" name="pref_applied_rate_{{ $key }}" value="{{ $period['pref_applied_rate'] }}" min="0" max="1" step="0.001" required>
                   </div>
-                  <div>
+                  <div class="mb-1 ms-3">
                     <label class="form-label">市区町村（適用）</label>
                     <input type="number" class="form-control suji7 comma decimal3 floor integer_comma" name="muni_applied_rate_{{ $key }}" value="{{ $period['muni_applied_rate'] }}" min="0" max="1" step="0.001" required>
                   </div>
                 </div>
                 <div>
-                  <h1 class="h5 mb-3">○均等割・その他税額</h1>
-                  <div class="mb-3">
+                  <h1>○均等割・その他税額</h1>
+                  <div class="mt-1 mb-1 ms-3">
                     <label class="form-label">都道府県 均等割</label>
                     <input type="number" class="form-control suji7 comma floor integer_comma" name="pref_equal_share_{{ $key }}" value="{{ $period['pref_equal_share'] }}" min="0" step="1" required>
                   </div>
-                  <div class="mb-3">
+                  <div class="mb-1 ms-3">
                     <label class="form-label">市区町村 均等割</label>
                     <input type="number" class="form-control suji7 comma floor integer_comma" name="muni_equal_share_{{ $key }}" value="{{ $period['muni_equal_share'] }}" min="0" step="1" required>
                   </div>
-                  <div class="mb-3">
+                  <div class="mb-1 ms-3">
                     <label class="form-label">その他の税額</label>
                     <input type="number" class="form-control suji7 comma floor integer_comma" name="other_taxes_amount_{{ $key }}" value="{{ $period['other_taxes_amount'] }}" min="0" step="1" required>
                   </div>

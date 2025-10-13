@@ -1,3 +1,4 @@
+<!-- resources/views/tax/furusato/tabs/result_details.blade.php -->
 @php
   $details = $results['details'] ?? [];
   $prevDetails = $details['prev'] ?? [];

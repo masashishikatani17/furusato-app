@@ -1,0 +1,1 @@
+<!-- resources/views/tax/furusato/tabs/result_upper_furusato.blade.php -->

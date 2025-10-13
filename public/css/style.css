@@ -62,6 +62,16 @@
         /* Alpine.js 初期化前のちらつき防止 */
         [x-cloak] { display: none !important; }
         
+        /* 選択divの背景色　ベージュ*/
+        .bg-cream {
+          width: 95%;
+          margin: 0 auto;
+          font-size: 13px;
+          background-color: #F4F1E8;
+        
+        /* htmlの指定はclass="bg-cream"*/
+        }
+        
 /* --------------------------------------
   * 文字
   * ------------------------------------ */        

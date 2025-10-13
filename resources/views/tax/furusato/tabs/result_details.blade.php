@@ -259,10 +259,8 @@
         </tr>
       </tbody>
     </table>
-    @if($stdPrevDisp !== '' || $stdCurrDisp !== '')
-      <div class="visually-hidden" aria-hidden="true">
-        特例控除率（標準） 前年：{{ $stdPrevDisp }} 当年：{{ $stdCurrDisp }}
-      </div>
-    @endif
+    <div class="visually-hidden" aria-hidden="true">
+      特例控除率（標準） 前年：{{ $stdPrevDisp }} 当年：{{ $stdCurrDisp }}
+    </div>
   </div>
 </div>

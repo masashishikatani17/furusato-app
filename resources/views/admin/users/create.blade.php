@@ -68,7 +68,7 @@
                 @csrf
 
                 <div class="mt-2 mb-3 ms-3 me-2">
-                    <label for="invite-name" class="form-label me-3">・氏名</label>
+                    <label for="invite-name" class="form-label me-5">・氏名</label>
                     <input type="text" id="invite-name" name="name" value="{{ old('name') }}" class="form-control kana9" {{ $canSubmit ? '' : 'disabled' }}>
                     @error('name')
                         <div class="text-danger small mt-1">{{ $message }}</div>
@@ -92,7 +92,7 @@
                 </div>
                 
                 {{-- 付与する役割 --}}
-                <div class="d-flex align-items-center mb-3 ms-3 me-3">
+                <div class="d-flex align-items-center mb-1 ms-3 me-3">
                   <label for="invite-role" class="form-label me-2 mb-0">
                     ・付与する役割<span class="text-danger">*</span>
                   </label>
@@ -107,25 +107,13 @@
                   </select>
                 </div>
                 
-                {{-- 部署 --}}
-                <div class="d-flex align-items-center mb-3 ms-3 me-3">
-                  <label for="invite-dept" class="form-label me-2 mb-0">・部署</label>
-                  <input type="text"
-                         id="invite-dept"
-                         name="department"
-                         class="form-control"
-                         style="width: 300px;"
-                         value="{{ old('department') }}"
-                         {{ $canSubmit ? '' : 'disabled' }}>
-                </div>
-                
                 {{-- 注意文 --}}
-                <div class="ms-3 me-3 text-muted small">
+                <p-small class="ms-3 mb-3">
                   Owner の招待はできません。必要な場合は代表者権限の譲渡をご利用ください。
-                </div>
-                <div class="d-flex align-items-center mb-3 ms-3 me-3">
-                  <label for="invite-group" class="form-label me-2 mb-0">
-                    ・部署
+                </p-small>
+                <div class="d-flex align-items-center mt-3 mb-1 ms-3 me-3">
+                  <label for="invite-group" class="form-label me-5 mb-0">
+                    ・部 署
                   </label>
                   <select id="invite-group"
                           name="group_id"
@@ -141,9 +129,9 @@
                   </select>
                 </div>
                 
-                <div class="ms-3 me-3 text-muted small">
+                <p-small class="ms-3">
                   Registrar を付与する場合は部署を空欄にしてください。
-                </div>
+                </p-small>
 　　　　　　　　<hr>
                 <div class="d-flex justify-content-between">
                     @if ($indexRoute)

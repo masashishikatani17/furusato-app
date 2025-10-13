@@ -181,7 +181,7 @@
     @endphp
     @if($stdPrevHidden !== '' || $stdCurrHidden !== '')
       <div class="visually-hidden" aria-hidden="true">
-        特例控除率（標準） {{ $warekiPrevLabel }}：{{ $stdPrevHidden }} {{ $warekiCurrLabel }}：{{ $stdCurrHidden }}
+        特例控除率（標準） 前年：{{ $stdPrevHidden }} 当年：{{ $stdCurrHidden }}
       </div>
     @endif
     <table class="table table-base align-middle" style="width:580px">

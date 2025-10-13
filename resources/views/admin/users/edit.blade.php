@@ -46,35 +46,38 @@
     $isActive = $hasIsActive ? (bool) ($targetUser->is_active ?? false) : true;
 @endphp
 
-<div class="container px-4 py-4">
+<div class="container px-4 py-4" style="width:800px; background-color:#E8EFF0;">
     <div class="mb-4">
-        <h1 class="h5 mb-1">ユーザー編集</h1>
-        <p-small>ユーザーの基本情報・役割・部署を編集します。</p-small>
+        <hb class="mt-3 ms-2 mb-3">ユーザー編集</hb>
+        <br>
+         <hs class="ms-3 me-3">ユーザーの基本情報・役割・部署を編集します。
+         </hs>
     </div>
 
     @if ($targetUser)
         <div class="card shadow-sm mb-4">
             <div class="card-body">
-                <hb>ユーザー情報</hb>
+                <hb>○ユーザー情報</hb>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <div class="text-muted small">氏名</div>
-                        <div class="fw-semibold">{{ $targetUser->name }}</div>
+                        <hb class="ms-3 mt-2">・氏名</hb>
+                        <div class="fw-semibold mt-1 ms-5">{{ $targetUser->name }}</div>
                     </div>
                     <div class="col-md-6">
-                        <div class="text-muted small">メールアドレス</div>
-                        <div class="fw-semibold">{{ $targetUser->email }}</div>
+                        <hb>・メールアドレス</hb>
+                        <div class="fw-semibold mt-1 ms-4">{{ $targetUser->email }}</div>
                     </div>
                     <div class="col-md-6">
-                        <div class="text-muted small">役割</div>
-                        <div class="fw-semibold text-uppercase">{{ $isOwnerUser ? 'owner' : ($targetUser->display_role ?? $targetUser->role ?? 'member') }}</div>
+                        <hb class="ms-3 mt-2">・役割</hb>
+                        <div class="fw-semibold text-uppercase mt-1 ms-5">{{ $isOwnerUser ? 'owner' : ($targetUser->display_role ?? $targetUser->role ?? 'member') }}</div>
                     </div>
                     <div class="col-md-6">
-                        <div class="text-muted small">ステータス</div>
+                        <hb>・ステータス</hb>
+                        <br>
                         @if ($hasIsActive)
                             <span class="badge bg-{{ $isActive ? 'primary' : 'secondary' }}">{{ $isActive ? '有効' : '停止中' }}</span>
                         @else
-                            <span class="badge bg-primary">有効</span>
+                            <span class="badge bg-primary mt-1 ms-5">有効</span>
                         @endif
                     </div>
                 </div>
@@ -83,7 +86,7 @@
 
         <div class="card shadow-sm">
             <div class="card-body">
-                <hb>ユーザー設定</hb>
+                <hb>○ユーザー設定</hb>
 
                 @if ($currentUser?->isRegistrar() && $isOwnerUser)
                     <div class="alert alert-warning">Registrar は Owner ユーザーを編集できません。</div>
@@ -95,47 +98,71 @@
                     @csrf
                     @method('PUT')
 
-                    <div class="mb-3">
-                        <label for="edit-name" class="form-label">氏名</label>
-                        <input type="text" id="edit-name" name="name" value="{{ old('name', $targetUser->name) }}" class="form-control" {{ $canUpdate ? '' : 'disabled' }}>
+                    <div class="mt-3 mb-3">
+                        <label for="edit-name" class="form-label ms-3 me-5">・氏名</label>
+                        <input type="text" id="edit-name" name="name" value="{{ old('name', $targetUser->name) }}" class="form-control kana9" {{ $canUpdate ? '' : 'disabled' }}>
                         @error('name')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
 
                     <div class="mb-3">
-                        <label for="edit-email" class="form-label">メールアドレス<span class="text-danger">*</span></label>
-                        <input type="email" id="edit-email" name="email" value="{{ old('email', $targetUser->email) }}" class="form-control" required {{ $canUpdate ? '' : 'disabled' }}>
+                        <label for="edit-email" class="form-label ms-3">・メールアドレス<span class="text-danger">*</span></label>
+                        <input type="email" id="edit-email" name="email" style="width: 500px;" value="{{ old('email', $targetUser->email) }}" class="form-control text-start" required {{ $canUpdate ? '' : 'disabled' }}>
                         @error('email')
                             <div class="text-danger small mt-1">{{ $message }}</div>
                         @enderror
                     </div>
-
-                    <div class="mb-3">
-                        <label for="edit-role" class="form-label">役割</label>
-                        <select id="edit-role" name="role" class="form-select" {{ ($canUpdate && ! $isOwnerUser) ? '' : 'disabled' }}>
-                            @foreach ($roleOptions as $value => $label)
-                                <option value="{{ $value }}" @selected($selectedRole === $value)>{{ $label }}</option>
-                            @endforeach
-                        </select>
-                        <div class="text-muted small mt-1">GroupAdmin が設定できる役割は Member / GroupAdmin のみです。</div>
-                        <div class="text-muted small">Registrar を付与する場合は部署を空欄にしてください。</div>
+                    {{-- 役割 --}}
+                    <div class="d-flex align-items-center mb-1 ms-3 me-3">
+                      <label for="edit-role" class="form-label me-2 mb-0">
+                        ・役割
+                      </label>
+                      <select id="edit-role"
+                              name="role"
+                              class="form-select"
+                              style="width: 200px;"
+                              {{ ($canUpdate && ! $isOwnerUser) ? '' : 'disabled' }}>
+                        @foreach ($roleOptions as $value => $label)
+                          <option value="{{ $value }}" @selected($selectedRole === $value)>{{ $label }}</option>
+                        @endforeach
+                      </select>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="edit-group" class="form-label">部署</label>
-                        <select id="edit-group" name="group_id" class="form-select" {{ $canUpdate ? '' : 'disabled' }}>
-                            <option value="">（指定なし）</option>
-                            @foreach ($groups as $group)
-                                <option value="{{ $group->id }}" @selected((string) old('group_id', $targetUser->group_id) === (string) $group->id)>{{ $group->name }}</option>
-                            @endforeach
-                        </select>
-                        <div class="text-muted small mt-1">Registrar を付与する場合は部署を空欄にしてください。</div>
+                    
+                    <p-small class="ms-5">
+                      GroupAdmin が設定できる役割は Member / GroupAdmin のみです。
+                    </p-small>
+                    <br>
+                    <p-small class="ms-5">
+                    Registrar を付与する場合は部署を空欄にしてください。
+                    </p-small>
+                    
+                    {{-- 部署 --}}
+                    <div class="d-flex align-items-center mt-3 mb-1 ms-3 me-3">
+                      <label for="edit-group" class="form-label me-2 mb-0">
+                        ・部署
+                      </label>
+                      <select id="edit-group"
+                              name="group_id"
+                              class="form-select"
+                              style="width: 200px;"
+                              {{ $canUpdate ? '' : 'disabled' }}>
+                        <option value="">（指定なし）</option>
+                        @foreach ($groups as $group)
+                          <option value="{{ $group->id }}" @selected((string) old('group_id', $targetUser->group_id) === (string) $group->id)>
+                            {{ $group->name }}
+                          </option>
+                        @endforeach
+                      </select>
                     </div>
-
-                    <div class="d-flex justify-content-between mt-4">
+                    
+                    <p-small class="ms-5 mb-3">
+                      Registrar を付与する場合は部署を空欄にしてください。
+                    </p-small>
+                    <hr>
+                    <div class="d-flex justify-content-between">
                         @if ($indexRoute)
-                            <a href="{{ $indexRoute }}" class="btn-base">一覧に戻る</a>
+                            <a href="{{ $indexRoute }}" class="btn-base-blue">一覧に戻る</a>
                         @endif
                         <button type="submit" class="btn-base-blue" {{ $canUpdate ? '' : 'disabled' }}>保存する</button>
                     </div>

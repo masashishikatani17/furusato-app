@@ -112,7 +112,7 @@
                     </tbody>
                 </table>
             </div>
-            <hs class="ms-3 me-3">※ Client ロールと停止中ユーザーは席数に含まれません。</hs>
+            <hs class="ms-5 mt-1">※ Client ロールと停止中ユーザーは席数に含まれません。</hs>
         </div>
     </div>
 

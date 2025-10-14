@@ -34,14 +34,14 @@ final class FurusatoController extends Controller
     private const MASTER_KIHU_YEAR = 2025;
 
     private const BUNRI_CHOKI_SHOTOKU_FIELDS = [
-        'bunri_choki_tokutei_under_shotoku_prev',
-        'bunri_choki_tokutei_under_shotoku_curr',
-        'bunri_choki_tokutei_over_shotoku_prev',
-        'bunri_choki_tokutei_over_shotoku_curr',
-        'bunri_choki_keika_under_shotoku_prev',
-        'bunri_choki_keika_under_shotoku_curr',
-        'bunri_choki_keika_over_shotoku_prev',
-        'bunri_choki_keika_over_shotoku_curr',
+        'bunri_shotoku_choki_tokutei_under_shotoku_prev',
+        'bunri_shotoku_choki_tokutei_under_shotoku_curr',
+        'bunri_shotoku_choki_tokutei_over_shotoku_prev',
+        'bunri_shotoku_choki_tokutei_over_shotoku_curr',
+        'bunri_shotoku_choki_keika_under_shotoku_prev',
+        'bunri_shotoku_choki_keika_under_shotoku_curr',
+        'bunri_shotoku_choki_keika_over_shotoku_prev',
+        'bunri_shotoku_choki_keika_over_shotoku_curr',
     ];
 
     private const FUDOSAN_LABEL_FIELDS = [
@@ -214,6 +214,7 @@ final class FurusatoController extends Controller
                 $savedInputs = $stored;
                 $this->normalizeJotoIchijiKeys($savedInputs);
                 $this->normalizeBunriChokiShotokuKeys($savedInputs);
+                $this->normalizeBunriIncomeShotokuKeys($savedInputs);
                 $this->normalizeKojoRenamedKeys($savedInputs);
             }
         }
@@ -1138,6 +1139,7 @@ final class FurusatoController extends Controller
 
         $this->normalizeJotoIchijiKeys($payload);
         $this->normalizeBunriChokiShotokuKeys($payload);
+        $this->normalizeBunriIncomeShotokuKeys($payload);
         $this->normalizeKojoRenamedKeys($payload);
 
         return $payload;
@@ -1345,6 +1347,72 @@ final class FurusatoController extends Controller
         }
     }
 
+    private function normalizeBunriIncomeShotokuKeys(array &$payload): void
+    {
+        foreach (['prev', 'curr'] as $period) {
+            $tokuteiJuminKey = sprintf('bunri_choki_tokutei_jumin_%s', $period);
+            if (array_key_exists($tokuteiJuminKey, $payload)) {
+                $value = $this->toNullableInt($payload[$tokuteiJuminKey]);
+                foreach (['over', 'under'] as $suffix) {
+                    $canonical = sprintf('bunri_shotoku_choki_tokutei_%s_jumin_%s', $suffix, $period);
+                    if (! array_key_exists($canonical, $payload)) {
+                        $payload[$canonical] = $value;
+                    }
+                }
+                unset($payload[$tokuteiJuminKey]);
+            }
+
+            $keikaJuminKey = sprintf('bunri_choki_keika_jumin_%s', $period);
+            if (array_key_exists($keikaJuminKey, $payload)) {
+                $value = $this->toNullableInt($payload[$keikaJuminKey]);
+                foreach (['over', 'under'] as $suffix) {
+                    $canonical = sprintf('bunri_shotoku_choki_keika_%s_jumin_%s', $suffix, $period);
+                    if (! array_key_exists($canonical, $payload)) {
+                        $payload[$canonical] = $value;
+                    }
+                }
+                unset($payload[$keikaJuminKey]);
+            }
+        }
+
+        $parts = [
+            'tanki_ippan',
+            'tanki_keigen',
+            'choki_ippan',
+            'choki_tokutei_over',
+            'choki_tokutei_under',
+            'choki_keika_over',
+            'choki_keika_under',
+            'ippan_kabuteki_joto',
+            'jojo_kabuteki_joto',
+            'jojo_kabuteki_haito',
+            'sakimono',
+            'sanrin',
+            'taishoku',
+        ];
+
+        foreach ($parts as $part) {
+            foreach (['shotoku', 'jumin'] as $tax) {
+                foreach (['prev', 'curr'] as $period) {
+                    $canonicalKey = sprintf('bunri_shotoku_%s_%s_%s', $part, $tax, $period);
+
+                    if (array_key_exists($canonicalKey, $payload)) {
+                        $payload[$canonicalKey] = $this->toNullableInt($payload[$canonicalKey]);
+                        continue;
+                    }
+
+                    $legacyKey = sprintf('bunri_%s_%s_%s', $part, $tax, $period);
+                    if (! array_key_exists($legacyKey, $payload)) {
+                        continue;
+                    }
+
+                    $payload[$canonicalKey] = $this->toNullableInt($payload[$legacyKey]);
+                    unset($payload[$legacyKey]);
+                }
+            }
+        }
+    }
+
     private function normalizeJotoIchijiKeys(array &$payload): void
     {
         $mapping = [];
@@ -1496,6 +1564,7 @@ final class FurusatoController extends Controller
         FurusatoInput::unguarded(function () use ($data, $updates, $labelUpdates, $userId): void {
             $this->normalizeJotoIchijiKeys($updates);
             $this->normalizeBunriChokiShotokuKeys($updates);
+            $this->normalizeBunriIncomeShotokuKeys($updates);
             $this->normalizeKojoRenamedKeys($updates, true);
 
             $record = FurusatoInput::firstOrNew(['data_id' => $data->id]);
@@ -1522,9 +1591,11 @@ final class FurusatoController extends Controller
             $current = is_array($record->payload) ? $record->payload : [];
             $this->normalizeJotoIchijiKeys($current);
             $this->normalizeBunriChokiShotokuKeys($current);
+            $this->normalizeBunriIncomeShotokuKeys($current);
             $this->normalizeKojoRenamedKeys($current, true);
             $payload = array_replace($current, $updates);
             $this->normalizeBunriChokiShotokuKeys($payload);
+            $this->normalizeBunriIncomeShotokuKeys($payload);
             $this->normalizeKojoRenamedKeys($payload, true);
             $settings = $this->getSyoriSettings($data->id);
             $payload = $this->applyAutoCalculatedFields($data, $payload, $settings);

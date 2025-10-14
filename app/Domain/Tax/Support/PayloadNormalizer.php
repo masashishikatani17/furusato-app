@@ -15,6 +15,7 @@ class PayloadNormalizer
         $payload = $this->migrateShotokuIchijiKeys($payload);
         $payload = $this->migrateKojoShogaishaKeys($payload);
         $payload = $this->normalizeBunriChokiShotokuKeys($payload);
+        $payload = $this->normalizeBunriIncomeShotokuKeys($payload);
 
         foreach ($payload as $key => $value) {
             if ($this->isLabelField($key)) {
@@ -118,6 +119,78 @@ class PayloadNormalizer
 
                 if (array_key_exists($overKey, $payload)) {
                     $payload[$overKey] = $this->normalizeValue($payload[$overKey]);
+                }
+            }
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeBunriIncomeShotokuKeys(array $payload): array
+    {
+        foreach (['prev', 'curr'] as $period) {
+            $tokuteiJuminKey = sprintf('bunri_choki_tokutei_jumin_%s', $period);
+            if (array_key_exists($tokuteiJuminKey, $payload)) {
+                $value = $this->normalizeValue($payload[$tokuteiJuminKey]);
+                foreach (['over', 'under'] as $suffix) {
+                    $canonical = sprintf('bunri_shotoku_choki_tokutei_%s_jumin_%s', $suffix, $period);
+                    if (! array_key_exists($canonical, $payload)) {
+                        $payload[$canonical] = $value;
+                    }
+                }
+                unset($payload[$tokuteiJuminKey]);
+            }
+
+            $keikaJuminKey = sprintf('bunri_choki_keika_jumin_%s', $period);
+            if (array_key_exists($keikaJuminKey, $payload)) {
+                $value = $this->normalizeValue($payload[$keikaJuminKey]);
+                foreach (['over', 'under'] as $suffix) {
+                    $canonical = sprintf('bunri_shotoku_choki_keika_%s_jumin_%s', $suffix, $period);
+                    if (! array_key_exists($canonical, $payload)) {
+                        $payload[$canonical] = $value;
+                    }
+                }
+                unset($payload[$keikaJuminKey]);
+            }
+        }
+
+        $parts = [
+            'tanki_ippan',
+            'tanki_keigen',
+            'choki_ippan',
+            'choki_tokutei_over',
+            'choki_tokutei_under',
+            'choki_keika_over',
+            'choki_keika_under',
+            'ippan_kabuteki_joto',
+            'jojo_kabuteki_joto',
+            'jojo_kabuteki_haito',
+            'sakimono',
+            'sanrin',
+            'taishoku',
+        ];
+
+        foreach ($parts as $part) {
+            foreach (['shotoku', 'jumin'] as $tax) {
+                foreach (['prev', 'curr'] as $period) {
+                    $canonicalKey = sprintf('bunri_shotoku_%s_%s_%s', $part, $tax, $period);
+
+                    if (array_key_exists($canonicalKey, $payload)) {
+                        $payload[$canonicalKey] = $this->normalizeValue($payload[$canonicalKey]);
+                        continue;
+                    }
+
+                    $legacyKey = sprintf('bunri_%s_%s_%s', $part, $tax, $period);
+                    if (! array_key_exists($legacyKey, $payload)) {
+                        continue;
+                    }
+
+                    $payload[$canonicalKey] = $this->normalizeValue($payload[$legacyKey]);
+                    unset($payload[$legacyKey]);
                 }
             }
         }

@@ -34,14 +34,10 @@ final class FurusatoController extends Controller
     private const MASTER_KIHU_YEAR = 2025;
 
     private const BUNRI_CHOKI_SHOTOKU_FIELDS = [
-        'bunri_shotoku_choki_tokutei_under_shotoku_prev',
-        'bunri_shotoku_choki_tokutei_under_shotoku_curr',
-        'bunri_shotoku_choki_tokutei_over_shotoku_prev',
-        'bunri_shotoku_choki_tokutei_over_shotoku_curr',
-        'bunri_shotoku_choki_keika_under_shotoku_prev',
-        'bunri_shotoku_choki_keika_under_shotoku_curr',
-        'bunri_shotoku_choki_keika_over_shotoku_prev',
-        'bunri_shotoku_choki_keika_over_shotoku_curr',
+        'bunri_shotoku_choki_tokutei_shotoku_prev',
+        'bunri_shotoku_choki_tokutei_shotoku_curr',
+        'bunri_shotoku_choki_keika_shotoku_prev',
+        'bunri_shotoku_choki_keika_shotoku_curr',
     ];
 
     private const FUDOSAN_LABEL_FIELDS = [
@@ -213,6 +209,7 @@ final class FurusatoController extends Controller
             if (is_array($stored)) {
                 $savedInputs = $stored;
                 $this->normalizeJotoIchijiKeys($savedInputs);
+                $this->normalizeBunriChokiSyunyuKeys($savedInputs);
                 $this->normalizeBunriChokiShotokuKeys($savedInputs);
                 $this->normalizeBunriIncomeShotokuKeys($savedInputs);
                 $this->normalizeKojoRenamedKeys($savedInputs);
@@ -1138,6 +1135,7 @@ final class FurusatoController extends Controller
         }
 
         $this->normalizeJotoIchijiKeys($payload);
+        $this->normalizeBunriChokiSyunyuKeys($payload);
         $this->normalizeBunriChokiShotokuKeys($payload);
         $this->normalizeBunriIncomeShotokuKeys($payload);
         $this->normalizeKojoRenamedKeys($payload);
@@ -1311,37 +1309,103 @@ final class FurusatoController extends Controller
         return $query;
     }
     
-    private function normalizeBunriChokiShotokuKeys(array &$payload): void
+    private function normalizeBunriChokiSyunyuKeys(array &$payload): void
     {
         $types = ['tokutei', 'keika'];
+        $taxes = ['shotoku', 'jumin'];
         $periods = ['prev', 'curr'];
 
         foreach ($types as $type) {
-            foreach ($periods as $period) {
-                $legacyKey = sprintf('bunri_choki_%s_shotoku_%s', $type, $period);
-                $underKey = sprintf('bunri_choki_%s_under_shotoku_%s', $type, $period);
-                $overKey = sprintf('bunri_choki_%s_over_shotoku_%s', $type, $period);
+            foreach ($taxes as $tax) {
+                foreach ($periods as $period) {
+                    $canonicalKey = sprintf('bunri_syunyu_choki_%s_%s_%s', $type, $tax, $period);
+                    $canonicalExists = array_key_exists($canonicalKey, $payload);
+                    $canonicalValue = $canonicalExists ? $this->toNullableInt($payload[$canonicalKey]) : null;
 
-                $legacyExists = array_key_exists($legacyKey, $payload);
-                $legacyValue = $legacyExists ? $this->toNullableInt($payload[$legacyKey]) : null;
+                    if ($canonicalExists) {
+                        $payload[$canonicalKey] = $canonicalValue;
+                    }
 
-                $underExists = array_key_exists($underKey, $payload);
-                $underValue = $underExists ? $this->toNullableInt($payload[$underKey]) : null;
+                    $legacyKeys = [
+                        sprintf('bunri_syunyu_choki_%s_over_%s_%s', $type, $tax, $period),
+                        sprintf('bunri_syunyu_choki_%s_under_%s_%s', $type, $tax, $period),
+                    ];
 
-                if ($legacyExists && $underValue === null) {
-                    $underValue = $legacyValue;
+                    $legacySum = null;
+                    $hasLegacy = false;
+
+                    foreach ($legacyKeys as $legacyKey) {
+                        if (! array_key_exists($legacyKey, $payload)) {
+                            continue;
+                        }
+
+                        $hasLegacy = true;
+                        $value = $this->toNullableInt($payload[$legacyKey]) ?? 0;
+                        $legacySum = ($legacySum ?? 0) + $value;
+                        unset($payload[$legacyKey]);
+                    }
+
+                    if ($canonicalValue !== null) {
+                        continue;
+                    }
+
+                    if ($hasLegacy) {
+                        $payload[$canonicalKey] = $legacySum ?? 0;
+                    }
                 }
+            }
+        }
+    }
 
-                if ($underExists || $underValue !== null) {
-                    $payload[$underKey] = $underValue;
-                }
+    private function normalizeBunriChokiShotokuKeys(array &$payload): void
+    {
+        $types = ['tokutei', 'keika'];
+        $taxes = ['shotoku', 'jumin'];
+        $periods = ['prev', 'curr'];
 
-                if ($legacyExists) {
-                    unset($payload[$legacyKey]);
-                }
+        foreach ($types as $type) {
+            foreach ($taxes as $tax) {
+                foreach ($periods as $period) {
+                    $canonicalKey = sprintf('bunri_shotoku_choki_%s_%s_%s', $type, $tax, $period);
+                    $canonicalExists = array_key_exists($canonicalKey, $payload);
+                    $canonicalValue = $canonicalExists ? $this->toNullableInt($payload[$canonicalKey]) : null;
 
-                if (array_key_exists($overKey, $payload)) {
-                    $payload[$overKey] = $this->toNullableInt($payload[$overKey]);
+                    if ($canonicalExists) {
+                        $payload[$canonicalKey] = $canonicalValue;
+                    }
+
+                    $legacyKeys = [
+                        sprintf('bunri_shotoku_choki_%s_over_%s_%s', $type, $tax, $period),
+                        sprintf('bunri_shotoku_choki_%s_under_%s_%s', $type, $tax, $period),
+                        sprintf('bunri_choki_%s_over_%s_%s', $type, $tax, $period),
+                        sprintf('bunri_choki_%s_under_%s_%s', $type, $tax, $period),
+                    ];
+
+                    if ($tax === 'shotoku') {
+                        $legacyKeys[] = sprintf('bunri_choki_%s_shotoku_%s', $type, $period);
+                    }
+
+                    $legacySum = null;
+                    $hasLegacy = false;
+
+                    foreach ($legacyKeys as $legacyKey) {
+                        if (! array_key_exists($legacyKey, $payload)) {
+                            continue;
+                        }
+
+                        $hasLegacy = true;
+                        $value = $this->toNullableInt($payload[$legacyKey]) ?? 0;
+                        $legacySum = ($legacySum ?? 0) + $value;
+                        unset($payload[$legacyKey]);
+                    }
+
+                    if ($canonicalValue !== null) {
+                        continue;
+                    }
+
+                    if ($hasLegacy) {
+                        $payload[$canonicalKey] = $legacySum ?? 0;
+                    }
                 }
             }
         }
@@ -1353,11 +1417,9 @@ final class FurusatoController extends Controller
             $tokuteiJuminKey = sprintf('bunri_choki_tokutei_jumin_%s', $period);
             if (array_key_exists($tokuteiJuminKey, $payload)) {
                 $value = $this->toNullableInt($payload[$tokuteiJuminKey]);
-                foreach (['over', 'under'] as $suffix) {
-                    $canonical = sprintf('bunri_shotoku_choki_tokutei_%s_jumin_%s', $suffix, $period);
-                    if (! array_key_exists($canonical, $payload)) {
-                        $payload[$canonical] = $value;
-                    }
+                $canonical = sprintf('bunri_shotoku_choki_tokutei_jumin_%s', $period);
+                if (! array_key_exists($canonical, $payload)) {
+                    $payload[$canonical] = $value;
                 }
                 unset($payload[$tokuteiJuminKey]);
             }
@@ -1365,11 +1427,9 @@ final class FurusatoController extends Controller
             $keikaJuminKey = sprintf('bunri_choki_keika_jumin_%s', $period);
             if (array_key_exists($keikaJuminKey, $payload)) {
                 $value = $this->toNullableInt($payload[$keikaJuminKey]);
-                foreach (['over', 'under'] as $suffix) {
-                    $canonical = sprintf('bunri_shotoku_choki_keika_%s_jumin_%s', $suffix, $period);
-                    if (! array_key_exists($canonical, $payload)) {
-                        $payload[$canonical] = $value;
-                    }
+                $canonical = sprintf('bunri_shotoku_choki_keika_jumin_%s', $period);
+                if (! array_key_exists($canonical, $payload)) {
+                    $payload[$canonical] = $value;
                 }
                 unset($payload[$keikaJuminKey]);
             }
@@ -1379,10 +1439,8 @@ final class FurusatoController extends Controller
             'tanki_ippan',
             'tanki_keigen',
             'choki_ippan',
-            'choki_tokutei_over',
-            'choki_tokutei_under',
-            'choki_keika_over',
-            'choki_keika_under',
+            'choki_tokutei',
+            'choki_keika',
             'ippan_kabuteki_joto',
             'jojo_kabuteki_joto',
             'jojo_kabuteki_haito',
@@ -1563,6 +1621,7 @@ final class FurusatoController extends Controller
 
         FurusatoInput::unguarded(function () use ($data, $updates, $labelUpdates, $userId): void {
             $this->normalizeJotoIchijiKeys($updates);
+            $this->normalizeBunriChokiSyunyuKeys($updates);
             $this->normalizeBunriChokiShotokuKeys($updates);
             $this->normalizeBunriIncomeShotokuKeys($updates);
             $this->normalizeKojoRenamedKeys($updates, true);
@@ -1590,10 +1649,12 @@ final class FurusatoController extends Controller
 
             $current = is_array($record->payload) ? $record->payload : [];
             $this->normalizeJotoIchijiKeys($current);
+            $this->normalizeBunriChokiSyunyuKeys($current);
             $this->normalizeBunriChokiShotokuKeys($current);
             $this->normalizeBunriIncomeShotokuKeys($current);
             $this->normalizeKojoRenamedKeys($current, true);
             $payload = array_replace($current, $updates);
+            $this->normalizeBunriChokiSyunyuKeys($payload);
             $this->normalizeBunriChokiShotokuKeys($payload);
             $this->normalizeBunriIncomeShotokuKeys($payload);
             $this->normalizeKojoRenamedKeys($payload, true);

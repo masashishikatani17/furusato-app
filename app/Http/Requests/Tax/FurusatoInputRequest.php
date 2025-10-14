@@ -170,6 +170,32 @@ final class FurusatoInputRequest extends FormRequest
             $rules[sprintf('juminzei_kojo_kiso_%s', $period)] = ['bail', 'nullable', 'integer', 'min:0'];
         }
 
+        $bunriIncomeParts = [
+            'tanki_ippan',
+            'tanki_keigen',
+            'choki_ippan',
+            'choki_tokutei_over',
+            'choki_tokutei_under',
+            'choki_keika_over',
+            'choki_keika_under',
+            'ippan_kabuteki_joto',
+            'jojo_kabuteki_joto',
+            'jojo_kabuteki_haito',
+            'sakimono',
+            'sanrin',
+            'taishoku',
+        ];
+
+        foreach (['syunyu', 'shotoku'] as $category) {
+            foreach ($bunriIncomeParts as $part) {
+                foreach (['shotoku', 'jumin'] as $tax) {
+                    foreach (['prev', 'curr'] as $period) {
+                        $rules[sprintf('bunri_%s_%s_%s_%s', $category, $part, $tax, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                    }
+                }
+            }
+        }
+
         $bunriBases = [
             'tanki_ippan',
             'tanki_keigen',

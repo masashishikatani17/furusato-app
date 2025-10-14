@@ -72,19 +72,19 @@ final class JintekiKojoService implements ProvidesKeys
      */
     private const TOTAL_BASE_KEYS = [
         'shotoku_gokei_shotoku',
-        'bunri_tanki_ippan_shotoku',
-        'bunri_tanki_keigen_shotoku',
-        'bunri_choki_ippan_shotoku',
-        'bunri_choki_tokutei_under_shotoku',
-        'bunri_choki_tokutei_over_shotoku',
-        'bunri_choki_keika_under_shotoku',
-        'bunri_choki_keika_over_shotoku',
-        'bunri_ippan_kabuteki_joto_shotoku',
-        'bunri_jojo_kabuteki_joto_shotoku',
-        'bunri_jojo_kabuteki_haito_shotoku',
-        'bunri_sakimono_shotoku',
-        'bunri_sanrin_shotoku',
-        'bunri_taishoku_shotoku',
+        'bunri_shotoku_tanki_ippan_shotoku',
+        'bunri_shotoku_tanki_keigen_shotoku',
+        'bunri_shotoku_choki_ippan_shotoku',
+        'bunri_shotoku_choki_tokutei_under_shotoku',
+        'bunri_shotoku_choki_tokutei_over_shotoku',
+        'bunri_shotoku_choki_keika_under_shotoku',
+        'bunri_shotoku_choki_keika_over_shotoku',
+        'bunri_shotoku_ippan_kabuteki_joto_shotoku',
+        'bunri_shotoku_jojo_kabuteki_joto_shotoku',
+        'bunri_shotoku_jojo_kabuteki_haito_shotoku',
+        'bunri_shotoku_sakimono_shotoku',
+        'bunri_shotoku_sanrin_shotoku',
+        'bunri_shotoku_taishoku_shotoku',
     ];
 
     private const KAFU_SHOTOKU = 270_000;

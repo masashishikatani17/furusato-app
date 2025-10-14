@@ -70,11 +70,6 @@ final class InputSheetSkeletonTest extends TestCase
             'sogo_joto_tanki',
             'sogo_joto_choki',
             'ichiji',
-            'bunri_tanki_ippan',
-            'bunri_tanki_keigen',
-            'bunri_choki_ippan',
-            'bunri_choki_tokutei',
-            'bunri_choki_keika',
             'ippan_kabu_joto',
             'jojo_kabu_joto',
             'jojo_kabu_haito',
@@ -86,6 +81,34 @@ final class InputSheetSkeletonTest extends TestCase
         foreach ($incomeFields as $index => $field) {
             $payload[sprintf('%s_prev', $field)] = ($index + 1) * 10;
             $payload[sprintf('%s_curr', $field)] = ($index + 1) * 20;
+        }
+
+        $bunriParts = [
+            'tanki_ippan',
+            'tanki_keigen',
+            'choki_ippan',
+            'choki_tokutei_over',
+            'choki_tokutei_under',
+            'choki_keika_over',
+            'choki_keika_under',
+            'ippan_kabuteki_joto',
+            'jojo_kabuteki_joto',
+            'jojo_kabuteki_haito',
+            'sakimono',
+            'sanrin',
+            'taishoku',
+        ];
+
+        $bunriIndex = 1;
+        foreach (['syunyu', 'shotoku'] as $category) {
+            foreach ($bunriParts as $part) {
+                foreach (['shotoku', 'jumin'] as $tax) {
+                    foreach (['prev', 'curr'] as $period) {
+                        $payload[sprintf('bunri_%s_%s_%s_%s', $category, $part, $tax, $period)] = $bunriIndex * 100;
+                        $bunriIndex++;
+                    }
+                }
+            }
         }
 
         $payload += [

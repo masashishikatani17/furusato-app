@@ -11,7 +11,7 @@
     $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
 @endphp
-<div class="container-blue mt-2" style="max-width: 820px;">
+<div class="container-blue mt-2" style="width: 800px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
@@ -38,15 +38,15 @@
 
         @foreach (['prev' => $warekiPrevLabel, 'curr' => $warekiCurrLabel] as $period => $label)
           <div class="fw-bold mb-1">{{ $label }}</div>
-          <div class="table-responsive mb-4">
+          <div class="table-responsive mb-2">
             <table class="table-base table-bordered align-middle text-center">
               <thead>
                 <tr>
-                  <th class="th-ccc" style="height:30px;">収入金額</th>
-                  <th class="th-ccc">必要経費</th>
-                  <th class="th-ccc">差引金額</th>
-                  <th class="th-ccc">特別控除額</th>
-                  <th class="th-ccc">山林所得金額</th>
+                  <th style="height:30px;">収入金額</th>
+                  <th>必要経費</th>
+                  <th>差引金額</th>
+                  <th>特別控除額</th>
+                  <th>山林所得金額</th>
                 </tr>
               </thead>
               <tbody>
@@ -76,8 +76,8 @@
             </table>
           </div>
         @endforeach
-
-        <div class="text-end me-2">
+        <hr>
+        <div class="text-end me-2 mb-3">
           <button type="submit" class="btn btn-base-blue">入力画面へ戻る</button>
         </div>
       </form>

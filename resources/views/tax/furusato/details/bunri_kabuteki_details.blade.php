@@ -16,7 +16,7 @@
         ['label' => '上場株式等の配当等', 'key' => 'jojo_haito', 'has_kurikoshi' => false],
     ];
 @endphp
-<div class="container-blue mt-2" style="max-width: 920px;">
+<div class="container-blue mt-2" style="width: 1050px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
@@ -43,17 +43,17 @@
 
         @foreach (['prev' => $warekiPrevLabel, 'curr' => $warekiCurrLabel] as $period => $label)
           <div class="fw-bold mb-1">{{ $label }}</div>
-          <div class="table-responsive mb-4">
+          <div class="table-responsive mb-2">
             <table class="table-base table-bordered align-middle text-center">
               <thead>
                 <tr>
-                  <th class="th-ccc" style="width: 240px; height:30px;"></th>
-                  <th class="th-ccc">収入金額</th>
-                  <th class="th-ccc">必要経費</th>
-                  <th class="th-ccc">所得金額</th>
-                  <th class="th-ccc">損益通算後</th>
-                  <th class="th-ccc">繰越損失の金額</th>
-                  <th class="th-ccc">繰越控除後の所得金額</th>
+                  <th style="width: 150px; height:30px;"></th>
+                  <th>収入金額</th>
+                  <th>必要経費</th>
+                  <t>所得金額</th>
+                  <th>損益通算後</th>
+                  <th>繰越損失の金額</th>
+                  <th>繰越控除後の所得金額</th>
                 </tr>
               </thead>
               <tbody>
@@ -95,8 +95,8 @@
             </table>
           </div>
         @endforeach
-
-        <div class="text-end me-2">
+        <hr>
+        <div class="text-end me-2 mb-3">
           <button type="submit" class="btn btn-base-blue">入力画面へ戻る</button>
         </div>
       </form>

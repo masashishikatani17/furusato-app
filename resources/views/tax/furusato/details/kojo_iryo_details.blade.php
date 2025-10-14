@@ -36,10 +36,10 @@
         <div class="table-responsive">
           <table class="table-base table-bordered align-middle">
               <tr>
-                <th scope="col" class="text-center" style="width: 260px;">項  目</th>
-                <th scope="col" style="width: 150px;">{{ $warekiPrevLabel }}</th>
-                <th scope="col" style="width: 150px;">{{ $warekiCurrLabel }}</th>
-                <th scope="col" style="width: 150px;"></th>
+                <th scope="col" class="text-center th-ccc" style="width: 260px;height:30px;">項  目</th>
+                <th scope="col" class="th-ccc" style="width: 150px;">{{ $warekiPrevLabel }}</th>
+                <th scope="col" class="th-ccc" style="width: 150px;">{{ $warekiCurrLabel }}</th>
+                <th scope="col" class="th-ccc" style="width: 150px;"></th>
               </tr>
             <tbody>
               <tr>

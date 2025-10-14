@@ -36,9 +36,9 @@
         <div class="table-responsive mb-3">
           <table class="table-base table-bordered align-middle">
               <tr>
-                <th class="text-center" style="width: 100px;">項  目</th>
-                <th style="width: 160px;">{{ $warekiPrevLabel }}</th>
-                <th style="width: 160px;">{{ $warekiCurrLabel }}</th>
+                <th class="text-center th-ccc" style="width: 100px;height:30px;">項  目</th>
+                <th class="th-ccc" style="width: 160px;">{{ $warekiPrevLabel }}</th>
+                <th class="th-ccc" style="width: 160px;">{{ $warekiCurrLabel }}</th>
               </tr>
            
             <tbody>

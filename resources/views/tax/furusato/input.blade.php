@@ -655,7 +655,7 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <tr>
+                        <tr id="bunri_income_shortlong_top" data-anchor>
                           <th scope="rowgroup" rowspan="11" class="text-center align-middle th-ccc">収入金額</th>
                           <th scope="rowgroup" rowspan="11" class="text-start align-middle ps-1">分離課税</th>
                           <th scope="rowgroup" rowspan="2" class="text-start align-middle th-ddd ps-1">短 期</th>
@@ -663,7 +663,13 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
+                          <td class="text-center align-middle" rowspan="5">
+                            <button type="submit"
+                                    class="btn-base-green"
+                                    name="redirect_to"
+                                    value="bunri_joto"
+                                    data-return-anchor="bunri_income_shortlong_top">内訳</button>
+                          </td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php

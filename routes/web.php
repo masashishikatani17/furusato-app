@@ -200,6 +200,22 @@ Route::middleware(['auth'])->prefix('furusato')->group(function () {
         ->name('furusato.details.joto_ichiji');
     Route::post('/details/joto_ichiji/save', [FurusatoController::class, 'saveJotoIchijiDetails'])
         ->name('furusato.details.joto_ichiji.save');
+    Route::get('/details/bunri_joto', [FurusatoController::class, 'bunriJotoDetails'])
+        ->name('furusato.details.bunri_joto');
+    Route::post('/details/bunri_joto/save', [FurusatoController::class, 'saveBunriJotoDetails'])
+        ->name('furusato.details.bunri_joto.save');
+    Route::get('/details/bunri_kabuteki', [FurusatoController::class, 'bunriKabutekiDetails'])
+        ->name('furusato.details.bunri_kabuteki');
+    Route::post('/details/bunri_kabuteki/save', [FurusatoController::class, 'saveBunriKabutekiDetails'])
+        ->name('furusato.details.bunri_kabuteki.save');
+    Route::get('/details/bunri_sakimono', [FurusatoController::class, 'bunriSakimonoDetails'])
+        ->name('furusato.details.bunri_sakimono');
+    Route::post('/details/bunri_sakimono/save', [FurusatoController::class, 'saveBunriSakimonoDetails'])
+        ->name('furusato.details.bunri_sakimono.save');
+    Route::get('/details/bunri_sanrin', [FurusatoController::class, 'bunriSanrinDetails'])
+        ->name('furusato.details.bunri_sanrin');
+    Route::post('/details/bunri_sanrin/save', [FurusatoController::class, 'saveBunriSanrinDetails'])
+        ->name('furusato.details.bunri_sanrin.save');
     Route::get('/details/kojo_seimei_jishin', [FurusatoController::class, 'kojoSeimeiJishinDetails'])
         ->name('furusato.details.kojo_seimei_jishin');
     Route::post('/details/kojo_seimei_jishin/save', [FurusatoController::class, 'saveKojoSeimeiJishinDetails'])

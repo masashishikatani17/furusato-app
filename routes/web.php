@@ -172,6 +172,8 @@ Route::get('/diag/csp/ping', function () {
     return Response::make('<!doctype html><title>CSP ping</title><h1>pong</h1>', 200, ['Content-Type' => 'text/html; charset=UTF-8']);
 });
 
+Route::post('/furusato/calc', [FurusatoController::class, 'calc'])->name('furusato.calc');
+
 Route::middleware(['auth'])->prefix('furusato')->group(function () {
     Route::get('/', [FurusatoController::class, 'index'])->name('furusato.index');
     Route::get('/input', [FurusatoController::class, 'index'])->name('furusato.input');
@@ -183,7 +185,6 @@ Route::middleware(['auth'])->prefix('furusato')->group(function () {
     Route::get('/syori', [FurusatoController::class, 'syoriIndex'])->name('furusato.syori');
     Route::post('/syori/save', [FurusatoController::class, 'syoriSave'])->name('furusato.syori.save');
     Route::post('/save', [FurusatoController::class, 'save'])->name('furusato.save');
-    Route::post('/calc', [FurusatoController::class, 'calc'])->name('furusato.calc');
     // 直打ちやリロードで GET /furusato/calc に来たら入力画面へ戻す
     Route::get('/calc', fn() => redirect()->route('furusato.index'));
 

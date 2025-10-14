@@ -16,6 +16,10 @@ class StoreIntendedOnUnauthenticated
      */
     public function handle(Request $request, Closure $next)
     {
+        if ($request->session()->has('url.intended')) {
+            return $next($request);
+        }
+
         if ($this->shouldStoreIntendedUrl($request)) {
             $url = $this->determineIntendedUrl($request);
             $url = $this->ensureSameOrigin($url);
@@ -36,11 +40,33 @@ class StoreIntendedOnUnauthenticated
             return false;
         }
 
-        if ($request->routeIs('login')) {
+        if ($request->routeIs('login', 'register', 'password.*', 'two-factor.*')) {
+            return false;
+        }
+
+        if ($request->routeIs('furusato.calc')) {
+            return false;
+        }
+
+        if (! $request->routeIs($this->allowedIntendedRoutes())) {
             return false;
         }
 
         return $this->guard()->guest();
+    }
+
+    /**
+     * Routes eligible for storing intended URLs.
+     */
+    protected function allowedIntendedRoutes(): array
+    {
+        return [
+            'furusato.save',
+            'furusato.syori.save',
+            'furusato.details.*.save',
+            'upload.store',
+            'data.store',
+        ];
     }
 
     protected function guard(): Guard
@@ -115,13 +141,13 @@ class StoreIntendedOnUnauthenticated
         }
 
         $appUrl = rtrim((string) config('app.url'), '/');
-        $currentUrl = rtrim(url('/'), '/');
-        $allowed = array_filter([$appUrl, $currentUrl]);
+        if ($appUrl !== '' && Str::startsWith($url, $appUrl)) {
+            return $url;
+        }
 
-        foreach ($allowed as $prefix) {
-            if ($prefix !== '' && Str::startsWith($url, $prefix)) {
-                return $url;
-            }
+        $currentUrl = rtrim(url('/'), '/');
+        if ($currentUrl !== '' && Str::startsWith($url, $currentUrl)) {
+            return $url;
         }
 
         return $default;

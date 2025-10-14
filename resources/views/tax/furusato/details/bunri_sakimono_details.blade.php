@@ -11,7 +11,7 @@
     $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
 @endphp
-<div class="container-blue mt-2" style="max-width: 820px;">
+<div class="container-blue mt-2" style="width: 900px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">

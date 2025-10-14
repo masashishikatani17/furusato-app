@@ -39,78 +39,78 @@
                 <th scope="col" class="text-center th-ccc" style="width: 260px;height:30px;">項  目</th>
                 <th scope="col" class="th-ccc" style="width: 150px;">{{ $warekiPrevLabel }}</th>
                 <th scope="col" class="th-ccc" style="width: 150px;">{{ $warekiCurrLabel }}</th>
-                <th scope="col" class="th-ccc" style="width: 150px;"></th>
+                <th scope="col" class="th-ccc" style="width: 50px;"></th>
               </tr>
             <tbody>
               <tr>
-                <th scope="row" class="text-start">支払った医療費（Ⓐ）</th>
+                <th scope="row" class="text-start">支払った医療費</th>
                 <td>
                   <input type="number" min="0" step="1" class="form-control suji11 js-iryo" name="kojo_iryo_shiharai_prev" value="{{ old('kojo_iryo_shiharai_prev', $inputs['kojo_iryo_shiharai_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="number" min="0" step="1" class="form-control suji11 js-iryo" name="kojo_iryo_shiharai_curr" value="{{ old('kojo_iryo_shiharai_curr', $inputs['kojo_iryo_shiharai_curr'] ?? null) }}">
                 </td>
-                <td class="bg-light"></td>
+                <td class="bg-light">Ⓐ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">保険金などで補填される金額（Ⓑ）</th>
+                <th scope="row" class="text-start">保険金などで補填される金額</th>
                 <td>
                   <input type="number" min="0" step="1" class="form-control suji11 js-iryo" name="kojo_iryo_hotengaku_prev" value="{{ old('kojo_iryo_hotengaku_prev', $inputs['kojo_iryo_hotengaku_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="number" min="0" step="1" class="form-control suji11 js-iryo" name="kojo_iryo_hotengaku_curr" value="{{ old('kojo_iryo_hotengaku_curr', $inputs['kojo_iryo_hotengaku_curr'] ?? null) }}">
                 </td>
-                <td class="bg-light"></td>
+                <td class="bg-light">Ⓑ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">差引金額（Ⓒ＝Ⓐ－Ⓑ）</th>
+                <th scope="row" class="text-start">差引金額（Ⓐ－Ⓑ）</th>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_sashihiki_prev" value="{{ $inputs['kojo_iryo_sashihiki_prev'] ?? 0 }}" readonly>
                 </td>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_sashihiki_curr" value="{{ $inputs['kojo_iryo_sashihiki_curr'] ?? 0 }}" readonly>
                 </td>
-                <td class="bg-light"></td>
+                <td class="bg-light">Ⓒ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">所得金額の合計額（Ⓓ）</th>
+                <th scope="row" class="text-start">所得金額の合計額</th>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_shotoku_gokei_prev" value="{{ $inputs['kojo_iryo_shotoku_gokei_prev'] ?? 0 }}" readonly>
                 </td>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_shotoku_gokei_curr" value="{{ $inputs['kojo_iryo_shotoku_gokei_curr'] ?? 0 }}" readonly>
                 </td>
-                <td class="bg-light"></td>
+                <td class="bg-light">Ⓓ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">Ⓓ×0.05（Ⓔ）</th>
+                <th scope="row" class="text-start">Ⓓ×0.05</th>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_shotoku_5pct_prev" value="{{ $inputs['kojo_iryo_shotoku_5pct_prev'] ?? 0 }}" readonly>
                 </td>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_shotoku_5pct_curr" value="{{ $inputs['kojo_iryo_shotoku_5pct_curr'] ?? 0 }}" readonly>
                 </td>
-                <td class="bg-light"></td>
+                <td class="bg-light">Ⓔ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">Ⓔと10万円のいずれか少ない方の金額（Ⓕ）</th>
+                <th scope="row" class="text-start">Ⓔと10万円のいずれか少ない方の金額</th>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_min_threshold_prev" value="{{ $inputs['kojo_iryo_min_threshold_prev'] ?? 0 }}" readonly>
                 </td>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_min_threshold_curr" value="{{ $inputs['kojo_iryo_min_threshold_curr'] ?? 0 }}" readonly>
                 </td>
-                <td class="bg-light"></td>
+                <td class="bg-light">Ⓕ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-center th-cream">医療費控除額（Ⓖ＝Ⓒ－Ⓕ）</th>
+                <th scope="row" class="text-center th-cream">医療費控除額（Ⓒ－Ⓕ）</th>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_kojogaku_prev" value="{{ $inputs['kojo_iryo_kojogaku_prev'] ?? 0 }}" readonly>
                 </td>
                 <td>
                   <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_kojogaku_curr" value="{{ $inputs['kojo_iryo_kojogaku_curr'] ?? 0 }}" readonly>
                 </td>
-                <td class="bg-light"></td>
+                <td class="bg-light">Ⓖ</td>
               </tr>
             </tbody>
           </table>

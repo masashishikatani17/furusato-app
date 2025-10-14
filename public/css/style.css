@@ -4,6 +4,36 @@
            - Bootstrap の基本クラス (.btn, .table, .form-control 等) は上書きしない
            - data_master / data_create / data_copy で即時効果が出るものに限定
            ========================================================================== */
+
+:root {
+    --readonly-bg: #F3F3F3;
+    --readonly-text: #212529;
+}
+
+.form-control[readonly],
+input[readonly],
+textarea[readonly],
+select[readonly] {
+    background-color: var(--readonly-bg) !important;
+    color: var(--readonly-text) !important;
+    cursor: default;
+}
+
+.form-control[readonly]::placeholder,
+input[readonly]::placeholder,
+textarea[readonly]::placeholder,
+select[readonly]::placeholder {
+    color: var(--readonly-text);
+    opacity: 1;
+}
+
+.form-control.bg-light[readonly],
+input.bg-light[readonly],
+textarea.bg-light[readonly],
+select.bg-light[readonly] {
+    background-color: var(--readonly-bg) !important;
+    color: var(--readonly-text) !important;
+}
         
  /* --------------------------------------
   * レイアウト

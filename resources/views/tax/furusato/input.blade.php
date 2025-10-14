@@ -687,7 +687,6 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -706,7 +705,6 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -725,7 +723,6 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -744,7 +741,13 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
+                          <td class="text-center align-middle" rowspan="3">
+                            <button type="submit"
+                                    class="btn-base-green"
+                                    name="redirect_to"
+                                    value="bunri_kabuteki"
+                                    data-return-anchor="bunri_income_kabuteki_top">内訳</button>
+                          </td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -762,7 +765,6 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -780,7 +782,6 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -798,7 +799,13 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
+                          <td class="text-center align-middle">
+                            <button type="submit"
+                                    class="btn-base-green"
+                                    name="redirect_to"
+                                    value="bunri_sakimono"
+                                    data-return-anchor="bunri_income_sakimono">内訳</button>
+                          </td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -816,7 +823,13 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
+                          <td class="text-center align-middle">
+                            <button type="submit"
+                                    class="btn-base-green"
+                                    name="redirect_to"
+                                    value="bunri_sanrin"
+                                    data-return-anchor="bunri_income_sanrin">内訳</button>
+                          </td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -855,7 +868,13 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
+                          <td class="text-center align-middle" rowspan="5">
+                            <button type="submit"
+                                    class="btn-base-green"
+                                    name="redirect_to"
+                                    value="bunri_joto"
+                                    data-return-anchor="bunri_shotoku_shortlong_top">内訳</button>
+                          </td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -873,7 +892,6 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -892,7 +910,6 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -911,7 +928,6 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -930,7 +946,13 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
+                          <td class="text-center align-middle" rowspan="3">
+                            <button type="submit"
+                                    class="btn-base-green"
+                                    name="redirect_to"
+                                    value="bunri_kabuteki"
+                                    data-return-anchor="bunri_shotoku_kabuteki_top">内訳</button>
+                          </td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -948,7 +970,6 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -966,7 +987,6 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -984,7 +1004,13 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
+                          <td class="text-center align-middle">
+                            <button type="submit"
+                                    class="btn-base-green"
+                                    name="redirect_to"
+                                    value="bunri_sakimono"
+                                    data-return-anchor="bunri_shotoku_sakimono">内訳</button>
+                          </td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
@@ -1002,7 +1028,13 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td></td>
+                          <td class="text-center align-middle">
+                            <button type="submit"
+                                    class="btn-base-green"
+                                    name="redirect_to"
+                                    value="bunri_sanrin"
+                                    data-return-anchor="bunri_shotoku_sanrin">内訳</button>
+                          </td>
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php

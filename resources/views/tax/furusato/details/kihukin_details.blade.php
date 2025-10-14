@@ -110,9 +110,9 @@
           <div class="table-responsive mb-4">
             <table class="table-base table-bordered align-middle text-start ms-2">
                 <tr>
-                  <th rowspan="4" class="align-middle" style="width:120px;">寄付対象</th>
-                  <th colspan="4">{{ $warekiPrevLabel }}</th>
-                  <th colspan="4">{{ $warekiCurrLabel }}</th>
+                  <th rowspan="4" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
+                  <th colspan="4" class="th-ccc">{{ $warekiPrevLabel }}</th>
+                  <th colspan="4" class="th-ccc">{{ $warekiCurrLabel }}</th>
                 </tr>
                 <tr>
                   <th colspan="2" rowspan="2">所得税</th>
@@ -159,9 +159,9 @@
           <div class="table-responsive">
             <table class="table-base table-bordered align-middle text-start ms-2">
                 <tr>
-                  <th rowspan="4" class="align-middle" style="width:120px;">寄付対象</th>
-                  <th colspan="4">{{ $warekiPrevLabel }}</th>
-                  <th colspan="4">{{ $warekiCurrLabel }}</th>
+                  <th rowspan="4" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
+                  <th colspan="4" class="th-ccc">{{ $warekiPrevLabel }}</th>
+                  <th colspan="4" class="th-ccc">{{ $warekiCurrLabel }}</th>
                 </tr>
                 <tr>
                   <th colspan="2" rowspan="2">所得税</th>
@@ -198,7 +198,7 @@
               </tbody>
             </table>
           </div>
-      
+      <img src="{{ asset('storage/images/kifu.jpg') }}" alt="…">
           <p class="p-small">(※) 都道府県、市区町村が条例で指定したものに限る。</p>
           <hr>
             <div class="text-end me-2 mb-2">

@@ -740,10 +740,28 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
+        $rowKeys = [
+            'tanki_ippan',
+            'tanki_keigen',
+            'choki_ippan',
+            'choki_tokutei',
+            'choki_keika',
+        ];
+        $editablePrefixes = ['syunyu', 'keihi', 'tsusango', 'tokubetsukojo'];
         $rules = [];
+
+        foreach ($rowKeys as $rowKey) {
+            foreach ($editablePrefixes as $prefix) {
+                foreach (['prev', 'curr'] as $period) {
+                    $rules[sprintf('%s_%s_%s', $prefix, $rowKey, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                }
+            }
+        }
+
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $this->recalculateBunriJoto($payload);
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -773,10 +791,31 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
+        $rows = [
+            ['key' => 'ippan_joto', 'kurikoshi' => false],
+            ['key' => 'jojo_joto', 'kurikoshi' => true],
+            ['key' => 'jojo_haito', 'kurikoshi' => false],
+        ];
+
         $rules = [];
+        foreach ($rows as $row) {
+            foreach (['syunyu', 'keihi', 'tsusango'] as $prefix) {
+                foreach (['prev', 'curr'] as $period) {
+                    $rules[sprintf('%s_%s_%s', $prefix, $row['key'], $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                }
+            }
+
+            if ($row['kurikoshi']) {
+                foreach (['prev', 'curr'] as $period) {
+                    $rules[sprintf('kurikoshi_%s_%s', $row['key'], $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                }
+            }
+        }
+
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $this->recalculateBunriKabuteki($payload);
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -807,9 +846,16 @@ final class FurusatoController extends Controller
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $rules = [];
+        foreach (['syunyu_sakimono', 'keihi_sakimono', 'kurikoshi_sakimono'] as $base) {
+            foreach (['prev', 'curr'] as $period) {
+                $rules[sprintf('%s_%s', $base, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+            }
+        }
+
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $this->recalculateBunriSakimono($payload);
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -840,9 +886,16 @@ final class FurusatoController extends Controller
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $rules = [];
+        foreach (['syunyu_sanrin', 'keihi_sanrin', 'tokubetsukojo_sanrin'] as $base) {
+            foreach (['prev', 'curr'] as $period) {
+                $rules[sprintf('%s_%s', $base, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+            }
+        }
+
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $this->recalculateBunriSanrin($payload);
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -1379,6 +1432,92 @@ final class FurusatoController extends Controller
         }
 
         return $payload;
+    }
+
+    private function recalculateBunriJoto(array &$payload): void
+    {
+        $rows = [
+            ['key' => 'tanki_ippan', 'group' => 'tanki'],
+            ['key' => 'tanki_keigen', 'group' => 'tanki'],
+            ['key' => 'choki_ippan', 'group' => 'choki'],
+            ['key' => 'choki_tokutei', 'group' => 'choki'],
+            ['key' => 'choki_keika', 'group' => 'choki'],
+        ];
+
+        foreach (['prev', 'curr'] as $period) {
+            $sums = ['tanki' => 0, 'choki' => 0];
+
+            foreach ($rows as $row) {
+                $base = sprintf('%s_%s', $row['key'], $period);
+
+                $syunyu = $this->valueOrZero($payload[sprintf('syunyu_%s', $base)] ?? null);
+                $keihi = $this->valueOrZero($payload[sprintf('keihi_%s', $base)] ?? null);
+                $sashihiki = $syunyu - $keihi;
+                $payload[sprintf('sashihiki_%s', $base)] = $sashihiki;
+
+                $tsusango = $this->valueOrZero($payload[sprintf('tsusango_%s', $base)] ?? null);
+                $tokubetsu = $this->valueOrZero($payload[sprintf('tokubetsukojo_%s', $base)] ?? null);
+                $jotoShotoku = $tsusango - $tokubetsu;
+                $payload[sprintf('joto_shotoku_%s', $base)] = $jotoShotoku;
+
+                $sums[$row['group']] += $jotoShotoku;
+            }
+
+            $payload[sprintf('joto_shotoku_tanki_gokei_%s', $period)] = $sums['tanki'];
+            $payload[sprintf('joto_shotoku_choki_gokei_%s', $period)] = $sums['choki'];
+        }
+    }
+
+    private function recalculateBunriKabuteki(array &$payload): void
+    {
+        $rows = [
+            ['key' => 'ippan_joto', 'kurikoshi' => false],
+            ['key' => 'jojo_joto', 'kurikoshi' => true],
+            ['key' => 'jojo_haito', 'kurikoshi' => false],
+        ];
+
+        foreach (['prev', 'curr'] as $period) {
+            foreach ($rows as $row) {
+                $base = sprintf('%s_%s', $row['key'], $period);
+
+                $syunyu = $this->valueOrZero($payload[sprintf('syunyu_%s', $base)] ?? null);
+                $keihi = $this->valueOrZero($payload[sprintf('keihi_%s', $base)] ?? null);
+                $shotoku = $syunyu - $keihi;
+                $payload[sprintf('shotoku_%s', $base)] = $shotoku;
+
+                $tsusango = $this->valueOrZero($payload[sprintf('tsusango_%s', $base)] ?? null);
+                $kurikoshi = $row['kurikoshi']
+                    ? $this->valueOrZero($payload[sprintf('kurikoshi_%s', $base)] ?? null)
+                    : 0;
+                $payload[sprintf('shotoku_after_kurikoshi_%s', $base)] = $tsusango - $kurikoshi;
+            }
+        }
+    }
+
+    private function recalculateBunriSakimono(array &$payload): void
+    {
+        foreach (['prev', 'curr'] as $period) {
+            $syunyu = $this->valueOrZero($payload[sprintf('syunyu_sakimono_%s', $period)] ?? null);
+            $keihi = $this->valueOrZero($payload[sprintf('keihi_sakimono_%s', $period)] ?? null);
+            $shotoku = $syunyu - $keihi;
+            $payload[sprintf('shotoku_sakimono_%s', $period)] = $shotoku;
+
+            $kurikoshi = $this->valueOrZero($payload[sprintf('kurikoshi_sakimono_%s', $period)] ?? null);
+            $payload[sprintf('shotoku_sakimono_after_kurikoshi_%s', $period)] = $shotoku - $kurikoshi;
+        }
+    }
+
+    private function recalculateBunriSanrin(array &$payload): void
+    {
+        foreach (['prev', 'curr'] as $period) {
+            $syunyu = $this->valueOrZero($payload[sprintf('syunyu_sanrin_%s', $period)] ?? null);
+            $keihi = $this->valueOrZero($payload[sprintf('keihi_sanrin_%s', $period)] ?? null);
+            $sashihiki = $syunyu - $keihi;
+            $payload[sprintf('sashihiki_sanrin_%s', $period)] = $sashihiki;
+
+            $tokubetsu = $this->valueOrZero($payload[sprintf('tokubetsukojo_sanrin_%s', $period)] ?? null);
+            $payload[sprintf('shotoku_sanrin_%s', $period)] = $sashihiki - $tokubetsu;
+        }
     }
 
     /**

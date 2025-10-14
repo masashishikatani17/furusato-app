@@ -114,6 +114,8 @@ final class FurusatoController extends Controller
         ],
     ];
 
+    private const BUNRI_PLACEHOLDER_MESSAGE = 'この内訳画面は準備中です。必要な情報が確定次第、入力欄を追加します。';
+
     public function index(Request $req)
     {
         $dataId = $req->integer('data_id') ?: null;
@@ -509,6 +511,14 @@ final class FurusatoController extends Controller
                 return redirect()->route('furusato.details.kojo_jinteki', array_merge($routeParams, $originQuery))->with('success', '保存しました');
             case 'kojo_iryo':
                 return redirect()->route('furusato.details.kojo_iryo', array_merge($routeParams, $originQuery))->with('success', '保存しました');
+            case 'bunri_joto':
+                return redirect()->route('furusato.details.bunri_joto', array_merge($routeParams, $originQuery))->with('success', '保存しました');
+            case 'bunri_kabuteki':
+                return redirect()->route('furusato.details.bunri_kabuteki', array_merge($routeParams, $originQuery))->with('success', '保存しました');
+            case 'bunri_sakimono':
+                return redirect()->route('furusato.details.bunri_sakimono', array_merge($routeParams, $originQuery))->with('success', '保存しました');
+            case 'bunri_sanrin':
+                return redirect()->route('furusato.details.bunri_sanrin', array_merge($routeParams, $originQuery))->with('success', '保存しました');
             default:
                 return redirect()->route('furusato.input', $routeParams)->with('success', '保存しました');
         }
@@ -702,6 +712,62 @@ final class FurusatoController extends Controller
         }
 
         $this->updateFurusatoInputPayload($data, $payload);
+
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
+    }
+
+    public function bunriJotoDetails(Request $req)
+    {
+        return $this->renderBunriPlaceholder($req, '分離課税 譲渡所得（短期/長期）内訳', '分離課税 譲渡所得（短期/長期）の内訳', 'furusato.details.bunri_joto.save');
+    }
+
+    public function saveBunriJotoDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
+    }
+
+    public function bunriKabutekiDetails(Request $req)
+    {
+        return $this->renderBunriPlaceholder($req, '株式等の譲渡所得等 内訳', '株式等の譲渡所得等の内訳', 'furusato.details.bunri_kabuteki.save');
+    }
+
+    public function saveBunriKabutekiDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
+    }
+
+    public function bunriSakimonoDetails(Request $req)
+    {
+        return $this->renderBunriPlaceholder($req, '先物取引 内訳', '先物取引の内訳', 'furusato.details.bunri_sakimono.save');
+    }
+
+    public function saveBunriSakimonoDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+
+        return $this->redirectToInputWithAnchor($data, $anchor);
+    }
+
+    public function bunriSanrinDetails(Request $req)
+    {
+        return $this->renderBunriPlaceholder($req, '山林所得 内訳', '山林所得の内訳', 'furusato.details.bunri_sanrin.save');
+    }
+
+    public function saveBunriSanrinDetails(Request $req): RedirectResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
 
@@ -1510,6 +1576,21 @@ final class FurusatoController extends Controller
         $filtered = preg_replace('/[^A-Za-z0-9_-]/', '', $anchor);
 
         return $filtered !== null ? $filtered : '';
+    }
+
+    private function renderBunriPlaceholder(Request $req, string $pageTitle, string $headerTitle, string $saveRouteName)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $payload = $this->getFurusatoInputPayload($data);
+
+        return view('tax.furusato.details.bunri_placeholder', [
+            'dataId' => $data->id,
+            'pageTitle' => $pageTitle,
+            'headerTitle' => $headerTitle,
+            'saveRouteName' => $saveRouteName,
+            'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
+            'out' => ['inputs' => $payload],
+        ]);
     }
 
     private function redirectToInputWithAnchor(Data $data, string $anchor = '', string $message = '保存しました'): RedirectResponse

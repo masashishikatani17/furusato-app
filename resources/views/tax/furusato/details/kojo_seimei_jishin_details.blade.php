@@ -36,9 +36,9 @@
         <div class="table-responsive mb-2">
           <table class="table-base table-bordered align-middle">
               <tr style="height:30px;">
-                <th class="text-center">項　目</th>
-                <th>{{ $warekiPrevLabel }}</th>
-                <th>{{ $warekiCurrLabel }}</th>
+                <th class="text-center th-ccc">項　目</th>
+                <th class="th-ccc">{{ $warekiPrevLabel }}</th>
+                <th class="th-ccc">{{ $warekiCurrLabel }}</th>
               </tr>
             <tbody>
               <tr>
@@ -101,13 +101,11 @@
     
         <div class="table-responsive">
           <table class="table-base table-bordered align-middle">
-            <thead class="table-light">
               <tr style="height:30px;">
-                <th class="text-center">項  目</th>
-                <th>{{ $warekiPrevLabel }}</th>
-                <th>{{ $warekiCurrLabel }}</th>
+                <th class="text-center th-ccc">項  目</th>
+                <th class="th-ccc">{{ $warekiPrevLabel }}</th>
+                <th class="th-ccc">{{ $warekiCurrLabel }}</th>
               </tr>
-            </thead>
             <tbody>
               <tr>
                 <th scope="row" class="text-start">地震保険料</th>

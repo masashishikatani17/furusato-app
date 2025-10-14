@@ -35,10 +35,10 @@
         <div class="table-responsive mb-3">
           <table class="table-base table-bordered align-middle table-jinteki ">
               <tr style="height:30px;">
-                <th colspan="4" class="text-center">項  目</th>
-                <th style="width: 160px;">{{ $warekiPrevLabel }}</th>
-                <th style="width: 160px;">{{ $warekiCurrLabel }}</th>
-                <th style="width: 220px;">備  考</th>
+                <th colspan="4" class="text-center th-ccc">項  目</th>
+                <th class="th-ccc" style="width: 160px;">{{ $warekiPrevLabel }}</th>
+                <th class="th-ccc" style="width: 160px;">{{ $warekiCurrLabel }}</th>
+                <th class="th-ccc" style="width: 220px;">備  考</th>
               </tr>
             <tbody>
               <tr>

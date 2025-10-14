@@ -36,9 +36,9 @@
             <table class="table-base table-bordered align-middle">
               <thead>
                 <tr>
-                  <th colspan="2" style="height:30px;">項　目</th>
-                  <th>{{ $warekiPrev ?? '前年' }}</th>
-                  <th>{{ $warekiCurr ?? '当年' }}</th>
+                  <th class="th-ccc" colspan="2" style="height:30px;">項　目</th>
+                  <th class="th-ccc">{{ $warekiPrev ?? '前年' }}</th>
+                  <th class="th-ccc">{{ $warekiCurr ?? '当年' }}</th>
                 </tr>
               </thead>
               <tbody>

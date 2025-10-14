@@ -2,9 +2,9 @@
 @extends('layouts.min')
 
 @section('content')
-<div class="container" style="max-width: 860px;">
+<div class="container">
   <div class="d-flex justify-content-between align-items-center py-3">
-    <h5 class="mb-0">▶ 既存データのコピー（年度指定）</h5>
+    <hb class="ms-3">▶ 既存データのコピー（年度指定）</hb>
   </div>
 
   {{-- 通常の入力エラー（重複年度はモーダルで扱う） --}}
@@ -23,60 +23,66 @@
   @endif
 
   {{-- コピー元の参照（読み取り専用） --}}
-  <div class="card mb-3">
-    <div class="card-header">コピー元</div>
-    <div class="card-body p-3">
-      <table class="table table-bordered table-sm mx-auto w-auto mb-0">
+  <div class="wrapper">
+    
+      <h1 class="ms-2 mt-1 mb-3">○コピー元</h1>
+      <table class="table-base table-bordered align-middle w-auto mx-auto">
         <tbody>
           <tr>
             <th class="text-center" style="width:100px;">お客様名</th>
-            <td class="px-2" style="min-width:420px;">{{ $source->guest?->name }}</td>
+            <td class="px-2 text-start ps-1" style="min-width:320px;">{{ $source->guest?->name }}</td>
           </tr>
           <tr>
             <th class="text-center">元の年度</th>
-            <td class="px-2">{{ $source->kihu_year ? $source->kihu_year.'年' : '—' }}</td>
+            <td class="px-2 text-start ps-1">{{ $source->kihu_year ? $source->kihu_year.'年' : '—' }}</td>
           </tr>
         </tbody>
       </table>
-    </div>
-  </div>
-
   <form action="{{ route('data.copy') }}" method="POST" id="data-copy-form">
     @csrf
     <input type="hidden" name="selected_data_id" value="{{ $source->id }}">
-
-    <div class="card mb-3">
-      <div class="card-header">コピー先の指定</div>
+    <br>
+    <h1 class="ms-2 mb-2">○コピー先の指定</h1>
       <div class="card-body">
         {{-- 1) コピー先お客様の指定 --}}
         <div class="mb-3">
-          <label class="form-label d-block">▷ コピー先お客様</label>
-          <div class="form-check form-check-inline ms-2">
-            <input class="form-check-input" type="radio" name="copy_mode" id="mode_same" value="same" checked>
-            <label class="form-check-label" for="mode_same">同じお客様</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="copy_mode" id="mode_existing" value="existing">
-            <label class="form-check-label" for="mode_existing">登録済から選択</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="copy_mode" id="mode_new" value="new">
-            <label class="form-check-label" for="mode_new">新規のお客様</label>
-          </div>
+          <label class="form-label d-block">
+            <hb class="ms-4">・コピー先お客様</hb>
+            </label>
+            <table align="center" class="table-beige gap-3" style="width: 420px; height:40px;">
+              <tr>
+                <td>
+                  <div class="form-check form-check-inline ms-2 mt-1">
+                    <input class="form-check-input" type="radio" name="copy_mode" id="mode_same" value="same" checked>
+                    <label class="form-check-label" for="mode_same">同じお客様</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="copy_mode" id="mode_existing" value="existing">
+                    <label class="form-check-label" for="mode_existing">登録済から選択</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="copy_mode" id="mode_new" value="new">
+                    <label class="form-check-label" for="mode_new">新規のお客様</label>
+                  </div>
+                </td> 
+              </tr>   
+            </table>
         </div>
 
         {{-- 2) お客様名（existingは読み取り・sameは元の名前、newのみ入力必須） --}}
-        <div class="mb-3">
-          <label for="target_guest_name" class="form-label">▷ お客様名</label>
-          <input type="text" name="target_guest_name" id="target_guest_name" class="form-control ms-2"
-                 maxlength="25" placeholder="（新規のお客様の場合は入力）"
-                 value="{{ old('target_guest_name') }}">
-          <input type="hidden" name="target_guest_id" id="target_guest_id" value="{{ old('target_guest_id') }}">
+        <div class="mt-4">
+          <label for="target_guest_name" class="form-label">
+            <hb class="ms-4 me-3">・お客様名</hb></label>
+              <input type="text" name="target_guest_name" id="target_guest_name" class="form-control kana10"
+                     maxlength="25" placeholder="（新規のお客様の場合は入力）"
+                     value="{{ old('target_guest_name') }}">
+              <input type="hidden" name="target_guest_id" id="target_guest_id" value="{{ old('target_guest_id') }}">
         </div>
 
         {{-- 3) 年度（複数選択：今年±10年） --}}
-        <div class="mb-3">
-          <label class="form-label d-block">▷ 年度（複数可）</label>
+        <div class="mt-3">
+          <label class="form-label d-block">
+          <hb class="ms-4">・年度（複数可）</hb></label>
           @php
             $now = (int)date('Y');
             $minY = $now - 10; $maxY = $now + 10;
@@ -85,7 +91,7 @@
             for($y=$maxY; $y>=$minY; $y--){ $years[] = $y; }
             $oldYears = collect(old('years', [$defaultY]))->unique()->values()->all();
           @endphp
-          <div class="d-flex flex-wrap gap-2 ms-2" id="year-checkboxes">
+          <div class="d-flex flex-wrap gap-2 ms-5" id="year-checkboxes">
             @foreach($years as $y)
               <label class="form-check form-check-inline" style="min-width: 120px;">
                 <input class="form-check-input" type="checkbox" name="years[]" value="{{ $y }}"
@@ -94,7 +100,7 @@
               </label>
             @endforeach
           </div>
-          <div class="mt-2">
+          <div class="ms-5 mb-2">
             <button type="button" class="btn btn-sm btn-link px-0" id="btn-select-all">すべて選択</button>
             <button type="button" class="btn btn-sm btn-link px-2" id="btn-clear-all">すべて解除</button>
           </div>
@@ -102,26 +108,32 @@
 
         {{-- 4) 共有設定（feature.data_privacy=true のときのみ表示） --}}
         @if (config('feature.data_privacy'))
-        <div class="mb-2">
-          <label class="form-label d-block">▷ 共有設定</label>
-          <div class="form-check form-check-inline ms-2">
-            <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared"
-                   {{ old('visibility', $source->visibility ?? 'shared') === 'shared' ? 'checked' : '' }}>
-            <label class="form-check-label" for="vis_shared">共有する（同部署に共有）</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="visibility" id="vis_private" value="private"
-                   {{ old('visibility', $source->visibility ?? 'shared') === 'private' ? 'checked' : '' }}>
-            <label class="form-check-label" for="vis_private">共有しない（自分だけ）</label>
-          </div>
+        <div>
+          <label class="form-label d-block">
+            <hb class="ms-4">・共有設定</hb>
+            </label>
+            <table align="center" class="table-beige gap-3" style="width: 420px; height:40px;">
+              <tr>
+                <td>
+                  <div class="form-check form-check-inline ms-2">
+                    <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared"
+                           {{ old('visibility', $source->visibility ?? 'shared') === 'shared' ? 'checked' : '' }}>
+                    <label class="form-check-label" for="vis_shared">共有する（同部署に共有）</label>
+                  </div>
+                  <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="visibility" id="vis_private" value="private"
+                           {{ old('visibility', $source->visibility ?? 'shared') === 'private' ? 'checked' : '' }}>
+                    <label class="form-check-label" for="vis_private">共有しない（自分だけ）</label>
+                  </div>
+                </td> 
+              </tr>   
+            </table>
         </div>
         @endif
-      </div>
-    </div>
-
-    <div class="d-flex justify-content-end gap-2">
-      <button type="submit" class="btn btn-primary">コピー</button>
-      <a href="{{ route('data.index', ['guest_id' => $source->guest_id]) }}" class="btn btn-secondary">キャンセル</a>
+    <hr>
+    <div class="d-flex justify-content-end gap-2 mb-3">
+      <button type="submit" class="btn btn-base-blue">コピー</button>
+      <a href="{{ route('data.index', ['guest_id' => $source->guest_id]) }}" class="btn btn-base-blue">キャンセル</a>
     </div>
   </form>
 </div>

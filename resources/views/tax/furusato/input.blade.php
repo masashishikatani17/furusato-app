@@ -15,6 +15,8 @@
     [data-anchor] {
       scroll-margin-top: var(--restore-scroll-offset, 80px);
     }
+    
+    
   </style>
 @endpush
 
@@ -73,7 +75,7 @@
   
       <ul class="nav nav-tabs" id="furusato-main-tabs" role="tablist">
         <li class="nav-item" role="presentation">
-          <button class="nav-link {{ $inputTabActiveClass }}" id="furusato-tab-input-nav" data-bs-toggle="tab" data-bs-target="#furusato-tab-input" type="button" role="tab" aria-controls="furusato-tab-input" aria-selected="{{ $showResultFlag ? 'false' : 'true' }}">入力</button>
+          <button class="nav-link {{ $inputTabActiveClass }}" id="furusato-tab-input-nav" data-bs-toggle="tab" data-bs-target="#furusato-tab-input" type="button" role="tab" aria-controls="furusato-tab-input" aria-selected="{{ $showResultFlag ? 'false' : 'true' }}">データ入力</button>
         </li>
         <li class="nav-item" role="presentation">
           <button class="nav-link {{ $detailsTabActiveClass }}" id="furusato-tab-result-details-nav" data-bs-toggle="tab" data-bs-target="#furusato-tab-result-details" type="button" role="tab" aria-controls="furusato-tab-result-details" aria-selected="{{ $showResultFlag ? 'true' : 'false' }}">計算結果詳細</button>
@@ -654,7 +656,7 @@
                       </thead>
                       <tbody>
                         <tr>
-                          <th scope="rowgroup" rowspan="13" class="text-center align-middle th-ccc">収入金額</th>
+                          <th scope="rowgroup" rowspan="11" class="text-center align-middle th-ccc">収入金額</th>
                           <th scope="rowgroup" rowspan="11" class="text-start align-middle ps-1">分離課税</th>
                           <th scope="rowgroup" rowspan="2" class="text-start align-middle th-ddd ps-1">短 期</th>
                           <th scope="row" class="align-middle text-start th-ddd ps-1">一般分</th>
@@ -693,7 +695,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="5" class="text-start th-ddd align-middle ps-1">長 期</th>
+                          <th scope="rowgroup" rowspan="3" class="text-start th-ddd align-middle ps-1">長 期</th>
                           <th scope="row" class="align-middle text-start th-ddd ps-1">一般分</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -711,8 +713,9 @@
                             @endforeach
                           @endforeach
                         </tr>
+                        @foreach (['tokutei' => '特定分', 'keika' => '軽課分'] as $type => $label)
                         <tr>
-                          <th scope="rowgroup" rowspan="2" class="align-middle text-start th-ddd ps-1">特定分</th>
+                          <th scope="row" class="align-middle text-start th-ddd ps-1">{{ $label }}</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -720,7 +723,7 @@
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
-                                $name = sprintf('bunri_syunyu_choki_tokutei_over_%s_%s', $tax, $period);
+                                $name = sprintf('bunri_syunyu_choki_%s_%s_%s', $type, $tax, $period);
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
@@ -729,58 +732,7 @@
                             @endforeach
                           @endforeach
                         </tr>
-                        <tr>
-                          <td class="text-center align-middle">
-                            <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
-                          </td>
-                          <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_choki_tokutei_under_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
-                        </tr>
-                        <tr>
-                          <th scope="rowgroup" rowspan="2" class="align-middle text-start th-ddd ps-1">軽課分</th>
-                          <td class="text-center align-middle">
-                            <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
-                          </td>
-                          <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_choki_keika_over_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
-                        </tr>
-                        <tr>
-                          <td class="text-center align-middle">
-                            <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
-                          </td>
-                          <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_choki_keika_under_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
-                        </tr>
+                        @endforeach
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">一般株式等の譲渡</th>
                           <td class="text-center align-middle">
@@ -854,7 +806,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="3" class="align-middle text-start ps-1">山林</th>
+                          <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">山林</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -872,7 +824,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
+                          <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">退職</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -890,7 +842,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="13" class="text-center align-middle th-ccc">所得金額</th>
+                          <th scope="rowgroup" rowspan="11" class="text-center align-middle th-ccc">所得金額</th>
                           <th scope="rowgroup" rowspan="11" class="text-start align-middle ps-1">分離課税</th>
                           <th scope="rowgroup" rowspan="2" class="text-start align-middle th-ddd ps-1">短 期</th>
                           <th scope="row" class="align-middle text-start th-ddd ps-1">一般分</th>
@@ -929,7 +881,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="5" class="text-start th-ddd align-middle ps-1">長 期</th>
+                          <th scope="rowgroup" rowspan="3" class="text-start th-ddd align-middle ps-1">長 期</th>
                           <th scope="row" class="align-middle text-start th-ddd ps-1">一般分</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -947,8 +899,9 @@
                             @endforeach
                           @endforeach
                         </tr>
+                        @foreach (['tokutei' => '特定分', 'keika' => '軽課分'] as $type => $label)
                         <tr>
-                          <th scope="rowgroup" rowspan="2" class="align-middle text-start th-ddd ps-1">特定分</th>
+                          <th scope="row" class="align-middle text-start th-ddd ps-1">{{ $label }}</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -956,7 +909,7 @@
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
-                                $name = sprintf('bunri_shotoku_choki_tokutei_over_%s_%s', $tax, $period);
+                                $name = sprintf('bunri_shotoku_choki_%s_%s_%s', $type, $tax, $period);
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
@@ -965,58 +918,7 @@
                             @endforeach
                           @endforeach
                         </tr>
-                        <tr>
-                          <td class="text-center align-middle">
-                            <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
-                          </td>
-                          <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_choki_tokutei_under_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
-                        </tr>
-                        <tr>
-                          <th scope="rowgroup" rowspan="2" class="align-middle text-start th-ddd ps-1">軽課分</th>
-                          <td class="text-center align-middle">
-                            <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
-                          </td>
-                          <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_choki_keika_over_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
-                        </tr>
-                        <tr>
-                          <td class="text-center align-middle">
-                            <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
-                          </td>
-                          <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_choki_keika_under_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
-                        </tr>
+                        @endforeach
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">一般株式等の譲渡</th>
                           <td class="text-center align-middle">
@@ -1090,7 +992,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="3" class="align-middle text-start ps-1">山林</th>
+                          <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">山林</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1108,7 +1010,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
+                          <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">退職</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>

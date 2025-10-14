@@ -37,9 +37,9 @@
           <table class="table-base table-bordered align-middle">
             <tbody>
               <tr>
-                <th colspan="2" style="height:30px;">項 目</th>
-                <th>{{ $warekiPrev ?? '前年' }}</th>
-                <th>{{ $warekiCurr ?? '当年' }}</th>
+                <th colspan="2" class="th-ccc" style="height:30px;">項 目</th>
+                <th class="th-ccc">{{ $warekiPrev ?? '前年' }}</th>
+                <th class="th-ccc">{{ $warekiCurr ?? '当年' }}</th>
               </tr>
               <tr>
                 <th class="text-start align-middle" colspan="2">収入金額</th>

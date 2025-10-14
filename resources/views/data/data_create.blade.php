@@ -4,7 +4,7 @@
 @section('content')
 <div class="container px-2" style="width: 600px;">
   <div class="d-flex justify-content-between align-items-center py-3">
-    <hb class="mb-0">▶ 新規データ作成</hb>
+    <hb class="ms-3 mb-0">▶ 新規データ作成</hb>
   </div>
 
   {{-- ▼ バリデーションエラー（通常の入力エラーのみ。重複年度はここに出さない） --}}
@@ -25,9 +25,9 @@
       <tbody>
       {{-- 1) お客様の指定 --}}
       <tr>
-        <th style="width:120px;">お客様の指定</th>
-        <td class="th-cream">
-          <div class="form-check form-check-inline">
+        <th class="text-start ps-2" style="width:100px;">お客様の指定</th>
+        <td class="th-cream text-start ps-1 pb-0">
+          <div class="form-check form-check-inline pt-1">
             <input class="form-check-input" type="radio" name="guest_mode" id="gm_new" value="new"
                    {{ old('guest_mode','new') === 'new' ? 'checked' : '' }}>
             <label class="form-check-label" for="gm_new">新規で登録</label>
@@ -42,10 +42,10 @@
 
       {{-- 2) お客様名（existing選択時は読み取り専用） --}}
       <tr>
-        <th>お客様名</th>
-        <td>
+        <th class="text-start ps-2">お客様名</th>
+        <td class="text-start ps-1">
           <input type="text" name="guest_name" id="guest_name"
-                 class="form-control"
+                 class="form-control kana10"
                  value="{{ old('guest_name') }}"
                  maxlength="25"
                  placeholder="（新規登録時は入力）">
@@ -56,8 +56,8 @@
       {{-- 3) 共有設定（feature.data_privacy=true の時のみ表示） --}}
       @if (config('feature.data_privacy'))
       <tr>
-        <th>共有設定</th>
-        <td>
+        <th class="text-start ps-2">共有設定</th>
+        <td class="th-cream text-start ps-1 pt-2 pb-0">
           <div class="form-check form-check-inline">
             <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared"
                    {{ old('visibility','shared') === 'shared' ? 'checked' : '' }}>
@@ -74,7 +74,7 @@
 
       {{-- 4) 年度（寄付年） --}}
       <tr>
-        <th>年度</th>
+        <th class="text-start ps-2">年 度</th>
         <td>
           @php
             $now = (int)date('Y');

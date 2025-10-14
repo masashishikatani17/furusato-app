@@ -16,10 +16,10 @@
             <th class="text-center" rowspan="2">備 考</th>
           </tr>
           <tr>
-            <th class="text-center th-ccc">市</th>
-            <th class="text-center th-ccc">県</th>
-            <th class="text-center th-ccc">市</th>
-            <th class="text-center th-ccc">県</th>
+            <th class="text-center th-ddd">市</th>
+            <th class="text-center th-ddd">県</th>
+            <th class="text-center th-ddd">市</th>
+            <th class="text-center th-ddd">県</th>
           </tr>
         </thead>
         <tbody>
@@ -44,11 +44,11 @@
                 @if($rate->sub_category !== null && $rate->sub_category !== '')
                   @if(($subcategoryCounts[$subKey] ?? 0) > 1)
                     @if(empty($renderedSubCategories[$subKey]))
-                      <th class="text-center" rowspan="{{ $subcategoryCounts[$subKey] }}">{{ $rate->sub_category }}</th>
+                      <th class="text-center th-ddd" rowspan="{{ $subcategoryCounts[$subKey] }}">{{ $rate->sub_category }}</th>
                       @php $renderedSubCategories[$subKey] = true; @endphp
                     @endif
                   @else
-                    <th class="text-center">{{ $rate->sub_category }}</th>
+                    <th class="text-center th-ddd">{{ $rate->sub_category }}</th>
                   @endif
                 @else
                   @if(($subcategoryCounts[$subKey] ?? 0) > 1)

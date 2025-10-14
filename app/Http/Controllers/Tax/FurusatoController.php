@@ -720,12 +720,31 @@ final class FurusatoController extends Controller
 
     public function bunriJotoDetails(Request $req)
     {
-        return $this->renderBunriPlaceholder($req, '分離課税 譲渡所得（短期/長期）内訳', '分離課税 譲渡所得（短期/長期）の内訳', 'furusato.details.bunri_joto.save');
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $payload = $this->getFurusatoInputPayload($data);
+
+        return view('tax.furusato.details.bunri_joto_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => ['inputs' => $payload],
+            'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
+        ]);
     }
 
     public function saveBunriJotoDetails(Request $req): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $rules = [];
+        Validator::make($req->only(array_keys($rules)), $rules)->validate();
+
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
 
@@ -734,12 +753,31 @@ final class FurusatoController extends Controller
 
     public function bunriKabutekiDetails(Request $req)
     {
-        return $this->renderBunriPlaceholder($req, '株式等の譲渡所得等 内訳', '株式等の譲渡所得等の内訳', 'furusato.details.bunri_kabuteki.save');
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $payload = $this->getFurusatoInputPayload($data);
+
+        return view('tax.furusato.details.bunri_kabuteki_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => ['inputs' => $payload],
+            'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
+        ]);
     }
 
     public function saveBunriKabutekiDetails(Request $req): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $rules = [];
+        Validator::make($req->only(array_keys($rules)), $rules)->validate();
+
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
 
@@ -748,12 +786,31 @@ final class FurusatoController extends Controller
 
     public function bunriSakimonoDetails(Request $req)
     {
-        return $this->renderBunriPlaceholder($req, '先物取引 内訳', '先物取引の内訳', 'furusato.details.bunri_sakimono.save');
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $payload = $this->getFurusatoInputPayload($data);
+
+        return view('tax.furusato.details.bunri_sakimono_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => ['inputs' => $payload],
+            'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
+        ]);
     }
 
     public function saveBunriSakimonoDetails(Request $req): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $rules = [];
+        Validator::make($req->only(array_keys($rules)), $rules)->validate();
+
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
 
@@ -762,12 +819,31 @@ final class FurusatoController extends Controller
 
     public function bunriSanrinDetails(Request $req)
     {
-        return $this->renderBunriPlaceholder($req, '山林所得 内訳', '山林所得の内訳', 'furusato.details.bunri_sanrin.save');
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
+        $payload = $this->getFurusatoInputPayload($data);
+
+        return view('tax.furusato.details.bunri_sanrin_details', [
+            'dataId' => $data->id,
+            'kihuYear' => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out' => ['inputs' => $payload],
+            'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
+        ]);
     }
 
     public function saveBunriSanrinDetails(Request $req): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        $rules = [];
+        Validator::make($req->only(array_keys($rules)), $rules)->validate();
+
+        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
 
@@ -1576,21 +1652,6 @@ final class FurusatoController extends Controller
         $filtered = preg_replace('/[^A-Za-z0-9_-]/', '', $anchor);
 
         return $filtered !== null ? $filtered : '';
-    }
-
-    private function renderBunriPlaceholder(Request $req, string $pageTitle, string $headerTitle, string $saveRouteName)
-    {
-        $data = $this->resolveAuthorizedDataOrFail($req);
-        $payload = $this->getFurusatoInputPayload($data);
-
-        return view('tax.furusato.details.bunri_placeholder', [
-            'dataId' => $data->id,
-            'pageTitle' => $pageTitle,
-            'headerTitle' => $headerTitle,
-            'saveRouteName' => $saveRouteName,
-            'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
-            'out' => ['inputs' => $payload],
-        ]);
     }
 
     private function redirectToInputWithAnchor(Data $data, string $anchor = '', string $message = '保存しました'): RedirectResponse

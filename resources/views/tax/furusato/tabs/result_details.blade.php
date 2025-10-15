@@ -76,6 +76,31 @@
 
       return ['', ''];
   };
+  $readonlyValue = static function (string $key, $fallback = null) use ($inputs): string {
+      $value = old($key, $inputs[$key] ?? $fallback);
+
+      if ($value === null || $value === '') {
+          return '';
+      }
+
+      $stringValue = (string) $value;
+      $normalized = str_replace(',', '', $stringValue);
+
+      if (! is_numeric($normalized)) {
+          return $stringValue;
+      }
+
+      if (strpos($normalized, '.') !== false) {
+          $number = (float) $normalized;
+          $formatted = number_format($number, 3, '.', ',');
+
+          return rtrim(rtrim($formatted, '0'), '.');
+      }
+
+      $number = (int) $normalized;
+
+      return number_format($number);
+  };
   $warekiPrevLabel = $warekiPrev ?? '前年';
   $warekiCurrLabel = $warekiCurr ?? '当年';
 @endphp
@@ -264,5 +289,156 @@
         特例控除率（標準） 前年：{{ $fmt($stdPrev) }} 当年：{{ $fmt($stdCurr) }}
       </div>
     @endif
+  </div>
+
+  @php
+    $warekiTables = ['prev' => $warekiPrevLabel, 'curr' => $warekiCurrLabel];
+  @endphp
+  <div class="mt-4">
+    @foreach ($warekiTables as $suffix => $label)
+      <div class="mt-4">
+        <div class="fw-bold">（{{ $label }}）</div>
+        <div class="table-responsive">
+          <table class="table table-base align-middle" style="min-width: 820px;">
+            <tbody>
+              <tr>
+                <th colspan="3" class="th-ccc">所得の種類</th>
+                <th class="th-ccc">差引金額</th>
+                <th colspan="2" class="th-ccc">通算後</th>
+                <th class="th-ccc">特別控除額</th>
+                <th colspan="2" class="th-ccc">譲渡・一時所得の通算後</th>
+              </tr>
+              <tr>
+                <th rowspan="3">譲渡</th>
+                <th>短期</th>
+                <th>総合</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('sashihiki_joto_tanki_sogo_' . $suffix) }}</div></td>
+                <th rowspan="3" class="vtext">通算</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tsusango_joto_tanki_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tokubetsukojo_joto_tanki_' . $suffix) }}</div></td>
+                <th rowspan="4" class="vtext">譲渡・一時所得の通算</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_joto_ichiji_tousan_joto_tanki_' . $suffix) }}</div></td>
+              </tr>
+              <tr>
+                <th rowspan="2">長期</th>
+                <th>分離（特定損失額）</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('sashihiki_joto_choki_bunri_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tsusango_joto_choki_bunri_' . $suffix) }}</div></td>
+                <td><div class="readonly-span text-center">－</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_joto_ichiji_tousan_joto_choki_bunri_' . $suffix) }}</div></td>
+              </tr>
+              <tr>
+                <th>総合</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('sashihiki_joto_choki_sogo_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tsusango_joto_choki_sogo_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tokubetsukojo_joto_choki_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_joto_ichiji_tousan_joto_choki_sogo_' . $suffix) }}</div></td>
+              </tr>
+              <tr>
+                <th colspan="3">一時</th>
+                <td colspan="2"><div class="readonly-span text-center">⇒</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tsusango_ichiji_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tokubetsukojo_ichiji_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_joto_ichiji_tousan_ichiji_' . $suffix) }}</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    @endforeach
+  </div>
+  <div class="mt-4">
+    @foreach ($warekiTables as $suffix => $label)
+      <div class="mt-4">
+        <div class="fw-bold">（{{ $label }}）</div>
+        <div class="table-responsive">
+          <table class="table table-base align-middle" style="min-width: 980px;">
+            <tbody>
+              <tr>
+                <th colspan="3" class="th-ccc">所得の種類</th>
+                <th class="th-ccc">通算前</th>
+                <th colspan="2" class="th-ccc">第1次通算後</th>
+                <th colspan="2" class="th-ccc">第2次通算後</th>
+                <th colspan="2" class="th-ccc">第3次通算後</th>
+                <th class="th-ccc">所得金額</th>
+              </tr>
+              <tr>
+                <th colspan="3">経常所得</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tsusanmae_keijo_' . $suffix) }}</div></td>
+                <th rowspan="5" class="vtext">第1次通算</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_1jitsusan_keijo_' . $suffix) }}</div></td>
+                <th rowspan="6" class="vtext">第2次通算</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_2jitsusan_keijo_' . $suffix) }}</div></td>
+                <th rowspan="7" class="vtext">第3次通算</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_3jitsusan_keijo_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('shotoku_keijo_' . $suffix) }}</div></td>
+              </tr>
+              <tr>
+                <th rowspan="3">譲渡</th>
+                <th>短期</th>
+                <th>総合</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tsusanmae_joto_tanki_sogo_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_1jitsusan_joto_tanki_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_2jitsusan_joto_tanki_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_3jitsusan_joto_tanki_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('shotoku_joto_tanki_' . $suffix) }}</div></td>
+              </tr>
+              <tr>
+                <th rowspan="2">長期</th>
+                <th>分離（特定損失額）</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tsusanmae_joto_choki_bunri_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_1jitsusan_joto_choki_bunri_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_2jitsusan_joto_choki_bunri_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_3jitsusan_joto_choki_bunri_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('shotoku_joto_choki_bunri_' . $suffix) }}</div></td>
+              </tr>
+              <tr>
+                <th>総合</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tsusanmae_joto_choki_sogo_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_1jitsusan_joto_choki_sogo_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_2jitsusan_joto_choki_sogo_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_3jitsusan_joto_choki_sogo_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('shotoku_joto_choki_sogo_' . $suffix) }}</div></td>
+              </tr>
+              <tr>
+                <th colspan="3">一時</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('tsusanmae_ichiji_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_1jitsusan_ichiji_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_2jitsusan_ichiji_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_3jitsusan_ichiji_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('shotoku_ichiji_' . $suffix) }}</div></td>
+              </tr>
+              <tr>
+                <th colspan="3">山林</th>
+                <td colspan="2">
+                  <div class="readonly-stack">
+                    <div class="readonly-span text-center">⇒</div>
+                  </div>
+                </td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_1jitsusan_sanrin_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_2jitsusan_sanrin_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_3jitsusan_sanrin_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('shotoku_sanrin_' . $suffix) }}</div></td>
+              </tr>
+              <tr>
+                <th colspan="3">退職</th>
+                <td colspan="4">
+                  <div class="readonly-stack">
+                    <div class="readonly-span text-center">⇒</div>
+                  </div>
+                </td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_2jitsusan_taishoku_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('after_3jitsusan_taishoku_' . $suffix) }}</div></td>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('shotoku_taishoku_' . $suffix) }}</div></td>
+              </tr>
+              <tr>
+                <th colspan="10">所得金額の合計額</th>
+                <td class="text-end"><div class="readonly-span text-end">{{ $readonlyValue('shotoku_gokei_' . $suffix) }}</div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    @endforeach
   </div>
 </div>

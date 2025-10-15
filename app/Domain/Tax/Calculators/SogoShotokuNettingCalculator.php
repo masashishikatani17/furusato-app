@@ -49,13 +49,16 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
             return [];
         }
 
+        $shortSourceKey = sprintf('sashihiki_joto_tanki_%s', $period);
+        $longSourceKey = sprintf('sashihiki_joto_choki_%s', $period);
+        $ichijiSourceKey = sprintf('sashihiki_ichiji_%s', $period);
+
+        $short = $this->n($payload[$shortSourceKey] ?? null);
+        $long = $this->n($payload[$longSourceKey] ?? null);
+        $ichiji = $this->n($payload[$ichijiSourceKey] ?? null);
+
         $shortKey = sprintf('sashihiki_joto_tanki_sogo_%s', $period);
         $longKey = sprintf('sashihiki_joto_choki_sogo_%s', $period);
-        $ichijiKey = sprintf('sashihiki_ichiji_%s', $period);
-
-        $short = $this->n($payload[$shortKey] ?? null);
-        $long = $this->n($payload[$longKey] ?? null);
-        $ichiji = $this->n($payload[$ichijiKey] ?? null);
 
         $preShort = ($short * $long) < 0
             ? (abs($short) >= abs($long) ? $short + $long : 0)

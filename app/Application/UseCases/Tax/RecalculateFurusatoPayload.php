@@ -3,6 +3,7 @@
 namespace App\Application\UseCases\Tax;
 
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
+use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Models\Data;
 use App\Models\FurusatoInput;
@@ -348,6 +349,15 @@ class RecalculateFurusatoPayload
         $seitotoService = app(SeitotoKihukinTokubetsuService::class);
         $payload = array_replace($payload, $seitotoService->compute($payload));
         $this->assertProvidedKeys($payload, $seitotoService);
+
+        /** @var KojoSeimeiJishinCalculator $seimeiJishinCalculator */
+        $seimeiJishinCalculator = app(KojoSeimeiJishinCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $seimeiJishinCalculator->compute($payload, 'prev'),
+            $seimeiJishinCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $seimeiJishinCalculator);
 
         return $payload;
     }

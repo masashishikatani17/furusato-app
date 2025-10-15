@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Tax;
 use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
+use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
@@ -991,6 +992,12 @@ final class FurusatoController extends Controller
         $payload['kojo_jishin_gokei_curr'] = array_reduce($jishinCurrKeys, function (int $carry, string $key) use ($payload): int {
             return $carry + $this->valueOrZero($payload[$key] ?? null);
         }, 0);
+
+        $calculator = app(KojoSeimeiJishinCalculator::class);
+        $computedPrev = $calculator->compute($payload, 'prev');
+        $computedCurr = $calculator->compute($payload, 'curr');
+
+        $payload = array_replace($payload, $computedPrev, $computedCurr);
 
         $this->updateFurusatoInputPayload($data, $payload);
 
@@ -2026,6 +2033,15 @@ final class FurusatoController extends Controller
             $juminAmount = max(0, $this->valueOrZero($this->toNullableInt($payload[$juminKey] ?? null)));
             $payload[sprintf('tax_zeigaku_jumin_%s', $period)] = (int) ($juminAmount * 0.1);
         }
+
+        /** @var KojoSeimeiJishinCalculator $seimeiJishinCalculator */
+        $seimeiJishinCalculator = app(KojoSeimeiJishinCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $seimeiJishinCalculator->compute($payload, 'prev'),
+            $seimeiJishinCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $seimeiJishinCalculator);
 
         /** @var SeitotoKihukinTokubetsuService $seitotoService */
         $seitotoService = app(SeitotoKihukinTokubetsuService::class);

@@ -22,6 +22,7 @@ select[readonly] {
 .vtext {
     writing-mode: vertical-rl;
     text-orientation: mixed;
+    white-space: nowrap;
 }
 
 .readonly-span {

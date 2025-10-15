@@ -6,6 +6,7 @@ namespace Tests\Feature;
 use App\Http\Controllers\Tax\FurusatoController;
 use App\Models\Data;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
+use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\Kojo\HaigushaKojoService;
 use App\Services\Tax\Kojo\JintekiKojoService;
@@ -48,6 +49,7 @@ final class ServicesProvideKeysTest extends TestCase
             app(HaigushaKojoService::class),
             app(SeitotoKihukinTokubetsuService::class),
             app(SogoShotokuNettingCalculator::class),
+            app(SogoShotokuNettingStagesCalculator::class),
         ];
 
         foreach ($services as $service) {

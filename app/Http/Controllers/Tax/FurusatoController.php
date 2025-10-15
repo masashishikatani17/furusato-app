@@ -8,6 +8,7 @@ use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
+use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Http\Controllers\Controller;
@@ -2057,6 +2058,15 @@ final class FurusatoController extends Controller
             $sogoShotokuCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $sogoShotokuCalculator);
+
+        /** @var SogoShotokuNettingStagesCalculator $sogoShotokuStagesCalculator */
+        $sogoShotokuStagesCalculator = app(SogoShotokuNettingStagesCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $sogoShotokuStagesCalculator->compute($payload, 'prev'),
+            $sogoShotokuStagesCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $sogoShotokuStagesCalculator);
 
         return $payload;
     }

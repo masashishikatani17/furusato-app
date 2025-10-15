@@ -5,6 +5,7 @@ namespace App\Application\UseCases\Tax;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
+use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Models\Data;
 use App\Models\FurusatoInput;
@@ -368,6 +369,15 @@ class RecalculateFurusatoPayload
             $sogoShotokuCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $sogoShotokuCalculator);
+
+        /** @var SogoShotokuNettingStagesCalculator $sogoShotokuStagesCalculator */
+        $sogoShotokuStagesCalculator = app(SogoShotokuNettingStagesCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $sogoShotokuStagesCalculator->compute($payload, 'prev'),
+            $sogoShotokuStagesCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $sogoShotokuStagesCalculator);
 
         return $payload;
     }

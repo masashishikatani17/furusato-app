@@ -131,16 +131,20 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
 
     private function n(mixed $value): int
     {
+        if (is_string($value)) {
+            $value = str_replace([',', ' '], '', $value);
+        }
+
         if (is_int($value)) {
             return $value;
         }
 
         if (is_float($value)) {
-            return (int) floor($value);
+            return (int) $value;
         }
 
         if (is_numeric($value)) {
-            return (int) floor((float) $value);
+            return (int) ((float) $value);
         }
 
         return 0;

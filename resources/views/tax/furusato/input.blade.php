@@ -94,6 +94,8 @@
             $warekiCurrLabel = $warekiCurr ?? '当年';
             $showTokubetsu = in_array((int) ($kihuYear ?? 0), [2024, 2025], true);
             $readonlyBases = [
+                'kojo_seimei' => true,
+                'kojo_jishin' => true,
                 'kojo_shokei' => true,
                 'kojo_gokei' => true,
                 'tax_zeigaku' => true,

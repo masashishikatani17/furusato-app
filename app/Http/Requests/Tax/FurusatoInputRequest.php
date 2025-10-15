@@ -188,7 +188,7 @@ final class FurusatoInputRequest extends FormRequest
             foreach ($bunriIncomeParts as $part) {
                 foreach (['shotoku', 'jumin'] as $tax) {
                     foreach (['prev', 'curr'] as $period) {
-                        $rules[sprintf('bunri_%s_%s_%s_%s', $category, $part, $tax, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                        $rules[sprintf('bunri_%s_%s_%s_%s', $category, $part, $tax, $period)] = ['bail', 'nullable', 'integer'];
                     }
                 }
             }
@@ -230,7 +230,7 @@ final class FurusatoInputRequest extends FormRequest
         foreach ($bunriBases as $base) {
             foreach (['shotoku', 'jumin'] as $tax) {
                 foreach (['prev', 'curr'] as $period) {
-                    $rules[sprintf('bunri_%s_%s_%s', $base, $tax, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                    $rules[sprintf('bunri_%s_%s_%s', $base, $tax, $period)] = ['bail', 'nullable', 'integer'];
                 }
             }
         }

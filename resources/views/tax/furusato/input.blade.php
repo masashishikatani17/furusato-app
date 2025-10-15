@@ -679,7 +679,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -696,7 +696,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -714,7 +714,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -732,7 +732,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -884,7 +884,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -901,7 +901,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -919,7 +919,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -937,7 +937,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach

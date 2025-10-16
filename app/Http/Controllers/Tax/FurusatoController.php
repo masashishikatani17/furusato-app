@@ -6,6 +6,7 @@ use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
+use App\Domain\Tax\Calculators\DetailsSourceAliasCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
@@ -2051,6 +2052,15 @@ final class FurusatoController extends Controller
         $seitotoService = app(SeitotoKihukinTokubetsuService::class);
         $payload = array_replace($payload, $seitotoService->compute($payload));
         $this->assertProvidedKeys($payload, $seitotoService);
+
+        /** @var DetailsSourceAliasCalculator $detailsAliasCalculator */
+        $detailsAliasCalculator = app(DetailsSourceAliasCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $detailsAliasCalculator->compute($payload, 'prev'),
+            $detailsAliasCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $detailsAliasCalculator);
 
         /** @var SogoShotokuNettingCalculator $sogoShotokuCalculator */
         $sogoShotokuCalculator = app(SogoShotokuNettingCalculator::class);

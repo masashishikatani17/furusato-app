@@ -2,6 +2,7 @@
 
 namespace App\Application\UseCases\Tax;
 
+use App\Domain\Tax\Calculators\DetailsSourceAliasCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
@@ -362,6 +363,15 @@ class RecalculateFurusatoPayload
             $seimeiJishinCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $seimeiJishinCalculator);
+
+        /** @var DetailsSourceAliasCalculator $detailsAliasCalculator */
+        $detailsAliasCalculator = app(DetailsSourceAliasCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $detailsAliasCalculator->compute($payload, 'prev'),
+            $detailsAliasCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $detailsAliasCalculator);
 
         /** @var SogoShotokuNettingCalculator $sogoShotokuCalculator */
         $sogoShotokuCalculator = app(SogoShotokuNettingCalculator::class);

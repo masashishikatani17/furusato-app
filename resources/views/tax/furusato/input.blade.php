@@ -115,11 +115,17 @@
                 'bunri_syunyu_choki_ippan' => true,
                 'bunri_syunyu_choki_tokutei' => true,
                 'bunri_syunyu_choki_keika' => true,
+                'bunri_syunyu_ippan_kabuteki_joto' => true,
+                'bunri_syunyu_jojo_kabuteki_joto' => true,
+                'bunri_syunyu_jojo_kabuteki_haito' => true,
                 'bunri_shotoku_tanki_ippan' => true,
                 'bunri_shotoku_tanki_keigen' => true,
                 'bunri_shotoku_choki_ippan' => true,
                 'bunri_shotoku_choki_tokutei' => true,
                 'bunri_shotoku_choki_keika' => true,
+                'bunri_shotoku_ippan_kabuteki_joto' => true,
+                'bunri_shotoku_jojo_kabuteki_joto' => true,
+                'bunri_shotoku_jojo_kabuteki_haito' => true,
                 'bunri_kazeishotoku_tanki' => true,
                 'bunri_kazeishotoku_choki' => true,
                 'syunyu_ichiji' => true,
@@ -847,51 +853,21 @@
                                     value="bunri_kabuteki"
                                     data-return-anchor="bunri_income_kabuteki_top">内訳</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_ippan_kabuteki_joto_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_syunyu_ippan_kabuteki_joto') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">上場株式等の譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_jojo_kabuteki_joto_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_syunyu_jojo_kabuteki_joto') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">上場株式等の配当等</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_jojo_kabuteki_haito_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_syunyu_jojo_kabuteki_haito') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">先物取引</th>
@@ -1052,51 +1028,21 @@
                                     value="bunri_kabuteki"
                                     data-return-anchor="bunri_shotoku_kabuteki_top">内訳</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_ippan_kabuteki_joto_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_shotoku_ippan_kabuteki_joto') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">上場株式等の譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_jojo_kabuteki_joto_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_shotoku_jojo_kabuteki_joto') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">上場株式等の配当等</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_jojo_kabuteki_haito_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_shotoku_jojo_kabuteki_haito') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">先物取引</th>

@@ -13,6 +13,7 @@ use App\Domain\Tax\Calculators\JuminTaxCalculator;
 use App\Domain\Tax\Calculators\KifukinCalculator;
 use App\Domain\Tax\Calculators\KisoKojoCalculator;
 use App\Domain\Tax\Calculators\KojoAggregationCalculator;
+use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\SeitotoTokubetsuZeigakuKojoCalculator;
 use App\Domain\Tax\Calculators\ShotokuTaxCalculator;
@@ -44,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
         $calculatorClasses = [
             KifukinCalculator::class,
             KisoKojoCalculator::class,
+            KyuyoNenkinCalculator::class,
             KojoSeimeiJishinCalculator::class,
             JintekiKojoCalculator::class,
             HaigushaKojoCalculator::class,

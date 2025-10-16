@@ -79,6 +79,17 @@
               <input type="hidden" name="target_guest_id" id="target_guest_id" value="{{ old('target_guest_id') }}">
         </div>
 
+        <div class="mt-3">
+          <label for="copy_birth_date" class="form-label">
+            <hb class="ms-4 me-3">・生年月日（西暦）</hb>
+          </label>
+          <input type="date"
+                 name="birth_date"
+                 id="copy_birth_date"
+                 class="form-control"
+                 placeholder="YYYY-MM-DD"
+                 value="{{ old('birth_date', $userBirthDate) }}">
+        </div
         {{-- 3) 年度（複数選択：今年±10年） --}}
         <div class="mt-3">
           <label class="form-label d-block">

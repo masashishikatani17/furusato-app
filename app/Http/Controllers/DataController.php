@@ -80,12 +80,11 @@ class DataController extends Controller
         }
 
         return view('data.data_master', [
-            'guests'        => $guests,
-            'datas'         => $datas,
-            'guestId'       => $guestId,
-            'companyId'     => $companyId,
-            'ctxGroupId'    => $ctxGroupId, // null=横断
-            'userBirthDate' => $this->formatBirthDateForView($user?->birth_date ?? null),
+            'guests'     => $guests,
+            'datas'      => $datas,
+            'guestId'    => $guestId,
+            'companyId'  => $companyId,
+            'ctxGroupId' => $ctxGroupId, // null=横断
         ]);
     }
 
@@ -228,15 +227,15 @@ class DataController extends Controller
         $ctxGroupId = $this->ctxGroupIdOrNull(); // Owner/Registrar=null(横断), 他ロールは自部署
 
         $q = Guest::query()
-            ->select('id','name','company_id','group_id','user_id')
+            ->select('id','name','company_id','group_id','user_id','birth_date')
             ->where('company_id', $companyId);
         if ($ctxGroupId !== null) {
             $q->where('group_id', (int)$ctxGroupId);
         }
         $guests = $q->orderBy('created_at','asc')->get();
-        $userBirthDate = $this->formatBirthDateForView($me?->birth_date ?? null);
+        $defaultBirthDate = null;
 
-        return view('data.data_create', compact('guests', 'userBirthDate'));
+        return view('data.data_create', compact('guests', 'defaultBirthDate'));
     }
 
     /* ===== 新規作成：POST /data（保存） ===== */
@@ -272,6 +271,8 @@ class DataController extends Controller
         $groupIdOfUser = (int)($me->group_id ?? 0);
 
         // 2) お客様の決定（スコープ整合）
+        $birthDate = $validated['birth_date'] ?? null;
+
         if ($validated['guest_mode'] === 'new') {
             // 作成者の company/group を継承
             $guest = new Guest();
@@ -287,6 +288,8 @@ class DataController extends Controller
             // 所属チェック（Owner/Registrar は横断可、他ロールは自部署のみ）
             if (!$this->isOwnerOrRegistrar() && (int)$guest->group_id !== $groupIdOfUser) abort(403);
         }
+
+        $this->updateGuestBirthDate($guest, $birthDate);
 
         // 3) 同一年度ユニークのサーバ検証（422は返さず、302戻り＋モーダル）
         $exists = Data::query()
@@ -316,8 +319,6 @@ class DataController extends Controller
         }
         $data->save();
 
-        $this->updateCurrentUserBirthDate($validated['birth_date'] ?? null);
-
         return redirect()
             ->route('data.index', ['guest_id' => $guest->id])
             ->with('success', '新規データを作成しました。');
@@ -335,15 +336,15 @@ class DataController extends Controller
 
         // コピー先候補（Owner/Registrar=横断、自ロール=自部署のみ）
         $q = Guest::query()
-            ->select('id','name','company_id','group_id','user_id')
+            ->select('id','name','company_id','group_id','user_id','birth_date')
             ->where('company_id', (int)$me->company_id);
         if (!$this->isOwnerOrRegistrar()) {
             $q->where('group_id', (int)($me->group_id ?? 0));
         }
         $guests = $q->orderBy('created_at','asc')->get();
-        $userBirthDate = $this->formatBirthDateForView($me?->birth_date ?? null);
+        $defaultBirthDate = $this->formatBirthDateForView($source->guest?->birth_date ?? null);
 
-        return view('data.data_copy', compact('source', 'guests', 'userBirthDate'));
+        return view('data.data_copy', compact('source', 'guests', 'defaultBirthDate'));
     }
 
     /** コピー実行：POST /data/copy（複数年度対応） */
@@ -379,6 +380,7 @@ class DataController extends Controller
         $me = auth()->user();
         $companyId = (int)$me->company_id;
         $userGroupId = (int)($me->group_id ?? 0);
+        $birthDate = $validated['birth_date'] ?? null;
 
         // 2) コピー元
         $source = Data::with('guest')->findOrFail((int)$validated['selected_data_id']);
@@ -400,6 +402,10 @@ class DataController extends Controller
             $targetGuest->group_id   = $userGroupId;
             $targetGuest->user_id    = $me->id;
             $targetGuest->save();
+        }
+
+        if ($targetGuest) {
+            $this->updateGuestBirthDate($targetGuest, $birthDate);
         }
 
         // 4) 年度ごとに複製
@@ -445,8 +451,6 @@ class DataController extends Controller
         }
 
         // 5) 結果の返却
-        $this->updateCurrentUserBirthDate($validated['birth_date'] ?? null);
-
         if (count($created) === 0 && count($duplicated) > 0) {
             // 全て重複 → copyForm に戻してモーダルで案内
             return back()
@@ -470,25 +474,44 @@ class DataController extends Controller
         }
 
         $validated = $request->validate([
+            'guest_id'   => ['required', 'integer', 'exists:guests,id'],
             'birth_date' => ['nullable', 'date_format:Y-m-d'],
         ], [
+            'guest_id.required' => 'お客様を選択してください。',
+            'guest_id.exists'   => '選択したお客様が見つかりません。',
             'birth_date.date_format' => '生年月日は YYYY-MM-DD 形式で入力してください。',
         ]);
 
-        $this->updateCurrentUserBirthDate($validated['birth_date'] ?? null);
+        $guest = Guest::findOrFail((int) $validated['guest_id']);
+
+        if ((int) $guest->company_id !== (int) $user->company_id) {
+            abort(403);
+        }
+
+        if (! $this->isOwnerOrRegistrar() && (int) $guest->group_id !== (int) ($user->group_id ?? 0)) {
+            abort(403);
+        }
+
+        $this->updateGuestBirthDate($guest, $validated['birth_date'] ?? null);
 
         return back()->with('birth_date_success', '生年月日を保存しました。');
     }
 
-    private function updateCurrentUserBirthDate(?string $birthDate): void
+    private function updateGuestBirthDate(?Guest $guest, ?string $birthDate): void
     {
-        $user = auth()->user();
-        if (! $user) {
+        if (! $guest) {
             return;
         }
 
-        $user->birth_date = $birthDate ?: null;
-        $user->save();
+        $normalized = $this->formatBirthDateForView($birthDate);
+        $current = $this->formatBirthDateForView($guest->birth_date ?? null);
+
+        if ($normalized === $current) {
+            return;
+        }
+
+        $guest->birth_date = $normalized ?: null;
+        $guest->save();
     }
 
     private function formatBirthDateForView(DateTimeInterface|string|null $value): ?string

@@ -62,7 +62,7 @@
                  id="birth_date"
                  class="form-control"
                  placeholder="YYYY-MM-DD"
-                 value="{{ old('birth_date', $userBirthDate) }}">
+                 value="{{ old('birth_date', $defaultBirthDate) }}">
         </td>
       </tr>
 
@@ -123,7 +123,11 @@
         <table class="table table-hover table-bordered mb-0">
           <tbody id="guestListBody">
           @forelse ($guests as $g)
-            <tr class="selectable-guest" data-id="{{ $g->id }}" data-name="{{ $g->name }}" style="cursor:pointer;">
+            <tr class="selectable-guest"
+                data-id="{{ $g->id }}"
+                data-name="{{ $g->name }}"
+                data-birth-date="{{ optional($g->birth_date)->format('Y-m-d') }}"
+                style="cursor:pointer;">
               <td class="py-2 px-2">{{ $g->name }}</td>
             </tr>
           @empty
@@ -165,6 +169,14 @@
   const gId       = document.getElementById('guest_id');
   const btnOpen   = document.getElementById('btn-open-guest-modal');
   const guestList = document.getElementById('guestListBody');
+  const birthInput = document.getElementById('birth_date');
+
+  const setBirthDate = (value) => {
+    if (!birthInput) {
+      return;
+    }
+    birthInput.value = value || '';
+  };
 
   const openGuestModal = () => {
     const hasAny = guestList && guestList.querySelectorAll('tr.selectable-guest').length > 0;
@@ -177,6 +189,7 @@
       gId.value = '';
       gName.readOnly = false;
       gName.focus();
+      setBirthDate('');
       return;
     }
     const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('guestModal'));
@@ -189,6 +202,7 @@
       gId.value = '';
       gName.readOnly = false;
       gName.focus();
+      setBirthDate('');
     }
   });
   gmExist?.addEventListener('change', () => {
@@ -214,8 +228,16 @@
     gId.value = row.dataset.id || '';
     gName.value = row.dataset.name || '';
     gName.readOnly = true;
+    setBirthDate(row.dataset.birthDate || '');
     bootstrap.Modal.getInstance(document.getElementById('guestModal'))?.hide();
   });
+
+  if (gId?.value) {
+    const selectedRow = guestList?.querySelector(`tr.selectable-guest[data-id="${gId.value}"]`);
+    if (selectedRow && (!birthInput || !birthInput.value)) {
+      setBirthDate(selectedRow.dataset.birthDate || '');
+    }
+  }
 
   // サーバ側「年度重複」検知 → モーダルのみ表示（上部のエラーは出さない）
   @if (session('modal_error.duplicate_year'))

@@ -33,6 +33,10 @@
       $jintekiDiffData = $jintekiDiff ?? [];
       $showResultFlag = (bool) ($showResult ?? false);
       $tokureiStandardRateData = $tokureiStandardRate ?? [];
+      $tokureiComputedPercentData = $tokureiComputedPercent ?? [];
+      $tokureiEnabledData = $tokureiEnabled ?? [];
+      $warekiPrevLabel = $warekiPrev ?? '前年';
+      $warekiCurrLabel = $warekiCurr ?? '当年';
       $inputTabActiveClass = $showResultFlag ? '' : 'active';
       $inputPaneActiveClass = $showResultFlag ? '' : 'show active';
       $detailsTabActiveClass = $showResultFlag ? 'active' : '';
@@ -146,16 +150,37 @@
                 ],
             ];
             $shotokuRatesForScript = collect($shotokuRates ?? [])->values()->toArray();
-            $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides, $kihuYear) {
+            $forceDash = static function (string $base, string $tax, string $period, ?int $kihuYear): bool {
+                $isJumin = $tax === 'jumin';
+
+                if ($kihuYear === 2025 && $period === 'curr' && $base === 'tax_tokubetsu_R6') {
+                    return true;
+                }
+
+                if ($kihuYear === 2025 && $period === 'prev' && $base === 'kojo_tokutei_shinzoku') {
+                    return true;
+                }
+
+                if ($isJumin && in_array($base, ['kojo_kifukin', 'tax_fukkou'], true)) {
+                    return true;
+                }
+
+                return false;
+            };
+            $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides, $kihuYear, $forceDash) {
                 $html = '';
                 foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                     foreach ($periods as $period) {
                         $format = $kojoFieldOverrides[$base][$tax] ?? null;
                         $name = $format ? sprintf($format, $period) : sprintf('%s_%s_%s', $base, $tax, $period);
                         $value = old($name, $inputs[$name] ?? null);
+                        $kihuYearInt = isset($kihuYear) ? (int) $kihuYear : null;
+                        $isForceDash = $forceDash($base, $tax, $period, $kihuYearInt);
                         $isReadonly = false;
 
-                        if ($tax === 'jumin') {
+                        if ($isForceDash) {
+                            $isReadonly = true;
+                        } elseif ($tax === 'jumin') {
                             $editableJuminBases = [
                                 'kojo_zasson',
                                 'tax_haito',
@@ -176,12 +201,16 @@
                             $isReadonly = isset($readonlyBases[$base]);
                         }
 
-                        $readonlyAttr = $isReadonly ? ' readonly' : '';
-                        $class = 'form-control form-control-sm text-end';
-                        if ($isReadonly) {
-                            $class .= ' bg-light';
+                        if ($isForceDash) {
+                            $html .= '<td><input type="text" class="form-control form-control-sm text-center bg-light" value="－" readonly><input type="hidden" name="' . e($name) . '" value=""></td>';
+                        } else {
+                            $readonlyAttr = $isReadonly ? ' readonly' : '';
+                            $class = 'form-control form-control-sm text-end';
+                            if ($isReadonly) {
+                                $class .= ' bg-light';
+                            }
+                            $html .= '<td><input type="number" min="0" step="1" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . '></td>';
                         }
-                        $html .= '<td><input type="number" min="0" step="1" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . '></td>';
                     }
                 }
   
@@ -1481,12 +1510,51 @@
       @endif
         </div>
         <div class="tab-pane fade {{ $detailsPaneActiveClass }}" id="furusato-tab-result-details" role="tabpanel" aria-labelledby="furusato-tab-result-details-nav">
-          @include('tax.furusato.tabs.result_details', [
-            'results' => $resultsData,
-            'jintekiDiff' => $jintekiDiffData,
-            'tokureiStandardRate' => $tokureiStandardRateData,
-            'inputs' => $out['inputs'] ?? [],
-          ])
+          @php
+            $resultYearParam = (string) request()->query('result_year', '');
+            $activeResultPeriod = in_array($resultYearParam, ['prev', 'curr'], true) ? $resultYearParam : 'curr';
+            $prevSubTabActive = $activeResultPeriod === 'prev' ? 'active' : '';
+            $prevSubPaneActive = $activeResultPeriod === 'prev' ? 'show active' : '';
+            $currSubTabActive = $activeResultPeriod === 'curr' ? 'active' : '';
+            $currSubPaneActive = $activeResultPeriod === 'curr' ? 'show active' : '';
+          @endphp
+          <input type="hidden" name="result_year" id="furusato-result-year-input" value="{{ $activeResultPeriod }}">
+          <ul class="nav nav-tabs mt-3" id="furusato-result-details-subtabs" role="tablist">
+            <li class="nav-item" role="presentation">
+              <button class="nav-link {{ $prevSubTabActive }}" id="furusato-result-details-prev-nav" data-bs-toggle="tab" data-bs-target="#furusato-result-details-prev" type="button" role="tab" aria-controls="furusato-result-details-prev" aria-selected="{{ $activeResultPeriod === 'prev' ? 'true' : 'false' }}">{{ $warekiPrevLabel }}</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link {{ $currSubTabActive }}" id="furusato-result-details-curr-nav" data-bs-toggle="tab" data-bs-target="#furusato-result-details-curr" type="button" role="tab" aria-controls="furusato-result-details-curr" aria-selected="{{ $activeResultPeriod === 'curr' ? 'true' : 'false' }}">{{ $warekiCurrLabel }}</button>
+            </li>
+          </ul>
+          <div class="tab-content mt-3" id="furusato-result-details-subtab-content">
+            <div class="tab-pane fade {{ $prevSubPaneActive }}" id="furusato-result-details-prev" role="tabpanel" aria-labelledby="furusato-result-details-prev-nav">
+              @include('tax.furusato.tabs.result_details', [
+                'results' => $resultsData,
+                'jintekiDiff' => $jintekiDiffData,
+                'tokureiStandardRate' => $tokureiStandardRateData,
+                'tokureiComputedPercent' => $tokureiComputedPercentData,
+                'tokureiEnabled' => $tokureiEnabledData,
+                'inputs' => $out['inputs'] ?? [],
+                'warekiPrev' => $warekiPrevLabel,
+                'warekiCurr' => $warekiCurrLabel,
+                'periodFilter' => 'prev',
+              ])
+            </div>
+            <div class="tab-pane fade {{ $currSubPaneActive }}" id="furusato-result-details-curr" role="tabpanel" aria-labelledby="furusato-result-details-curr-nav">
+              @include('tax.furusato.tabs.result_details', [
+                'results' => $resultsData,
+                'jintekiDiff' => $jintekiDiffData,
+                'tokureiStandardRate' => $tokureiStandardRateData,
+                'tokureiComputedPercent' => $tokureiComputedPercentData,
+                'tokureiEnabled' => $tokureiEnabledData,
+                'inputs' => $out['inputs'] ?? [],
+                'warekiPrev' => $warekiPrevLabel,
+                'warekiCurr' => $warekiCurrLabel,
+                'periodFilter' => 'curr',
+              ])
+            </div>
+          </div>
         </div>
         <div class="tab-pane fade" id="furusato-tab-result-upper" role="tabpanel" aria-labelledby="furusato-tab-result-upper-nav">
           @include('tax.furusato.tabs.result_upper_furusato', ['results' => $resultsData])
@@ -1565,6 +1633,36 @@
           form.submit();
         });
       });
+
+      const resultYearField = form.querySelector('#furusato-result-year-input');
+      const setResultYearValue = (value) => {
+        if (resultYearField) {
+          resultYearField.value = value;
+        }
+      };
+      const resultDetailsSubtabs = document.getElementById('furusato-result-details-subtabs');
+      if (resultDetailsSubtabs) {
+        resultDetailsSubtabs.addEventListener('shown.bs.tab', (event) => {
+          const targetSelector = event.target instanceof Element ? event.target.getAttribute('data-bs-target') : '';
+          if (targetSelector === '#furusato-result-details-prev') {
+            setResultYearValue('prev');
+          } else if (targetSelector === '#furusato-result-details-curr') {
+            setResultYearValue('curr');
+          }
+        });
+        resultDetailsSubtabs.addEventListener('click', (event) => {
+          const button = event.target instanceof Element ? event.target.closest('button[data-bs-target]') : null;
+          if (!button) {
+            return;
+          }
+          const targetSelector = button.getAttribute('data-bs-target') || '';
+          if (targetSelector === '#furusato-result-details-prev') {
+            setResultYearValue('prev');
+          } else if (targetSelector === '#furusato-result-details-curr') {
+            setResultYearValue('curr');
+          }
+        });
+      }
 
       const readLocationHash = () => {
         if (typeof window === 'undefined' || !window.location) {

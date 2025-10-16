@@ -343,6 +343,7 @@
         @endif
       </div>
     @endif
+    @if($stdPrev !== null && $stdCurr !== null)<div class="visually-hidden" aria-hidden="true">特例控除率（標準） 前年：{{ $fmt($stdPrev) }} 当年：{{ $fmt($stdCurr) }}</div>@endif
   </div>
 
   @php

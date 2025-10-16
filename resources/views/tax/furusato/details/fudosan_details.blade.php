@@ -44,11 +44,11 @@
               <tr>
                 <th class="text-start align-middle" colspan="2">収入金額</th>
                 <td>
-                  @php($name = 'fudosan_shunyu_prev')
+                  @php($name = 'fudosan_syunyu_prev')
                   <input type="number" min="0" step="1" class="form-control suji11" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}">
                 </td>
                 <td>
-                  @php($name = 'fudosan_shunyu_curr')
+                  @php($name = 'fudosan_syunyu_curr')
                   <input type="number" min="0" step="1" class="form-control suji11" value="{{ old($name, $inputs[$name] ?? null) }}" name="{{ $name }}">
                 </td>
               </tr>
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
     g += V(`fudosan_keihi_sonota_${suffix}`);
     S(`fudosan_keihi_gokei_${suffix}`, g);
 
-    const shunyu = V(`fudosan_shunyu_${suffix}`);
+    const shunyu = V(`fudosan_syunyu_${suffix}`);
     const sashihiki = shunyu - g;
     S(`fudosan_sashihiki_${suffix}`, sashihiki);
 
@@ -182,8 +182,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const bindBlur = (names) => names.forEach(n=>{ const el=Q(n); if(el) el.addEventListener('blur', ()=>{ recalc('prev'); recalc('curr'); }); });
 
   bindBlur([
-    'fudosan_shunyu_prev','fudosan_senjuusha_kyuyo_prev','fudosan_aoi_tokubetsu_kojo_gaku_prev',
-    'fudosan_shunyu_curr','fudosan_senjuusha_kyuyo_curr','fudosan_aoi_tokubetsu_kojo_gaku_curr',
+    'fudosan_syunyu_prev','fudosan_senjuusha_kyuyo_prev','fudosan_aoi_tokubetsu_kojo_gaku_prev',
+    'fudosan_syunyu_curr','fudosan_senjuusha_kyuyo_curr','fudosan_aoi_tokubetsu_kojo_gaku_curr',
     'fudosan_keihi_1_prev','fudosan_keihi_2_prev','fudosan_keihi_3_prev','fudosan_keihi_4_prev','fudosan_keihi_5_prev','fudosan_keihi_6_prev','fudosan_keihi_7_prev','fudosan_keihi_sonota_prev',
     'fudosan_keihi_1_curr','fudosan_keihi_2_curr','fudosan_keihi_3_curr','fudosan_keihi_4_curr','fudosan_keihi_5_curr','fudosan_keihi_6_curr','fudosan_keihi_7_curr','fudosan_keihi_sonota_curr'
   ]);

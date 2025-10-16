@@ -1,3 +1,4 @@
+<!-- resources/views/tax/furusato/input.blade.php -->
 @extends('layouts.min')
 
 @push('styles')
@@ -104,6 +105,9 @@
                 'jumin_zatsu_nenkin' => true,
                 'syunyu_jigyo_eigyo' => true,
                 'syunyu_fudosan' => true,
+                'shotoku_joto_tanki' => true,
+                'shotoku_joto_choki' => true,
+                'shotoku_ichiji' => true,
                 'syunyu_joto_tanki' => true,
                 'syunyu_joto_choki' => true,
                 'syunyu_ichiji' => true,

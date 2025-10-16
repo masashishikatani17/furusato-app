@@ -31,7 +31,7 @@ class DetailsSourceAliasCalculatorTest extends TestCase
         $this->assertSame(-567, $result['bunri_shotoku_tanki_keigen_shotoku_prev']);
         $this->assertSame(98, $result['bunri_shotoku_choki_ippan_shotoku_prev']);
         $this->assertSame(76, $result['bunri_shotoku_choki_tokutei_shotoku_prev']);
-        $this->assertSame(-54, $result['bunri_shotoku_choki_keika_shotoku_prev']);
+        $this->assertSame(-55, $result['bunri_shotoku_choki_keika_shotoku_prev']);
     }
 
     public function test_it_does_not_override_when_source_is_missing_or_empty(): void
@@ -46,9 +46,21 @@ class DetailsSourceAliasCalculatorTest extends TestCase
 
         $result = $calculator->compute($payload, 'curr');
 
-        $this->assertArrayNotHasKey('shotoku_jigyo_eigyo_shotoku_curr', $result);
-        $this->assertArrayNotHasKey('shotoku_fudosan_shotoku_curr', $result);
-        $this->assertArrayNotHasKey('bunri_shotoku_sanrin_shotoku_curr', $result);
+        $expected = [
+            'shotoku_jigyo_eigyo_shotoku_curr',
+            'shotoku_fudosan_shotoku_curr',
+            'bunri_shotoku_sanrin_shotoku_curr',
+            'bunri_shotoku_tanki_ippan_shotoku_curr',
+            'bunri_shotoku_tanki_keigen_shotoku_curr',
+            'bunri_shotoku_choki_ippan_shotoku_curr',
+            'bunri_shotoku_choki_tokutei_shotoku_curr',
+            'bunri_shotoku_choki_keika_shotoku_curr',
+        ];
+
+        foreach ($expected as $key) {
+            $this->assertArrayHasKey($key, $result);
+            $this->assertSame(0, $result[$key], sprintf('Failed asserting that %s defaults to zero.', $key));
+        }
     }
 
     public function test_invalid_period_returns_empty_array(): void

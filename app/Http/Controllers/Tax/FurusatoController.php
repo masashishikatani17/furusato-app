@@ -803,6 +803,7 @@ final class FurusatoController extends Controller
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         $this->recalculateBunriJoto($payload);
+        $this->mirrorBunriJotoDetailsToInput($payload);
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -1513,6 +1514,33 @@ final class FurusatoController extends Controller
 
             $payload[sprintf('joto_shotoku_tanki_gokei_%s', $period)] = $sums['tanki'];
             $payload[sprintf('joto_shotoku_choki_gokei_%s', $period)] = $sums['choki'];
+        }
+    }
+
+    private function mirrorBunriJotoDetailsToInput(array &$payload): void
+    {
+        $mirrorSources = [
+            'syunyu_joto_ippan' => 'bunri_syunyu_tanki_ippan',
+            'syunyu_joto_keigen' => 'bunri_syunyu_tanki_keigen',
+            'syunyu_choki_ippan' => 'bunri_syunyu_choki_ippan',
+            'syunyu_choki_tokutei' => 'bunri_syunyu_choki_tokutei',
+            'syunyu_choki_keika' => 'bunri_syunyu_choki_keika',
+            'joto_shotoku_tanki_ippan' => 'bunri_shotoku_tanki_ippan',
+            'joto_shotoku_tanki_keigen' => 'bunri_shotoku_tanki_keigen',
+            'joto_shotoku_choki_ippan' => 'bunri_shotoku_choki_ippan',
+            'joto_shotoku_choki_tokutei' => 'bunri_shotoku_choki_tokutei',
+            'joto_shotoku_choki_keika' => 'bunri_shotoku_choki_keika',
+            'joto_shotoku_tanki_gokei' => 'bunri_kazeishotoku_tanki',
+            'joto_shotoku_choki_gokei' => 'bunri_kazeishotoku_choki',
+        ];
+
+        foreach (['prev', 'curr'] as $period) {
+            foreach ($mirrorSources as $sourceBase => $mirrorBase) {
+                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
+
+                $payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)] = $value;
+                $payload[sprintf('%s_jumin_%s', $mirrorBase, $period)] = $value;
+            }
         }
     }
 

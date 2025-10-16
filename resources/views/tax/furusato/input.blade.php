@@ -120,6 +120,7 @@
                 'bunri_syunyu_jojo_kabuteki_haito',
                 'bunri_syunyu_sakimono',
                 'bunri_syunyu_sanrin',
+                'bunri_syunyu_taishoku',
                 'bunri_shotoku_tanki_ippan',
                 'bunri_shotoku_tanki_keigen',
                 'bunri_shotoku_choki_ippan',
@@ -130,6 +131,7 @@
                 'bunri_shotoku_jojo_kabuteki_haito',
                 'bunri_shotoku_sakimono',
                 'bunri_shotoku_sanrin',
+                'bunri_shotoku_taishoku',
                 'bunri_kazeishotoku_tanki',
                 'bunri_kazeishotoku_choki',
                 'syunyu_ichiji',
@@ -843,17 +845,7 @@
                                     value="bunri_sakimono"
                                     data-return-anchor="bunri_income_sakimono">内訳</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_sakimono_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ $value }}" readonly>
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_syunyu_sakimono') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">山林</th>
@@ -867,17 +859,7 @@
                                     value="bunri_sanrin"
                                     data-return-anchor="bunri_income_sanrin">内訳</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_sanrin_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ $value }}" readonly>
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_syunyu_sanrin') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">退職</th>
@@ -885,17 +867,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_taishoku_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_syunyu_taishoku') !!}
                         </tr>
                         <tr>
                           <th scope="rowgroup" rowspan="11" class="text-center align-middle th-ccc">所得金額</th>
@@ -978,17 +950,7 @@
                                     value="bunri_sakimono"
                                     data-return-anchor="bunri_shotoku_sakimono">内訳</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_sakimono_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ $value }}" readonly>
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_shotoku_sakimono') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">山林</th>
@@ -1002,17 +964,7 @@
                                     value="bunri_sanrin"
                                     data-return-anchor="bunri_shotoku_sanrin">内訳</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_sanrin_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ $value }}" readonly>
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_shotoku_sanrin') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">退職</th>
@@ -1020,17 +972,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_taishoku_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_shotoku_taishoku') !!}
                         </tr>
                         <tr>
                           <th scope="rowgroup" rowspan="19" class="text-center align-middle th-ccc ps-1 pe-1" nowrap="nowrap">税金の計算</th>

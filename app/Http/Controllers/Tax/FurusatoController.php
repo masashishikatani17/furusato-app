@@ -218,6 +218,7 @@ final class FurusatoController extends Controller
             if (is_array($stored)) {
                 $savedInputs = $stored;
                 $this->normalizeJotoIchijiKeys($savedInputs);
+                $this->normalizeFudosanSyunyuKeys($savedInputs);
                 $this->normalizeBunriChokiSyunyuKeys($savedInputs);
                 $this->normalizeBunriChokiShotokuKeys($savedInputs);
                 $this->normalizeBunriIncomeShotokuKeys($savedInputs);
@@ -572,10 +573,17 @@ final class FurusatoController extends Controller
         $calculations = $this->calculateJigyoEigyo($payload);
         $payload = array_replace($payload, $calculations);
 
-        $payload['syunyu_jigyo_eigyo_shotoku_prev'] = $this->valueOrZero($payload['jigyo_eigyo_uriage_prev'] ?? null);
-        $payload['syunyu_jigyo_eigyo_shotoku_curr'] = $this->valueOrZero($payload['jigyo_eigyo_uriage_curr'] ?? null);
-        $payload['shotoku_jigyo_eigyo_shotoku_prev'] = (int) ($payload['jigyo_eigyo_shotoku_prev'] ?? 0);
-        $payload['shotoku_jigyo_eigyo_shotoku_curr'] = (int) ($payload['jigyo_eigyo_shotoku_curr'] ?? 0);
+        foreach (['prev', 'curr'] as $period) {
+            $uriage = $this->valueOrZero($this->toNullableInt($payload[sprintf('jigyo_eigyo_uriage_%s', $period)] ?? null));
+            foreach (['shotoku', 'jumin'] as $tax) {
+                $payload[sprintf('syunyu_jigyo_eigyo_%s_%s', $tax, $period)] = $uriage;
+            }
+
+            $shotoku = (int) ($this->toNullableInt($payload[sprintf('jigyo_eigyo_shotoku_%s', $period)] ?? null) ?? 0);
+            foreach (['shotoku', 'jumin'] as $tax) {
+                $payload[sprintf('shotoku_jigyo_eigyo_%s_%s', $tax, $period)] = $shotoku;
+            }
+        }
 
         $this->updateFurusatoInputPayload($data, $payload, $labelUpdates);
 
@@ -619,25 +627,29 @@ final class FurusatoController extends Controller
             self::FUDOSAN_LABEL_FIELDS,
         )));
 
+        $this->normalizeFudosanSyunyuKeys($payload);
+
         $calculations = $this->calculateFudosan($payload);
         $payload = array_replace($payload, $calculations);
 
-        $payload['syunyu_fudosan_shotoku_prev'] = $this->valueOrZero($payload['fudosan_shunyu_prev'] ?? null);
-        $payload['syunyu_fudosan_shotoku_curr'] = $this->valueOrZero($payload['fudosan_shunyu_curr'] ?? null);
+        foreach (['prev', 'curr'] as $period) {
+            $shunyuValue = $this->toNullableInt($payload[sprintf('fudosan_syunyu_%s', $period)] ?? null);
+            $shunyu = $this->valueOrZero($shunyuValue);
+            foreach (['shotoku', 'jumin'] as $tax) {
+                $payload[sprintf('syunyu_fudosan_%s_%s', $tax, $period)] = $shunyu;
+            }
 
-        $adjPrev = (int) ($payload['fudosan_shotoku_prev'] ?? 0);
-        if ($adjPrev < 0) {
-            $adjPrev += $this->valueOrZero($payload['fudosan_fusairishi_prev'] ?? null);
+            $shotokuValue = $this->toNullableInt($payload[sprintf('fudosan_shotoku_%s', $period)] ?? null);
+            $shotoku = (int) ($shotokuValue ?? 0);
+            if ($shotoku < 0) {
+                $shotoku += $this->valueOrZero($this->toNullableInt($payload[sprintf('fudosan_fusairishi_%s', $period)] ?? null));
+            }
+
+            foreach (['shotoku', 'jumin'] as $tax) {
+                $payload[sprintf('shotoku_fudosan_%s_%s', $tax, $period)] = $shotoku;
+            }
         }
-
-        $adjCurr = (int) ($payload['fudosan_shotoku_curr'] ?? 0);
-        if ($adjCurr < 0) {
-            $adjCurr += $this->valueOrZero($payload['fudosan_fusairishi_curr'] ?? null);
-        }
-
-        $payload['shotoku_fudosan_shotoku_prev'] = $adjPrev;
-        $payload['shotoku_fudosan_shotoku_curr'] = $adjCurr;
-
+        
         $this->updateFurusatoInputPayload($data, $payload, $labelUpdates);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -719,6 +731,25 @@ final class FurusatoController extends Controller
             $payload[sprintf('joto_ichiji_sashihiki_%s', $period)] = $sashihiki;
             $payload[sprintf('shotoku_joto_ichiji_shotoku_%s', $period)] = $sashihiki;
             $payload[sprintf('shotoku_joto_ichiji_jumin_%s', $period)] = $sashihiki;
+        }
+
+        $incomeBases = ['syunyu_joto_tanki', 'syunyu_joto_choki', 'syunyu_ichiji'];
+        $shotokuBases = ['shotoku_joto_tanki', 'shotoku_joto_choki', 'shotoku_ichiji'];
+
+        foreach (['prev', 'curr'] as $period) {
+            foreach ($incomeBases as $base) {
+                $value = $this->valueOrZero($this->toNullableInt($payload[sprintf('%s_%s', $base, $period)] ?? null));
+                foreach (['shotoku', 'jumin'] as $tax) {
+                    $payload[sprintf('%s_%s_%s', $base, $tax, $period)] = $value;
+                }
+            }
+
+            foreach ($shotokuBases as $base) {
+                $value = (int) ($this->toNullableInt($payload[sprintf('%s_%s', $base, $period)] ?? null) ?? 0);
+                foreach (['shotoku', 'jumin'] as $tax) {
+                    $payload[sprintf('%s_%s_%s', $base, $tax, $period)] = $value;
+                }
+            }
         }
 
         $this->updateFurusatoInputPayload($data, $payload);
@@ -1346,6 +1377,7 @@ final class FurusatoController extends Controller
         }
 
         $this->normalizeJotoIchijiKeys($payload);
+        $this->normalizeFudosanSyunyuKeys($payload);
         $this->normalizeBunriChokiSyunyuKeys($payload);
         $this->normalizeBunriChokiShotokuKeys($payload);
         $this->normalizeBunriIncomeShotokuKeys($payload);
@@ -1726,6 +1758,32 @@ final class FurusatoController extends Controller
         }
     }
 
+    private function normalizeFudosanSyunyuKeys(array &$payload): void
+    {
+        foreach (['prev', 'curr'] as $period) {
+            $canonicalKey = sprintf('fudosan_syunyu_%s', $period);
+            $legacyKey = sprintf('fudosan_shunyu_%s', $period);
+
+            $canonicalExists = array_key_exists($canonicalKey, $payload);
+            if ($canonicalExists) {
+                $payload[$canonicalKey] = $this->toNullableInt($payload[$canonicalKey]);
+            }
+
+            if (! array_key_exists($legacyKey, $payload)) {
+                continue;
+            }
+
+            $legacyValue = $this->toNullableInt($payload[$legacyKey]);
+            unset($payload[$legacyKey]);
+
+            if ($canonicalExists && $payload[$canonicalKey] !== null) {
+                continue;
+            }
+
+            $payload[$canonicalKey] = $legacyValue;
+        }
+    }
+
     private function normalizeBunriIncomeShotokuKeys(array &$payload): void
     {
         foreach (['prev', 'curr'] as $period) {
@@ -1904,7 +1962,10 @@ final class FurusatoController extends Controller
         $result = [];
 
         foreach (['prev', 'curr'] as $period) {
-            $shunyu = $this->valueOrZero($inputs[sprintf('fudosan_shunyu_%s', $period)] ?? null);
+            $shunyuKey = sprintf('fudosan_syunyu_%s', $period);
+            $legacyKey = sprintf('fudosan_shunyu_%s', $period);
+            $shunyuSource = $inputs[$shunyuKey] ?? ($inputs[$legacyKey] ?? null);
+            $shunyu = $this->valueOrZero($this->toNullableInt($shunyuSource));
 
             $keihiTotal = 0;
             foreach ($keihiFields as $field) {
@@ -1936,6 +1997,7 @@ final class FurusatoController extends Controller
 
         FurusatoInput::unguarded(function () use ($data, $updates, $labelUpdates, $userId): void {
             $this->normalizeJotoIchijiKeys($updates);
+            $this->normalizeFudosanSyunyuKeys($updates);
             $this->normalizeBunriChokiSyunyuKeys($updates);
             $this->normalizeBunriChokiShotokuKeys($updates);
             $this->normalizeBunriIncomeShotokuKeys($updates);
@@ -1964,11 +2026,13 @@ final class FurusatoController extends Controller
 
             $current = is_array($record->payload) ? $record->payload : [];
             $this->normalizeJotoIchijiKeys($current);
+            $this->normalizeFudosanSyunyuKeys($current);
             $this->normalizeBunriChokiSyunyuKeys($current);
             $this->normalizeBunriChokiShotokuKeys($current);
             $this->normalizeBunriIncomeShotokuKeys($current);
             $this->normalizeKojoRenamedKeys($current, true);
             $payload = array_replace($current, $updates);
+            $this->normalizeFudosanSyunyuKeys($payload);
             $this->normalizeBunriChokiSyunyuKeys($payload);
             $this->normalizeBunriChokiShotokuKeys($payload);
             $this->normalizeBunriIncomeShotokuKeys($payload);

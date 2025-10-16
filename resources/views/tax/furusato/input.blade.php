@@ -146,16 +146,39 @@
                 ],
             ];
             $shotokuRatesForScript = collect($shotokuRates ?? [])->values()->toArray();
-            $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides) {
+            $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides, $kihuYear) {
                 $html = '';
                 foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                     foreach ($periods as $period) {
                         $format = $kojoFieldOverrides[$base][$tax] ?? null;
                         $name = $format ? sprintf($format, $period) : sprintf('%s_%s_%s', $base, $tax, $period);
                         $value = old($name, $inputs[$name] ?? null);
-                        $readonlyAttr = isset($readonlyBases[$base]) ? ' readonly' : '';
+                        $isReadonly = false;
+
+                        if ($tax === 'jumin') {
+                            $editableJuminBases = [
+                                'kojo_zasson',
+                                'tax_haito',
+                                'tax_jutaku',
+                            ];
+                            $editableR6 = $base === 'tax_tokubetsu_R6'
+                                && $period === 'prev'
+                                && (int) ($kihuYear ?? 0) === 2025;
+
+                            if ($editableR6) {
+                                $isReadonly = false;
+                            } elseif (in_array($base, $editableJuminBases, true)) {
+                                $isReadonly = false;
+                            } else {
+                                $isReadonly = true;
+                            }
+                        } else {
+                            $isReadonly = isset($readonlyBases[$base]);
+                        }
+
+                        $readonlyAttr = $isReadonly ? ' readonly' : '';
                         $class = 'form-control form-control-sm text-end';
-                        if (isset($readonlyBases[$base])) {
+                        if ($isReadonly) {
                             $class .= ' bg-light';
                         }
                         $html .= '<td><input type="number" min="0" step="1" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . '></td>';

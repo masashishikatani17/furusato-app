@@ -3,7 +3,6 @@
 namespace App\Domain\Tax\Calculators;
 
 use App\Models\Data;
-use App\Models\User;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use DateTimeInterface;
 
@@ -233,7 +232,7 @@ class KyuyoNenkinCalculator implements ProvidesKeys
 
     private function resolveBirthDate(array $ctx): ?string
     {
-        $value = $ctx['user_birth_date'] ?? null;
+        $value = $ctx['guest_birth_date'] ?? null;
         $normalized = $this->normalizeBirthDate($value);
         if ($normalized !== null) {
             return $normalized;
@@ -241,12 +240,9 @@ class KyuyoNenkinCalculator implements ProvidesKeys
 
         $data = $ctx['data'] ?? null;
         if ($data instanceof Data) {
-            $userId = $data->user_id ?? null;
-            if ($userId) {
-                $user = User::query()->find((int) $userId);
-                if ($user) {
-                    return $this->normalizeBirthDate($user->birth_date ?? null);
-                }
+            $guest = $data->guest;
+            if ($guest) {
+                return $this->normalizeBirthDate($guest->birth_date ?? null);
             }
         }
 

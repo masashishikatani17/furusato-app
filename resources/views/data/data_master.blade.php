@@ -23,6 +23,7 @@
         'id' => (int)$g->id,
         'name' => $g->name,
         'user_id' => (int)($g->user_id ?? 0),
+        'birth_date' => optional($g->birth_date)->format('Y-m-d'),
       ]);
       $datasJson = $datas->map(fn($d) => [
         'id' => (int)$d->id,

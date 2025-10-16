@@ -88,7 +88,7 @@
                  id="copy_birth_date"
                  class="form-control"
                  placeholder="YYYY-MM-DD"
-                 value="{{ old('birth_date', $userBirthDate) }}">
+                 value="{{ old('birth_date', $defaultBirthDate) }}">
         </div
         {{-- 3) 年度（複数選択：今年±10年） --}}
         <div class="mt-3">
@@ -161,7 +161,11 @@
         <table class="table table-hover mb-0">
           <tbody id="guestListBody">
             @forelse ($guests as $g)
-              <tr class="selectable-guest" data-id="{{ $g->id }}" data-name="{{ $g->name }}" style="cursor:pointer;">
+              <tr class="selectable-guest"
+                  data-id="{{ $g->id }}"
+                  data-name="{{ $g->name }}"
+                  data-birth-date="{{ optional($g->birth_date)->format('Y-m-d') }}"
+                  style="cursor:pointer;">
                 <td class="py-2 px-2">{{ $g->name }}</td>
               </tr>
             @empty
@@ -213,13 +217,25 @@
   const targetId   = document.getElementById('target_guest_id');
   const guestList  = document.getElementById('guestListBody');
   const selectedLbl= document.getElementById('selected-guest-label');
+  const birthInput = document.getElementById('copy_birth_date');
+  const defaultBirthDate = @js($defaultBirthDate);
+
+  const setBirthDate = (value) => {
+    if (!birthInput) {
+      return;
+    }
+    birthInput.value = value || '';
+  };
 
   // 初期：same → 元のお客様名（読み取り）
-  function setSame() {
+  function setSame(force = false) {
     targetId.value = '{{ $source->guest_id }}';
     targetName.value = '{{ $source->guest?->name }}';
     targetName.readOnly = true;
     if (selectedLbl) selectedLbl.textContent = '';
+    if (force || !birthInput || birthInput.value === '') {
+      setBirthDate(defaultBirthDate);
+    }
   }
   function setExisting() {
     targetName.readOnly = true;
@@ -229,6 +245,7 @@
       setNew();
       return;
     }
+    setBirthDate('');
     // 既に開いている場合は重複showを避ける
     const modalEl = document.getElementById('guestModal');
     if (!modalEl) return;
@@ -247,9 +264,10 @@
     targetName.readOnly = false;
     targetName.focus();
     if (selectedLbl) selectedLbl.textContent = '';
+    setBirthDate('');
   }
 
-  modeSame?.addEventListener('change', () => { if (modeSame.checked) setSame(); });
+  modeSame?.addEventListener('change', () => { if (modeSame.checked) setSame(true); });
   modeExisting?.addEventListener('change', () => { if (modeExisting.checked) setExisting(); });
   modeNew?.addEventListener('change', () => { if (modeNew.checked) setNew(); });
 
@@ -260,6 +278,7 @@
     targetName.value = row.dataset.name || '';
     if (selectedLbl) selectedLbl.textContent = `選択中: ${targetName.value}`;
     targetName.readOnly = true;
+    setBirthDate(row.dataset.birthDate || '');
     bootstrap.Modal.getInstance(document.getElementById('guestModal'))?.hide();
   });
 
@@ -273,7 +292,7 @@
   });
 
   // 初期状態
-  setSame();
+  setSame(false);
 
   // サーバ側：全件重複時はモーダルで通知
   @if (session('modal_error.duplicate_years'))

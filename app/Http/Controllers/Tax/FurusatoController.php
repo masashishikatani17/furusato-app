@@ -450,11 +450,9 @@ final class FurusatoController extends Controller
             $user = $request->user();
             if ($user) {
                 $ctx['user_id'] = (int) $user->id;
-                $birthDate = $this->normalizeBirthDateForContext($user->birth_date ?? null);
-                if ($birthDate !== null) {
-                    $ctx['user_birth_date'] = $birthDate;
-                }
             }
+
+            $ctx['guest_birth_date'] = $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null);
 
             $recalculateUseCase->handle($data, $updates, $ctx);
 
@@ -487,6 +485,7 @@ final class FurusatoController extends Controller
                 'master_kihu_year' => self::MASTER_KIHU_YEAR,
                 'kihu_year' => $kihuYear,
                 'company_id' => $companyId,
+                'guest_birth_date' => $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null),
             ]);
             $results = [
                 'details' => $details,

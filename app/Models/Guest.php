@@ -18,12 +18,14 @@ class Guest extends Model
         'company_id',
         'group_id',
         'user_id',
+        'birth_date',
     ];
 
     protected $casts = [
         'company_id' => 'integer',
         'group_id'   => 'integer',
         'user_id'    => 'integer',
+        'birth_date' => 'date',
     ];
 
     /** Data との関連（1:N） */

@@ -1522,23 +1522,43 @@ final class FurusatoController extends Controller
 
     private function mirrorBunriJotoDetailsToInput(array &$payload): void
     {
-        $mirrorSources = [
+        $incomeSources = [
             'syunyu_tanki_ippan' => 'bunri_syunyu_tanki_ippan',
             'syunyu_tanki_keigen' => 'bunri_syunyu_tanki_keigen',
             'syunyu_choki_ippan' => 'bunri_syunyu_choki_ippan',
             'syunyu_choki_tokutei' => 'bunri_syunyu_choki_tokutei',
             'syunyu_choki_keika' => 'bunri_syunyu_choki_keika',
+        ];
+
+        $shotokuSources = [
             'joto_shotoku_tanki_ippan' => 'bunri_shotoku_tanki_ippan',
             'joto_shotoku_tanki_keigen' => 'bunri_shotoku_tanki_keigen',
             'joto_shotoku_choki_ippan' => 'bunri_shotoku_choki_ippan',
             'joto_shotoku_choki_tokutei' => 'bunri_shotoku_choki_tokutei',
             'joto_shotoku_choki_keika' => 'bunri_shotoku_choki_keika',
+        ];
+
+        $totalSources = [
             'joto_shotoku_tanki_gokei' => 'bunri_kazeishotoku_tanki',
             'joto_shotoku_choki_gokei' => 'bunri_kazeishotoku_choki',
         ];
 
         foreach (['prev', 'curr'] as $period) {
-            foreach ($mirrorSources as $sourceBase => $mirrorBase) {
+            foreach ($incomeSources as $sourceBase => $mirrorBase) {
+                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
+
+                $payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)] = $value;
+                $payload[sprintf('%s_jumin_%s', $mirrorBase, $period)] = $value;
+            }
+
+            foreach ($shotokuSources as $sourceBase => $mirrorBase) {
+                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
+
+                $payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)] = $value;
+                $payload[sprintf('%s_jumin_%s', $mirrorBase, $period)] = $value;
+            }
+
+            foreach ($totalSources as $sourceBase => $mirrorBase) {
                 $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
 
                 $payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)] = $value;

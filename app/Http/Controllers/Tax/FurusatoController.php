@@ -1523,8 +1523,8 @@ final class FurusatoController extends Controller
     private function mirrorBunriJotoDetailsToInput(array &$payload): void
     {
         $mirrorSources = [
-            'syunyu_joto_ippan' => 'bunri_syunyu_tanki_ippan',
-            'syunyu_joto_keigen' => 'bunri_syunyu_tanki_keigen',
+            'syunyu_tanki_ippan' => 'bunri_syunyu_tanki_ippan',
+            'syunyu_tanki_keigen' => 'bunri_syunyu_tanki_keigen',
             'syunyu_choki_ippan' => 'bunri_syunyu_choki_ippan',
             'syunyu_choki_tokutei' => 'bunri_syunyu_choki_tokutei',
             'syunyu_choki_keika' => 'bunri_syunyu_choki_keika',

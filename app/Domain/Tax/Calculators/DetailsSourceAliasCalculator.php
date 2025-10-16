@@ -14,17 +14,17 @@ class DetailsSourceAliasCalculator implements ProvidesKeys
     private const PERIODS = ['prev', 'curr'];
 
     /**
-     * @var array<string, string>
+     * @var array<string, array{group: string, source: string}>
      */
     private const MAPPINGS = [
-        'shotoku_jigyo_eigyo_shotoku_%s' => 'jigyo_eigyo_shotoku_%s',
-        'shotoku_fudosan_shotoku_%s' => 'fudosan_shotoku_%s',
-        'bunri_shotoku_sanrin_shotoku_%s' => 'sashihiki_sanrin_%s',
-        'bunri_shotoku_tanki_ippan_shotoku_%s' => 'sashihiki_tanki_ippan_%s',
-        'bunri_shotoku_tanki_keigen_shotoku_%s' => 'sashihiki_tanki_keigen_%s',
-        'bunri_shotoku_choki_ippan_shotoku_%s' => 'sashihiki_choki_ippan_%s',
-        'bunri_shotoku_choki_tokutei_shotoku_%s' => 'sashihiki_choki_tokutei_%s',
-        'bunri_shotoku_choki_keika_shotoku_%s' => 'sashihiki_choki_keika_%s',
+        'shotoku_jigyo_eigyo_shotoku_%s' => ['group' => 'jigyo_eigyo_details', 'source' => 'jigyo_eigyo_shotoku_%s'],
+        'shotoku_fudosan_shotoku_%s' => ['group' => 'fudosan_details', 'source' => 'fudosan_shotoku_%s'],
+        'bunri_shotoku_sanrin_shotoku_%s' => ['group' => 'bunri_sanrin_details', 'source' => 'sashihiki_sanrin_%s'],
+        'bunri_shotoku_tanki_ippan_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_tanki_ippan_%s'],
+        'bunri_shotoku_tanki_keigen_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_tanki_keigen_%s'],
+        'bunri_shotoku_choki_ippan_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_choki_ippan_%s'],
+        'bunri_shotoku_choki_tokutei_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_choki_tokutei_%s'],
+        'bunri_shotoku_choki_keika_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_choki_keika_%s'],
     ];
 
     /**
@@ -55,22 +55,44 @@ class DetailsSourceAliasCalculator implements ProvidesKeys
 
         $updates = [];
 
-        foreach (self::MAPPINGS as $targetPattern => $sourcePattern) {
-            $sourceKey = sprintf($sourcePattern, $period);
-            if (! array_key_exists($sourceKey, $payload)) {
-                continue;
-            }
-
-            $normalized = $this->normalize($payload[$sourceKey]);
-            if ($normalized === null) {
-                continue;
-            }
-
+        foreach (self::MAPPINGS as $targetPattern => $mapping) {
             $targetKey = sprintf($targetPattern, $period);
-            $updates[$targetKey] = $normalized;
+            $sourceKey = sprintf($mapping['source'], $period);
+
+            $sourceValue = $this->extractSourceValue($payload, $mapping['group'], $sourceKey);
+            $normalized = $this->normalize($sourceValue);
+
+            if ($normalized !== null) {
+                $updates[$targetKey] = $normalized;
+                continue;
+            }
+
+            $current = array_key_exists($targetKey, $payload)
+                ? $this->normalize($payload[$targetKey])
+                : null;
+
+            $updates[$targetKey] = $current ?? 0;
         }
 
         return $updates;
+    }
+
+    private function extractSourceValue(array $payload, string $group, string $key): mixed
+    {
+        $compoundKey = sprintf('%s.%s', $group, $key);
+        if (array_key_exists($compoundKey, $payload)) {
+            return $payload[$compoundKey];
+        }
+
+        if (array_key_exists($group, $payload) && is_array($payload[$group]) && array_key_exists($key, $payload[$group])) {
+            return $payload[$group][$key];
+        }
+
+        if (array_key_exists($key, $payload)) {
+            return $payload[$key];
+        }
+
+        return null;
     }
 
     private function normalize(mixed $value): ?int
@@ -90,12 +112,8 @@ class DetailsSourceAliasCalculator implements ProvidesKeys
             return $value;
         }
 
-        if (is_float($value)) {
-            return (int) $value;
-        }
-
-        if (is_numeric($value)) {
-            return (int) ((float) $value);
+        if (is_float($value) || is_numeric($value)) {
+            return (int) floor((float) $value);
         }
 
         return null;

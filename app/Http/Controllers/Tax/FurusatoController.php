@@ -858,6 +858,7 @@ final class FurusatoController extends Controller
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         $this->recalculateBunriKabuteki($payload);
+        $this->mirrorBunriKabutekiDetailsToInput($payload);
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -1566,6 +1567,28 @@ final class FurusatoController extends Controller
                     ? $this->valueOrZero($payload[sprintf('kurikoshi_%s', $base)] ?? null)
                     : 0;
                 $payload[sprintf('shotoku_after_kurikoshi_%s', $base)] = $tsusango - $kurikoshi;
+            }
+        }
+    }
+
+    private function mirrorBunriKabutekiDetailsToInput(array &$payload): void
+    {
+        $mirrorSources = [
+            'syunyu_ippan_joto' => 'bunri_syunyu_ippan_kabuteki_joto',
+            'syunyu_jojo_joto' => 'bunri_syunyu_jojo_kabuteki_joto',
+            'syunyu_jojo_haito' => 'bunri_syunyu_jojo_kabuteki_haito',
+            'shotoku_after_kurikoshi_ippan_joto' => 'bunri_shotoku_ippan_kabuteki_joto',
+            'shotoku_after_kurikoshi_jojo_joto' => 'bunri_shotoku_jojo_kabuteki_joto',
+            'shotoku_after_kurikoshi_jojo_haito' => 'bunri_shotoku_jojo_kabuteki_haito',
+        ];
+
+        foreach (['prev', 'curr'] as $period) {
+            foreach ($mirrorSources as $sourceBase => $mirrorBase) {
+                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
+
+                foreach (['shotoku', 'jumin'] as $tax) {
+                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
+                }
             }
         }
     }

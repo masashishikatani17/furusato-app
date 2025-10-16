@@ -98,69 +98,67 @@
             $warekiPrevLabel = $warekiPrev ?? '前年';
             $warekiCurrLabel = $warekiCurr ?? '当年';
             $showTokubetsu = in_array((int) ($kihuYear ?? 0), [2024, 2025], true);
-            $readonlyBases = [
-                'shotoku_kyuyo' => true,
-                'jumin_kyuyo' => true,
-                'shotoku_zatsu_nenkin' => true,
-                'jumin_zatsu_nenkin' => true,
-                'syunyu_jigyo_eigyo' => true,
-                'syunyu_fudosan' => true,
-                'shotoku_joto_tanki' => true,
-                'shotoku_joto_choki' => true,
-                'shotoku_ichiji' => true,
-                'syunyu_joto_tanki' => true,
-                'syunyu_joto_choki' => true,
-                'bunri_syunyu_tanki_ippan' => true,
-                'bunri_syunyu_tanki_keigen' => true,
-                'bunri_syunyu_choki_ippan' => true,
-                'bunri_syunyu_choki_tokutei' => true,
-                'bunri_syunyu_choki_keika' => true,
-                'bunri_syunyu_ippan_kabuteki_joto' => true,
-                'bunri_syunyu_jojo_kabuteki_joto' => true,
-                'bunri_syunyu_jojo_kabuteki_haito' => true,
-                'bunri_syunyu_sakimono' => true,
-                'bunri_syunyu_sanrin' => true,
-                'bunri_shotoku_tanki_ippan' => true,
-                'bunri_shotoku_tanki_keigen' => true,
-                'bunri_shotoku_choki_ippan' => true,
-                'bunri_shotoku_choki_tokutei' => true,
-                'bunri_shotoku_choki_keika' => true,
-                'bunri_shotoku_ippan_kabuteki_joto' => true,
-                'bunri_shotoku_jojo_kabuteki_joto' => true,
-                'bunri_shotoku_jojo_kabuteki_haito' => true,
-                'bunri_shotoku_sakimono' => true,
-                'bunri_shotoku_sanrin' => true,
-                'bunri_kazeishotoku_tanki' => true,
-                'bunri_kazeishotoku_choki' => true,
-                'syunyu_ichiji' => true,
-                'shotoku_jigyo_eigyo' => true,
-                'shotoku_fudosan' => true,
-                'shotoku_joto_ichiji' => true,
-                'shotoku_kyuyo' => true,
-                'shotoku_zatsu_nenkin' => true,
-                'shotoku_gokei' => true,
-                'kojo_seimei' => true,
-                'kojo_jishin' => true,
-                'kojo_shokei' => true,
-                'kojo_kafu' => true,
-                'kojo_hitorioya' => true,
-                'kojo_kinrogakusei' => true,
-                'kojo_shogaisha' => true,
-                'kojo_haigusha' => true,
-                'kojo_haigusha_tokubetsu' => true,
-                'kojo_fuyo' => true,
-                'kojo_tokutei_shinzoku' => true,
-                'kojo_gokei' => true,
-                'tax_zeigaku' => true,
-                'kojo_iryo' => true,
-                'kojo_kifukin' => true,
-                'kojo_kiso' => true,
-                'tax_seito' => true,
-                'tax_sashihiki' => true,
-                'tax_kijun' => true,
-                'tax_fukkou' => true,
-                'tax_gokei' => true,
-            ];
+            $readonlyBases = array_fill_keys([
+                'shotoku_kyuyo',
+                'jumin_kyuyo',
+                'shotoku_zatsu_nenkin',
+                'jumin_zatsu_nenkin',
+                'syunyu_jigyo_eigyo',
+                'syunyu_fudosan',
+                'shotoku_joto_tanki',
+                'shotoku_joto_choki',
+                'shotoku_ichiji',
+                'syunyu_joto_tanki',
+                'syunyu_joto_choki',
+                'bunri_syunyu_tanki_ippan',
+                'bunri_syunyu_tanki_keigen',
+                'bunri_syunyu_choki_ippan',
+                'bunri_syunyu_choki_tokutei',
+                'bunri_syunyu_choki_keika',
+                'bunri_syunyu_ippan_kabuteki_joto',
+                'bunri_syunyu_jojo_kabuteki_joto',
+                'bunri_syunyu_jojo_kabuteki_haito',
+                'bunri_syunyu_sakimono',
+                'bunri_syunyu_sanrin',
+                'bunri_shotoku_tanki_ippan',
+                'bunri_shotoku_tanki_keigen',
+                'bunri_shotoku_choki_ippan',
+                'bunri_shotoku_choki_tokutei',
+                'bunri_shotoku_choki_keika',
+                'bunri_shotoku_ippan_kabuteki_joto',
+                'bunri_shotoku_jojo_kabuteki_joto',
+                'bunri_shotoku_jojo_kabuteki_haito',
+                'bunri_shotoku_sakimono',
+                'bunri_shotoku_sanrin',
+                'bunri_kazeishotoku_tanki',
+                'bunri_kazeishotoku_choki',
+                'syunyu_ichiji',
+                'shotoku_jigyo_eigyo',
+                'shotoku_fudosan',
+                'shotoku_joto_ichiji',
+                'shotoku_gokei',
+                'kojo_seimei',
+                'kojo_jishin',
+                'kojo_shokei',
+                'kojo_kafu',
+                'kojo_hitorioya',
+                'kojo_kinrogakusei',
+                'kojo_shogaisha',
+                'kojo_haigusha',
+                'kojo_haigusha_tokubetsu',
+                'kojo_fuyo',
+                'kojo_tokutei_shinzoku',
+                'kojo_gokei',
+                'tax_zeigaku',
+                'kojo_iryo',
+                'kojo_kifukin',
+                'kojo_kiso',
+                'tax_seito',
+                'tax_sashihiki',
+                'tax_kijun',
+                'tax_fukkou',
+                'tax_gokei',
+            ], true);
             $kojoFieldOverrides = [
                 'kojo_kiso' => [
                     'shotoku' => 'shotokuzei_kojo_kiso_%s',
@@ -779,34 +777,14 @@
                                     value="bunri_joto"
                                     data-return-anchor="bunri_income_shortlong_top">内訳</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_tanki_ippan_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_syunyu_tanki_ippan') !!}
                         </tr>
                         <tr>
                           <th scope="row" class="align-middle text-start th-ddd ps-1">軽減分</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_tanki_keigen_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_syunyu_tanki_keigen') !!}
                         </tr>
                         <tr>
                           <th scope="rowgroup" rowspan="3" class="text-start th-ddd align-middle ps-1">長 期</th>
@@ -814,17 +792,7 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_choki_ippan_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_syunyu_choki_ippan') !!}
                         </tr>
                         @foreach (['tokutei' => '特定分', 'keika' => '軽課分'] as $type => $label)
                         <tr>
@@ -832,17 +800,7 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_syunyu_choki_%s_%s_%s', $type, $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_syunyu_choki_' . $type) !!}
                         </tr>
                         @endforeach
                         <tr>
@@ -954,34 +912,14 @@
                                     value="bunri_joto"
                                     data-return-anchor="bunri_shotoku_shortlong_top">内訳</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_tanki_ippan_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_shotoku_tanki_ippan') !!}
                         </tr>
                         <tr>
                           <th scope="row" class="align-middle text-start th-ddd ps-1">軽減分</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_tanki_keigen_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_shotoku_tanki_keigen') !!}
                         </tr>
                         <tr>
                           <th scope="rowgroup" rowspan="3" class="text-start th-ddd align-middle ps-1">長 期</th>
@@ -989,17 +927,7 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_choki_ippan_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_shotoku_choki_ippan') !!}
                         </tr>
                         @foreach (['tokutei' => '特定分', 'keika' => '軽課分'] as $type => $label)
                         <tr>
@@ -1007,17 +935,7 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_shotoku_choki_%s_%s_%s', $type, $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_shotoku_choki_' . $type) !!}
                         </tr>
                         @endforeach
                         <tr>
@@ -1176,17 +1094,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_kazeishotoku_tanki_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_kazeishotoku_tanki') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">長期譲渡</th>
@@ -1194,17 +1102,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_kazeishotoku_choki_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderInputs('bunri_kazeishotoku_choki') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 pe-1 th-ddd" nowrap="nowrap">一般・上場株式の譲渡</th>

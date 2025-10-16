@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Tax;
 
 use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
+use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
@@ -2077,6 +2078,15 @@ final class FurusatoController extends Controller
             $bunriNettingCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $bunriNettingCalculator);
+
+        /** @var BunriKabutekiNettingCalculator $bunriKabutekiNettingCalculator */
+        $bunriKabutekiNettingCalculator = app(BunriKabutekiNettingCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $bunriKabutekiNettingCalculator->compute($payload, 'prev'),
+            $bunriKabutekiNettingCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $bunriKabutekiNettingCalculator);
 
         return $payload;
     }

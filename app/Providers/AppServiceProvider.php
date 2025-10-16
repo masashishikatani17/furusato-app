@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
+use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
@@ -52,6 +53,7 @@ class AppServiceProvider extends ServiceProvider
             SeitotoTokubetsuZeigakuKojoCalculator::class,
             TokureiRateCalculator::class,
             BunriNettingCalculator::class,
+            BunriKabutekiNettingCalculator::class,
             BunriSeparatedMinRateCalculator::class,
             FurusatoResultCalculator::class,
         ];

@@ -4,6 +4,7 @@ namespace App\Application\UseCases\Tax;
 
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
+use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
@@ -388,6 +389,15 @@ class RecalculateFurusatoPayload
             $bunriNettingCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $bunriNettingCalculator);
+
+        /** @var BunriKabutekiNettingCalculator $bunriKabutekiNettingCalculator */
+        $bunriKabutekiNettingCalculator = app(BunriKabutekiNettingCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $bunriKabutekiNettingCalculator->compute($payload, 'prev'),
+            $bunriKabutekiNettingCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $bunriKabutekiNettingCalculator);
 
         return $payload;
     }

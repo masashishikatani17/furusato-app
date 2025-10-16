@@ -43,9 +43,19 @@ final class FurusatoInputRequest extends FormRequest
             'taishoku' => '退職所得金額',
         ];
 
+        $allowNegativeIncomeFields = [
+            'ippan_kabu_joto',
+            'jojo_kabu_joto',
+        ];
+
         foreach (array_keys($incomeFields) as $field) {
-            $rules[sprintf('%s_prev', $field)] = ['bail', 'nullable', 'integer', 'min:0'];
-            $rules[sprintf('%s_curr', $field)] = ['bail', 'nullable', 'integer', 'min:0'];
+            $baseRule = ['bail', 'nullable', 'integer'];
+            if (! in_array($field, $allowNegativeIncomeFields, true)) {
+                $baseRule[] = 'min:0';
+            }
+
+            $rules[sprintf('%s_prev', $field)] = $baseRule;
+            $rules[sprintf('%s_curr', $field)] = $baseRule;
         }
 
         $intFields = [

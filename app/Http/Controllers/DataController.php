@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\Data;
 use App\Models\Guest;
 use App\Models\User;
+use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
@@ -78,11 +80,12 @@ class DataController extends Controller
         }
 
         return view('data.data_master', [
-            'guests'     => $guests,
-            'datas'      => $datas,
-            'guestId'    => $guestId,
-            'companyId'  => $companyId,
-            'ctxGroupId' => $ctxGroupId, // null=横断
+            'guests'        => $guests,
+            'datas'         => $datas,
+            'guestId'       => $guestId,
+            'companyId'     => $companyId,
+            'ctxGroupId'    => $ctxGroupId, // null=横断
+            'userBirthDate' => $this->formatBirthDateForView($user?->birth_date ?? null),
         ]);
     }
 
@@ -231,8 +234,9 @@ class DataController extends Controller
             $q->where('group_id', (int)$ctxGroupId);
         }
         $guests = $q->orderBy('created_at','asc')->get();
+        $userBirthDate = $this->formatBirthDateForView($me?->birth_date ?? null);
 
-        return view('data.data_create', compact('guests'));
+        return view('data.data_create', compact('guests', 'userBirthDate'));
     }
 
     /* ===== 新規作成：POST /data（保存） ===== */
@@ -244,6 +248,7 @@ class DataController extends Controller
             'guest_id'   => ['required_if:guest_mode,existing','nullable','integer','exists:guests,id'],
             'guest_name' => ['required_if:guest_mode,new','nullable','string','max:25'],
             'kihu_year'  => ['required','integer','between:2010,2100'],
+            'birth_date' => ['nullable','date_format:Y-m-d'],
         ];
         if (config('feature.data_privacy')) {
             $rules['visibility'] = ['nullable','in:shared,private'];
@@ -258,6 +263,7 @@ class DataController extends Controller
             'kihu_year.required'  => '年度を選択してください。',
             'kihu_year.between'   => '年度の指定が不正です（2010〜2100）。',
             'visibility.in'       => '共有設定が不正です。',
+            'birth_date.date_format' => '生年月日は YYYY-MM-DD 形式で入力してください。',
         ];
         $validated = $request->validate($rules, $messages);
 
@@ -310,6 +316,8 @@ class DataController extends Controller
         }
         $data->save();
 
+        $this->updateCurrentUserBirthDate($validated['birth_date'] ?? null);
+
         return redirect()
             ->route('data.index', ['guest_id' => $guest->id])
             ->with('success', '新規データを作成しました。');
@@ -333,8 +341,9 @@ class DataController extends Controller
             $q->where('group_id', (int)($me->group_id ?? 0));
         }
         $guests = $q->orderBy('created_at','asc')->get();
+        $userBirthDate = $this->formatBirthDateForView($me?->birth_date ?? null);
 
-        return view('data.data_copy', compact('source', 'guests'));
+        return view('data.data_copy', compact('source', 'guests', 'userBirthDate'));
     }
 
     /** コピー実行：POST /data/copy（複数年度対応） */
@@ -348,6 +357,7 @@ class DataController extends Controller
             'target_guest_name'=> ['nullable','string','max:25','required_if:copy_mode,new'],
             'years'            => ['required','array','min:1','max:21'],
             'years.*'          => ['integer','between:2010,2100'],
+            'birth_date'       => ['nullable','date_format:Y-m-d'],
         ];
         if (config('feature.data_privacy')) {
             $rules['visibility'] = ['nullable','in:shared,private'];
@@ -362,6 +372,7 @@ class DataController extends Controller
             'years.required' => '年度を1つ以上選択してください。',
             'years.array'    => '年度の指定が不正です。',
             'years.*.between'=> '年度の指定が不正です（2010〜2100）。',
+            'birth_date.date_format' => '生年月日は YYYY-MM-DD 形式で入力してください。',
         ];
         $validated = $request->validate($rules, $messages);
 
@@ -434,6 +445,8 @@ class DataController extends Controller
         }
 
         // 5) 結果の返却
+        $this->updateCurrentUserBirthDate($validated['birth_date'] ?? null);
+
         if (count($created) === 0 && count($duplicated) > 0) {
             // 全て重複 → copyForm に戻してモーダルで案内
             return back()
@@ -448,6 +461,49 @@ class DataController extends Controller
         }
         return $redir;
     }
+
+    public function updateBirthDate(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'birth_date' => ['nullable', 'date_format:Y-m-d'],
+        ], [
+            'birth_date.date_format' => '生年月日は YYYY-MM-DD 形式で入力してください。',
+        ]);
+
+        $this->updateCurrentUserBirthDate($validated['birth_date'] ?? null);
+
+        return back()->with('birth_date_success', '生年月日を保存しました。');
+    }
+
+    private function updateCurrentUserBirthDate(?string $birthDate): void
+    {
+        $user = auth()->user();
+        if (! $user) {
+            return;
+        }
+
+        $user->birth_date = $birthDate ?: null;
+        $user->save();
+    }
+
+    private function formatBirthDateForView(DateTimeInterface|string|null $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return $value;
+        }
+
+        return null;
+    }
+
     /* ===== 以降は未実装リンクの安全なフォールバック ===== */
     public function editForm(Request $r){ return redirect()->route('data.index')->with('info','未実装です'); }
     public function edit(Request $r, $id){ return redirect()->route('data.index')->with('info','未実装です'); }

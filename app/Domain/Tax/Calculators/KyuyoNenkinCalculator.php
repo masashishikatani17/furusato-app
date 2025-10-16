@@ -1,0 +1,335 @@
+<?php
+
+namespace App\Domain\Tax\Calculators;
+
+use App\Models\Data;
+use App\Models\User;
+use App\Services\Tax\Contracts\ProvidesKeys;
+use DateTimeInterface;
+
+class KyuyoNenkinCalculator implements ProvidesKeys
+{
+    public const ID = 'kyuyo.nenkin';
+    public const ORDER = 2120;
+    public const BEFORE = [];
+    public const AFTER = [];
+
+    private const PERIODS = ['prev', 'curr'];
+
+    /**
+     * @return array<int, string>
+     */
+    public static function provides(): array
+    {
+        $keys = [];
+
+        foreach (self::PERIODS as $period) {
+            $keys[] = sprintf('shotoku_kyuyo_shotoku_%s', $period);
+            $keys[] = sprintf('jumin_kyuyo_jumin_%s', $period);
+            $keys[] = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
+            $keys[] = sprintf('jumin_zatsu_nenkin_jumin_%s', $period);
+        }
+
+        return $keys;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $ctx
+     * @return array<string, int>
+     */
+    public function compute(array $payload, array $ctx): array
+    {
+        $updates = array_fill_keys(self::provides(), 0);
+        $working = $payload;
+        $birthDate = $this->resolveBirthDate($ctx);
+
+        foreach (self::PERIODS as $period) {
+            $year = $this->resolveYear($ctx['kihu_year'] ?? null, $period);
+
+            $kyuyoIncomeKey = sprintf('syunyu_kyuyo_shotoku_%s', $period);
+            $kyuyoIncome = $this->clampIncome($payload[$kyuyoIncomeKey] ?? null);
+            $kyuyoAmount = $this->calculateKyuyoShotoku($kyuyoIncome, $year);
+
+            $shotokuKyuyoKey = sprintf('shotoku_kyuyo_shotoku_%s', $period);
+            $juminKyuyoKey = sprintf('jumin_kyuyo_jumin_%s', $period);
+            $updates[$shotokuKyuyoKey] = $kyuyoAmount;
+            $updates[$juminKyuyoKey] = $kyuyoAmount;
+            $working[$shotokuKyuyoKey] = $kyuyoAmount;
+            $working[$juminKyuyoKey] = $kyuyoAmount;
+
+            $nenkinIncomeKey = sprintf('syunyu_zatsu_nenkin_shotoku_%s', $period);
+            $nenkinIncome = $this->clampIncome($payload[$nenkinIncomeKey] ?? null);
+
+            $shotokuOther = $this->sumOtherIncome($working, 'shotoku_', sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period), $period);
+            $juminOther = $this->sumOtherIncome($working, 'jumin_', sprintf('jumin_zatsu_nenkin_jumin_%s', $period), $period);
+
+            $isSenior = $this->isSenior($birthDate, $year);
+            $shotokuResult = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $shotokuOther);
+            $juminResult = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $juminOther);
+
+            $shotokuNenkinKey = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
+            $juminNenkinKey = sprintf('jumin_zatsu_nenkin_jumin_%s', $period);
+            $updates[$shotokuNenkinKey] = $shotokuResult;
+            $updates[$juminNenkinKey] = $juminResult;
+            $working[$shotokuNenkinKey] = $shotokuResult;
+            $working[$juminNenkinKey] = $juminResult;
+        }
+
+        return array_replace($payload, $updates);
+    }
+
+    private function clampIncome(mixed $value): int
+    {
+        return max(0, $this->n($value));
+    }
+
+    private function n(mixed $value): int
+    {
+        if (is_string($value)) {
+            $value = str_replace([',', ' '], '', $value);
+        }
+
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_float($value)) {
+            return (int) $value;
+        }
+
+        if (is_numeric($value)) {
+            return (int) ((float) $value);
+        }
+
+        return 0;
+    }
+
+    private function calculateKyuyoShotoku(int $income, int $year): int
+    {
+        if ($income <= 0) {
+            return 0;
+        }
+
+        if ($year <= 0) {
+            $year = 2025;
+        }
+
+        if ($year <= 2025) {
+            if ($income <= 1_625_000) {
+                return max(0, $income - 550_000);
+            }
+
+            if ($income <= 1_800_000) {
+                return max(0, $income - ($this->percent($income, 40) - 100_000));
+            }
+
+            if ($income <= 3_600_000) {
+                return max(0, $income - ($this->percent($income, 30) + 80_000));
+            }
+
+            if ($income <= 6_600_000) {
+                return max(0, $income - ($this->percent($income, 20) + 440_000));
+            }
+
+            if ($income <= 8_500_000) {
+                return max(0, $income - ($this->percent($income, 10) + 1_100_000));
+            }
+
+            return max(0, $income - 1_950_000);
+        }
+
+        if ($income <= 1_900_000) {
+            return max(0, $income - 650_000);
+        }
+
+        if ($income <= 3_600_000) {
+            return max(0, $income - ($this->percent($income, 30) + 80_000));
+        }
+
+        if ($income <= 6_600_000) {
+            return max(0, $income - ($this->percent($income, 20) + 440_000));
+        }
+
+        if ($income <= 8_500_000) {
+            return max(0, $income - ($this->percent($income, 10) + 1_100_000));
+        }
+
+        return max(0, $income - 1_950_000);
+    }
+
+    private function percent(int $value, int $rate): int
+    {
+        return intdiv($value * $rate, 100);
+    }
+
+    private function calculateNenkinShotoku(int $income, bool $isSenior, int $otherSum): int
+    {
+        if ($income <= 0) {
+            return 0;
+        }
+
+        $deduction = $this->calculateNenkinDeduction($income, $isSenior, $otherSum);
+        $result = $income - $deduction;
+
+        return $result > 0 ? $result : 0;
+    }
+
+    private function calculateNenkinDeduction(int $income, bool $isSenior, int $otherSum): int
+    {
+        $bucket = 0;
+        if ($otherSum > 20_000_000) {
+            $bucket = 2;
+        } elseif ($otherSum > 10_000_000) {
+            $bucket = 1;
+        }
+
+        return $isSenior
+            ? $this->calculateSeniorDeduction($income, $bucket)
+            : $this->calculateUnder65Deduction($income, $bucket);
+    }
+
+    private function calculateSeniorDeduction(int $income, int $bucket): int
+    {
+        if ($income <= 3_300_000) {
+            return [1_100_000, 1_000_000, 900_000][$bucket];
+        }
+
+        if ($income <= 4_100_000) {
+            return $this->percent($income, 25) + [275_000, 175_000, 75_000][$bucket];
+        }
+
+        if ($income <= 7_700_000) {
+            return $this->percent($income, 15) + [685_000, 585_000, 485_000][$bucket];
+        }
+
+        if ($income <= 10_000_000) {
+            return $this->percent($income, 5) + [1_455_000, 1_355_000, 1_255_000][$bucket];
+        }
+
+        return [1_955_000, 1_855_000, 1_755_000][$bucket];
+    }
+
+    private function calculateUnder65Deduction(int $income, int $bucket): int
+    {
+        if ($income <= 1_300_000) {
+            return [600_000, 500_000, 400_000][$bucket];
+        }
+
+        if ($income <= 4_100_000) {
+            return $this->percent($income, 25) + [275_000, 175_000, 75_000][$bucket];
+        }
+
+        if ($income <= 7_700_000) {
+            return $this->percent($income, 15) + [685_000, 585_000, 485_000][$bucket];
+        }
+
+        if ($income <= 10_000_000) {
+            return $this->percent($income, 5) + [1_455_000, 1_355_000, 1_255_000][$bucket];
+        }
+
+        return [1_955_000, 1_855_000, 1_755_000][$bucket];
+    }
+
+    private function resolveBirthDate(array $ctx): ?string
+    {
+        $value = $ctx['user_birth_date'] ?? null;
+        $normalized = $this->normalizeBirthDate($value);
+        if ($normalized !== null) {
+            return $normalized;
+        }
+
+        $data = $ctx['data'] ?? null;
+        if ($data instanceof Data) {
+            $userId = $data->user_id ?? null;
+            if ($userId) {
+                $user = User::query()->find((int) $userId);
+                if ($user) {
+                    return $this->normalizeBirthDate($user->birth_date ?? null);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeBirthDate(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_string($value)) {
+            $value = trim($value);
+            if ($value === '') {
+                return null;
+            }
+
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+                return null;
+            }
+
+            return $value;
+        }
+
+        return null;
+    }
+
+    private function isSenior(?string $birthDate, int $year): bool
+    {
+        if (! $birthDate || $year <= 0) {
+            return false;
+        }
+
+        $thresholdYear = $year - 65 + 1;
+        if ($thresholdYear <= 0) {
+            return false;
+        }
+
+        $threshold = sprintf('%04d-01-01', $thresholdYear);
+
+        return $birthDate <= $threshold;
+    }
+
+    private function resolveYear(mixed $kihuYear, string $period): int
+    {
+        $year = (int) $kihuYear;
+
+        if ($period === 'prev') {
+            return $year > 0 ? $year - 1 : 0;
+        }
+
+        return max(0, $year);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function sumOtherIncome(array $payload, string $prefix, string $excludeKey, string $period): int
+    {
+        $total = 0;
+        $suffix = '_' . $period;
+
+        foreach ($payload as $key => $value) {
+            if (! is_string($key)) {
+                continue;
+            }
+
+            if (! str_starts_with($key, $prefix)) {
+                continue;
+            }
+
+            if (! str_ends_with($key, $suffix)) {
+                continue;
+            }
+
+            if ($key === $excludeKey) {
+                continue;
+            }
+
+            $total += $this->n($value);
+        }
+
+        return $total;
+    }
+}

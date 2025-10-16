@@ -34,6 +34,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use DateTimeInterface;
 
 final class FurusatoController extends Controller
 {
@@ -445,10 +446,14 @@ final class FurusatoController extends Controller
 
             $this->validateBunriChokiShotokuInputs($request);
 
-            $userId = $request->user()?->id;
             $ctx = [];
-            if ($userId) {
-                $ctx['user_id'] = (int) $userId;
+            $user = $request->user();
+            if ($user) {
+                $ctx['user_id'] = (int) $user->id;
+                $birthDate = $this->normalizeBirthDateForContext($user->birth_date ?? null);
+                if ($birthDate !== null) {
+                    $ctx['user_birth_date'] = $birthDate;
+                }
             }
 
             $recalculateUseCase->handle($data, $updates, $ctx);
@@ -1530,6 +1535,24 @@ final class FurusatoController extends Controller
             $tokubetsu = $this->valueOrZero($payload[sprintf('tokubetsukojo_sanrin_%s', $period)] ?? null);
             $payload[sprintf('shotoku_sanrin_%s', $period)] = $sashihiki - $tokubetsu;
         }
+    }
+
+    private function normalizeBirthDateForContext(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_string($value)) {
+            $value = trim($value);
+            if ($value === '') {
+                return null;
+            }
+
+            return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? $value : null;
+        }
+
+        return null;
     }
 
     /**

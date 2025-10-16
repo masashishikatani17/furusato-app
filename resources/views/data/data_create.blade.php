@@ -53,6 +53,19 @@
         </td>
       </tr>
 
+      {{-- 生年月日 --}}
+      <tr>
+        <th class="text-start ps-2">生年月日（西暦）</th>
+        <td class="text-start ps-1">
+          <input type="date"
+                 name="birth_date"
+                 id="birth_date"
+                 class="form-control"
+                 placeholder="YYYY-MM-DD"
+                 value="{{ old('birth_date', $userBirthDate) }}">
+        </td>
+      </tr>
+
       {{-- 3) 共有設定（feature.data_privacy=true の時のみ表示） --}}
       @if (config('feature.data_privacy'))
       <tr>

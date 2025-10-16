@@ -79,6 +79,7 @@ Route::middleware('auth')->group(function () {
     // 作成フロー
     Route::get('/data/create', [DataController::class, 'create'])->name('data.create');
     Route::post('/data', [DataController::class, 'store'])->name('data.store');
+    Route::post('/data/birth-date', [DataController::class, 'updateBirthDate'])->name('data.birthdate.update');
     // コピーフロー
     Route::get('/data/copyForm', [DataController::class, 'copyForm'])->name('data.copyForm');
     Route::post('/data/copy', [DataController::class, 'copy'])->name('data.copy');

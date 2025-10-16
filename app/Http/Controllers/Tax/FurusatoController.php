@@ -1543,21 +1543,27 @@ final class FurusatoController extends Controller
             'joto_shotoku_choki_gokei' => 'bunri_kazeishotoku_choki',
         ];
 
-        foreach (['prev', 'curr'] as $period) {
+        $periods = ['prev', 'curr'];
+
+        foreach ($periods as $period) {
             foreach ($incomeSources as $sourceBase => $mirrorBase) {
                 $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
 
                 $payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)] = $value;
                 $payload[sprintf('%s_jumin_%s', $mirrorBase, $period)] = $value;
             }
+        }
 
+        foreach ($periods as $period) {
             foreach ($shotokuSources as $sourceBase => $mirrorBase) {
                 $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
 
                 $payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)] = $value;
                 $payload[sprintf('%s_jumin_%s', $mirrorBase, $period)] = $value;
             }
+        }
 
+        foreach ($periods as $period) {
             foreach ($totalSources as $sourceBase => $mirrorBase) {
                 $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
 

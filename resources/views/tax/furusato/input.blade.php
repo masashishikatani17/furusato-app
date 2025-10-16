@@ -118,6 +118,8 @@
                 'bunri_syunyu_ippan_kabuteki_joto' => true,
                 'bunri_syunyu_jojo_kabuteki_joto' => true,
                 'bunri_syunyu_jojo_kabuteki_haito' => true,
+                'bunri_syunyu_sakimono' => true,
+                'bunri_syunyu_sanrin' => true,
                 'bunri_shotoku_tanki_ippan' => true,
                 'bunri_shotoku_tanki_keigen' => true,
                 'bunri_shotoku_choki_ippan' => true,
@@ -126,6 +128,8 @@
                 'bunri_shotoku_ippan_kabuteki_joto' => true,
                 'bunri_shotoku_jojo_kabuteki_joto' => true,
                 'bunri_shotoku_jojo_kabuteki_haito' => true,
+                'bunri_shotoku_sakimono' => true,
+                'bunri_shotoku_sanrin' => true,
                 'bunri_kazeishotoku_tanki' => true,
                 'bunri_kazeishotoku_choki' => true,
                 'syunyu_ichiji' => true,
@@ -888,7 +892,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ $value }}" readonly>
                               </td>
                             @endforeach
                           @endforeach
@@ -912,7 +916,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ $value }}" readonly>
                               </td>
                             @endforeach
                           @endforeach
@@ -1063,7 +1067,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ $value }}" readonly>
                               </td>
                             @endforeach
                           @endforeach
@@ -1087,7 +1091,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end bg-light" name="{{ $name }}" value="{{ $value }}" readonly>
                               </td>
                             @endforeach
                           @endforeach

@@ -899,6 +899,7 @@ final class FurusatoController extends Controller
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         $this->recalculateBunriSakimono($payload);
+        $this->mirrorBunriSakimonoDetailsToInput($payload);
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -939,6 +940,7 @@ final class FurusatoController extends Controller
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         $this->recalculateBunriSanrin($payload);
+        $this->mirrorBunriSanrinDetailsToInput($payload);
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -1606,6 +1608,24 @@ final class FurusatoController extends Controller
         }
     }
 
+    private function mirrorBunriSakimonoDetailsToInput(array &$payload): void
+    {
+        $mirrorSources = [
+            'syunyu_sakimono' => 'bunri_syunyu_sakimono',
+            'shotoku_sakimono_after_kurikoshi' => 'bunri_shotoku_sakimono',
+        ];
+
+        foreach (['prev', 'curr'] as $period) {
+            foreach ($mirrorSources as $sourceBase => $mirrorBase) {
+                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
+
+                foreach (['shotoku', 'jumin'] as $tax) {
+                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
+                }
+            }
+        }
+    }
+
     private function recalculateBunriSanrin(array &$payload): void
     {
         foreach (['prev', 'curr'] as $period) {
@@ -1616,6 +1636,24 @@ final class FurusatoController extends Controller
 
             $tokubetsu = $this->valueOrZero($payload[sprintf('tokubetsukojo_sanrin_%s', $period)] ?? null);
             $payload[sprintf('shotoku_sanrin_%s', $period)] = $sashihiki - $tokubetsu;
+        }
+    }
+
+    private function mirrorBunriSanrinDetailsToInput(array &$payload): void
+    {
+        $mirrorSources = [
+            'syunyu_sanrin' => 'bunri_syunyu_sanrin',
+            'shotoku_sanrin' => 'bunri_shotoku_sanrin',
+        ];
+
+        foreach (['prev', 'curr'] as $period) {
+            foreach ($mirrorSources as $sourceBase => $mirrorBase) {
+                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
+
+                foreach (['shotoku', 'jumin'] as $tax) {
+                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
+                }
+            }
         }
     }
 

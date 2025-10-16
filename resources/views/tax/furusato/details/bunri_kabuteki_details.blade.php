@@ -50,7 +50,7 @@
                   <th style="width: 150px; height:30px;"></th>
                   <th>収入金額</th>
                   <th>必要経費</th>
-                  <t>所得金額</th>
+                  <th>所得金額</th>
                   <th>損益通算後</th>
                   <th>繰越損失の金額</th>
                   <th>繰越控除後の所得金額</th>

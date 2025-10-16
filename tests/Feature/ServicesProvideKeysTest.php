@@ -8,6 +8,7 @@ use App\Models\Data;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
+use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\Kojo\HaigushaKojoService;
 use App\Services\Tax\Kojo\JintekiKojoService;
@@ -52,6 +53,7 @@ final class ServicesProvideKeysTest extends TestCase
             app(SogoShotokuNettingCalculator::class),
             app(SogoShotokuNettingStagesCalculator::class),
             app(BunriNettingCalculator::class),
+            app(BunriKabutekiNettingCalculator::class),
         ];
 
         foreach ($services as $service) {

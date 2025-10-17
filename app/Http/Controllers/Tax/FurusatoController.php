@@ -822,7 +822,11 @@ final class FurusatoController extends Controller
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         foreach (['prev', 'curr'] as $period) {
             $key = sprintf('joto_choki_tokutei_sonshitsu_%s', $period);
-            $payload[sprintf('sashihiki_joto_choki_bunri_%s', $period)] = $this->toNullableInt($payload[$key] ?? null);
+            $value = $this->toNullableInt($payload[$key] ?? null);
+            if ($value !== null) {
+                $value = -abs($value);
+            }
+            $payload[sprintf('sashihiki_joto_choki_bunri_%s', $period)] = $value;
         }
         $this->recalculateBunriJoto($payload);
         $this->mirrorBunriJotoDetailsToInput($payload);

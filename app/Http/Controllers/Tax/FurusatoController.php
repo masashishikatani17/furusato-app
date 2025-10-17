@@ -1679,6 +1679,7 @@ final class FurusatoController extends Controller
                     $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
                 }
             }
+        }
 
             // 譲渡所得 → bunri_shotoku_*
             foreach ($shotokuSources as $sourceBase => $mirrorBase) {
@@ -1687,6 +1688,7 @@ final class FurusatoController extends Controller
                     $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
                 }
             }
+        }
 
             // 合計（課税所得金額） → bunri_kazeishotoku_*
             foreach ($totalSources as $sourceBase => $mirrorBase) {

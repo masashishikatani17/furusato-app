@@ -51,11 +51,14 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
 
         $shortKey = sprintf('sashihiki_joto_tanki_sogo_%s', $period);
         $longKey = sprintf('sashihiki_joto_choki_sogo_%s', $period);
-        $ichijiKey = sprintf('sashihiki_ichiji_%s', $period);
 
-        $short = $this->n($payload[$shortKey] ?? null);
-        $long = $this->n($payload[$longKey] ?? null);
-        $ichiji = $this->n($payload[$ichijiKey] ?? null);
+        $shortSourceKey = sprintf('sashihiki_joto_tanki_%s', $period);
+        $longSourceKey = sprintf('sashihiki_joto_choki_%s', $period);
+        $ichijiSourceKey = sprintf('sashihiki_ichiji_%s', $period);
+
+        $short = $this->readWithFallback($payload, $shortKey, $shortSourceKey);
+        $long = $this->readWithFallback($payload, $longKey, $longSourceKey);
+        $ichiji = $this->n($payload[$ichijiSourceKey] ?? null);
 
         $preShort = ($short * $long) < 0
             ? (abs($short) >= abs($long) ? $short + $long : 0)
@@ -131,16 +134,33 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
 
     private function n(mixed $value): int
     {
+        if (is_string($value)) {
+            $value = str_replace([',', ' '], '', $value);
+        }
+
         if (is_int($value)) {
             return $value;
         }
 
         if (is_float($value)) {
-            return (int) floor($value);
+            return (int) $value;
         }
 
         if (is_numeric($value)) {
-            return (int) floor((float) $value);
+            return (int) ((float) $value);
+        }
+
+        return 0;
+    }
+
+    private function readWithFallback(array $payload, string $primary, ?string $fallback = null): int
+    {
+        if (array_key_exists($primary, $payload)) {
+            return $this->n($payload[$primary]);
+        }
+
+        if ($fallback !== null) {
+            return $this->n($payload[$fallback] ?? null);
         }
 
         return 0;

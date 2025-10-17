@@ -76,8 +76,37 @@
 
       return ['', ''];
   };
+  $readonlyValue = static function (string $key, $fallback = null) use ($inputs): string {
+      $value = old($key, $inputs[$key] ?? $fallback);
+
+      if ($value === null || $value === '') {
+          return '';
+      }
+
+      $stringValue = (string) $value;
+      $normalized = str_replace(',', '', $stringValue);
+
+      if (! is_numeric($normalized)) {
+          return $stringValue;
+      }
+
+      if (strpos($normalized, '.') !== false) {
+          $number = (float) $normalized;
+          $formatted = number_format($number, 3, '.', ',');
+
+          return rtrim(rtrim($formatted, '0'), '.');
+      }
+
+      $number = (int) $normalized;
+
+      return number_format($number);
+  };
   $warekiPrevLabel = $warekiPrev ?? '前年';
   $warekiCurrLabel = $warekiCurr ?? '当年';
+  $periodFilter = $periodFilter ?? null;
+  $suffix = in_array($periodFilter, ['prev', 'curr'], true) ? $periodFilter : null;
+  $showPrev = $suffix === null || $suffix === 'prev';
+  $showCurr = $suffix === null || $suffix === 'curr';
 @endphp
 
 @php
@@ -100,8 +129,12 @@
     <table class="table table-base align-middle" style="width:580px">
         <tr>
           <th class="text-center th-ccc" style="height:30px;">人的控除額の差</th>
-          <th class="text-center th-ccc">{{ $warekiPrevLabel }}</th>
-          <th class="text-center th-ccc">{{ $warekiCurrLabel }}</th>
+          @if($showPrev)
+            <th class="text-center th-ccc">{{ $warekiPrevLabel }}</th>
+          @endif
+          @if($showCurr)
+            <th class="text-center th-ccc">{{ $warekiCurrLabel }}</th>
+          @endif
         </tr>
       <tbody>
         @php
@@ -127,20 +160,24 @@
           @endphp
           <tr>
             <th class="text-start ps-1">{{ $row['label'] }}</th>
-            <td class="text-end">
-              @php
-                $raw = $rawInt($inputs, $inputPrev, $fallbackPrev);
-                $displayValue = $fallbackPrev !== null ? (int) $fallbackPrev : (is_numeric($raw) ? (int) $raw : null);
-              @endphp
-              <input type="hidden" name="{{ $inputPrev }}" value="{{ $raw }}">{{ $dispInt($displayValue) }}
-            </td>
-            <td class="text-end">
-              @php
-                $raw = $rawInt($inputs, $inputCurr, $fallbackCurr);
-                $displayValue = $fallbackCurr !== null ? (int) $fallbackCurr : (is_numeric($raw) ? (int) $raw : null);
-              @endphp
-              <input type="hidden" name="{{ $inputCurr }}" value="{{ $raw }}">{{ $dispInt($displayValue) }}
-            </td>
+            @if($showPrev)
+              <td class="text-end">
+                @php
+                  $raw = $rawInt($inputs, $inputPrev, $fallbackPrev);
+                  $displayValue = $fallbackPrev !== null ? (int) $fallbackPrev : (is_numeric($raw) ? (int) $raw : null);
+                @endphp
+                <input type="hidden" name="{{ $inputPrev }}" value="{{ $raw }}">{{ $dispInt($displayValue) }}
+              </td>
+            @endif
+            @if($showCurr)
+              <td class="text-end">
+                @php
+                  $raw = $rawInt($inputs, $inputCurr, $fallbackCurr);
+                  $displayValue = $fallbackCurr !== null ? (int) $fallbackCurr : (is_numeric($raw) ? (int) $raw : null);
+                @endphp
+                <input type="hidden" name="{{ $inputCurr }}" value="{{ $raw }}">{{ $dispInt($displayValue) }}
+              </td>
+            @endif
           </tr>
         @endforeach
         <tr>
@@ -149,18 +186,22 @@
             $fallbackPrev = $jintekiDiff['adjusted_taxable']['prev'] ?? null;
             $fallbackCurr = $jintekiDiff['adjusted_taxable']['curr'] ?? null;
           @endphp
-          <td class="text-end">
-            @php
-              $raw = $rawInt($inputs, 'human_adjusted_taxable_prev', $fallbackPrev);
-              $displayValue = $fallbackPrev !== null ? (int) $fallbackPrev : (is_numeric($raw) ? (int) $raw : null);
-            @endphp
-            <input type="hidden" name="human_adjusted_taxable_prev" value="{{ $raw }}">{{ $dispInt($displayValue) }}</td>
-          <td class="text-end">
-            @php
-              $raw = $rawInt($inputs, 'human_adjusted_taxable_curr', $fallbackCurr);
-              $displayValue = $fallbackCurr !== null ? (int) $fallbackCurr : (is_numeric($raw) ? (int) $raw : null);
-            @endphp
-            <input type="hidden" name="human_adjusted_taxable_curr" value="{{ $raw }}">{{ $dispInt($displayValue) }}</td>
+          @if($showPrev)
+            <td class="text-end">
+              @php
+                $raw = $rawInt($inputs, 'human_adjusted_taxable_prev', $fallbackPrev);
+                $displayValue = $fallbackPrev !== null ? (int) $fallbackPrev : (is_numeric($raw) ? (int) $raw : null);
+              @endphp
+              <input type="hidden" name="human_adjusted_taxable_prev" value="{{ $raw }}">{{ $dispInt($displayValue) }}</td>
+          @endif
+          @if($showCurr)
+            <td class="text-end">
+              @php
+                $raw = $rawInt($inputs, 'human_adjusted_taxable_curr', $fallbackCurr);
+                $displayValue = $fallbackCurr !== null ? (int) $fallbackCurr : (is_numeric($raw) ? (int) $raw : null);
+              @endphp
+              <input type="hidden" name="human_adjusted_taxable_curr" value="{{ $raw }}">{{ $dispInt($displayValue) }}</td>
+          @endif
         </tr>
       </tbody>
     </table>
@@ -178,90 +219,128 @@
     <table class="table table-base align-middle" style="width:580px">
         <tr>
           <th scope="col" class="w-50 th-ccc" style="height:30px;">項  目</th>
-          <th scope="col" class="text-center th-ccc">{{ $warekiPrevLabel }}</th>
-          <th scope="col" class="text-center th-ccc">{{ $warekiCurrLabel }}</th>
+          @if($showPrev)
+            <th scope="col" class="text-center th-ccc">{{ $warekiPrevLabel }}</th>
+          @endif
+          @if($showCurr)
+            <th scope="col" class="text-center th-ccc">{{ $warekiCurrLabel }}</th>
+          @endif
         </tr>
       <tbody>
         <tr>
           <th scope="row" class="text-start ps-1">特例控除率（標準）</th>
-          <td class="text-end">
-            <input type="hidden" name="tokurei_rate_standard_prev" value="{{ $stdPrevRaw }}">{{ $stdPrevDisp }}
-          </td>
-          <td class="text-end">
-            <input type="hidden" name="tokurei_rate_standard_curr" value="{{ $stdCurrRaw }}">{{ $stdCurrDisp }}
-          </td>
+          @if($showPrev)
+            <td class="text-end">
+              <input type="hidden" name="tokurei_rate_standard_prev" value="{{ $stdPrevRaw }}">{{ $stdPrevDisp }}
+            </td>
+          @endif
+          @if($showCurr)
+            <td class="text-end">
+              <input type="hidden" name="tokurei_rate_standard_curr" value="{{ $stdCurrRaw }}">{{ $stdCurrDisp }}
+            </td>
+          @endif
         </tr>
         <tr>
           <th scope="row" class="text-start ps-1">特例控除率（90％）</th>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_90_prev', $tkComputed['ninety_prev'] ?? 90.000, $prevDetails['AA51'] ?? 0.90); @endphp
-            <input type="hidden" name="tokurei_rate_90_prev" value="{{ $raw }}">{{ $disp }}
-          </td>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_90_curr', $tkComputed['ninety_curr'] ?? 90.000, $currDetails['AA51'] ?? 0.90); @endphp
-            <input type="hidden" name="tokurei_rate_90_curr" value="{{ $raw }}">{{ $disp }}
-          </td>
+          @if($showPrev)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_90_prev', $tkComputed['ninety_prev'] ?? 90.000, $prevDetails['AA51'] ?? 0.90); @endphp
+              <input type="hidden" name="tokurei_rate_90_prev" value="{{ $raw }}">{{ $disp }}
+            </td>
+          @endif
+          @if($showCurr)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_90_curr', $tkComputed['ninety_curr'] ?? 90.000, $currDetails['AA51'] ?? 0.90); @endphp
+              <input type="hidden" name="tokurei_rate_90_curr" value="{{ $raw }}">{{ $disp }}
+            </td>
+          @endif
         </tr>
         <tr>
           <th scope="row" class="text-start ps-1">山林所得（1/5）ベース</th>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_sanrin_div5_prev', $tkEnabled['sanrin_prev'] ?? false, $tkComputed['sanrin_prev'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_sanrin_div5_prev" value="{{ $raw }}">{{ $disp }}
-          </td>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_sanrin_div5_curr', $tkEnabled['sanrin_curr'] ?? false, $tkComputed['sanrin_curr'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_sanrin_div5_curr" value="{{ $raw }}">{{ $disp }}
-          </td>
+          @if($showPrev)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_sanrin_div5_prev', $tkEnabled['sanrin_prev'] ?? false, $tkComputed['sanrin_prev'] ?? null); @endphp
+              <input type="hidden" name="tokurei_rate_sanrin_div5_prev" value="{{ $raw }}">{{ $disp }}
+            </td>
+          @endif
+          @if($showCurr)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_sanrin_div5_curr', $tkEnabled['sanrin_curr'] ?? false, $tkComputed['sanrin_curr'] ?? null); @endphp
+              <input type="hidden" name="tokurei_rate_sanrin_div5_curr" value="{{ $raw }}">{{ $disp }}
+            </td>
+          @endif
         </tr>
         <tr>
           <th scope="row" class="text-start ps-1">退職所得ベース</th>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_taishoku_prev', $tkEnabled['taishoku_prev'] ?? false, $tkComputed['taishoku_prev'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_taishoku_prev" value="{{ $raw }}">{{ $disp }}
-          </td>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_taishoku_curr', $tkEnabled['taishoku_curr'] ?? false, $tkComputed['taishoku_curr'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_taishoku_curr" value="{{ $raw }}">{{ $disp }}
-          </td>
+          @if($showPrev)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_taishoku_prev', $tkEnabled['taishoku_prev'] ?? false, $tkComputed['taishoku_prev'] ?? null); @endphp
+              <input type="hidden" name="tokurei_rate_taishoku_prev" value="{{ $raw }}">{{ $disp }}
+            </td>
+          @endif
+          @if($showCurr)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_taishoku_curr', $tkEnabled['taishoku_curr'] ?? false, $tkComputed['taishoku_curr'] ?? null); @endphp
+              <input type="hidden" name="tokurei_rate_taishoku_curr" value="{{ $raw }}">{{ $disp }}
+            </td>
+          @endif
         </tr>
         <tr>
           <th scope="row" class="text-start ps-1">採用率（山林／退職の小さい方）</th>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_adopted_prev', ($tkEnabled['sanrin_prev'] ?? false) || ($tkEnabled['taishoku_prev'] ?? false), $tkComputed['adopted_prev'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_adopted_prev" value="{{ $raw }}">{{ $disp }}
-          </td>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_adopted_curr', ($tkEnabled['sanrin_curr'] ?? false) || ($tkEnabled['taishoku_curr'] ?? false), $tkComputed['adopted_curr'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_adopted_curr" value="{{ $raw }}">{{ $disp }}
-          </td>
+          @if($showPrev)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_adopted_prev', ($tkEnabled['sanrin_prev'] ?? false) || ($tkEnabled['taishoku_prev'] ?? false), $tkComputed['adopted_prev'] ?? null); @endphp
+              <input type="hidden" name="tokurei_rate_adopted_prev" value="{{ $raw }}">{{ $disp }}
+            </td>
+          @endif
+          @if($showCurr)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_adopted_curr', ($tkEnabled['sanrin_curr'] ?? false) || ($tkEnabled['taishoku_curr'] ?? false), $tkComputed['adopted_curr'] ?? null); @endphp
+              <input type="hidden" name="tokurei_rate_adopted_curr" value="{{ $raw }}">{{ $disp }}
+            </td>
+          @endif
         </tr>
         <tr>
           <th scope="row" class="text-start ps-1">分離課税に基づく率（最小）</th>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_bunri_min_prev', $tkEnabled['bunri_prev'] ?? false, $tkComputed['bunri_min_prev'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_bunri_min_prev" value="{{ $raw }}">{{ $disp }}
-          </td>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_bunri_min_curr', $tkEnabled['bunri_curr'] ?? false, $tkComputed['bunri_min_curr'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_bunri_min_curr" value="{{ $raw }}">{{ $disp }}
-          </td>
+          @if($showPrev)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_bunri_min_prev', $tkEnabled['bunri_prev'] ?? false, $tkComputed['bunri_min_prev'] ?? null); @endphp
+              <input type="hidden" name="tokurei_rate_bunri_min_prev" value="{{ $raw }}">{{ $disp }}
+            </td>
+          @endif
+          @if($showCurr)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_bunri_min_curr', $tkEnabled['bunri_curr'] ?? false, $tkComputed['bunri_min_curr'] ?? null); @endphp
+              <input type="hidden" name="tokurei_rate_bunri_min_curr" value="{{ $raw }}">{{ $disp }}
+            </td>
+          @endif
         </tr>
         <tr class="table-primary">
           <th scope="row" class="text-center th-cream">特例控除 最終率</th>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_final_prev', $tkComputed['final_prev'] ?? null, $prevDetails['AA56'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_final_prev" value="{{ $raw }}"><span class="fw-bold">{{ $disp }}</span>
-          </td>
-          <td class="text-end">
-            @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_final_curr', $tkComputed['final_curr'] ?? null, $currDetails['AA56'] ?? null); @endphp
-            <input type="hidden" name="tokurei_rate_final_curr" value="{{ $raw }}"><span class="fw-bold">{{ $disp }}</span>
-          </td>
+          @if($showPrev)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_final_prev', $tkComputed['final_prev'] ?? null, $prevDetails['AA56'] ?? null); @endphp
+              <input type="hidden" name="tokurei_rate_final_prev" value="{{ $raw }}"><span class="fw-bold">{{ $disp }}</span>
+            </td>
+          @endif
+          @if($showCurr)
+            <td class="text-end">
+              @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_final_curr', $tkComputed['final_curr'] ?? null, $currDetails['AA56'] ?? null); @endphp
+              <input type="hidden" name="tokurei_rate_final_curr" value="{{ $raw }}"><span class="fw-bold">{{ $disp }}</span>
+            </td>
+          @endif
         </tr>
       </tbody>
     </table>
-    @if($stdPrev !== null || $stdCurr !== null)
+    @if(($showPrev && $stdPrev !== null) || ($showCurr && $stdCurr !== null))
       <div class="visually-hidden" aria-hidden="true">
-        特例控除率（標準） 前年：{{ $fmt($stdPrev) }} 当年：{{ $fmt($stdCurr) }}
+        特例控除率（標準）
+        @if($showPrev)
+          前年：{{ $fmt($stdPrev) }}
+        @endif
+        @if($showCurr)
+          当年：{{ $fmt($stdCurr) }}
+        @endif
       </div>
     @endif
     @if($stdPrev !== null && $stdCurr !== null)<div class="visually-hidden" aria-hidden="true">特例控除率（標準） 前年：{{ $fmt($stdPrev) }} 当年：{{ $fmt($stdCurr) }}</div>@endif

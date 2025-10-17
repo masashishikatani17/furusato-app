@@ -2517,7 +2517,6 @@ final class FurusatoController extends Controller
             $sogoShotokuCalculator->compute($payload, 'prev'),
             $sogoShotokuCalculator->compute($payload, 'curr'),
         );
-        $this->assertProvidedKeys($payload, $sogoShotokuCalculator);
 
         /** @var SogoShotokuNettingStagesCalculator $sogoShotokuStagesCalculator */
         $sogoShotokuStagesCalculator = app(SogoShotokuNettingStagesCalculator::class);
@@ -2527,6 +2526,13 @@ final class FurusatoController extends Controller
             $sogoShotokuStagesCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $sogoShotokuStagesCalculator);
+
+        $payload = array_replace(
+            $payload,
+            $sogoShotokuCalculator->computeSpecificLossNetting($payload, 'prev'),
+            $sogoShotokuCalculator->computeSpecificLossNetting($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $sogoShotokuCalculator);
 
         /** @var BunriNettingCalculator $bunriNettingCalculator */
         $bunriNettingCalculator = app(BunriNettingCalculator::class);

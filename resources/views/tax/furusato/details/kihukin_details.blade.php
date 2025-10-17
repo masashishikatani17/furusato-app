@@ -203,7 +203,12 @@
           <hr>
             <div class="text-end me-2 mb-2">
             <button type="submit" class="btn btn-base-blue me-2">戻 る</button>
-            <a href="{{ route('furusato.input', ['data_id' => $dataId]) }}" class="btn btn-base-blue">キャンセル</a>
+            <button type="submit"
+                    class="btn btn-base-green ms-2"
+                    name="recalc_all"
+                    value="1"
+                    data-disable-on-submit
+                    data-redirect-to="kihukin_details">再計算</button>
             </div>
         </form>
     </div>    

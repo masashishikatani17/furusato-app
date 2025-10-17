@@ -367,36 +367,23 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         $bunriLongBase = array_key_exists($bunriLongKey, $payload)
             ? $this->value($payload, $bunriLongKey)
             : $shotokuJotoChoki;
-        $bunriLong0 = max(0, $bunriLongBase);
 
         $bunriShortKey = sprintf('bunri_shotoku_tanki_shotoku_%s', $period);
         $bunriShortBase = array_key_exists($bunriShortKey, $payload)
             ? $this->value($payload, $bunriShortKey)
             : $shotokuJotoTanki;
-        $bunriShort0 = max(0, $bunriShortBase);
-
-        $shotokuKeijo0 = max(0, $shotokuKeijo);
-        $shotokuJotoTanki0 = max(0, $shotokuJotoTanki);
-        $shotokuJotoChoki0 = max(0, $shotokuJotoChoki);
-        $shotokuIchiji0 = max(0, $shotokuIchiji);
-        $shotokuSanrin0 = max(0, $shotokuSanrin);
-        $shotokuTaishoku0 = max(0, $shotokuTaishoku);
-        $shotokuGokei0 = max(0, $shotokuGokei);
 
         if ($pool0 === 0) {
-            $shotokuSum = $shotokuKeijo0 + $shotokuJotoTanki0 + $shotokuJotoChoki0 + $shotokuIchiji0 + $shotokuSanrin0 + $shotokuTaishoku0;
-            $shotokuGokeiAfter = min($shotokuGokei0, $shotokuSum);
-
             return [
-                'shotoku_keijo' => $shotokuKeijo0,
-                'shotoku_joto_tanki' => $shotokuJotoTanki0,
-                'shotoku_joto_choki' => $shotokuJotoChoki0,
-                'shotoku_ichiji' => $shotokuIchiji0,
-                'shotoku_sanrin' => $shotokuSanrin0,
-                'shotoku_taishoku' => $shotokuTaishoku0,
-                'shotoku_gokei' => $shotokuGokeiAfter,
-                'bunri_shotoku_tanki' => $bunriShort0,
-                'bunri_shotoku_choki' => $bunriLong0,
+                'shotoku_keijo' => $shotokuKeijo,
+                'shotoku_joto_tanki' => $shotokuJotoTanki,
+                'shotoku_joto_choki' => $shotokuJotoChoki,
+                'shotoku_ichiji' => $shotokuIchiji,
+                'shotoku_sanrin' => $shotokuSanrin,
+                'shotoku_taishoku' => $shotokuTaishoku,
+                'shotoku_gokei' => $shotokuGokei,
+                'bunri_shotoku_tanki' => $bunriShortBase,
+                'bunri_shotoku_choki' => $bunriLongBase,
                 'used_to_bunri_long' => 0,
                 'used_to_bunri_short' => 0,
                 'used_to_gokei' => 0,
@@ -409,56 +396,47 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         }
 
         $poolRemaining = $pool0;
-        $gokeiWorking = $shotokuGokei0;
 
-        $useLong = min($poolRemaining, min($bunriLong0, $shotokuJotoChoki0, $gokeiWorking));
-        $bunriLong1 = $bunriLong0 - $useLong;
-        $shotokuJotoChoki1 = max(0, $shotokuJotoChoki0 - $useLong);
+        $useLong = min($poolRemaining, max(0, $bunriLongBase));
+        $bunriLongAfter = $bunriLongBase - $useLong;
         $poolRemaining -= $useLong;
-        $gokeiWorking = max(0, $gokeiWorking - $useLong);
 
-        $useShort = min($poolRemaining, min($bunriShort0, $shotokuJotoTanki0, $gokeiWorking));
-        $bunriShort1 = $bunriShort0 - $useShort;
-        $shotokuJotoTanki1 = max(0, $shotokuJotoTanki0 - $useShort);
+        $useShort = min($poolRemaining, max(0, $bunriShortBase));
+        $bunriShortAfter = $bunriShortBase - $useShort;
         $poolRemaining -= $useShort;
-        $gokeiWorking = max(0, $gokeiWorking - $useShort);
 
-        $useGokei = min($poolRemaining, min($shotokuKeijo0, $gokeiWorking));
-        $shotokuKeijo1 = max(0, $shotokuKeijo0 - $useGokei);
+        $gokeiWorking = max(0, $shotokuGokei);
+
+        $useGokei = min($poolRemaining, $gokeiWorking);
         $poolRemaining -= $useGokei;
-        $gokeiWorking = max(0, $gokeiWorking - $useGokei);
+        $gokeiWorking -= $useGokei;
 
         $useLand = 0;
-        $poolAfterLand = $poolRemaining - $useLand;
-        $gokeiAfterLand = max(0, $gokeiWorking - $useLand);
 
-        $useSanrin = min($poolAfterLand, min($shotokuSanrin0, $gokeiAfterLand));
-        $shotokuSanrin1 = max(0, $shotokuSanrin0 - $useSanrin);
-        $poolAfterSanrin = $poolAfterLand - $useSanrin;
-        $gokeiAfterSanrin = max(0, $gokeiAfterLand - $useSanrin);
+        $useSanrin = min($poolRemaining, min(max(0, $shotokuSanrin), $gokeiWorking));
+        $shotokuSanrinAfter = $shotokuSanrin - $useSanrin;
+        $poolRemaining -= $useSanrin;
+        $gokeiWorking -= $useSanrin;
 
-        $useRetire = min($poolAfterSanrin, min($shotokuTaishoku0, $gokeiAfterSanrin));
-        $shotokuTaishoku1 = max(0, $shotokuTaishoku0 - $useRetire);
-        $poolAfterRetire = $poolAfterSanrin - $useRetire;
-        $gokeiAfterRetire = max(0, $gokeiAfterSanrin - $useRetire);
+        $useRetire = min($poolRemaining, min(max(0, $shotokuTaishoku), $gokeiWorking));
+        $shotokuTaishokuAfter = $shotokuTaishoku - $useRetire;
+        $poolRemaining -= $useRetire;
+        $gokeiWorking -= $useRetire;
 
-        $shotokuIchiji1 = $shotokuIchiji0;
-
-        $shotokuSum = $shotokuKeijo1 + $shotokuJotoTanki1 + $shotokuJotoChoki1 + $shotokuIchiji1 + $shotokuSanrin1 + $shotokuTaishoku1;
-        $shotokuGokei1 = min($shotokuSum, $gokeiAfterRetire);
+        $shotokuGokeiAfter = $shotokuGokei - ($useGokei + $useSanrin + $useRetire);
 
         $usedTotal = $useLong + $useShort + $useGokei + $useLand + $useSanrin + $useRetire;
 
         return [
-            'shotoku_keijo' => $shotokuKeijo1,
-            'shotoku_joto_tanki' => $shotokuJotoTanki1,
-            'shotoku_joto_choki' => $shotokuJotoChoki1,
-            'shotoku_ichiji' => $shotokuIchiji1,
-            'shotoku_sanrin' => $shotokuSanrin1,
-            'shotoku_taishoku' => $shotokuTaishoku1,
-            'shotoku_gokei' => $shotokuGokei1,
-            'bunri_shotoku_tanki' => $bunriShort1,
-            'bunri_shotoku_choki' => $bunriLong1,
+            'shotoku_keijo' => $shotokuKeijo,
+            'shotoku_joto_tanki' => $shotokuJotoTanki,
+            'shotoku_joto_choki' => $shotokuJotoChoki,
+            'shotoku_ichiji' => $shotokuIchiji,
+            'shotoku_sanrin' => $shotokuSanrinAfter,
+            'shotoku_taishoku' => $shotokuTaishokuAfter,
+            'shotoku_gokei' => $shotokuGokeiAfter,
+            'bunri_shotoku_tanki' => $bunriShortAfter,
+            'bunri_shotoku_choki' => $bunriLongAfter,
             'used_to_bunri_long' => $useLong,
             'used_to_bunri_short' => $useShort,
             'used_to_gokei' => $useGokei,
@@ -466,7 +444,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             'used_to_sanrin' => $useSanrin,
             'used_to_retire' => $useRetire,
             'used_total' => $usedTotal,
-            'pool_remaining' => max(0, $poolAfterRetire),
+            'pool_remaining' => max(0, $poolRemaining),
         ];
     }
 

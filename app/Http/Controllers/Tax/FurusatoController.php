@@ -626,7 +626,7 @@ final class FurusatoController extends Controller
                 $payload[sprintf('shotoku_fudosan_%s_%s', $tax, $period)] = $shotoku;
             }
         }
-        
+            
         $updatesForRecalc = array_merge($payload, $labelUpdates);
 
         if ((int) $req->input('recalc_all') === 1) {
@@ -1679,7 +1679,6 @@ final class FurusatoController extends Controller
                     $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
                 }
             }
-        }
 
             // 譲渡所得 → bunri_shotoku_*
             foreach ($shotokuSources as $sourceBase => $mirrorBase) {
@@ -1688,7 +1687,6 @@ final class FurusatoController extends Controller
                     $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
                 }
             }
-        }
 
             // 合計（課税所得金額） → bunri_kazeishotoku_*
             foreach ($totalSources as $sourceBase => $mirrorBase) {
@@ -2215,10 +2213,8 @@ final class FurusatoController extends Controller
 
     private function redirectToInputWithAnchor(Data $data, string $anchor = '', string $message = '保存しました'): RedirectResponse
     {
-        $params = ['data_id' => $data->id, 'tab' => 'input'];
-
         $redirect = redirect()
-            ->route('furusato.input', $params)
+            ->route('furusato.input', ['data_id' => $data->id])
             ->with('success', $message)
             ->with('return_tab', 'input');
 

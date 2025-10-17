@@ -118,26 +118,6 @@
               </tbody>
             </table>
           </div>
-          <div class="table-responsive mb-4">
-            <table class="table-base table-bordered align-middle" style="max-width: 400px;">
-              <tbody>
-                <tr>
-                  <th class="text-start align-middle th-ddd ps-2" style="width: 280px;">長期譲渡所得の特定損失額</th>
-                  @php($sonshitsuName = 'joto_choki_tokutei_sonshitsu_' . $period)
-                  <td style="width: 120px;">
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      class="form-control suji11 text-end"
-                      name="{{ $sonshitsuName }}"
-                      value="{{ old($sonshitsuName, $inputs[$sonshitsuName] ?? null) }}"
-                    >
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         @endforeach
         <hr>
         <div class="text-end me-2 mb-3">

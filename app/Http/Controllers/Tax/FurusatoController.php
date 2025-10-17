@@ -813,17 +813,9 @@ final class FurusatoController extends Controller
             }
         }
 
-        foreach (['prev', 'curr'] as $period) {
-            $rules[sprintf('joto_choki_tokutei_sonshitsu_%s', $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-        }
-
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
-        foreach (['prev', 'curr'] as $period) {
-            $key = sprintf('joto_choki_tokutei_sonshitsu_%s', $period);
-            $payload[sprintf('sashihiki_joto_choki_bunri_%s', $period)] = $this->toNullableInt($payload[$key] ?? null);
-        }
         $this->recalculateBunriJoto($payload);
         $this->mirrorBunriJotoDetailsToInput($payload);
 

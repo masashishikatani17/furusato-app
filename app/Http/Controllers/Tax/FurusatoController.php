@@ -8,6 +8,7 @@ use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\DetailsSourceAliasCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
+use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
@@ -2452,6 +2453,17 @@ final class FurusatoController extends Controller
         $haigushaService = app(HaigushaKojoService::class);
         $payload = array_replace($payload, $haigushaService->compute($payload));
         $this->assertProvidedKeys($payload, $haigushaService);
+
+        /** @var KyuyoNenkinCalculator $kyuyoNenkinCalculator */
+        $kyuyoNenkinCalculator = app(KyuyoNenkinCalculator::class);
+        $kyuyoNenkinContext = [
+            'kihu_year' => $data->kihu_year ? (int) $data->kihu_year : self::MASTER_KIHU_YEAR,
+            'guest_birth_date' => $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null),
+            'data' => $data,
+        ];
+        $kyuyoNenkin = $kyuyoNenkinCalculator->compute($payload, $kyuyoNenkinContext);
+        $payload = array_replace($payload, $kyuyoNenkin);
+        $this->assertProvidedKeys($payload, $kyuyoNenkinCalculator);
 
         foreach ($taxTypes as $tax) {
             foreach ($periods as $period) {

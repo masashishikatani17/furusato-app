@@ -371,7 +371,7 @@
                 <th colspan="2" class="th-ccc" nowrap="nowrap">譲渡・一時所得の通算後</th>
               </tr>
               <tr>
-                <th rowspan="3" style="width:40px">譲渡</th>
+                <th rowspan="2" style="width:40px">譲渡</th>
                 <th style="width:40px">短期</th>
                 <th class="text-start ps-1 th-ddd" style="width:130px">総合</th>
                 <td class="text-end" style="width:100px">
@@ -381,7 +381,7 @@
                          class="form-control form-control-sm text-end bg-light"
                          value="{{ $readonlyValue('sashihiki_joto_tanki_sogo_' . $suffix) }}">
                 </td>
-                <th rowspan="3" class="vtext" style="width:35px">通算</th>
+                <th rowspan="2" class="vtext" style="width:35px">通算</th>
                 <td class="text-end" style="width:100px">
                   <input type="text"
                          readonly
@@ -406,32 +406,7 @@
                 </td>
               </tr>
               <tr>
-                <th rowspan="2">長期</th>
-                <th class="text-start ps-1 th-ddd">分離（特定損失額）</th>
-                <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="sashihiki_joto_choki_bunri_{{ $suffix }}"
-                         class="form-control form-control-sm text-end bg-light"
-                         value="{{ $readonlyValue('sashihiki_joto_choki_bunri_' . $suffix) }}">
-                </td>
-                <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="tsusango_joto_choki_bunri_{{ $suffix }}"
-                         class="form-control form-control-sm text-end bg-light"
-                         value="{{ $readonlyValue('tsusango_joto_choki_bunri_' . $suffix) }}">
-                </td>
-                <td class="text-center">－</td>
-                <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="after_joto_ichiji_tousan_joto_choki_bunri_{{ $suffix }}"
-                         class="form-control form-control-sm text-end bg-light"
-                         value="{{ $readonlyValue('after_joto_ichiji_tousan_joto_choki_bunri_' . $suffix) }}">
-                </td>
-              </tr>
-              <tr>
+                <th>長期</th>
                 <th class="text-start ps-1 th-ddd">総合</th>
                 <td class="text-end">
                   <input type="text"
@@ -517,7 +492,7 @@
                          class="form-control form-control-sm text-end bg-light"
                          value="{{ $readonlyValue('tsusanmae_keijo_' . $suffix) }}">
                 </td>
-                <th rowspan="5" style="width:35px">第<br>1<br>次<br>通<br>算</th>
+                <th rowspan="4" style="width:35px">第<br>1<br>次<br>通<br>算</th>
                 <td class="text-end">
                   <input type="text"
                          readonly
@@ -525,7 +500,7 @@
                          class="form-control form-control-sm text-end bg-light"
                          value="{{ $readonlyValue('after_1jitsusan_keijo_' . $suffix) }}">
                 </td>
-                <th rowspan="6" style="width:35px">第<br>2<br>次<br>通<br>算</th>
+                <th rowspan="5" style="width:35px">第<br>2<br>次<br>通<br>算</th>
                 <td class="text-end">
                   <input type="text"
                          readonly
@@ -533,7 +508,7 @@
                          class="form-control form-control-sm text-end bg-light"
                          value="{{ $readonlyValue('after_2jitsusan_keijo_' . $suffix) }}">
                 </td>
-                <th rowspan="7" style="width:35px">第<br>3<br>次<br>通<br>算</th>
+                <th rowspan="6" style="width:35px">第<br>3<br>次<br>通<br>算</th>
                 <td class="text-end">
                   <input type="text"
                          readonly
@@ -550,7 +525,7 @@
                 </td>
               </tr>
               <tr>
-                <th class="text-start ps-1" rowspan="3" style="width:40px">譲渡</th>
+                <th class="text-start ps-1" rowspan="2" style="width:40px">譲渡</th>
                 <th class="text-start ps-1" style="width:40px">短期</th>
                 <th class="text-start ps-1 th-ddd" style="width:130px">総合</th>
                 <td class="text-end">
@@ -590,45 +565,7 @@
                 </td>
               </tr>
               <tr>
-                <th class="text-start ps-1" rowspan="2">長期</th>
-                <th class="text-start ps-1 th-ddd">分離（特定損失額）</th>
-                <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="tsusanmae_joto_choki_bunri_{{ $suffix }}"
-                         class="form-control form-control-sm text-end bg-light"
-                         value="{{ $readonlyValue('tsusanmae_joto_choki_bunri_' . $suffix) }}">
-                </td>
-                <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="after_1jitsusan_joto_choki_bunri_{{ $suffix }}"
-                         class="form-control form-control-sm text-end bg-light"
-                         value="{{ $readonlyValue('after_1jitsusan_joto_choki_bunri_' . $suffix) }}">
-                </td>
-                <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="after_2jitsusan_joto_choki_bunri_{{ $suffix }}"
-                         class="form-control form-control-sm text-end bg-light"
-                         value="{{ $readonlyValue('after_2jitsusan_joto_choki_bunri_' . $suffix) }}">
-                </td>
-                <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="after_3jitsusan_joto_choki_bunri_{{ $suffix }}"
-                         class="form-control form-control-sm text-end bg-light"
-                         value="{{ $readonlyValue('after_3jitsusan_joto_choki_bunri_' . $suffix) }}">
-                </td>
-                <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="shotoku_joto_choki_bunri_{{ $suffix }}"
-                         class="form-control form-control-sm text-end bg-light"
-                         value="{{ $readonlyValue('shotoku_joto_choki_bunri_' . $suffix) }}">
-                </td>
-              </tr>
-              <tr>
+                <th class="text-start ps-1">長期</th>
                 <th class="text-start ps-1 th-ddd">総合</th>
                 <td class="text-end">
                   <input type="text"

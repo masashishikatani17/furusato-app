@@ -21,6 +21,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
   <!-- Bootstrap JS（モーダル等） -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="{{ asset('js/common/disable_on_submit.js') }}" defer></script>
   @stack('scripts')
 </body>
 </html>

@@ -447,17 +447,14 @@ final class FurusatoController extends Controller
 
             $this->validateBunriChokiShotokuInputs($request);
 
-            $ctx = [];
-            $user = $request->user();
-            if ($user) {
-                $ctx['user_id'] = (int) $user->id;
+            $this->performFullRecalculation($request, $data, $updates, $recalculateUseCase);
+
+            $goto = (string) $request->input('redirect_to', 'input');
+            if ($goto === '') {
+                $goto = 'input';
             }
 
-            $ctx['guest_birth_date'] = $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null);
-
-            $recalculateUseCase->handle($data, $updates, $ctx);
-
-            return redirect()->route('furusato.input', ['data_id' => $data->id])->with('success', '保存しました');
+            return $this->redirectAfterGoto($request, $data, $goto, '再計算が完了しました');
         }
 
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
@@ -499,40 +496,7 @@ final class FurusatoController extends Controller
             session()->flash('show_furusato_result', true);
         }
 
-        $routeParams = ['data_id' => $data->id];
-
-        $originQuery = $this->buildOriginQuery($request);
-
-        switch ($goto) {
-            case 'syori':
-                return redirect()->route('furusato.syori', $routeParams)->with('success', '保存しました');
-            case 'master':
-                return redirect()->route('furusato.master', $routeParams)->with('success', '保存しました');
-            case 'jigyo':
-                return redirect()->route('furusato.details.jigyo', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            case 'fudosan':
-                return redirect()->route('furusato.details.fudosan', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            case 'kihukin_details':
-                return redirect()->route('furusato.details.kihukin', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            case 'joto_ichiji':
-                return redirect()->route('furusato.details.joto_ichiji', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            case 'kojo_seimei_jishin':
-                return redirect()->route('furusato.details.kojo_seimei_jishin', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            case 'kojo_jinteki':
-                return redirect()->route('furusato.details.kojo_jinteki', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            case 'kojo_iryo':
-                return redirect()->route('furusato.details.kojo_iryo', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            case 'bunri_joto':
-                return redirect()->route('furusato.details.bunri_joto', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            case 'bunri_kabuteki':
-                return redirect()->route('furusato.details.bunri_kabuteki', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            case 'bunri_sakimono':
-                return redirect()->route('furusato.details.bunri_sakimono', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            case 'bunri_sanrin':
-                return redirect()->route('furusato.details.bunri_sanrin', array_merge($routeParams, $originQuery))->with('success', '保存しました');
-            default:
-                return redirect()->route('furusato.input', $routeParams)->with('success', '保存しました');
-        }
+        return $this->redirectAfterGoto($request, $data, $goto, '保存しました');
     }
 
     public function jigyoEigyoDetails(Request $req)
@@ -583,6 +547,19 @@ final class FurusatoController extends Controller
             foreach (['shotoku', 'jumin'] as $tax) {
                 $payload[sprintf('shotoku_jigyo_eigyo_%s_%s', $tax, $period)] = $shotoku;
             }
+        }
+
+        $updatesForRecalc = array_merge($payload, $labelUpdates);
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'jigyo';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
         $this->updateFurusatoInputPayload($data, $payload, $labelUpdates);
@@ -650,6 +627,19 @@ final class FurusatoController extends Controller
             }
         }
         
+        $updatesForRecalc = array_merge($payload, $labelUpdates);
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'fudosan';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+        }
+
         $this->updateFurusatoInputPayload($data, $payload, $labelUpdates);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -682,6 +672,18 @@ final class FurusatoController extends Controller
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'redirect_to', 'origin_tab', 'origin_anchor']));
+        $updatesForRecalc = $payload;
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'kihukin_details';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+        }
 
         $this->updateFurusatoInputPayload($data, $payload);
 
@@ -751,6 +753,18 @@ final class FurusatoController extends Controller
                 }
             }
         }
+        $updatesForRecalc = $payload;
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'joto_ichiji';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+        }
 
         $this->updateFurusatoInputPayload($data, $payload);
 
@@ -804,6 +818,20 @@ final class FurusatoController extends Controller
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         $this->recalculateBunriJoto($payload);
         $this->mirrorBunriJotoDetailsToInput($payload);
+
+        $updatesForRecalc = $payload;
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'bunri_joto';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+        }
+
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -859,6 +887,20 @@ final class FurusatoController extends Controller
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         $this->recalculateBunriKabuteki($payload);
         $this->mirrorBunriKabutekiDetailsToInput($payload);
+
+        $updatesForRecalc = $payload;
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'bunri_kabuteki';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+        }
+
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -900,6 +942,20 @@ final class FurusatoController extends Controller
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         $this->recalculateBunriSakimono($payload);
         $this->mirrorBunriSakimonoDetailsToInput($payload);
+
+        $updatesForRecalc = $payload;
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'bunri_sakimono';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+        }
+
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -941,6 +997,20 @@ final class FurusatoController extends Controller
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         $this->recalculateBunriSanrin($payload);
         $this->mirrorBunriSanrinDetailsToInput($payload);
+
+        $updatesForRecalc = $payload;
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'bunri_sanrin';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+        }
+
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -1043,6 +1113,19 @@ final class FurusatoController extends Controller
 
         $payload = array_replace($payload, $computedPrev, $computedCurr);
 
+        $updatesForRecalc = $payload;
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'kojo_seimei_jishin';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+        }
+
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -1141,6 +1224,19 @@ final class FurusatoController extends Controller
             $payload[$field] = $value === null || $value === '' ? null : $value;
         }
 
+        $updatesForRecalc = $payload;
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'kojo_jinteki';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+        }
+
         $this->updateFurusatoInputPayload($data, $payload);
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -1237,6 +1333,19 @@ final class FurusatoController extends Controller
 
         foreach (['kojo_iryo_shishutsu_prev', 'kojo_iryo_shishutsu_curr', 'kojo_iryo_hojokin_prev', 'kojo_iryo_hojokin_curr'] as $legacyKey) {
             $payload[$legacyKey] = null;
+        }
+
+        $updatesForRecalc = $payload;
+
+        if ((int) $req->input('recalc_all') === 1) {
+            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+
+            $goto = (string) $req->input('redirect_to', '');
+            if ($goto === '' || $goto === 'input') {
+                $goto = 'kojo_iryo';
+            }
+
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
         $this->updateFurusatoInputPayload($data, $payload);
@@ -1522,22 +1631,25 @@ final class FurusatoController extends Controller
 
     private function mirrorBunriJotoDetailsToInput(array &$payload): void
     {
+        // 収入 → bunri_syunyu_* のみ
         $incomeSources = [
-            'syunyu_tanki_ippan' => 'bunri_syunyu_tanki_ippan',
-            'syunyu_tanki_keigen' => 'bunri_syunyu_tanki_keigen',
-            'syunyu_choki_ippan' => 'bunri_syunyu_choki_ippan',
+            'syunyu_tanki_ippan'   => 'bunri_syunyu_tanki_ippan',
+            'syunyu_tanki_keigen'  => 'bunri_syunyu_tanki_keigen',
+            'syunyu_choki_ippan'   => 'bunri_syunyu_choki_ippan',
             'syunyu_choki_tokutei' => 'bunri_syunyu_choki_tokutei',
-            'syunyu_choki_keika' => 'bunri_syunyu_choki_keika',
+            'syunyu_choki_keika'   => 'bunri_syunyu_choki_keika',
         ];
 
+        // 譲渡所得 → bunri_shotoku_* のみ
         $shotokuSources = [
-            'joto_shotoku_tanki_ippan' => 'bunri_shotoku_tanki_ippan',
-            'joto_shotoku_tanki_keigen' => 'bunri_shotoku_tanki_keigen',
-            'joto_shotoku_choki_ippan' => 'bunri_shotoku_choki_ippan',
+            'joto_shotoku_tanki_ippan'   => 'bunri_shotoku_tanki_ippan',
+            'joto_shotoku_tanki_keigen'  => 'bunri_shotoku_tanki_keigen',
+            'joto_shotoku_choki_ippan'   => 'bunri_shotoku_choki_ippan',
             'joto_shotoku_choki_tokutei' => 'bunri_shotoku_choki_tokutei',
-            'joto_shotoku_choki_keika' => 'bunri_shotoku_choki_keika',
+            'joto_shotoku_choki_keika'   => 'bunri_shotoku_choki_keika',
         ];
 
+        // 合計（課税所得金額） → bunri_kazeishotoku_*
         $totalSources = [
             'joto_shotoku_tanki_gokei' => 'bunri_kazeishotoku_tanki',
             'joto_shotoku_choki_gokei' => 'bunri_kazeishotoku_choki',
@@ -1546,29 +1658,42 @@ final class FurusatoController extends Controller
         $periods = ['prev', 'curr'];
 
         foreach ($periods as $period) {
+            // まず該当期間の分離“収入”/“所得”/“課税所得”の受け皿を初期化し、誤上書きを防止
+            foreach (array_values($incomeSources) as $mirrorBase) {
+                unset($payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)]);
+                unset($payload[sprintf('%s_jumin_%s',  $mirrorBase, $period)]);
+            }
+            foreach (array_values($shotokuSources) as $mirrorBase) {
+                unset($payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)]);
+                unset($payload[sprintf('%s_jumin_%s',  $mirrorBase, $period)]);
+            }
+            foreach (array_values($totalSources) as $mirrorBase) {
+                unset($payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)]);
+                unset($payload[sprintf('%s_jumin_%s',  $mirrorBase, $period)]);
+            }
+
+            // 収入 → bunri_syunyu_*
             foreach ($incomeSources as $sourceBase => $mirrorBase) {
                 $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
-
-                $payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)] = $value;
-                $payload[sprintf('%s_jumin_%s', $mirrorBase, $period)] = $value;
+                foreach (['shotoku','jumin'] as $tax) {
+                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
+                }
             }
-        }
 
-        foreach ($periods as $period) {
+            // 譲渡所得 → bunri_shotoku_*
             foreach ($shotokuSources as $sourceBase => $mirrorBase) {
                 $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
-
-                $payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)] = $value;
-                $payload[sprintf('%s_jumin_%s', $mirrorBase, $period)] = $value;
+                foreach (['shotoku','jumin'] as $tax) {
+                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
+                }
             }
-        }
 
-        foreach ($periods as $period) {
+            // 合計（課税所得金額） → bunri_kazeishotoku_*
             foreach ($totalSources as $sourceBase => $mirrorBase) {
                 $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
-
-                $payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)] = $value;
-                $payload[sprintf('%s_jumin_%s', $mirrorBase, $period)] = $value;
+                foreach (['shotoku','jumin'] as $tax) {
+                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
+                }
             }
         }
     }
@@ -1984,6 +2109,92 @@ final class FurusatoController extends Controller
         }
     }
 
+    private function performFullRecalculation(
+        Request $request,
+        Data $data,
+        array $updates,
+        ?RecalculateFurusatoPayload $useCase = null
+    ): void {
+        $recalculateUseCase = $useCase ?? app(RecalculateFurusatoPayload::class);
+
+        $ctx = [
+            'guest_birth_date' => $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null),
+        ];
+
+        $user = $request->user();
+        $userId = $user ? (int) $user->id : null;
+
+        if ($userId !== null) {
+            $ctx['user_id'] = $userId;
+        }
+
+        $recalculateUseCase->handle($data, $updates, $ctx);
+
+        $this->logRecalculation($data->id, $userId, array_keys($updates));
+    }
+
+    private function redirectAfterGoto(Request $request, Data $data, string $goto, string $message): RedirectResponse
+    {
+        $routeParams = ['data_id' => $data->id];
+        $originQuery = $this->buildOriginQuery($request);
+        $anchor = $this->sanitizeOriginAnchor($request->input('origin_anchor'));
+
+        switch ($goto) {
+            case 'syori':
+                return redirect()->route('furusato.syori', $routeParams)->with('success', $message);
+            case 'master':
+                return redirect()->route('furusato.master', $routeParams)->with('success', $message);
+            case 'jigyo':
+                return redirect()->route('furusato.details.jigyo', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'fudosan':
+                return redirect()->route('furusato.details.fudosan', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'kihukin_details':
+                return redirect()->route('furusato.details.kihukin', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'joto_ichiji':
+                return redirect()->route('furusato.details.joto_ichiji', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'kojo_seimei_jishin':
+                return redirect()->route('furusato.details.kojo_seimei_jishin', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'kojo_jinteki':
+                return redirect()->route('furusato.details.kojo_jinteki', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'kojo_iryo':
+                return redirect()->route('furusato.details.kojo_iryo', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'bunri_joto':
+                return redirect()->route('furusato.details.bunri_joto', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'bunri_kabuteki':
+                return redirect()->route('furusato.details.bunri_kabuteki', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'bunri_sakimono':
+                return redirect()->route('furusato.details.bunri_sakimono', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'bunri_sanrin':
+                return redirect()->route('furusato.details.bunri_sanrin', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'input':
+            case '':
+                return $this->redirectToInputWithAnchor($data, $anchor, $message);
+            default:
+                return $this->redirectToInputWithAnchor($data, $anchor, $message);
+        }
+    }
+
+    private function logRecalculation(int $dataId, ?int $userId, array $keys): void
+    {
+        $filtered = [];
+        foreach ($keys as $key) {
+            if (is_string($key) && $key !== '') {
+                $filtered[] = $key;
+            }
+        }
+
+        sort($filtered);
+
+        $message = sprintf(
+            '[Recalc] data_id=%d, user=%s, changed_keys=[%s]',
+            $dataId,
+            $userId !== null ? $userId : 'guest',
+            implode(',', $filtered)
+        );
+
+        Log::info($message);
+    }
+
     private function sanitizeOriginAnchor($anchor): string
     {
         if (! is_string($anchor)) {
@@ -2155,11 +2366,37 @@ final class FurusatoController extends Controller
             $settings = $this->getSyoriSettings($data->id);
             $payload = $this->applyAutoCalculatedFields($data, $payload, $settings);
             $this->normalizeKojoRenamedKeys($payload, true);
+            if ($this->shouldRemirrorBunriJoto($updates, $payload)) {
+                $this->recalculateBunriJoto($payload);
+                $this->mirrorBunriJotoDetailsToInput($payload);
+            }
             $record->payload = $payload;
             $record->updated_by = $userId ?: null;
 
             $record->save();
         });
+    }
+    
+    private function shouldRemirrorBunriJoto(array $updates, array $payload): bool
+    {
+        $rowKeys = [
+            'tanki_ippan', 'tanki_keigen',
+            'choki_ippan', 'choki_tokutei', 'choki_keika',
+        ];
+        $prefixes = ['syunyu', 'keihi', 'tsusango', 'tokubetsukojo', 'joto_shotoku'];
+        $periods  = ['prev', 'curr'];
+
+        foreach ($rowKeys as $row) {
+            foreach ($prefixes as $pre) {
+                foreach ($periods as $p) {
+                    $k = sprintf('%s_%s_%s', $pre, $row, $p);
+                    if (array_key_exists($k, $updates) || array_key_exists($k, $payload)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private function applyAutoCalculatedFields(Data $data, array $payload, array $settings): array

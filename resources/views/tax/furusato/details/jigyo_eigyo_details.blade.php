@@ -22,6 +22,7 @@
           <input type="hidden" name="data_id" value="{{ $dataId }}">
           <input type="hidden" name="origin_tab" value="{{ $originTab }}">
           <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
+          <input type="hidden" name="redirect_to" value="">
           @if ($errors->any())
             <div class="alert alert-danger">
               <ul class="mb-0">
@@ -196,6 +197,12 @@
           <hr>
             <div class="text-end me-2 mb-2">
               <button type="submit" class="btn-base-blue">戻 る</button>
+              <button type="submit"
+                      class="btn-base-green ms-2"
+                      name="recalc_all"
+                      value="1"
+                      data-disable-on-submit
+                      data-redirect-to="jigyo">再計算</button>
             </div>
         </form>
     </div>    

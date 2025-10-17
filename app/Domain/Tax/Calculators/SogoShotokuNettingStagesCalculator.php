@@ -46,16 +46,6 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             $keys[] = sprintf('after_3jitsusan_sanrin_%s', $period);
             $keys[] = sprintf('after_3jitsusan_taishoku_%s', $period);
 
-            $keys[] = sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period);
-            $keys[] = sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period);
-            $keys[] = sprintf('after_joto_ichiji_tousan_ichiji_%s', $period);
-            $keys[] = sprintf('tsusango_joto_choki_bunri_%s', $period);
-            $keys[] = sprintf('after_joto_ichiji_tousan_joto_choki_bunri_%s', $period);
-            $keys[] = sprintf('bunri_specific_netting_used_to_tanki_%s', $period);
-            $keys[] = sprintf('bunri_specific_netting_used_to_choki_sogo_%s', $period);
-            $keys[] = sprintf('bunri_specific_netting_used_to_ichiji_%s', $period);
-            $keys[] = sprintf('bunri_specific_netting_used_total_%s', $period);
-
             $keys[] = sprintf('shotoku_keijo_%s', $period);
             $keys[] = sprintf('shotoku_joto_tanki_%s', $period);
             $keys[] = sprintf('shotoku_joto_choki_sogo_%s', $period);
@@ -63,16 +53,6 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             $keys[] = sprintf('shotoku_sanrin_%s', $period);
             $keys[] = sprintf('shotoku_taishoku_%s', $period);
             $keys[] = sprintf('shotoku_gokei_%s', $period);
-            $keys[] = sprintf('bunri_shotoku_tanki_shotoku_%s', $period);
-            $keys[] = sprintf('bunri_shotoku_choki_shotoku_%s', $period);
-            $keys[] = sprintf('kurikoshi_specific_used_to_bunri_long_%s', $period);
-            $keys[] = sprintf('kurikoshi_specific_used_to_bunri_short_%s', $period);
-            $keys[] = sprintf('kurikoshi_specific_used_to_gokei_%s', $period);
-            $keys[] = sprintf('kurikoshi_specific_used_to_keijo_land_%s', $period);
-            $keys[] = sprintf('kurikoshi_specific_used_to_sanrin_%s', $period);
-            $keys[] = sprintf('kurikoshi_specific_used_to_retire_%s', $period);
-            $keys[] = sprintf('kurikoshi_specific_used_total_%s', $period);
-            $keys[] = sprintf('tokutei_sonshitsu_kurikoshi_pool_remaining_%s', $period);
         }
 
         return $keys;
@@ -254,32 +234,11 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('after_3jitsusan_taishoku_%s', $period) => $after3Retire,
         ]);
 
-        // 第3.5段 特定損失充当
-        $specificNetting = $this->applySpecificLossNetting(
-            $payload,
-            $period,
-            $after3Short,
-            $after3Long,
-            $after3Ichiji,
-        );
-
-        $outputs = array_replace($outputs, [
-            sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period) => $specificNetting['after_joto_ichiji_tousan_joto_tanki'],
-            sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period) => $specificNetting['after_joto_ichiji_tousan_joto_choki_sogo'],
-            sprintf('after_joto_ichiji_tousan_ichiji_%s', $period) => $specificNetting['after_joto_ichiji_tousan_ichiji'],
-            sprintf('tsusango_joto_choki_bunri_%s', $period) => $specificNetting['tsusango_joto_choki_bunri'],
-            sprintf('after_joto_ichiji_tousan_joto_choki_bunri_%s', $period) => $specificNetting['after_joto_ichiji_tousan_joto_choki_bunri'],
-            sprintf('bunri_specific_netting_used_to_tanki_%s', $period) => $specificNetting['bunri_specific_netting_used_to_tanki'],
-            sprintf('bunri_specific_netting_used_to_choki_sogo_%s', $period) => $specificNetting['bunri_specific_netting_used_to_choki_sogo'],
-            sprintf('bunri_specific_netting_used_to_ichiji_%s', $period) => $specificNetting['bunri_specific_netting_used_to_ichiji'],
-            sprintf('bunri_specific_netting_used_total_%s', $period) => $specificNetting['bunri_specific_netting_used_total'],
-        ]);
-
         // 最終所得
         $shotokuKeijo = $after3Econ;
-        $shotokuJotoTanki = $specificNetting['after_joto_ichiji_tousan_joto_tanki'];
-        $shotokuJotoChoki = $this->half($specificNetting['after_joto_ichiji_tousan_joto_choki_sogo']);
-        $shotokuIchiji = $this->half($specificNetting['after_joto_ichiji_tousan_ichiji']);
+        $shotokuJotoTanki = $after3Short;
+        $shotokuJotoChoki = $this->half($after3Long);
+        $shotokuIchiji = $this->half($after3Ichiji);
         $shotokuSanrin = $after3Forest;
         $shotokuTaishoku = $after3Retire;
 
@@ -300,152 +259,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('shotoku_gokei_%s', $period) => $shotokuGokei,
         ]);
 
-        $carryforward = $this->applySpecificLossCarryforward(
-            $payload,
-            $period,
-            $shotokuKeijo,
-            $shotokuJotoTanki,
-            $shotokuJotoChoki,
-            $shotokuIchiji,
-            $shotokuSanrin,
-            $shotokuTaishoku,
-            $shotokuGokei
-        );
-
-        $shotokuKeijo = $carryforward['shotoku_keijo'];
-        $shotokuJotoTanki = $carryforward['shotoku_joto_tanki'];
-        $shotokuJotoChoki = $carryforward['shotoku_joto_choki'];
-        $shotokuIchiji = $carryforward['shotoku_ichiji'];
-        $shotokuSanrin = $carryforward['shotoku_sanrin'];
-        $shotokuTaishoku = $carryforward['shotoku_taishoku'];
-        $shotokuGokei = $carryforward['shotoku_gokei'];
-        $bunriShortAfterCarry = $carryforward['bunri_shotoku_tanki'];
-        $bunriLongAfterCarry = $carryforward['bunri_shotoku_choki'];
-
-        $outputs = array_replace($outputs, [
-            sprintf('shotoku_keijo_%s', $period) => $shotokuKeijo,
-            sprintf('shotoku_joto_tanki_%s', $period) => $shotokuJotoTanki,
-            sprintf('shotoku_joto_choki_sogo_%s', $period) => $shotokuJotoChoki,
-            sprintf('shotoku_ichiji_%s', $period) => $shotokuIchiji,
-            sprintf('shotoku_sanrin_%s', $period) => $shotokuSanrin,
-            sprintf('shotoku_taishoku_%s', $period) => $shotokuTaishoku,
-            sprintf('shotoku_gokei_%s', $period) => $shotokuGokei,
-            sprintf('bunri_shotoku_tanki_shotoku_%s', $period) => $bunriShortAfterCarry,
-            sprintf('bunri_shotoku_choki_shotoku_%s', $period) => $bunriLongAfterCarry,
-            sprintf('kurikoshi_specific_used_to_bunri_long_%s', $period) => $carryforward['used_to_bunri_long'],
-            sprintf('kurikoshi_specific_used_to_bunri_short_%s', $period) => $carryforward['used_to_bunri_short'],
-            sprintf('kurikoshi_specific_used_to_gokei_%s', $period) => $carryforward['used_to_gokei'],
-            sprintf('kurikoshi_specific_used_to_keijo_land_%s', $period) => $carryforward['used_to_keijo_land'],
-            sprintf('kurikoshi_specific_used_to_sanrin_%s', $period) => $carryforward['used_to_sanrin'],
-            sprintf('kurikoshi_specific_used_to_retire_%s', $period) => $carryforward['used_to_retire'],
-            sprintf('kurikoshi_specific_used_total_%s', $period) => $carryforward['used_total'],
-            sprintf('tokutei_sonshitsu_kurikoshi_pool_remaining_%s', $period) => $carryforward['pool_remaining'],
-        ]);
-
         return $outputs;
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, int>
-     */
-    private function applySpecificLossCarryforward(
-        array $payload,
-        string $period,
-        int $shotokuKeijo,
-        int $shotokuJotoTanki,
-        int $shotokuJotoChoki,
-        int $shotokuIchiji,
-        int $shotokuSanrin,
-        int $shotokuTaishoku,
-        int $shotokuGokei
-    ): array {
-        $poolKey = sprintf('tokutei_sonshitsu_kurikoshi_pool_%s', $period);
-        $pool0 = max(0, $this->value($payload, $poolKey));
-
-        $bunriLongKey = sprintf('bunri_shotoku_choki_shotoku_%s', $period);
-        $bunriLongBase = array_key_exists($bunriLongKey, $payload)
-            ? $this->value($payload, $bunriLongKey)
-            : $shotokuJotoChoki;
-
-        $bunriShortKey = sprintf('bunri_shotoku_tanki_shotoku_%s', $period);
-        $bunriShortBase = array_key_exists($bunriShortKey, $payload)
-            ? $this->value($payload, $bunriShortKey)
-            : $shotokuJotoTanki;
-
-        if ($pool0 === 0) {
-            return [
-                'shotoku_keijo' => $shotokuKeijo,
-                'shotoku_joto_tanki' => $shotokuJotoTanki,
-                'shotoku_joto_choki' => $shotokuJotoChoki,
-                'shotoku_ichiji' => $shotokuIchiji,
-                'shotoku_sanrin' => $shotokuSanrin,
-                'shotoku_taishoku' => $shotokuTaishoku,
-                'shotoku_gokei' => $shotokuGokei,
-                'bunri_shotoku_tanki' => $bunriShortBase,
-                'bunri_shotoku_choki' => $bunriLongBase,
-                'used_to_bunri_long' => 0,
-                'used_to_bunri_short' => 0,
-                'used_to_gokei' => 0,
-                'used_to_keijo_land' => 0,
-                'used_to_sanrin' => 0,
-                'used_to_retire' => 0,
-                'used_total' => 0,
-                'pool_remaining' => $pool0,
-            ];
-        }
-
-        $poolRemaining = $pool0;
-
-        $useLong = min($poolRemaining, max(0, $bunriLongBase));
-        $bunriLongAfter = $bunriLongBase - $useLong;
-        $poolRemaining -= $useLong;
-
-        $useShort = min($poolRemaining, max(0, $bunriShortBase));
-        $bunriShortAfter = $bunriShortBase - $useShort;
-        $poolRemaining -= $useShort;
-
-        $gokeiWorking = max(0, $shotokuGokei);
-
-        $useGokei = min($poolRemaining, $gokeiWorking);
-        $poolRemaining -= $useGokei;
-        $gokeiWorking -= $useGokei;
-
-        $useLand = 0;
-
-        $useSanrin = min($poolRemaining, min(max(0, $shotokuSanrin), $gokeiWorking));
-        $shotokuSanrinAfter = $shotokuSanrin - $useSanrin;
-        $poolRemaining -= $useSanrin;
-        $gokeiWorking -= $useSanrin;
-
-        $useRetire = min($poolRemaining, min(max(0, $shotokuTaishoku), $gokeiWorking));
-        $shotokuTaishokuAfter = $shotokuTaishoku - $useRetire;
-        $poolRemaining -= $useRetire;
-        $gokeiWorking -= $useRetire;
-
-        $shotokuGokeiAfter = $shotokuGokei - ($useGokei + $useSanrin + $useRetire);
-
-        $usedTotal = $useLong + $useShort + $useGokei + $useLand + $useSanrin + $useRetire;
-
-        return [
-            'shotoku_keijo' => $shotokuKeijo,
-            'shotoku_joto_tanki' => $shotokuJotoTanki,
-            'shotoku_joto_choki' => $shotokuJotoChoki,
-            'shotoku_ichiji' => $shotokuIchiji,
-            'shotoku_sanrin' => $shotokuSanrinAfter,
-            'shotoku_taishoku' => $shotokuTaishokuAfter,
-            'shotoku_gokei' => $shotokuGokeiAfter,
-            'bunri_shotoku_tanki' => $bunriShortAfter,
-            'bunri_shotoku_choki' => $bunriLongAfter,
-            'used_to_bunri_long' => $useLong,
-            'used_to_bunri_short' => $useShort,
-            'used_to_gokei' => $useGokei,
-            'used_to_keijo_land' => $useLand,
-            'used_to_sanrin' => $useSanrin,
-            'used_to_retire' => $useRetire,
-            'used_total' => $usedTotal,
-            'pool_remaining' => max(0, $poolRemaining),
-        ];
     }
 
     private function value(array $payload, string $key): int
@@ -493,50 +307,5 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
     private function half(int $value): int
     {
         return (int) intdiv($value, 2);
-    }
-
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, int>
-     */
-    private function applySpecificLossNetting(
-        array $payload,
-        string $period,
-        int $short,
-        int $long,
-        int $ichiji
-    ): array {
-        $loss = $this->value($payload, sprintf('sashihiki_joto_choki_bunri_%s', $period));
-        $pool0 = abs(min(0, $loss));
-
-        $short0 = max(0, $short);
-        $useShort = min($pool0, $short0);
-        $short1 = $short0 - $useShort;
-        $pool1 = $pool0 - $useShort;
-
-        $long0 = max(0, $long);
-        $useLong = min($pool1, $long0);
-        $long1 = $long0 - $useLong;
-        $pool2 = $pool1 - $useLong;
-
-        $ichiji0 = max(0, $ichiji);
-        $useIchiji = min($pool2, $ichiji0);
-        $ichiji1 = $ichiji0 - $useIchiji;
-
-        $usedTotal = $useShort + $useLong + $useIchiji;
-        $remainingLoss = -($pool0 - $usedTotal);
-
-        return [
-            'after_joto_ichiji_tousan_joto_tanki' => $short1,
-            'after_joto_ichiji_tousan_joto_choki_sogo' => $long1,
-            'after_joto_ichiji_tousan_ichiji' => $ichiji1,
-            'tsusango_joto_choki_bunri' => $remainingLoss,
-            'after_joto_ichiji_tousan_joto_choki_bunri' => $remainingLoss,
-            'bunri_specific_netting_used_to_tanki' => $useShort,
-            'bunri_specific_netting_used_to_choki_sogo' => $useLong,
-            'bunri_specific_netting_used_to_ichiji' => $useIchiji,
-            'bunri_specific_netting_used_total' => $usedTotal,
-        ];
     }
 }

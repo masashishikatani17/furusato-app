@@ -822,11 +822,7 @@ final class FurusatoController extends Controller
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         foreach (['prev', 'curr'] as $period) {
             $key = sprintf('joto_choki_tokutei_sonshitsu_%s', $period);
-            $value = $this->toNullableInt($payload[$key] ?? null);
-            if ($value !== null) {
-                $value = -abs($value);
-            }
-            $payload[sprintf('sashihiki_joto_choki_bunri_%s', $period)] = $value;
+            $payload[sprintf('sashihiki_joto_choki_bunri_%s', $period)] = $this->toNullableInt($payload[$key] ?? null);
         }
         $this->recalculateBunriJoto($payload);
         $this->mirrorBunriJotoDetailsToInput($payload);
@@ -2517,6 +2513,7 @@ final class FurusatoController extends Controller
             $sogoShotokuCalculator->compute($payload, 'prev'),
             $sogoShotokuCalculator->compute($payload, 'curr'),
         );
+        $this->assertProvidedKeys($payload, $sogoShotokuCalculator);
 
         /** @var SogoShotokuNettingStagesCalculator $sogoShotokuStagesCalculator */
         $sogoShotokuStagesCalculator = app(SogoShotokuNettingStagesCalculator::class);
@@ -2526,13 +2523,6 @@ final class FurusatoController extends Controller
             $sogoShotokuStagesCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $sogoShotokuStagesCalculator);
-
-        $payload = array_replace(
-            $payload,
-            $sogoShotokuCalculator->computeSpecificLossNetting($payload, 'prev'),
-            $sogoShotokuCalculator->computeSpecificLossNetting($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $sogoShotokuCalculator);
 
         /** @var BunriNettingCalculator $bunriNettingCalculator */
         $bunriNettingCalculator = app(BunriNettingCalculator::class);

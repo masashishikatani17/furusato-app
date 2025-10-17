@@ -54,16 +54,6 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
         $this->assertSame(0, $result['after_3jitsusan_sanrin_prev']);
         $this->assertSame(50, $result['after_3jitsusan_taishoku_prev']);
 
-        $this->assertSame(0, $result['after_joto_ichiji_tousan_joto_tanki_prev']);
-        $this->assertSame(0, $result['after_joto_ichiji_tousan_joto_choki_sogo_prev']);
-        $this->assertSame(100, $result['after_joto_ichiji_tousan_ichiji_prev']);
-        $this->assertSame(0, $result['tsusango_joto_choki_bunri_prev']);
-        $this->assertSame(0, $result['after_joto_ichiji_tousan_joto_choki_bunri_prev']);
-        $this->assertSame(0, $result['bunri_specific_netting_used_to_tanki_prev']);
-        $this->assertSame(0, $result['bunri_specific_netting_used_to_choki_sogo_prev']);
-        $this->assertSame(0, $result['bunri_specific_netting_used_to_ichiji_prev']);
-        $this->assertSame(0, $result['bunri_specific_netting_used_total_prev']);
-
         $this->assertSame(210, $result['shotoku_keijo_prev']);
         $this->assertSame(0, $result['shotoku_joto_tanki_prev']);
         $this->assertSame(0, $result['shotoku_joto_choki_sogo_prev']);
@@ -91,7 +81,6 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
             'after_joto_ichiji_tousan_ichiji_curr' => -60,
             'bunri_shotoku_sanrin_shotoku_curr' => 80,
             'bunri_shotoku_taishoku_shotoku_curr' => -150,
-            'sashihiki_joto_choki_bunri_curr' => -120,
         ];
 
         $result = $calculator->compute($payload, 'curr');
@@ -121,64 +110,12 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
         $this->assertSame(0, $result['after_3jitsusan_sanrin_curr']);
         $this->assertSame(0, $result['after_3jitsusan_taishoku_curr']);
 
-        $this->assertSame(0, $result['after_joto_ichiji_tousan_joto_tanki_curr']);
-        $this->assertSame(0, $result['after_joto_ichiji_tousan_joto_choki_sogo_curr']);
-        $this->assertSame(0, $result['after_joto_ichiji_tousan_ichiji_curr']);
-        $this->assertSame(-120, $result['tsusango_joto_choki_bunri_curr']);
-        $this->assertSame(-120, $result['after_joto_ichiji_tousan_joto_choki_bunri_curr']);
-        $this->assertSame(0, $result['bunri_specific_netting_used_to_tanki_curr']);
-        $this->assertSame(0, $result['bunri_specific_netting_used_to_choki_sogo_curr']);
-        $this->assertSame(0, $result['bunri_specific_netting_used_to_ichiji_curr']);
-        $this->assertSame(0, $result['bunri_specific_netting_used_total_curr']);
-
         $this->assertSame(-80, $result['shotoku_keijo_curr']);
         $this->assertSame(0, $result['shotoku_joto_tanki_curr']);
-        $this->assertSame(0, $result['shotoku_joto_choki_sogo_curr']);
+        $this->assertSame(-10, $result['shotoku_joto_choki_sogo_curr']);
         $this->assertSame(0, $result['shotoku_ichiji_curr']);
         $this->assertSame(0, $result['shotoku_sanrin_curr']);
         $this->assertSame(0, $result['shotoku_taishoku_curr']);
-        $this->assertSame(-80, $result['shotoku_gokei_curr']);
-    }
-
-    public function test_specific_loss_netting_allocates_pool_in_order(): void
-    {
-        $calculator = new SogoShotokuNettingStagesCalculator();
-
-        $payload = [
-            'shotoku_jigyo_eigyo_shotoku_prev' => 0,
-            'shotoku_jigyo_nogyo_shotoku_prev' => 0,
-            'shotoku_fudosan_shotoku_prev' => 0,
-            'shotoku_haito_shotoku_prev' => 0,
-            'shotoku_kyuyo_shotoku_prev' => 0,
-            'shotoku_zatsu_nenkin_shotoku_prev' => 0,
-            'shotoku_zatsu_gyomu_shotoku_prev' => 0,
-            'shotoku_zatsu_sonota_shotoku_prev' => 0,
-            'after_joto_ichiji_tousan_joto_tanki_prev' => 100,
-            'after_joto_ichiji_tousan_joto_choki_sogo_prev' => 200,
-            'after_joto_ichiji_tousan_ichiji_prev' => 300,
-            'bunri_shotoku_sanrin_shotoku_prev' => 0,
-            'bunri_shotoku_taishoku_shotoku_prev' => 0,
-            'sashihiki_joto_choki_bunri_prev' => -250,
-        ];
-
-        $result = $calculator->compute($payload, 'prev');
-
-        $this->assertSame(100, $result['after_3jitsusan_joto_tanki_sogo_prev']);
-        $this->assertSame(200, $result['after_3jitsusan_joto_choki_sogo_prev']);
-        $this->assertSame(300, $result['after_3jitsusan_ichiji_prev']);
-
-        $this->assertSame(0, $result['after_joto_ichiji_tousan_joto_tanki_prev']);
-        $this->assertSame(50, $result['after_joto_ichiji_tousan_joto_choki_sogo_prev']);
-        $this->assertSame(300, $result['after_joto_ichiji_tousan_ichiji_prev']);
-        $this->assertSame(0, $result['tsusango_joto_choki_bunri_prev']);
-        $this->assertSame(0, $result['after_joto_ichiji_tousan_joto_choki_bunri_prev']);
-        $this->assertSame(100, $result['bunri_specific_netting_used_to_tanki_prev']);
-        $this->assertSame(150, $result['bunri_specific_netting_used_to_choki_sogo_prev']);
-        $this->assertSame(0, $result['bunri_specific_netting_used_to_ichiji_prev']);
-        $this->assertSame(250, $result['bunri_specific_netting_used_total_prev']);
-
-        $this->assertSame(0, $result['shotoku_joto_tanki_prev']);
-        $this->assertSame(25, $result['shotoku_joto_choki_sogo_prev']);
-        $this->assertSame(150, $result['shotoku_ichiji_prev']);
+        $this->assertSame(-90, $result['shotoku_gokei_curr']);
     }
 }

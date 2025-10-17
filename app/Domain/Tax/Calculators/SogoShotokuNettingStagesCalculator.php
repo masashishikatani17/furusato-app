@@ -46,6 +46,9 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             $keys[] = sprintf('after_3jitsusan_sanrin_%s', $period);
             $keys[] = sprintf('after_3jitsusan_taishoku_%s', $period);
 
+            $keys[] = sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period);
+            $keys[] = sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period);
+            $keys[] = sprintf('after_joto_ichiji_tousan_ichiji_%s', $period);
             $keys[] = sprintf('tsusango_joto_choki_bunri_%s', $period);
             $keys[] = sprintf('after_joto_ichiji_tousan_joto_choki_bunri_%s', $period);
             $keys[] = sprintf('bunri_specific_netting_used_to_tanki_%s', $period);
@@ -250,14 +253,10 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             $after3Ichiji,
         );
 
-        $after3Short = $specificNetting['after_3jitsusan_joto_tanki_sogo'];
-        $after3Long = $specificNetting['after_3jitsusan_joto_choki_sogo'];
-        $after3Ichiji = $specificNetting['after_3jitsusan_ichiji'];
-
         $outputs = array_replace($outputs, [
-            sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period) => $after3Short,
-            sprintf('after_3jitsusan_joto_choki_sogo_%s', $period) => $after3Long,
-            sprintf('after_3jitsusan_ichiji_%s', $period) => $after3Ichiji,
+            sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period) => $specificNetting['after_joto_ichiji_tousan_joto_tanki'],
+            sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period) => $specificNetting['after_joto_ichiji_tousan_joto_choki_sogo'],
+            sprintf('after_joto_ichiji_tousan_ichiji_%s', $period) => $specificNetting['after_joto_ichiji_tousan_ichiji'],
             sprintf('tsusango_joto_choki_bunri_%s', $period) => $specificNetting['tsusango_joto_choki_bunri'],
             sprintf('after_joto_ichiji_tousan_joto_choki_bunri_%s', $period) => $specificNetting['after_joto_ichiji_tousan_joto_choki_bunri'],
             sprintf('bunri_specific_netting_used_to_tanki_%s', $period) => $specificNetting['bunri_specific_netting_used_to_tanki'],
@@ -268,9 +267,9 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
 
         // 最終所得
         $shotokuKeijo = $after3Econ;
-        $shotokuJotoTanki = $after3Short;
-        $shotokuJotoChoki = $this->half($after3Long);
-        $shotokuIchiji = $this->half($after3Ichiji);
+        $shotokuJotoTanki = $specificNetting['after_joto_ichiji_tousan_joto_tanki'];
+        $shotokuJotoChoki = $this->half($specificNetting['after_joto_ichiji_tousan_joto_choki_sogo']);
+        $shotokuIchiji = $this->half($specificNetting['after_joto_ichiji_tousan_ichiji']);
         $shotokuSanrin = $after3Forest;
         $shotokuTaishoku = $after3Retire;
 
@@ -374,9 +373,9 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         $remainingLoss = -($pool0 - $usedTotal);
 
         return [
-            'after_3jitsusan_joto_tanki_sogo' => $short1,
-            'after_3jitsusan_joto_choki_sogo' => $long1,
-            'after_3jitsusan_ichiji' => $ichiji1,
+            'after_joto_ichiji_tousan_joto_tanki' => $short1,
+            'after_joto_ichiji_tousan_joto_choki_sogo' => $long1,
+            'after_joto_ichiji_tousan_ichiji' => $ichiji1,
             'tsusango_joto_choki_bunri' => $remainingLoss,
             'after_joto_ichiji_tousan_joto_choki_bunri' => $remainingLoss,
             'bunri_specific_netting_used_to_tanki' => $useShort,

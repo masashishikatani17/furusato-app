@@ -626,7 +626,7 @@ final class FurusatoController extends Controller
                 $payload[sprintf('shotoku_fudosan_%s_%s', $tax, $period)] = $shotoku;
             }
         }
-        
+            
         $updatesForRecalc = array_merge($payload, $labelUpdates);
 
         if ((int) $req->input('recalc_all') === 1) {
@@ -813,9 +813,17 @@ final class FurusatoController extends Controller
             }
         }
 
+        foreach (['prev', 'curr'] as $period) {
+            $rules[sprintf('joto_choki_tokutei_sonshitsu_%s', $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+        }
+
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        foreach (['prev', 'curr'] as $period) {
+            $key = sprintf('joto_choki_tokutei_sonshitsu_%s', $period);
+            $payload[sprintf('sashihiki_joto_choki_bunri_%s', $period)] = $this->toNullableInt($payload[$key] ?? null);
+        }
         $this->recalculateBunriJoto($payload);
         $this->mirrorBunriJotoDetailsToInput($payload);
 
@@ -2213,12 +2221,8 @@ final class FurusatoController extends Controller
 
     private function redirectToInputWithAnchor(Data $data, string $anchor = '', string $message = '保存しました'): RedirectResponse
     {
-        $params = ['data_id' => $data->id, 'tab' => 'input'];
-
-        $redirect = redirect()
-            ->route('furusato.input', $params)
-            ->with('success', $message)
-            ->with('return_tab', 'input');
+        $redirect = redirect()->route('furusato.input', ['data_id' => $data->id])
+                              ->with('success', $message);
 
         if ($anchor !== '') {
             $redirect->withFragment($anchor);

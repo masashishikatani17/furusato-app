@@ -14,7 +14,7 @@ class DetailsSourceAliasCalculator implements ProvidesKeys
     private const PERIODS = ['prev', 'curr'];
 
     /**
-     * @var array<string, array{group: string, source: string}>
+     * @var array<string, array{group: string, source: string, preserveNull?: bool, legacy_sources?: array<int, string>}>
      */
     private const MAPPINGS = [
         'shotoku_jigyo_eigyo_shotoku_%s' => ['group' => 'jigyo_eigyo_details', 'source' => 'jigyo_eigyo_shotoku_%s'],
@@ -25,6 +25,16 @@ class DetailsSourceAliasCalculator implements ProvidesKeys
         'bunri_shotoku_choki_ippan_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_choki_ippan_%s'],
         'bunri_shotoku_choki_tokutei_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_choki_tokutei_%s'],
         'bunri_shotoku_choki_keika_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_choki_keika_%s'],
+        'sashihiki_joto_tanki_sogo_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_joto_tanki_%s', 'preserveNull' => true],
+        'sashihiki_joto_choki_sogo_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_joto_choki_%s', 'preserveNull' => true],
+        'sashihiki_ichiji_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_ichiji_%s', 'preserveNull' => true],
+        'after_1jitsusan_sanrin_%s' => ['group' => 'bunri_sanrin_details', 'source' => 'sashihiki_sanrin_%s', 'preserveNull' => true],
+        'after_2jitsusan_taishoku_%s' => [
+            'group' => 'input',
+            'source' => 'bunri_shotoku_taishoku_shotoku_%s',
+            'legacy_sources' => ['bunri_shotoku_taisyoku_shotoku_%s'],
+            'preserveNull' => true,
+        ],
     ];
 
     /**
@@ -45,7 +55,7 @@ class DetailsSourceAliasCalculator implements ProvidesKeys
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return array<string, int>
+     * @return array<string, int|null>
      */
     public function compute(array $payload, string $period): array
     {
@@ -58,41 +68,78 @@ class DetailsSourceAliasCalculator implements ProvidesKeys
         foreach (self::MAPPINGS as $targetPattern => $mapping) {
             $targetKey = sprintf($targetPattern, $period);
             $sourceKey = sprintf($mapping['source'], $period);
+            $preserveNull = $mapping['preserveNull'] ?? false;
 
-            $sourceValue = $this->extractSourceValue($payload, $mapping['group'], $sourceKey);
-            $normalized = $this->normalize($sourceValue);
+            $source = $this->extractSourceValue($payload, $mapping['group'], $sourceKey);
 
-            if ($normalized !== null) {
-                $updates[$targetKey] = $normalized;
-                continue;
+            if (! $source['found'] && isset($mapping['legacy_sources'])) {
+                foreach ($mapping['legacy_sources'] as $legacyPattern) {
+                    $legacyKey = sprintf($legacyPattern, $period);
+                    $legacy = $this->extractSourceValue($payload, $mapping['group'], $legacyKey);
+                    if ($legacy['found']) {
+                        $source = $legacy;
+                        break;
+                    }
+                }
             }
 
-            $current = array_key_exists($targetKey, $payload)
-                ? $this->normalize($payload[$targetKey])
-                : null;
+            if ($source['found']) {
+                $normalized = $this->normalize($source['value']);
 
-            $updates[$targetKey] = $current ?? 0;
+                if ($normalized !== null) {
+                    $updates[$targetKey] = $normalized;
+                    continue;
+                }
+
+                if ($preserveNull) {
+                    $updates[$targetKey] = null;
+                    continue;
+                }
+            }
+
+            $updates[$targetKey] = $this->resolveFallbackValue($payload, $targetKey, $preserveNull);
         }
 
         return $updates;
     }
 
-    private function extractSourceValue(array $payload, string $group, string $key): mixed
+    /**
+     * @return array{found: bool, value: mixed}
+     */
+    private function extractSourceValue(array $payload, string $group, string $key): array
     {
-        $compoundKey = sprintf('%s.%s', $group, $key);
-        if (array_key_exists($compoundKey, $payload)) {
-            return $payload[$compoundKey];
+        if ($group !== '') {
+            $compoundKey = sprintf('%s.%s', $group, $key);
+        } else {
+            $compoundKey = $key;
         }
 
-        if (array_key_exists($group, $payload) && is_array($payload[$group]) && array_key_exists($key, $payload[$group])) {
-            return $payload[$group][$key];
+        if (array_key_exists($compoundKey, $payload)) {
+            return ['found' => true, 'value' => $payload[$compoundKey]];
+        }
+
+        if ($group !== '' && array_key_exists($group, $payload) && is_array($payload[$group]) && array_key_exists($key, $payload[$group])) {
+            return ['found' => true, 'value' => $payload[$group][$key]];
         }
 
         if (array_key_exists($key, $payload)) {
-            return $payload[$key];
+            return ['found' => true, 'value' => $payload[$key]];
         }
 
-        return null;
+        return ['found' => false, 'value' => null];
+    }
+
+    private function resolveFallbackValue(array $payload, string $targetKey, bool $preserveNull): ?int
+    {
+        if (array_key_exists($targetKey, $payload)) {
+            $normalized = $this->normalize($payload[$targetKey]);
+
+            if ($normalized !== null) {
+                return $normalized;
+            }
+        }
+
+        return $preserveNull ? null : 0;
     }
 
     private function normalize(mixed $value): ?int

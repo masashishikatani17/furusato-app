@@ -27,6 +27,8 @@ class DetailsSourceAliasCalculator implements ProvidesKeys
         'bunri_shotoku_choki_keika_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_choki_keika_%s'],
         'sashihiki_joto_tanki_sogo_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_joto_tanki_%s', 'preserveNull' => true],
         'sashihiki_joto_choki_sogo_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_joto_choki_%s', 'preserveNull' => true],
+        // Mirror the raw first-lump sum amounts so that downstream calculators can
+        // clamp tsusango_ichiji to max(0, sashihiki_ichiji).
         'sashihiki_ichiji_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_ichiji_%s', 'preserveNull' => true],
         'after_1jitsusan_sanrin_%s' => ['group' => 'bunri_sanrin_details', 'source' => 'sashihiki_sanrin_%s', 'preserveNull' => true],
         'after_2jitsusan_taishoku_%s' => [

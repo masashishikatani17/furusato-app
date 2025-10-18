@@ -74,16 +74,16 @@
                       <input type="number" step="1" class="form-control suji11" name="sashihiki_joto_tanki_{{ $period }}" value="{{ old('sashihiki_joto_tanki_' . $period, $inputs['sashihiki_joto_tanki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="after_naibutsusan_joto_tanki_{{ $period }}" value="{{ old('after_naibutsusan_joto_tanki_' . $period, $inputs['after_naibutsusan_joto_tanki_' . $period] ?? null) }}">
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_naibutsusan_joto_tanki_{{ $period }}" value="{{ old('after_naibutsusan_joto_tanki_' . $period, $inputs['after_naibutsusan_joto_tanki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji8" name="tokubetsukojo_joto_tanki_{{ $period }}" value="{{ old('tokubetsukojo_joto_tanki_' . $period, $inputs['tokubetsukojo_joto_tanki_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="after_joto_ichiji_tousan_joto_tanki_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_joto_tanki_' . $period, $inputs['after_joto_ichiji_tousan_joto_tanki_' . $period] ?? null) }}">
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_joto_ichiji_tousan_joto_tanki_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_joto_tanki_' . $period, $inputs['after_joto_ichiji_tousan_joto_tanki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="tsusango_joto_tanki_{{ $period }}" value="{{ old('tsusango_joto_tanki_' . $period, $inputs['tsusango_joto_tanki_' . $period] ?? null) }}">
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="tsusango_joto_tanki_{{ $period }}" value="{{ old('tsusango_joto_tanki_' . $period, $inputs['tsusango_joto_tanki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td class="text-center align-middle">－</td>
                     <td>
@@ -102,16 +102,16 @@
                       <input type="number" step="1" class="form-control suji11" name="sashihiki_joto_choki_{{ $period }}" value="{{ old('sashihiki_joto_choki_' . $period, $inputs['sashihiki_joto_choki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="after_naibutsusan_joto_choki_{{ $period }}" value="{{ old('after_naibutsusan_joto_choki_' . $period, $inputs['after_naibutsusan_joto_choki_' . $period] ?? null) }}">
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_naibutsusan_joto_choki_{{ $period }}" value="{{ old('after_naibutsusan_joto_choki_' . $period, $inputs['after_naibutsusan_joto_choki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji8" name="tokubetsukojo_joto_choki_{{ $period }}" value="{{ old('tokubetsukojo_joto_choki_' . $period, $inputs['tokubetsukojo_joto_choki_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="after_joto_ichiji_tousan_joto_choki_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_joto_choki_' . $period, $inputs['after_joto_ichiji_tousan_joto_choki_' . $period] ?? null) }}">
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_joto_ichiji_tousan_joto_choki_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_joto_choki_' . $period, $inputs['after_joto_ichiji_tousan_joto_choki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="tsusango_joto_choki_{{ $period }}" value="{{ old('tsusango_joto_choki_' . $period, $inputs['tsusango_joto_choki_' . $period] ?? null) }}">
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="tsusango_joto_choki_{{ $period }}" value="{{ old('tsusango_joto_choki_' . $period, $inputs['tsusango_joto_choki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji8" name="half_joto_choki_{{ $period }}" value="{{ old('half_joto_choki_' . $period, $inputs['half_joto_choki_' . $period] ?? null) }}" readonly>
@@ -132,16 +132,16 @@
                       <input type="number" step="1" class="form-control suji11" name="sashihiki_ichiji_{{ $period }}" value="{{ old('sashihiki_ichiji_' . $period, $inputs['sashihiki_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="after_naibutsusan_ichiji_{{ $period }}" value="{{ old('after_naibutsusan_ichiji_' . $period, $inputs['after_naibutsusan_ichiji_' . $period] ?? null) }}">
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_naibutsusan_ichiji_{{ $period }}" value="{{ old('after_naibutsusan_ichiji_' . $period, $inputs['after_naibutsusan_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji8" name="tokubetsukojo_ichiji_{{ $period }}" value="{{ old('tokubetsukojo_ichiji_' . $period, $inputs['tokubetsukojo_ichiji_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="after_joto_ichiji_tousan_ichiji_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_ichiji_' . $period, $inputs['after_joto_ichiji_tousan_ichiji_' . $period] ?? null) }}">
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_joto_ichiji_tousan_ichiji_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_ichiji_' . $period, $inputs['after_joto_ichiji_tousan_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="tsusango_ichiji_{{ $period }}" value="{{ old('tsusango_ichiji_' . $period, $inputs['tsusango_ichiji_' . $period] ?? null) }}">
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="tsusango_ichiji_{{ $period }}" value="{{ old('tsusango_ichiji_' . $period, $inputs['tsusango_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji8" name="half_ichiji_{{ $period }}" value="{{ old('half_ichiji_' . $period, $inputs['half_ichiji_' . $period] ?? null) }}" readonly>

@@ -96,7 +96,7 @@
                       </td>
                       @php($name = 'tsusango_' . $base)
                       <td>
-                        <input type="number" min="0" step="1" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                        <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       </td>
                       @php($name = 'tokubetsukojo_' . $base)
                       <td>

@@ -87,7 +87,8 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         $long = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
         $ichijiNetting = $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
         $ichijiSource = $this->value($payload, sprintf('sashihiki_ichiji_%s', $period));
-        $tsusanmaeIchiji = max(0, $ichijiSource);
+        $tsusanmaeIchiji = $ichijiSource;
+        $tsusangoIchiji = max(0, $ichijiSource);
         $forestInput = $this->value($payload, sprintf('bunri_shotoku_sanrin_shotoku_%s', $period));
         $retireInput = $this->value($payload, sprintf('bunri_shotoku_taishoku_shotoku_%s', $period));
 
@@ -127,7 +128,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('after_1jitsusan_keijo_%s', $period) => $after1Econ,
             sprintf('after_1jitsusan_joto_tanki_sogo_%s', $period) => $after1Short,
             sprintf('after_1jitsusan_joto_choki_sogo_%s', $period) => $after1Long,
-            sprintf('after_1jitsusan_ichiji_%s', $period) => $tsusanmaeIchiji,
+            sprintf('after_1jitsusan_ichiji_%s', $period) => $tsusangoIchiji,
             sprintf('after_1jitsusan_sanrin_%s', $period) => $after1Forest,
         ]);
 
@@ -203,7 +204,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('after_2jitsusan_keijo_%s', $period) => $after2Econ,
             sprintf('after_2jitsusan_joto_tanki_sogo_%s', $period) => $after2Short,
             sprintf('after_2jitsusan_joto_choki_sogo_%s', $period) => $after2Long,
-            sprintf('after_2jitsusan_ichiji_%s', $period) => $tsusanmaeIchiji,
+            sprintf('after_2jitsusan_ichiji_%s', $period) => $tsusangoIchiji,
             sprintf('after_2jitsusan_sanrin_%s', $period) => $after2Forest,
             sprintf('after_2jitsusan_taishoku_%s', $period) => $after2Retire,
         ]);
@@ -237,7 +238,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('after_3jitsusan_keijo_%s', $period) => $after3Econ,
             sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period) => $after3Short,
             sprintf('after_3jitsusan_joto_choki_sogo_%s', $period) => $after3Long,
-            sprintf('after_3jitsusan_ichiji_%s', $period) => $tsusanmaeIchiji,
+            sprintf('after_3jitsusan_ichiji_%s', $period) => $tsusangoIchiji,
             sprintf('after_3jitsusan_sanrin_%s', $period) => $after3Forest,
             sprintf('after_3jitsusan_taishoku_%s', $period) => $after3Retire,
         ]);

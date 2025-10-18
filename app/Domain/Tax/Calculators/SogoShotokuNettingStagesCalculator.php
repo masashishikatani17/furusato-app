@@ -86,8 +86,19 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         $forestInput = $this->value($payload, sprintf('bunri_shotoku_sanrin_shotoku_%s', $period));
         $retireInput = $this->value($payload, sprintf('bunri_shotoku_taishoku_shotoku_%s', $period));
 
-        $tsusanmaeShort = $shortSource;
-        $tsusanmaeLong = $longSource;
+        $shortSource = $this->valueWithAliases($payload, [
+            sprintf('sashihiki_joto_tanki_sogo_%s', $period),
+            sprintf('sashihiki_joto_tanki_%s', $period),
+        ]);
+        $longSource = $this->valueWithAliases($payload, [
+            sprintf('sashihiki_joto_choki_sogo_%s', $period),
+            sprintf('sashihiki_joto_choki_%s', $period),
+        ]);
+        $ichijiRaw = $this->value($payload, sprintf('sashihiki_ichiji_%s', $period));
+
+        // 通算前の可視化値
+        $tsusanmaeShort  = $shortSource;
+        $tsusanmaeLong   = $longSource;
         $tsusanmaeIchiji = $ichijiRaw;
 
         [$after1Econ, $after1Short, $after1Long] = $this->netGeneralWithJoto($econ, $tsusanmaeShort, $tsusanmaeLong);
@@ -142,7 +153,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('after_2jitsusan_ichiji_%s', $period) => $after2Ichiji,
             sprintf('after_2jitsusan_sanrin_%s', $period) => $after2Forest,
             sprintf('after_2jitsusan_taishoku_%s', $period) => $after2Retire,
-        ]);
+        ];
 
         if ($bunriNettingOutputs !== []) {
             $outputs = array_replace($outputs, $bunriNettingOutputs);
@@ -183,7 +194,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('shotoku_sanrin_%s', $period) => $shotokuSanrin,
             sprintf('shotoku_taishoku_%s', $period) => $shotokuTaishoku,
             sprintf('shotoku_gokei_%s', $period) => $shotokuGokei,
-        ];
+        ]);
 
         if ($bunriNettingOutputs !== []) {
             $outputs = array_replace($outputs, $bunriNettingOutputs);

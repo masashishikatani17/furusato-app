@@ -22,7 +22,9 @@ return new class extends Migration
                 $table->index('kifu_year', $index);
             });
 
-            DB::statement(sprintf('ALTER TABLE `%s` MODIFY `year` INT UNSIGNED NULL', $table));
+            if (DB::getDriverName() !== 'sqlite') {
+                DB::statement(sprintf('ALTER TABLE `%s` MODIFY `year` INT UNSIGNED NULL', $table));
+            }
         }
     }
 
@@ -34,7 +36,9 @@ return new class extends Migration
                 $table->dropColumn('kifu_year');
             });
 
-            DB::statement(sprintf('ALTER TABLE `%s` MODIFY `year` INT UNSIGNED NOT NULL', $table));
+            if (DB::getDriverName() !== 'sqlite') {
+                DB::statement(sprintf('ALTER TABLE `%s` MODIFY `year` INT UNSIGNED NOT NULL', $table));
+            }
         }
     }
 };

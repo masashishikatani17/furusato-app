@@ -24,6 +24,7 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
             'after_joto_ichiji_tousan_joto_tanki_prev' => -80,
             'after_joto_ichiji_tousan_joto_choki_sogo_prev' => -60,
             'after_joto_ichiji_tousan_ichiji_prev' => 100,
+            'sashihiki_ichiji_prev' => 100,
             'bunri_shotoku_sanrin_shotoku_prev' => -30,
             'bunri_shotoku_taishoku_shotoku_prev' => 50,
         ];
@@ -80,6 +81,7 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
             'after_joto_ichiji_tousan_joto_tanki_curr' => 40,
             'after_joto_ichiji_tousan_joto_choki_sogo_curr' => -100,
             'after_joto_ichiji_tousan_ichiji_curr' => -60,
+            'sashihiki_ichiji_curr' => -60,
             'bunri_shotoku_sanrin_shotoku_curr' => 80,
             'bunri_shotoku_taishoku_shotoku_curr' => -150,
         ];
@@ -167,6 +169,27 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
                     $longReduced,
                     $longLight,
                 );
+            }
+        }
+    }
+
+    public function test_tsusanmae_and_after_stages_use_clamped_sashihiki_ichiji(): void
+    {
+        $calculator = new SogoShotokuNettingStagesCalculator();
+
+        foreach (['prev', 'curr'] as $period) {
+            foreach ([-1, 0, 1, 50_000] as $value) {
+                $payload = [
+                    sprintf('sashihiki_ichiji_%s', $period) => $value,
+                ];
+
+                $result = $calculator->compute($payload, $period);
+                $expected = max(0, $value);
+
+                $this->assertSame($expected, $result[sprintf('tsusanmae_ichiji_%s', $period)]);
+                $this->assertSame($expected, $result[sprintf('after_1jitsusan_ichiji_%s', $period)]);
+                $this->assertSame($expected, $result[sprintf('after_2jitsusan_ichiji_%s', $period)]);
+                $this->assertSame($expected, $result[sprintf('after_3jitsusan_ichiji_%s', $period)]);
             }
         }
     }

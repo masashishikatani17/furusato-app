@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tax\Calculators;
 
+use App\Domain\Tax\Calculators\Support\JotoIchijiNetting;
 use App\Services\Tax\Contracts\ProvidesKeys;
 
 class SogoShotokuNettingCalculator implements ProvidesKeys
@@ -12,7 +13,6 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
     public const AFTER = [];
 
     private const PERIODS = ['prev', 'curr'];
-    private const NETTING_POOL = 500_000;
 
     /**
      * @return array<int, string>
@@ -60,73 +60,20 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
         $long = $this->readWithFallback($payload, $longKey, $longSourceKey);
         $ichiji = $this->n($payload[$ichijiSourceKey] ?? null);
 
-        $preShort = ($short * $long) < 0
-            ? (abs($short) >= abs($long) ? $short + $long : 0)
-            : $short;
-
-        $preLong = ($short * $long) < 0
-            ? (abs($long) > abs($short) ? $short + $long : 0)
-            : $long;
-
-        $tsusangoShort = $preShort;
-        $tsusangoLong = $preLong;
-        $tsusangoIchiji = $ichiji;
-
-        $tokubetsuShort = min(self::NETTING_POOL, max(0, $tsusangoShort));
-        $tokubetsuLongPool = self::NETTING_POOL - $tokubetsuShort;
-        $tokubetsuLong = min($tokubetsuLongPool, max(0, $tsusangoLong));
-        $tokubetsuIchiji = min(self::NETTING_POOL, max(0, $tsusangoIchiji));
-
-        $shortInit = $tsusangoShort - $tokubetsuShort;
-        $longInit = $tsusangoLong - $tokubetsuLong;
-        $oneInit = max(0, $tsusangoIchiji - $tokubetsuIchiji);
-
-        $needShort = max(0, -$shortInit);
-        $useLongForShort = min(max(0, $longInit), $needShort);
-        $remainingNeedShort = $needShort - $useLongForShort;
-        $useIchijiForShort = min($oneInit, $remainingNeedShort);
-
-        $needLong = max(0, -$longInit);
-        $useShortForLong = min(max(0, $shortInit), $needLong);
-        $remainingNeedLong = $needLong - $useShortForLong;
-        $useIchijiForLong = min($oneInit, $remainingNeedLong);
-
-        if ($shortInit < 0) {
-            $shortAfter = $shortInit + $useLongForShort + $useIchijiForShort;
-        } elseif ($longInit < 0) {
-            $shortAfter = $shortInit - $useShortForLong;
-        } else {
-            $shortAfter = $shortInit;
-        }
-
-        if ($shortInit < 0) {
-            $longAfter = $longInit - $useLongForShort;
-        } elseif ($longInit < 0) {
-            $longAfter = $longInit + $useShortForLong + $useIchijiForLong;
-        } else {
-            $longAfter = $longInit;
-        }
-
-        if ($shortInit < 0) {
-            $ichijiAfter = $oneInit - $useIchijiForShort;
-        } elseif ($longInit < 0) {
-            $ichijiAfter = $oneInit - $useIchijiForLong;
-        } else {
-            $ichijiAfter = $oneInit;
-        }
+        $jotoIchiji = JotoIchijiNetting::compute($short, $long, $ichiji);
 
         $outputs = [
-            $shortKey => $short,
-            $longKey => $long,
-            sprintf('tsusango_joto_tanki_%s', $period) => $tsusangoShort,
-            sprintf('tsusango_joto_choki_sogo_%s', $period) => $tsusangoLong,
-            sprintf('tsusango_ichiji_%s', $period) => $tsusangoIchiji,
-            sprintf('tokubetsukojo_joto_tanki_%s', $period) => $tokubetsuShort,
-            sprintf('tokubetsukojo_joto_choki_%s', $period) => $tokubetsuLong,
-            sprintf('tokubetsukojo_ichiji_%s', $period) => $tokubetsuIchiji,
-            sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period) => $shortAfter,
-            sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period) => $longAfter,
-            sprintf('after_joto_ichiji_tousan_ichiji_%s', $period) => max(0, $ichijiAfter),
+            $shortKey => $jotoIchiji['sashihiki_joto_tanki_sogo'],
+            $longKey => $jotoIchiji['sashihiki_joto_choki_sogo'],
+            sprintf('tsusango_joto_tanki_%s', $period) => $jotoIchiji['tsusango_joto_tanki'],
+            sprintf('tsusango_joto_choki_sogo_%s', $period) => $jotoIchiji['tsusango_joto_choki_sogo'],
+            sprintf('tsusango_ichiji_%s', $period) => $jotoIchiji['tsusango_ichiji'],
+            sprintf('tokubetsukojo_joto_tanki_%s', $period) => $jotoIchiji['tokubetsukojo_joto_tanki'],
+            sprintf('tokubetsukojo_joto_choki_%s', $period) => $jotoIchiji['tokubetsukojo_joto_choki'],
+            sprintf('tokubetsukojo_ichiji_%s', $period) => $jotoIchiji['tokubetsukojo_ichiji'],
+            sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period) => $jotoIchiji['after_joto_ichiji_tousan_joto_tanki'],
+            sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period) => $jotoIchiji['after_joto_ichiji_tousan_joto_choki_sogo'],
+            sprintf('after_joto_ichiji_tousan_ichiji_%s', $period) => $jotoIchiji['after_joto_ichiji_tousan_ichiji'],
         ];
 
         return $outputs;

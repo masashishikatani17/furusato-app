@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tax\Calculators;
 
+use App\Domain\Tax\Calculators\Support\JotoIchijiNetting;
 use App\Services\Tax\Contracts\ProvidesKeys;
 
 class SogoShotokuNettingStagesCalculator implements ProvidesKeys
@@ -71,6 +72,20 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
 
         $bunriNettingOutputs = $this->calculateSeparatedNettingStages($payload, $period);
 
+        $shortSource = $this->valueWithFallback(
+            $payload,
+            sprintf('sashihiki_joto_tanki_sogo_%s', $period),
+            sprintf('sashihiki_joto_tanki_%s', $period)
+        );
+        $longSource = $this->valueWithFallback(
+            $payload,
+            sprintf('sashihiki_joto_choki_sogo_%s', $period),
+            sprintf('sashihiki_joto_choki_%s', $period)
+        );
+        $ichijiSource = $this->value($payload, sprintf('sashihiki_ichiji_%s', $period));
+
+        $jotoIchiji = JotoIchijiNetting::compute($shortSource, $longSource, $ichijiSource);
+
         $econ = $this->value($payload, sprintf('shotoku_jigyo_eigyo_shotoku_%s', $period))
             + $this->value($payload, sprintf('shotoku_jigyo_nogyo_shotoku_%s', $period))
             + $this->value($payload, sprintf('shotoku_fudosan_shotoku_%s', $period))
@@ -83,19 +98,20 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             + max(0, $this->value($payload, sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)))
             + max(0, $this->value($payload, sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)));
 
-        $short = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
-        $long = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
-        $ichijiNetting = $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
-        $ichijiSource = $this->value($payload, sprintf('sashihiki_ichiji_%s', $period));
-        $tsusanmaeIchiji = $ichijiSource;
-        $tsusangoIchiji = max(0, $ichijiSource);
+        $short = $jotoIchiji['after_joto_ichiji_tousan_joto_tanki'];
+        $long = $jotoIchiji['after_joto_ichiji_tousan_joto_choki_sogo'];
+        $ichijiNetting = $jotoIchiji['after_joto_ichiji_tousan_ichiji'];
+        $tsusanmaeShort = $jotoIchiji['tsusanmae_joto_tanki_sogo'];
+        $tsusanmaeLong = $jotoIchiji['tsusanmae_joto_choki_sogo'];
+        $tsusanmaeIchiji = $jotoIchiji['tsusanmae_ichiji'];
+        $tsusangoIchiji = $jotoIchiji['tsusango_ichiji'];
         $forestInput = $this->value($payload, sprintf('bunri_shotoku_sanrin_shotoku_%s', $period));
         $retireInput = $this->value($payload, sprintf('bunri_shotoku_taishoku_shotoku_%s', $period));
 
         $outputs = [
             sprintf('tsusanmae_keijo_%s', $period) => $econ,
-            sprintf('tsusanmae_joto_tanki_sogo_%s', $period) => $short,
-            sprintf('tsusanmae_joto_choki_sogo_%s', $period) => $long,
+            sprintf('tsusanmae_joto_tanki_sogo_%s', $period) => $tsusanmaeShort,
+            sprintf('tsusanmae_joto_choki_sogo_%s', $period) => $tsusanmaeLong,
             sprintf('tsusanmae_ichiji_%s', $period) => $tsusanmaeIchiji,
         ];
 
@@ -316,6 +332,19 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
     private function half(int $value): int
     {
         return (int) intdiv($value, 2);
+    }
+
+    private function valueWithFallback(array $payload, string $primary, ?string $fallback = null): int
+    {
+        if (array_key_exists($primary, $payload)) {
+            return $this->value($payload, $primary);
+        }
+
+        if ($fallback !== null && array_key_exists($fallback, $payload)) {
+            return $this->value($payload, $fallback);
+        }
+
+        return 0;
     }
 
     /**

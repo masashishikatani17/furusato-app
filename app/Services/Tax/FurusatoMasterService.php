@@ -35,7 +35,8 @@ class FurusatoMasterService
 
                 return $aUpper <=> $bUpper;
             })
-            ->values();
+            ->values()
+            ->map(static fn (array $rate): object => (object) $rate);
     }
 
     public function getJuminRates(int $year, ?int $companyId = null): Collection
@@ -51,7 +52,8 @@ class FurusatoMasterService
                     'pref_non_specified' => (float) $rate['pref_non_specified'],
                     'remark' => $rate['remark'],
                 ];
-            });
+            })
+            ->map(static fn (array $rate): object => (object) $rate);
     }
 
     public function getTokureiRates(int $year, ?int $companyId = null): Collection
@@ -68,8 +70,10 @@ class FurusatoMasterService
                     'ninety_minus_rate' => (float) $rate['ninety_minus_rate'],
                     'income_rate_with_recon' => (float) $rate['income_rate_with_recon'],
                     'tokurei_deduction_rate' => (float) $rate['tokurei_deduction_rate'],
+                    'note' => array_key_exists('note', $rate) && $rate['note'] !== null ? (string) $rate['note'] : '',
                 ];
-            });
+            })
+            ->map(static fn (array $rate): object => (object) $rate);
     }
 
     public function getShinkokutokureiRates(int $year, ?int $companyId = null): Collection
@@ -84,7 +88,8 @@ class FurusatoMasterService
                     'ratio_a' => (float) $rate['ratio_a'],
                     'ratio_b' => (float) $rate['ratio_b'],
                 ];
-            });
+            })
+            ->map(static fn (array $rate): object => (object) $rate);
     }
 
     private function rememberRates(string $key, string $table, int $year, ?int $companyId, callable $fallback): Collection

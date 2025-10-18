@@ -21,9 +21,8 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
             'shotoku_zatsu_nenkin_shotoku_prev' => 40,
             'shotoku_zatsu_gyomu_shotoku_prev' => -10,
             'shotoku_zatsu_sonota_shotoku_prev' => 20,
-            'after_joto_ichiji_tousan_joto_tanki_prev' => -80,
-            'after_joto_ichiji_tousan_joto_choki_sogo_prev' => -60,
-            'after_joto_ichiji_tousan_ichiji_prev' => 100,
+            'sashihiki_joto_tanki_sogo_prev' => -80,
+            'sashihiki_joto_choki_sogo_prev' => -60,
             'sashihiki_ichiji_prev' => 100,
             'bunri_shotoku_sanrin_shotoku_prev' => -30,
             'bunri_shotoku_taishoku_shotoku_prev' => 50,
@@ -78,9 +77,8 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
             'shotoku_zatsu_nankin_shotoku_curr' => -10,
             'shotoku_zatsu_gyomu_shotoku_curr' => 30,
             'shotoku_zatsu_sonota_shotoku_curr' => -20,
-            'after_joto_ichiji_tousan_joto_tanki_curr' => 40,
-            'after_joto_ichiji_tousan_joto_choki_sogo_curr' => -100,
-            'after_joto_ichiji_tousan_ichiji_curr' => -60,
+            'sashihiki_joto_tanki_sogo_curr' => 40,
+            'sashihiki_joto_choki_sogo_curr' => -100,
             'sashihiki_ichiji_curr' => -60,
             'bunri_shotoku_sanrin_shotoku_curr' => 80,
             'bunri_shotoku_taishoku_shotoku_curr' => -150,
@@ -173,7 +171,7 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
         }
     }
 
-    public function test_tsusanmae_and_after_stages_use_clamped_sashihiki_ichiji(): void
+    public function test_tsusanmae_ichiji_is_raw_and_after_stages_are_clamped(): void
     {
         $calculator = new SogoShotokuNettingStagesCalculator();
 
@@ -184,12 +182,12 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
                 ];
 
                 $result = $calculator->compute($payload, $period);
-                $expected = max(0, $value);
+                $clamped = max(0, $value);
 
-                $this->assertSame($expected, $result[sprintf('tsusanmae_ichiji_%s', $period)]);
-                $this->assertSame($expected, $result[sprintf('after_1jitsusan_ichiji_%s', $period)]);
-                $this->assertSame($expected, $result[sprintf('after_2jitsusan_ichiji_%s', $period)]);
-                $this->assertSame($expected, $result[sprintf('after_3jitsusan_ichiji_%s', $period)]);
+                $this->assertSame($value, $result[sprintf('tsusanmae_ichiji_%s', $period)]);
+                $this->assertSame($clamped, $result[sprintf('after_1jitsusan_ichiji_%s', $period)]);
+                $this->assertSame($clamped, $result[sprintf('after_2jitsusan_ichiji_%s', $period)]);
+                $this->assertSame($clamped, $result[sprintf('after_3jitsusan_ichiji_%s', $period)]);
             }
         }
     }

@@ -94,4 +94,21 @@ class SogoShotokuNettingCalculatorTest extends TestCase
         $this->assertSame(0, $result['tsusango_joto_choki_sogo_prev']);
         $this->assertSame(0, $result['tsusango_ichiji_prev']);
     }
+
+    public function test_tsusango_ichiji_is_clamped_to_zero_when_negative(): void
+    {
+        $calculator = new SogoShotokuNettingCalculator();
+
+        $payload = [
+            'sashihiki_joto_tanki_sogo_prev' => 0,
+            'sashihiki_joto_choki_sogo_prev' => 0,
+            'sashihiki_ichiji_prev' => -200_000,
+        ];
+
+        $result = $calculator->compute($payload, 'prev');
+
+        $this->assertSame(0, $result['tsusango_ichiji_prev']);
+        $this->assertSame(0, $result['tokubetsukojo_ichiji_prev']);
+        $this->assertSame(0, $result['after_joto_ichiji_tousan_ichiji_prev']);
+    }
 }

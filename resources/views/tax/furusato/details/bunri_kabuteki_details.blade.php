@@ -137,6 +137,15 @@ document.addEventListener('DOMContentLoaded', function () {
     { key: 'jojo_haito', hasKurikoshi: false },
   ];
 
+  const syncIppanTsusango = (period) => {
+    const base = `ippan_joto_${period}`;
+    const shotokuEl = Q(`shotoku_${base}`);
+    const tsusangoEl = Q(`tsusango_${base}`);
+    if (shotokuEl && tsusangoEl) {
+      tsusangoEl.value = shotokuEl.value;
+    }
+  };
+
   const recalc = (period) => {
     rows.forEach((row) => {
       const base = `${row.key}_${period}`;
@@ -145,7 +154,13 @@ document.addEventListener('DOMContentLoaded', function () {
       const shotoku = syunyu - keihi;
       S(`shotoku_${base}`, shotoku);
 
-      const tsusango = V(`tsusango_${base}`);
+      let tsusango;
+      if (row.key === 'ippan_joto') {
+        tsusango = shotoku;
+        S(`tsusango_${base}`, tsusango);
+      } else {
+        tsusango = V(`tsusango_${base}`);
+      }
       const kurikoshi = row.hasKurikoshi ? V(`kurikoshi_${base}`) : 0;
       const deduction = row.hasKurikoshi ? Math.min(Math.max(tsusango, 0), Math.max(kurikoshi, 0)) : 0;
       const after = row.hasKurikoshi ? tsusango - deduction : tsusango;

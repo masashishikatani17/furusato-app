@@ -881,7 +881,15 @@ final class FurusatoController extends Controller
         foreach ($rows as $row) {
             foreach (['syunyu', 'keihi', 'tsusango'] as $prefix) {
                 foreach (['prev', 'curr'] as $period) {
-                    $rules[sprintf('%s_%s_%s', $prefix, $row['key'], $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                    $ruleKey = sprintf('%s_%s_%s', $prefix, $row['key'], $period);
+                    $rule = ['bail', 'nullable', 'integer'];
+
+                    $isIppanTsusango = $row['key'] === 'ippan_joto' && $prefix === 'tsusango';
+                    if (! $isIppanTsusango) {
+                        $rule[] = 'min:0';
+                    }
+
+                    $rules[$ruleKey] = $rule;
                 }
             }
 

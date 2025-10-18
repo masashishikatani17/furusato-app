@@ -46,6 +46,7 @@
                   <th style="height:30px;">収入金額</th>
                   <th>必要経費</th>
                   <th>差引金額</th>
+                  <th>損益通算後</th>
                   <th>特別控除額</th>
                   <th>山林所得金額</th>
                 </tr>
@@ -61,6 +62,10 @@
                     <input type="number" min="0" step="1" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
                   </td>
                   @php($name = 'sashihiki_sanrin_' . $period)
+                  <td>
+                    <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                  </td>
+                  @php($name = 'tsusango_sanrin_' . $period)
                   <td>
                     <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
@@ -118,8 +123,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const sashihiki = syunyu - keihi;
     S(`sashihiki_sanrin_${period}`, sashihiki);
 
+    const tsusango = V(`tsusango_sanrin_${period}`);
     const tokubetsu = V(`tokubetsukojo_sanrin_${period}`);
-    S(`shotoku_sanrin_${period}`, sashihiki - tokubetsu);
+    S(`shotoku_sanrin_${period}`, tsusango - tokubetsu);
   };
 
   const bindBlur = () => {

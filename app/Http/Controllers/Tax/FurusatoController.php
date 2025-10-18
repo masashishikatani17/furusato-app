@@ -13,6 +13,7 @@ use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
+use App\Domain\Tax\Calculators\ResultToDetailsAliasCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Http\Controllers\Controller;
@@ -2551,6 +2552,19 @@ final class FurusatoController extends Controller
             $bunriKabutekiNettingCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $bunriKabutekiNettingCalculator);
+
+        /** @var ResultToDetailsAliasCalculator $resultToDetailsAliasCalculator */
+        $resultToDetailsAliasCalculator = app(ResultToDetailsAliasCalculator::class);
+        $resultAliasContext = [
+            'kihu_year' => $data->kihu_year ? (int) $data->kihu_year : self::MASTER_KIHU_YEAR,
+            'guest_birth_date' => $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null),
+            'data' => $data,
+        ];
+        $payload = array_replace(
+            $payload,
+            $resultToDetailsAliasCalculator->compute($payload, $resultAliasContext),
+        );
+        $this->assertProvidedKeys($payload, $resultToDetailsAliasCalculator);
 
         return $payload;
     }

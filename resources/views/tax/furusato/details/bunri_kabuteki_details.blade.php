@@ -76,7 +76,7 @@
                     </td>
                     @php($name = 'tsusango_' . $base)
                     <td>
-                      <input type="number" min="0" step="1" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                     </td>
                     <td>
                       @if ($row['has_kurikoshi'])
@@ -147,7 +147,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
       const tsusango = V(`tsusango_${base}`);
       const kurikoshi = row.hasKurikoshi ? V(`kurikoshi_${base}`) : 0;
-      const after = tsusango - kurikoshi;
+      const deduction = row.hasKurikoshi ? Math.min(Math.max(tsusango, 0), Math.max(kurikoshi, 0)) : 0;
+      const after = row.hasKurikoshi ? tsusango - deduction : tsusango;
       S(`shotoku_after_kurikoshi_${base}`, after);
     });
   };

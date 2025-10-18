@@ -10,6 +10,24 @@ class FurusatoMasterService
 {
     private const CACHE_TTL = 300; // seconds
 
+    /**
+     * @var array<int, array{label: string, text: string}>
+     */
+    private const TOKUREI_NOTE_TEMPLATES = [
+        80 => [
+            'label' => '山林所得の特例',
+            'text' => '山林所得がある場合は課税標準額を5で除した金額に対応する控除率を使用します。',
+        ],
+        90 => [
+            'label' => '退職所得の特例',
+            'text' => '退職所得がある場合は課税標準額に対応する控除率を使用します。',
+        ],
+        100 => [
+            'label' => '採用控除率',
+            'text' => '山林所得と退職所得の双方がある場合は低い控除率を採用します。',
+        ],
+    ];
+
     public function getShotokuRates(int $year, ?int $companyId = null): Collection
     {
         return $this->rememberRates('shotoku', 'shotoku_rates', $year, $companyId, [FurusatoMasterDefaults::class, 'shotoku'])
@@ -59,11 +77,12 @@ class FurusatoMasterService
     public function getTokureiRates(int $year, ?int $companyId = null): Collection
     {
         return $this->rememberRates('tokurei', 'tokurei_rates', $year, $companyId, [FurusatoMasterDefaults::class, 'tokurei'])
-            ->map(static function (array $rate): array {
+            ->map(function (array $rate): array {
                 $lower = $rate['lower'];
                 $upper = $rate['upper'];
 
                 return [
+                    'sort' => isset($rate['sort']) ? (int) $rate['sort'] : null,
                     'lower' => $lower !== null ? (int) $lower : null,
                     'upper' => $upper !== null ? (int) $upper : null,
                     'income_rate' => (float) $rate['income_rate'],
@@ -73,7 +92,13 @@ class FurusatoMasterService
                     'note' => array_key_exists('note', $rate) && $rate['note'] !== null ? (string) $rate['note'] : '',
                 ];
             })
-            ->map(static fn (array $rate): object => (object) $rate);
+            ->map(static function (array $rate): object {
+                if ($rate['sort'] === null) {
+                    unset($rate['sort']);
+                }
+
+                return (object) $rate;
+            });
     }
 
     public function getShinkokutokureiRates(int $year, ?int $companyId = null): Collection
@@ -103,27 +128,29 @@ class FurusatoMasterService
                 return $rates;
             }
 
-            return collect($fallback());
+            return collect($fallback())->map(static fn ($row): array => (array) $row);
         });
     }
 
     private function fetchRates(string $table, int $year, ?int $companyId): Collection
     {
-        $query = DB::table($table)
-            ->where('year', '<=', $year);
+        $rows = DB::table($table)
+            ->select('*')
+            ->selectRaw('COALESCE(year, kifu_year) as effective_year')
+            ->whereRaw('COALESCE(year, kifu_year) <= ?', [$year]);
 
         if ($companyId === null) {
-            $query->whereNull('company_id');
+            $rows->whereNull('company_id');
         } else {
-            $query->where(function ($inner) use ($companyId): void {
+            $rows->where(function ($inner) use ($companyId): void {
                 $inner->where('company_id', $companyId)
                     ->orWhereNull('company_id');
             });
         }
 
-        $rows = $query
+        $rows = $rows
             ->orderByRaw('CASE WHEN company_id IS NULL THEN 1 ELSE 0 END')
-            ->orderByDesc('year')
+            ->orderByRaw('COALESCE(year, kifu_year) DESC')
             ->orderBy('sort')
             ->get();
 
@@ -131,23 +158,55 @@ class FurusatoMasterService
             return collect();
         }
 
-        $targetYear = (int) $rows->first()->year;
+        $effectiveYear = $rows->first()->effective_year;
+        if ($effectiveYear === null) {
+            return collect();
+        }
 
-        $grouped = $rows
-            ->filter(static fn ($row): bool => (int) $row->year === $targetYear)
+        $filtered = $rows->filter(static function ($row) use ($effectiveYear): bool {
+            return (int) ($row->effective_year ?? 0) === (int) $effectiveYear;
+        });
+
+        $grouped = $filtered
             ->groupBy('sort')
             ->map(function (Collection $group) use ($companyId) {
-                return $group->sortByDesc(function ($row) use ($companyId) {
-                    if ($row->company_id === null) {
-                        return 0;
+                return $group->sortBy(function ($row) use ($companyId) {
+                    if ($companyId !== null) {
+                        if ($row->company_id !== null && (int) $row->company_id === $companyId) {
+                            return 0;
+                        }
+
+                        if ($row->company_id === null) {
+                            return 1;
+                        }
+
+                        return 2;
                     }
 
-                    return $companyId !== null && (int) $row->company_id === $companyId ? 2 : 1;
+                    return $row->company_id === null ? 0 : 1;
                 })->first();
             })
             ->sortKeys()
             ->values();
 
-        return $grouped->map(static fn ($row): array => (array) $row);
+        return $grouped->map(static function ($row): array {
+            $data = (array) $row;
+            unset($data['effective_year']);
+
+            return $data;
+        });
+    }
+
+    private function buildTokureiNote(array $rate): string
+    {
+        $sort = isset($rate['sort']) ? (int) $rate['sort'] : null;
+
+        if ($sort === null || ! array_key_exists($sort, self::TOKUREI_NOTE_TEMPLATES)) {
+            return '||';
+        }
+
+        $template = self::TOKUREI_NOTE_TEMPLATES[$sort];
+
+        return sprintf('%s||%s', $template['label'], $template['text']);
     }
 }

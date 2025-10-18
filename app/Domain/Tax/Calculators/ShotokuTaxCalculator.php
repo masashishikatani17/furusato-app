@@ -58,13 +58,14 @@ class ShotokuTaxCalculator implements ProvidesKeys
     }
 
     /**
-     * @param  array<int, array<string, mixed>>  $rates
+     * @param  array<int, array<string, mixed>|object>  $rates
      */
     private function calculateTaxAmount(array $rates, int $amount): int
     {
         $taxable = max(0, $amount);
 
         foreach ($rates as $rate) {
+            $rate = is_array($rate) ? $rate : (array) $rate;
             $lower = (int) ($rate['lower'] ?? 0);
             $upper = array_key_exists('upper', $rate) ? $rate['upper'] : null;
 

@@ -71,18 +71,6 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
 
         $bunriNettingOutputs = $this->calculateSeparatedNettingStages($payload, $period);
 
-        $shortSource = $this->valueWithFallback(
-            $payload,
-            sprintf('sashihiki_joto_tanki_sogo_%s', $period),
-            sprintf('sashihiki_joto_tanki_%s', $period)
-        );
-        $longSource = $this->valueWithFallback(
-            $payload,
-            sprintf('sashihiki_joto_choki_sogo_%s', $period),
-            sprintf('sashihiki_joto_choki_%s', $period)
-        );
-        $ichijiRaw = $this->value($payload, sprintf('sashihiki_ichiji_%s', $period));
-
         $econ = $this->value($payload, sprintf('shotoku_jigyo_eigyo_shotoku_%s', $period))
             + $this->value($payload, sprintf('shotoku_jigyo_nogyo_shotoku_%s', $period))
             + $this->value($payload, sprintf('shotoku_fudosan_shotoku_%s', $period))
@@ -154,6 +142,34 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('after_2jitsusan_ichiji_%s', $period) => $after2Ichiji,
             sprintf('after_2jitsusan_sanrin_%s', $period) => $after2Forest,
             sprintf('after_2jitsusan_taishoku_%s', $period) => $after2Retire,
+        ]);
+
+        if ($bunriNettingOutputs !== []) {
+            $outputs = array_replace($outputs, $bunriNettingOutputs);
+        }
+
+        // 第3次通算
+        $retire = $after2Retire;
+
+        $retirePos = max(0, $retire);
+        $longNeg3 = max(0, -$after2Long);
+        $shortNeg3 = max(0, -$after2Short);
+        $econNeg3 = max(0, -$after2Econ);
+        $forestNeg3 = max(0, -$after2Forest);
+
+        $useLong3 = min($retirePos, $longNeg3);
+        $useShort3 = min($retirePos - $useLong3, $shortNeg3);
+        $useEcon3 = min($retirePos - $useLong3 - $useShort3, $econNeg3);
+        $useForest3 = min($retirePos - $useLong3 - $useShort3 - $useEcon3, $forestNeg3);
+
+        $after3Econ = $after2Econ + $useEcon3;
+        $after3Short = $after2Short + $useShort3;
+        $after3Long = $after2Long + $useLong3;
+        $after3Ichiji = $after2Ichiji;
+        $after3Forest = $after2Forest + $useForest3;
+        $after3Retire = $retire - ($useLong3 + $useShort3 + $useEcon3 + $useForest3);
+
+        $outputs = array_replace($outputs, [
             sprintf('after_3jitsusan_keijo_%s', $period) => $after3Econ,
             sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period) => $after3Short,
             sprintf('after_3jitsusan_joto_choki_sogo_%s', $period) => $after3Long,
@@ -329,19 +345,6 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
     private function half(int $value): int
     {
         return (int) intdiv($value, 2);
-    }
-
-    private function valueWithFallback(array $payload, string $primary, ?string $fallback = null): int
-    {
-        if (array_key_exists($primary, $payload)) {
-            return $this->value($payload, $primary);
-        }
-
-        if ($fallback !== null && array_key_exists($fallback, $payload)) {
-            return $this->value($payload, $fallback);
-        }
-
-        return 0;
     }
 
     /**

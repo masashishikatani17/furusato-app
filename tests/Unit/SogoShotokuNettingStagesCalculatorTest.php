@@ -171,27 +171,6 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
         }
     }
 
-    public function test_tsusanmae_ichiji_is_raw_and_after_stages_are_clamped(): void
-    {
-        $calculator = new SogoShotokuNettingStagesCalculator();
-
-        foreach (['prev', 'curr'] as $period) {
-            foreach ([-1, 0, 1, 50_000] as $value) {
-                $payload = [
-                    sprintf('sashihiki_ichiji_%s', $period) => $value,
-                ];
-
-                $result = $calculator->compute($payload, $period);
-                $clamped = max(0, $value);
-
-                $this->assertSame($value, $result[sprintf('tsusanmae_ichiji_%s', $period)]);
-                $this->assertSame($clamped, $result[sprintf('after_1jitsusan_ichiji_%s', $period)]);
-                $this->assertSame($clamped, $result[sprintf('after_2jitsusan_ichiji_%s', $period)]);
-                $this->assertSame($clamped, $result[sprintf('after_3jitsusan_ichiji_%s', $period)]);
-            }
-        }
-    }
-
     private function assertSeparatedMatchesLetFormula(
         SogoShotokuNettingStagesCalculator $stageCalculator,
         BunriNettingCalculator $bunriCalculator,

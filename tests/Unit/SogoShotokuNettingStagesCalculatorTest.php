@@ -2,6 +2,7 @@
 
 namespace Tests\Unit;
 
+use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use PHPUnit\Framework\TestCase;
 
@@ -117,5 +118,105 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
         $this->assertSame(0, $result['shotoku_sanrin_curr']);
         $this->assertSame(0, $result['shotoku_taishoku_curr']);
         $this->assertSame(-90, $result['shotoku_gokei_curr']);
+    }
+
+    public function test_bunri_netting_block_matches_let_formulas_for_both_periods(): void
+    {
+        $stageCalculator = new SogoShotokuNettingStagesCalculator();
+        $bunriCalculator = new BunriNettingCalculator();
+
+        $shortCases = [
+            [100, -60],
+            [-80, 50],
+            [0, -10],
+            [200, 0],
+            [-150, -200],
+        ];
+
+        $longCases = [
+            [100, -70, 0],
+            [-50, 120, -40],
+            [0, 0, 0],
+            [-1, -2, 300],
+            [500, 0, 0],
+        ];
+
+        foreach ($shortCases as $short) {
+            foreach ($longCases as $long) {
+                [$shortGeneral, $shortReduced] = $short;
+                [$longGeneral, $longReduced, $longLight] = $long;
+
+                $this->assertSeparatedMatchesLetFormula(
+                    $stageCalculator,
+                    $bunriCalculator,
+                    'prev',
+                    $shortGeneral,
+                    $shortReduced,
+                    $longGeneral,
+                    $longReduced,
+                    $longLight,
+                );
+
+                $this->assertSeparatedMatchesLetFormula(
+                    $stageCalculator,
+                    $bunriCalculator,
+                    'curr',
+                    $shortGeneral,
+                    $shortReduced,
+                    $longGeneral,
+                    $longReduced,
+                    $longLight,
+                );
+            }
+        }
+    }
+
+    private function assertSeparatedMatchesLetFormula(
+        SogoShotokuNettingStagesCalculator $stageCalculator,
+        BunriNettingCalculator $bunriCalculator,
+        string $period,
+        int $shortGeneral,
+        int $shortReduced,
+        int $longGeneral,
+        int $longReduced,
+        int $longLight,
+    ): void {
+        $payload = [
+            sprintf('bunri_shotoku_tanki_ippan_shotoku_%s', $period) => $shortGeneral,
+            sprintf('bunri_shotoku_tanki_keigen_shotoku_%s', $period) => $shortReduced,
+            sprintf('bunri_shotoku_choki_ippan_shotoku_%s', $period) => $longGeneral,
+            sprintf('bunri_shotoku_choki_tokutei_shotoku_%s', $period) => $longReduced,
+            sprintf('bunri_shotoku_choki_keika_shotoku_%s', $period) => $longLight,
+        ];
+
+        $expected = $bunriCalculator->compute($payload, $period);
+        $actual = $stageCalculator->compute($payload, $period);
+
+        $mapping = [
+            'before_tsusan_tanki_ippan_%s' => 'before_tsusan_tanki_ippan_%s',
+            'before_tsusan_tanki_keigen_%s' => 'before_tsusan_tanki_keigen_%s',
+            'before_tsusan_choki_ippan_%s' => 'before_tsusan_choki_ippan_%s',
+            'before_tsusan_choki_tokutei_%s' => 'before_tsusan_choki_tokutei_%s',
+            'before_tsusan_choki_keika_%s' => 'before_tsusan_choki_keika_%s',
+            'after_1jitsusan_tanki_ippan_%s' => 'after_1jitsusan_tanki_ippan_%s',
+            'after_1jitsusan_tanki_keigen_%s' => 'after_1jitsusan_tanki_keigen_%s',
+            'after_1jitsusan_choki_ippan_%s' => 'after_1jitsusan_choki_ippan_%s',
+            'after_1jitsusan_choki_tokutei_%s' => 'after_1jitsusan_tanki_tokutei_%s',
+            'after_1jitsusan_choki_keika_%s' => 'after_1jitsusan_tanki_keika_%s',
+            'after_2jitsusan_tanki_ippan_%s' => 'after_2jitsusan_tanki_ippan_%s',
+            'after_2jitsusan_tanki_keigen_%s' => 'after_2jitsusan_tanki_keigen_%s',
+            'after_2jitsusan_choki_ippan_%s' => 'after_2jitsusan_choki_ippan_%s',
+            'after_2jitsusan_choki_tokutei_%s' => 'after_2jitsusan_tanki_tokutei_%s',
+            'after_2jitsusan_choki_keika_%s' => 'after_2jitsusan_tanki_keika_%s',
+        ];
+
+        foreach ($mapping as $stagePattern => $bunriPattern) {
+            $stageKey = sprintf($stagePattern, $period);
+            $bunriKey = sprintf($bunriPattern, $period);
+
+            $this->assertArrayHasKey($bunriKey, $expected);
+            $this->assertArrayHasKey($stageKey, $actual);
+            $this->assertSame($expected[$bunriKey], $actual[$stageKey]);
+        }
     }
 }

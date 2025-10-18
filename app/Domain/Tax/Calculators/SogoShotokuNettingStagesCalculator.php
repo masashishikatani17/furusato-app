@@ -69,6 +69,8 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             return [];
         }
 
+        $bunriNettingOutputs = $this->calculateSeparatedNettingStages($payload, $period);
+
         $econ = $this->value($payload, sprintf('shotoku_jigyo_eigyo_shotoku_%s', $period))
             + $this->value($payload, sprintf('shotoku_jigyo_nogyo_shotoku_%s', $period))
             + $this->value($payload, sprintf('shotoku_fudosan_shotoku_%s', $period))
@@ -204,6 +206,10 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('after_2jitsusan_taishoku_%s', $period) => $after2Retire,
         ]);
 
+        if ($bunriNettingOutputs !== []) {
+            $outputs = array_replace($outputs, $bunriNettingOutputs);
+        }
+
         // 第3次通算
         $retire = $after2Retire;
 
@@ -307,5 +313,158 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
     private function half(int $value): int
     {
         return (int) intdiv($value, 2);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, int>
+     */
+    private function calculateSeparatedNettingStages(array $payload, string $period): array
+    {
+        $shortGeneral = $this->resolveSeparatedValue($payload, $period, [
+            'bunri_shotoku_tanki_ippan_shotoku_%s',
+            'before_tsusan_tanki_ippan_%s',
+        ]);
+        $shortReduced = $this->resolveSeparatedValue($payload, $period, [
+            'bunri_shotoku_tanki_keigen_shotoku_%s',
+            'before_tsusan_tanki_keigen_%s',
+        ]);
+        $longGeneral = $this->resolveSeparatedValue($payload, $period, [
+            'bunri_shotoku_choki_ippan_shotoku_%s',
+            'before_tsusan_choki_ippan_%s',
+        ]);
+        $longReduced = $this->resolveSeparatedValue($payload, $period, [
+            'bunri_shotoku_choki_tokutei_shotoku_%s',
+            'before_tsusan_choki_tokutei_%s',
+        ]);
+        $longLight = $this->resolveSeparatedValue($payload, $period, [
+            'bunri_shotoku_choki_keika_shotoku_%s',
+            'before_tsusan_choki_keika_%s',
+        ]);
+
+        $shortGeneralAfter = $shortGeneral;
+        $shortReducedAfter = $shortReduced;
+
+        if ($shortGeneral >= 0 && $shortReduced < 0) {
+            $move = min($shortGeneral, -$shortReduced);
+            $shortGeneralAfter -= $move;
+            $shortReducedAfter += $move;
+        } elseif ($shortGeneral < 0 && $shortReduced >= 0) {
+            $move = min($shortReduced, -$shortGeneral);
+            $shortGeneralAfter += $move;
+            $shortReducedAfter -= $move;
+        }
+
+        $needGeneral = max(0, -$longGeneral);
+        $moveReducedToGeneral = min(max(0, $longReduced), $needGeneral);
+        $lgA = $longGeneral + $moveReducedToGeneral;
+        $lrA = $longReduced - $moveReducedToGeneral;
+        $llA = $longLight;
+
+        $needGeneral2 = max(0, -$lgA);
+        $moveLightToGeneral = min(max(0, $llA), $needGeneral2);
+        $lgB = $lgA + $moveLightToGeneral;
+        $lrB = $lrA;
+        $llB = $llA - $moveLightToGeneral;
+
+        $needReduced = max(0, -$lrB);
+        $moveGeneralToReduced = min(max(0, $lgB), $needReduced);
+        $lgC = $lgB - $moveGeneralToReduced;
+        $lrC = $lrB + $moveGeneralToReduced;
+
+        $needReduced2 = max(0, -$lrC);
+        $moveLightToReduced = min(max(0, $llB), $needReduced2);
+        $lgD = $lgC;
+        $lrD = $lrC + $moveLightToReduced;
+        $llC = $llB - $moveLightToReduced;
+
+        $needLight = max(0, -$llC);
+        $moveGeneralToLight = min(max(0, $lgD), $needLight);
+        $lgE = $lgD - $moveGeneralToLight;
+        $llD = $llC + $moveGeneralToLight;
+
+        $needLight2 = max(0, -$llD);
+        $moveReducedToLight = min(max(0, $lrD), $needLight2);
+        unset($moveReducedToLight);
+
+        $shortNeed = max(0, -(min(0, $shortGeneralAfter) + min(0, $shortReducedAfter)));
+        $longNeed = max(0, -(min(0, $lgE) + min(0, $lrD) + min(0, $llC)));
+
+        $giveLongGeneral = ($shortNeed > 0 && $longNeed === 0)
+            ? min(max(0, $lgE), $shortNeed)
+            : 0;
+        $remainingShortNeed = $shortNeed > 0 && $longNeed === 0
+            ? $shortNeed - $giveLongGeneral
+            : 0;
+        $giveLongReduced = ($shortNeed > 0 && $longNeed === 0)
+            ? min(max(0, $lrD), $remainingShortNeed)
+            : 0;
+        $remainingShortNeed = $shortNeed > 0 && $longNeed === 0
+            ? $remainingShortNeed - $giveLongReduced
+            : 0;
+        $giveLongLight = ($shortNeed > 0 && $longNeed === 0)
+            ? min(max(0, $llC), $remainingShortNeed)
+            : 0;
+        $totalGivenToShort = $giveLongGeneral + $giveLongReduced + $giveLongLight;
+
+        $increaseShortGeneral = min(max(0, -$shortGeneralAfter), $totalGivenToShort);
+        $takeShortGeneral = ($longNeed > 0 && $shortNeed === 0)
+            ? min(max(0, $shortGeneralAfter), $longNeed)
+            : 0;
+        $remainingLongNeed = $longNeed > 0 && $shortNeed === 0
+            ? $longNeed - $takeShortGeneral
+            : 0;
+        $takeShortReduced = ($longNeed > 0 && $shortNeed === 0)
+            ? min(max(0, $shortReducedAfter), $remainingLongNeed)
+            : 0;
+
+        $afterSecondShortGeneral = $shortGeneralAfter + $increaseShortGeneral - $takeShortGeneral;
+        $increaseShortReduced = min(max(0, -$shortReducedAfter), max(0, $totalGivenToShort - $increaseShortGeneral));
+        $afterSecondShortReduced = $shortReducedAfter + $increaseShortReduced - $takeShortReduced;
+
+        $increaseLongGeneral = min(max(0, -$lgE), $takeShortGeneral + $takeShortReduced);
+        $afterSecondLongGeneral = $lgE - $giveLongGeneral + $increaseLongGeneral;
+
+        $availableForLongReduced = max(0, $takeShortGeneral + $takeShortReduced - $increaseLongGeneral);
+        $increaseLongReduced = min(max(0, -$lrD), $availableForLongReduced);
+        $afterSecondLongReduced = $lrD - $giveLongReduced + $increaseLongReduced;
+
+        $availableForLongLight = max(0, $takeShortGeneral + $takeShortReduced - $increaseLongGeneral - $increaseLongReduced);
+        $increaseLongLight = min(max(0, -$llC), $availableForLongLight);
+        $afterSecondLongLight = $llC - $giveLongLight + $increaseLongLight;
+
+        return [
+            sprintf('before_tsusan_tanki_ippan_%s', $period) => $shortGeneral,
+            sprintf('before_tsusan_tanki_keigen_%s', $period) => $shortReduced,
+            sprintf('before_tsusan_choki_ippan_%s', $period) => $longGeneral,
+            sprintf('before_tsusan_choki_tokutei_%s', $period) => $longReduced,
+            sprintf('before_tsusan_choki_keika_%s', $period) => $longLight,
+            sprintf('after_1jitsusan_tanki_ippan_%s', $period) => $shortGeneralAfter,
+            sprintf('after_1jitsusan_tanki_keigen_%s', $period) => $shortReducedAfter,
+            sprintf('after_1jitsusan_choki_ippan_%s', $period) => $lgE,
+            sprintf('after_1jitsusan_choki_tokutei_%s', $period) => $lrD,
+            sprintf('after_1jitsusan_choki_keika_%s', $period) => $llC,
+            sprintf('after_2jitsusan_tanki_ippan_%s', $period) => $afterSecondShortGeneral,
+            sprintf('after_2jitsusan_tanki_keigen_%s', $period) => $afterSecondShortReduced,
+            sprintf('after_2jitsusan_choki_ippan_%s', $period) => $afterSecondLongGeneral,
+            sprintf('after_2jitsusan_choki_tokutei_%s', $period) => $afterSecondLongReduced,
+            sprintf('after_2jitsusan_choki_keika_%s', $period) => $afterSecondLongLight,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<int, string>  $patterns
+     */
+    private function resolveSeparatedValue(array $payload, string $period, array $patterns): int
+    {
+        foreach ($patterns as $pattern) {
+            $key = sprintf($pattern, $period);
+            if (array_key_exists($key, $payload)) {
+                return $this->value($payload, $key);
+            }
+        }
+
+        return 0;
     }
 }

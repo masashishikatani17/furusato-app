@@ -3,17 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-
 class JuminRate extends Model
 {
-    use SoftDeletes;
-
     protected $fillable = [
         'company_id',
-        'kihu_year',
-        'version',
-        'seq',
+        'year',
+        'sort',
         'category',
         'sub_category',
         'city_specified',
@@ -21,13 +16,14 @@ class JuminRate extends Model
         'city_non_specified',
         'pref_non_specified',
         'remark',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
         'company_id' => 'integer',
-        'kihu_year' => 'integer',
-        'version' => 'integer',
-        'seq' => 'integer',
+        'year' => 'integer',
+        'sort' => 'integer',
         'city_specified' => 'float',
         'pref_specified' => 'float',
         'city_non_specified' => 'float',

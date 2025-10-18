@@ -83,121 +83,59 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             + max(0, $this->value($payload, sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)))
             + max(0, $this->value($payload, sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)));
 
-        $short = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
-        $long = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
-        $ichiji = $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
         $forestInput = $this->value($payload, sprintf('bunri_shotoku_sanrin_shotoku_%s', $period));
         $retireInput = $this->value($payload, sprintf('bunri_shotoku_taishoku_shotoku_%s', $period));
 
-        $outputs = [
-            sprintf('tsusanmae_keijo_%s', $period) => $econ,
-            sprintf('tsusanmae_joto_tanki_sogo_%s', $period) => $short,
-            sprintf('tsusanmae_joto_choki_sogo_%s', $period) => $long,
-            sprintf('tsusanmae_ichiji_%s', $period) => $ichiji,
-        ];
+        $tsusanmaeShort = $shortSource;
+        $tsusanmaeLong = $longSource;
+        $tsusanmaeIchiji = $ichijiRaw;
 
-        // 第1次通算
-        $econPos = max(0, $econ);
-        $longNeg = max(0, -$long);
-        $shortNeg = max(0, -$short);
-
-        $useEcon = min($econPos, $longNeg + $shortNeg);
-        $longRaise = min($useEcon, $longNeg);
-        $shortRaise = min($useEcon - $longRaise, $shortNeg);
-
-        $econAfter = $econ - ($longRaise + $shortRaise);
-        $shortAfter = $short + $shortRaise;
-        $longAfter = $long + $longRaise;
-        $ichijiAfter = $ichiji;
-
-        $econNeg = max(0, -$econAfter);
-        $useFromShort = min(max(0, $shortAfter), $econNeg);
-        $useFromLong = min(max(0, $longAfter), $econNeg - $useFromShort);
-        $useFromIchiji = min(max(0, $ichijiAfter), $econNeg - $useFromShort - $useFromLong);
-
-        $after1Econ = $econAfter + $useFromShort + $useFromLong + $useFromIchiji;
-        $after1Short = $shortAfter - $useFromShort;
-        $after1Long = $longAfter - $useFromLong;
-        $after1Ichiji = max(0, $ichijiAfter - $useFromIchiji);
+        [$after1Econ, $after1Short, $after1Long] = $this->netGeneralWithJoto($econ, $tsusanmaeShort, $tsusanmaeLong);
+        $after1Ichiji = max(0, $ichijiRaw);
         $after1Forest = $forestInput;
 
-        $outputs = array_replace($outputs, [
+        [$after2Econ, $after2Short, $after2Long, $after2Forest, $after2Ichiji] = $this->netWithForest(
+            $after1Econ,
+            $after1Short,
+            $after1Long,
+            $after1Forest,
+            $after1Ichiji
+        );
+        $after2Retire = max(0, $retireInput);
+
+        [$after3Econ, $after3Short, $after3Long, $after3Forest, $after3Ichiji, $after3Retire] = $this->netWithRetirement(
+            $after2Econ,
+            $after2Short,
+            $after2Long,
+            $after2Forest,
+            $after2Ichiji,
+            $after2Retire
+        );
+
+        $shotokuKeijo = $after3Econ;
+        $shotokuJotoTanki = $after3Short;
+        $shotokuJotoChoki = $this->half($after3Long);
+        $shotokuIchiji = $this->half($after3Ichiji);
+        $shotokuSanrin = $after3Forest;
+        $shotokuTaishoku = $after3Retire;
+
+        $shotokuGokei = $shotokuKeijo
+            + $shotokuJotoTanki
+            + $shotokuJotoChoki
+            + $shotokuIchiji
+            + $shotokuSanrin
+            + $shotokuTaishoku;
+
+        $outputs = [
+            sprintf('tsusanmae_keijo_%s', $period) => $econ,
+            sprintf('tsusanmae_joto_tanki_sogo_%s', $period) => $tsusanmaeShort,
+            sprintf('tsusanmae_joto_choki_sogo_%s', $period) => $tsusanmaeLong,
+            sprintf('tsusanmae_ichiji_%s', $period) => $tsusanmaeIchiji,
             sprintf('after_1jitsusan_keijo_%s', $period) => $after1Econ,
             sprintf('after_1jitsusan_joto_tanki_sogo_%s', $period) => $after1Short,
             sprintf('after_1jitsusan_joto_choki_sogo_%s', $period) => $after1Long,
             sprintf('after_1jitsusan_ichiji_%s', $period) => $after1Ichiji,
             sprintf('after_1jitsusan_sanrin_%s', $period) => $after1Forest,
-        ]);
-
-        // 第2次通算
-        $forest = $after1Forest;
-
-        $forestPos = max(0, $forest);
-        $forestNeg = max(0, -$forest);
-
-        $longNeg2 = max(0, -$after1Long);
-        $shortNeg2 = max(0, -$after1Short);
-        $econNeg2 = max(0, -$after1Econ);
-        $longPos2 = max(0, $after1Long);
-        $shortPos2 = max(0, $after1Short);
-        $econPos2 = max(0, $after1Econ);
-        $ichijiPos2 = max(0, $after1Ichiji);
-
-        $useLongPos = min($forestPos, $longNeg2);
-        $useShortPos = min($forestPos - $useLongPos, $shortNeg2);
-        $useEconPos = min($forestPos - $useLongPos - $useShortPos, $econNeg2);
-
-        $econWhenPos = $after1Econ + $useEconPos;
-
-        $useFromEcon = min($econPos2, $forestNeg);
-        $useFromShort2 = min($shortPos2, $forestNeg - $useFromEcon);
-        $useFromLong2 = min($longPos2, $forestNeg - $useFromEcon - $useFromShort2);
-        $useFromIchiji2 = min($ichijiPos2, $forestNeg - $useFromEcon - $useFromShort2 - $useFromLong2);
-
-        $econWhenNeg = $after1Econ - $useFromEcon;
-
-        $after2Econ = $forest >= 0 ? $econWhenPos : $econWhenNeg;
-
-        $useLongPosShort = min($forestPos, $longNeg2);
-        $useShortPosShort = min($forestPos - $useLongPosShort, $shortNeg2);
-        $shortWhenPos = $after1Short + $useShortPosShort;
-
-        $useFromEconShort = min($econPos2, $forestNeg);
-        $useFromShortShort = min($shortPos2, $forestNeg - $useFromEconShort);
-        $shortWhenNeg = $after1Short - $useFromShortShort;
-
-        $after2Short = $forest >= 0 ? $shortWhenPos : $shortWhenNeg;
-
-        $useLongPosLong = min($forestPos, $longNeg2);
-        $longWhenPos = $after1Long + $useLongPosLong;
-
-        $useFromEconLong = min($econPos2, $forestNeg);
-        $useFromShortLong = min($shortPos2, $forestNeg - $useFromEconLong);
-        $useFromLongLong = min($longPos2, $forestNeg - $useFromEconLong - $useFromShortLong);
-        $longWhenNeg = $after1Long - $useFromLongLong;
-
-        $after2Long = $forest >= 0 ? $longWhenPos : $longWhenNeg;
-
-        $useLongPosIchiji = min($forestPos, $longNeg2);
-        $useShortPosIchiji = min($forestPos - $useLongPosIchiji, $shortNeg2);
-        $useEconPosIchiji = min($forestPos - $useLongPosIchiji - $useShortPosIchiji, $econNeg2);
-        $ichijiWhenPos = $after1Ichiji;
-
-        $useFromEconIchiji = min($econPos2, $forestNeg);
-        $useFromShortIchiji = min($shortPos2, $forestNeg - $useFromEconIchiji);
-        $useFromLongIchiji = min($longPos2, $forestNeg - $useFromEconIchiji - $useFromShortIchiji);
-        $useFromIchijiIchiji = min($ichijiPos2, $forestNeg - $useFromEconIchiji - $useFromShortIchiji - $useFromLongIchiji);
-        $ichijiWhenNeg = max(0, $after1Ichiji - $useFromIchijiIchiji);
-
-        $after2Ichiji = $forest >= 0 ? $ichijiWhenPos : $ichijiWhenNeg;
-
-        $forestAfterPos = $forest - ($useLongPos + $useShortPos + $useEconPos);
-        $forestAfterNeg = $forest + ($useFromEcon + $useFromShort2 + $useFromLong2 + $useFromIchiji2);
-        $after2Forest = $forest >= 0 ? $forestAfterPos : $forestAfterNeg;
-
-        $after2Retire = max($retireInput, 0);
-
-        $outputs = array_replace($outputs, [
             sprintf('after_2jitsusan_keijo_%s', $period) => $after2Econ,
             sprintf('after_2jitsusan_joto_tanki_sogo_%s', $period) => $after2Short,
             sprintf('after_2jitsusan_joto_choki_sogo_%s', $period) => $after2Long,
@@ -238,24 +176,6 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('after_3jitsusan_ichiji_%s', $period) => $after3Ichiji,
             sprintf('after_3jitsusan_sanrin_%s', $period) => $after3Forest,
             sprintf('after_3jitsusan_taishoku_%s', $period) => $after3Retire,
-        ]);
-
-        // 最終所得
-        $shotokuKeijo = $after3Econ;
-        $shotokuJotoTanki = $after3Short;
-        $shotokuJotoChoki = $this->half($after3Long);
-        $shotokuIchiji = $this->half($after3Ichiji);
-        $shotokuSanrin = $after3Forest;
-        $shotokuTaishoku = $after3Retire;
-
-        $shotokuGokei = $shotokuKeijo
-            + $shotokuJotoTanki
-            + $shotokuJotoChoki
-            + $shotokuIchiji
-            + $shotokuSanrin
-            + $shotokuTaishoku;
-
-        $outputs = array_replace($outputs, [
             sprintf('shotoku_keijo_%s', $period) => $shotokuKeijo,
             sprintf('shotoku_joto_tanki_%s', $period) => $shotokuJotoTanki,
             sprintf('shotoku_joto_choki_sogo_%s', $period) => $shotokuJotoChoki,
@@ -263,9 +183,121 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('shotoku_sanrin_%s', $period) => $shotokuSanrin,
             sprintf('shotoku_taishoku_%s', $period) => $shotokuTaishoku,
             sprintf('shotoku_gokei_%s', $period) => $shotokuGokei,
-        ]);
+        ];
+
+        if ($bunriNettingOutputs !== []) {
+            $outputs = array_replace($outputs, $bunriNettingOutputs);
+        }
 
         return $outputs;
+    }
+
+    /**
+     * @return array{0:int,1:int,2:int}
+     */
+    private function netGeneralWithJoto(int $econ, int $short, int $long): array
+    {
+        $econAfter = $econ;
+        $shortAfter = $short;
+        $longAfter = $long;
+
+        $use = min(max(0, $econAfter), max(0, -$shortAfter));
+        $econAfter -= $use;
+        $shortAfter += $use;
+
+        $use = min(max(0, $econAfter), max(0, -$longAfter));
+        $econAfter -= $use;
+        $longAfter += $use;
+
+        $use = min(max(0, $shortAfter), max(0, -$econAfter));
+        $shortAfter -= $use;
+        $econAfter += $use;
+
+        $use = min(max(0, $longAfter), max(0, -$econAfter));
+        $longAfter -= $use;
+        $econAfter += $use;
+
+        return [$econAfter, $shortAfter, $longAfter];
+    }
+
+    /**
+     * @return array{0:int,1:int,2:int,3:int,4:int}
+     */
+    private function netWithForest(int $econ, int $short, int $long, int $forest, int $ichiji): array
+    {
+        $econAfter = $econ;
+        $shortAfter = $short;
+        $longAfter = $long;
+        $forestAfter = $forest;
+        $ichijiAfter = $ichiji;
+
+        if ($forestAfter >= 0) {
+            $use = min($forestAfter, max(0, -$longAfter));
+            $forestAfter -= $use;
+            $longAfter += $use;
+
+            $use = min($forestAfter, max(0, -$shortAfter));
+            $forestAfter -= $use;
+            $shortAfter += $use;
+
+            $use = min($forestAfter, max(0, -$econAfter));
+            $forestAfter -= $use;
+            $econAfter += $use;
+        } else {
+            $need = max(0, -$forestAfter);
+
+            $use = min(max(0, $econAfter), $need);
+            $econAfter -= $use;
+            $forestAfter += $use;
+            $need = max(0, -$forestAfter);
+
+            $use = min(max(0, $shortAfter), $need);
+            $shortAfter -= $use;
+            $forestAfter += $use;
+            $need = max(0, -$forestAfter);
+
+            $use = min(max(0, $longAfter), $need);
+            $longAfter -= $use;
+            $forestAfter += $use;
+            $need = max(0, -$forestAfter);
+
+            $use = min($ichijiAfter, $need);
+            $ichijiAfter -= $use;
+            $forestAfter += $use;
+        }
+
+        return [$econAfter, $shortAfter, $longAfter, $forestAfter, $ichijiAfter];
+    }
+
+    /**
+     * @return array{0:int,1:int,2:int,3:int,4:int,5:int}
+     */
+    private function netWithRetirement(int $econ, int $short, int $long, int $forest, int $ichiji, int $retire): array
+    {
+        $econAfter = $econ;
+        $shortAfter = $short;
+        $longAfter = $long;
+        $forestAfter = $forest;
+        $ichijiAfter = $ichiji;
+        $retireAfter = $retire;
+
+        $use = min($retireAfter, max(0, -$longAfter));
+        $retireAfter -= $use;
+        $longAfter += $use;
+
+        $use = min($retireAfter, max(0, -$shortAfter));
+        $retireAfter -= $use;
+        $shortAfter += $use;
+
+        $use = min($retireAfter, max(0, -$econAfter));
+        $retireAfter -= $use;
+        $econAfter += $use;
+
+        $use = min($retireAfter, max(0, -$forestAfter));
+        $retireAfter -= $use;
+        $forestAfter += $use;
+
+        return [$econAfter, $shortAfter, $longAfter, $forestAfter, $ichijiAfter, $retireAfter];
     }
 
     private function value(array $payload, string $key): int

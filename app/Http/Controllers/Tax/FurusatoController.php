@@ -2667,15 +2667,17 @@ final class FurusatoController extends Controller
     }
 
     /**
-     * @param array<int, array{lower:int, upper:int|null, rate:float, deduction_amount:int}> $rates
+     * @param iterable<int, array<string, mixed>|object> $rates
      */
-    private function calculateShotokuTaxAmount(array $rates, int $taxable): int
+    private function calculateShotokuTaxAmount(iterable $rates, int $taxable): int
     {
         $amount = max(0, $taxable);
 
         foreach ($rates as $rate) {
-            $lower = (int) ($rate['lower'] ?? 0);
-            $upper = array_key_exists('upper', $rate) ? $rate['upper'] : null;
+            $data = is_array($rate) ? $rate : (array) $rate;
+
+            $lower = (int) ($data['lower'] ?? 0);
+            $upper = array_key_exists('upper', $data) ? $data['upper'] : null;
 
             if ($amount < $lower) {
                 continue;
@@ -2685,8 +2687,8 @@ final class FurusatoController extends Controller
                 continue;
             }
 
-            $rateDecimal = (float) ($rate['rate'] ?? 0) / 100;
-            $deduction = (int) ($rate['deduction_amount'] ?? 0);
+            $rateDecimal = (float) ($data['rate'] ?? 0) / 100;
+            $deduction = (int) ($data['deduction_amount'] ?? 0);
             $value = $amount * $rateDecimal - $deduction;
 
             return (int) $value;

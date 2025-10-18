@@ -3,31 +3,27 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-
 class TokureiRate extends Model
 {
-    use SoftDeletes;
-
     protected $fillable = [
         'company_id',
-        'kihu_year',
-        'version',
-        'seq',
+        'year',
+        'sort',
         'lower',
         'upper',
         'income_rate',
         'ninety_minus_rate',
         'income_rate_with_recon',
         'tokurei_deduction_rate',
-        'note',
+        'remark',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
         'company_id' => 'integer',
-        'kihu_year' => 'integer',
-        'version' => 'integer',
-        'seq' => 'integer',
+        'year' => 'integer',
+        'sort' => 'integer',
         'lower' => 'integer',
         'upper' => 'integer',
         'income_rate' => 'float',

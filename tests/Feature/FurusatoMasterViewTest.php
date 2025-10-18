@@ -41,6 +41,43 @@ final class FurusatoMasterViewTest extends TestCase
     }
 
     /** @test */
+    public function it_renders_each_master_detail_view(): void
+    {
+        $user = User::factory()->create();
+        $user->forceFill([
+            'company_id' => 6001,
+            'group_id' => 6002,
+            'role' => 'member',
+        ]);
+
+        $data = Data::create([
+            'guest_id' => null,
+            'company_id' => 6001,
+            'group_id' => 6003,
+            'user_id' => $user->id,
+            'owner_user_id' => $user->id,
+            'kihu_year' => 2024,
+            'visibility' => 'private',
+        ]);
+
+        $this->actingAs($user);
+
+        $routes = [
+            ['name' => 'furusato.master.shotoku', 'label' => '所得税率マスター'],
+            ['name' => 'furusato.master.jumin', 'label' => '住民税率マスター'],
+            ['name' => 'furusato.master.tokurei', 'label' => '特例控除マスター'],
+            ['name' => 'furusato.master.shinkokutokurei', 'label' => '申告特例控除マスター'],
+        ];
+
+        foreach ($routes as $route) {
+            $response = $this->get(route($route['name'], ['data_id' => $data->id], false));
+
+            $response->assertOk();
+            $response->assertSee($route['label'], false);
+        }
+    }
+
+    /** @test */
     public function it_forbids_other_company_to_view_master(): void
     {
         $user = User::factory()->create();

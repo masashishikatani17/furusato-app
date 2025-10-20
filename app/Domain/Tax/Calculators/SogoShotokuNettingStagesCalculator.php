@@ -104,13 +104,14 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('bunri_shotoku_sanrin_shotoku_%s', $period),
         ]);
 
-        $shortT = (int) $this->value($payload, sprintf('tsusanmae_joto_tanki_sogo_%s', $period));
-        $longT = (int) $this->value($payload, sprintf('tsusanmae_joto_choki_sogo_%s', $period));
-        $oneTime = (int) $this->value($payload, sprintf('tsusanmae_ichiji_%s', $period));
-        
-        $tsusanmaeShort = $shortT;
-        $tsusanmaeLong = $longT;
-        $tsusanmaeIchiji = $oneTime;
+        $tsusanmaeShort  = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
+        $tsusanmaeLong   = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
+        $tsusanmaeIchiji = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
+
+        // 第1次通算の演算元
+        $shortT  = $tsusanmaeShort;
+        $longT   = $tsusanmaeLong;
+        $oneTime = $tsusanmaeIchiji;
 
         $econPos = (int) max(0, $econ);
         $ltNeg = (int) max(0, -$longT);

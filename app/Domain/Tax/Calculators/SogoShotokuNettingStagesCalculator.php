@@ -71,13 +71,25 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
 
         $bunriNettingOutputs = $this->calculateSeparatedNettingStages($payload, $period);
 
-        $econ = $this->value($payload, sprintf('shotoku_jigyo_eigyo_shotoku_%s', $period))
-            + $this->value($payload, sprintf('shotoku_jigyo_nogyo_shotoku_%s', $period))
-            + $this->value($payload, sprintf('shotoku_fudosan_shotoku_%s', $period))
+        $econ = $this->valueWithAliases($payload, [
+            sprintf('jigyo_eigyo_shotoku_%s', $period),
+            sprintf('shotoku_jigyo_eigyo_shotoku_%s', $period),
+        ])
+            + $this->valueWithAliases($payload, [
+                sprintf('shotoku_jigyo_nogyo_shotoku_%s', $period),
+                sprintf('jigyo_nogyo_shotoku_%s', $period),
+            ])
+            + $this->valueWithAliases($payload, [
+                sprintf('fudosan_shotoku_%s', $period),
+                sprintf('shotoku_fudosan_shotoku_%s', $period),
+            ])
+            + max(0, $this->valueWithAliases($payload, [
+                sprintf('shotoku_rishi_shotoku_%s', $period),
+                sprintf('shotoku_rishi_%s', $period),
+            ]))
             + max(0, $this->value($payload, sprintf('shotoku_haito_shotoku_%s', $period)))
             + max(0, $this->value($payload, sprintf('shotoku_kyuyo_shotoku_%s', $period)))
             + max(0, $this->valueWithAliases($payload, [
-                sprintf('shotoku_zatsu_nankin_shotoku_%s', $period),
                 sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period),
             ]))
             + max(0, $this->value($payload, sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)))
@@ -96,12 +108,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         ]);
         $ichijiRaw = $this->value($payload, sprintf('sashihiki_ichiji_%s', $period));
 
-        // 通算前の可視化値
-        $tsusanmaeShort  = $shortSource;
-        $tsusanmaeLong   = $longSource;
-        $tsusanmaeIchiji = $ichijiRaw;
-
-        [$after1Econ, $after1Short, $after1Long] = $this->netGeneralWithJoto($econ, $tsusanmaeShort, $tsusanmaeLong);
+        [$after1Econ, $after1Short, $after1Long] = $this->netGeneralWithJoto($econ, $shortSource, $longSource);
         $after1Ichiji = max(0, $ichijiRaw);
         $after1Forest = $forestInput;
 
@@ -136,6 +143,10 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             + $shotokuIchiji
             + $shotokuSanrin
             + $shotokuTaishoku;
+
+        $tsusanmaeShort = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
+        $tsusanmaeLong = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
+        $tsusanmaeIchiji = $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
 
         $outputs = [
             sprintf('tsusanmae_keijo_%s', $period) => $econ,

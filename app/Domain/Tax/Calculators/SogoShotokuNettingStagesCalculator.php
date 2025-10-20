@@ -99,14 +99,19 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         
         $retireInput = $this->value($payload, sprintf('bunri_shotoku_taishoku_shotoku_%s', $period));
 
-        // 表示用の通算前（内部通算後）は after_joto_ichiji_tousan_* をセット
+        /**
+         * 表示の「通算前」= 内部通算後（after_joto_ichiji_tousan_*）。
+         * 第1次通算の計算元も “短期/長期/一時 すべて” 内部通算後を用いる。
+         * ただし山林だけは sashihiki_sanrin を用いる（第1次結果 after_1jitsusan_sanrin_* のみ）。
+         */
         $tsusanmaeShort  = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
         $tsusanmaeLong   = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
         $tsusanmaeIchiji = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
 
-        $shortT  = (int) $this->value($payload, sprintf('tsusanmae_joto_tanki_sogo_%s', $period));
-        $longT   = (int) $this->value($payload, sprintf('tsusanmae_joto_choki_sogo_%s', $period));
-        $oneTime = (int) $this->value($payload, sprintf('tsusanmae_ichiji_%s', $period));
+        // 第1次通算の演算元
+        $shortT = $tsusanmaeShort;
+        $longT  = $tsusanmaeLong;
+        $oneTime = $tsusanmaeIchiji;
 
         $econPos = (int) max(0, $econ);
         $ltNeg = (int) max(0, -$longT);

@@ -1722,6 +1722,20 @@
       });
     };
 
+    // ====== ここが不足していると ReferenceError になります ======
+    // blur 時に所得税→住民税へ値をコピーするヘルパ
+    const mirrorOnBlur = (srcName, dstName) => {
+      const src = getInput(srcName);
+      const dst = getInput(dstName);
+      if (!src || !dst) return;
+      src.addEventListener('blur', () => {
+        dst.value = src.value;
+        // 下流の再計算に効くようにイベントも発火
+        dst.dispatchEvent(new Event('input',  { bubbles: true }));
+        dst.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    };
+
     const kojoBasesForEvents = kojoShokeiBases.concat(kojoGokeiExtras);
     kojoBasesForEvents.forEach((base) => {
       taxTypes.forEach((tax) => {
@@ -1745,6 +1759,81 @@
 
     recalcKojo();
     recalcTax();
+    // ============================
+    // 再計算時・初期表示時にも
+    // 「給与」「公的年金等」の所得税→住民税を強制同期
+    // （フォーカス→blurをしなくても表示されるように）
+    // ============================
+    const bulkMirrorNow = (pairs) => {
+      pairs.forEach(([srcName, dstName]) => {
+        const src = getInput(srcName);
+        const dst = getInput(dstName);
+        if (!src || !dst) return;
+        dst.value = src.value;
+        // 下流の合計・税額などが拾えるよう発火
+        dst.dispatchEvent(new Event('input',  { bubbles: true }));
+        dst.dispatchEvent(new Event('change', { bubbles: true }));
+        dst.dispatchEvent(new Event('blur',   { bubbles: true })); // 念のため
+      });
+    };
+
+    // 同期対象（prev/curr 両方）
+    const kyuyoNenkinShotokuPairs = [
+      // 給与（所得金額）
+      ['shotoku_kyuyo_shotoku_prev',        'shotoku_kyuyo_jumin_prev'],
+      ['shotoku_kyuyo_shotoku_curr',        'shotoku_kyuyo_jumin_curr'],
+      // 雑（公的年金等：所得金額）
+      ['shotoku_zatsu_nenkin_shotoku_prev', 'shotoku_zatsu_nenkin_jumin_prev'],
+      ['shotoku_zatsu_nenkin_shotoku_curr', 'shotoku_zatsu_nenkin_jumin_curr'],
+    ];
+
+    // 1) 画面読み込み直後にも強制同期（サーバ再計算後の再描画でも反映）
+    bulkMirrorNow(kyuyoNenkinShotokuPairs);
+
+    // 2) 再計算ボタン押下直前にも強制同期してから送信
+    const formEl = document.getElementById('furusato-input-form');
+    if (formEl) {
+      formEl.addEventListener('submit', (e) => {
+        // 送信トリガーのボタンを判定（再計算以外でも同期しておくと安全）
+        const submitter = (e.submitter && e.submitter instanceof Element) ? e.submitter : null;
+        const isRecalc = submitter
+          ? (submitter.getAttribute('name') === 'recalc_all' || submitter.dataset.redirectTo === 'input')
+          : false;
+        // 再計算に限らず常に同期しておく（保存でもズレを防止）
+        bulkMirrorNow(kyuyoNenkinShotokuPairs);
+      });
+    }
+
+    // 収入（金額等）系：所得税→住民税（prev）
+    mirrorOnBlur('syunyu_jigyo_nogyo_shotoku_prev',  'syunyu_jigyo_nogyo_jumin_prev');
+    mirrorOnBlur('syunyu_haito_shotoku_prev',        'syunyu_haito_jumin_prev');
+    mirrorOnBlur('syunyu_kyuyo_shotoku_prev',        'syunyu_kyuyo_jumin_prev');           // 給与
+    mirrorOnBlur('syunyu_zatsu_nenkin_shotoku_prev', 'syunyu_zatsu_nenkin_jumin_prev');    // 公的年金等
+    mirrorOnBlur('syunyu_zatsu_gyomu_shotoku_prev',  'syunyu_zatsu_gyomu_jumin_prev');
+    mirrorOnBlur('syunyu_zatsu_sonota_shotoku_prev', 'syunyu_zatsu_sonota_jumin_prev');
+    // 所得（控除後）系：所得税→住民税（prev）
+    mirrorOnBlur('shotoku_jigyo_nogyo_shotoku_prev',  'shotoku_jigyo_nogyo_jumin_prev');
+    mirrorOnBlur('shotoku_haito_shotoku_prev',        'shotoku_haito_jumin_prev');
+    mirrorOnBlur('shotoku_kyuyo_shotoku_prev',        'shotoku_kyuyo_jumin_prev');         // 給与
+    mirrorOnBlur('shotoku_zatsu_nenkin_shotoku_prev', 'shotoku_zatsu_nenkin_jumin_prev');  // 公的年金等
+    mirrorOnBlur('shotoku_zatsu_gyomu_shotoku_prev',  'shotoku_zatsu_gyomu_jumin_prev');
+    mirrorOnBlur('shotoku_zatsu_sonota_shotoku_prev', 'shotoku_zatsu_sonota_jumin_prev');    
+
+    // 収入（金額等）系：所得税→住民税（curr）
+    mirrorOnBlur('syunyu_jigyo_nogyo_shotoku_curr',  'syunyu_jigyo_nogyo_jumin_curr');
+    mirrorOnBlur('syunyu_haito_shotoku_curr',        'syunyu_haito_jumin_curr');
+    mirrorOnBlur('syunyu_kyuyo_shotoku_curr',        'syunyu_kyuyo_jumin_curr');           // 給与
+    mirrorOnBlur('syunyu_zatsu_nenkin_shotoku_curr', 'syunyu_zatsu_nenkin_jumin_curr');    // 公的年金等
+    mirrorOnBlur('syunyu_zatsu_gyomu_shotoku_curr',  'syunyu_zatsu_gyomu_jumin_curr');
+    mirrorOnBlur('syunyu_zatsu_sonota_shotoku_curr', 'syunyu_zatsu_sonota_jumin_curr');
+
+    // 所得（控除後）系：所得税→住民税（curr）
+    mirrorOnBlur('shotoku_jigyo_nogyo_shotoku_curr',  'shotoku_jigyo_nogyo_jumin_curr');
+    mirrorOnBlur('shotoku_haito_shotoku_curr',        'shotoku_haito_jumin_curr');
+    mirrorOnBlur('shotoku_kyuyo_shotoku_curr',        'shotoku_kyuyo_jumin_curr');         // 給与
+    mirrorOnBlur('shotoku_zatsu_nenkin_shotoku_curr', 'shotoku_zatsu_nenkin_jumin_curr');  // 公的年金等
+    mirrorOnBlur('shotoku_zatsu_gyomu_shotoku_curr',  'shotoku_zatsu_gyomu_jumin_curr');
+    mirrorOnBlur('shotoku_zatsu_sonota_shotoku_curr', 'shotoku_zatsu_sonota_jumin_curr');
   });
 </script>
 @endpush

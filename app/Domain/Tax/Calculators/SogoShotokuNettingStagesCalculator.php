@@ -71,10 +71,11 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
 
         $bunriNettingOutputs = $this->calculateSeparatedNettingStages($payload, $period);
 
-        $econ = $this->valueWithAliases($payload, [
-            sprintf('jigyo_eigyo_shotoku_%s', $period),
-            sprintf('shotoku_jigyo_eigyo_shotoku_%s', $period),
-        ])
+        $econ = (int) (
+            $this->valueWithAliases($payload, [
+                sprintf('jigyo_eigyo_shotoku_%s', $period),
+                sprintf('shotoku_jigyo_eigyo_shotoku_%s', $period),
+            ])
             + $this->valueWithAliases($payload, [
                 sprintf('shotoku_jigyo_nogyo_shotoku_%s', $period),
                 sprintf('jigyo_nogyo_shotoku_%s', $period),
@@ -93,28 +94,49 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
                 sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period),
             ]))
             + max(0, $this->value($payload, sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)))
-            + max(0, $this->value($payload, sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)));
-
+            + max(0, $this->value($payload, sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)))
+        );
+        
         $retireInput = $this->value($payload, sprintf('bunri_shotoku_taishoku_shotoku_%s', $period));
 
-        $sashihikiForest = $this->value($payload, sprintf('sashihiki_sanrin_%s', $period));
+        $sashihikiForest = $this->valueWithAliases($payload, [
+            sprintf('sashihiki_sanrin_%s', $period),
+            sprintf('bunri_shotoku_sanrin_shotoku_%s', $period),
+        ]);
 
         $tsusanmaeShort = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
         $tsusanmaeLong = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
         $tsusanmaeIchiji = $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
 
+        $shortBase = $this->valueWithAliases($payload, [
+            sprintf('sashihiki_joto_tanki_sogo_%s', $period),
+            sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
+        ]);
+        $longBase = $this->valueWithAliases($payload, [
+            sprintf('sashihiki_joto_choki_sogo_%s', $period),
+            sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
+        ]);
+        $oneTimeBase = $this->valueWithAliases($payload, [
+            sprintf('sashihiki_ichiji_%s', $period),
+            sprintf('after_joto_ichiji_tousan_ichiji_%s', $period),
+        ]);
+
+        $shortT = (int) $shortBase;
+        $longT = (int) $longBase;
+        $oneTime = (int) $oneTimeBase;
+
         $econPos = (int) max(0, $econ);
-        $ltNeg = (int) max(0, -$tsusanmaeLong);
-        $stNeg = (int) max(0, -$tsusanmaeShort);
+        $ltNeg = (int) max(0, -$longT);
+        $stNeg = (int) max(0, -$shortT);
         $useEcon = (int) min($econPos, $ltNeg + $stNeg);
 
         $ltRaise = (int) min($useEcon, $ltNeg);
         $stRaise = (int) min($useEcon - $ltRaise, $stNeg);
 
         $econAfter = (int) ($econ - ($ltRaise + $stRaise));
-        $stAfter = (int) ($tsusanmaeShort + $stRaise);
-        $ltAfter = (int) ($tsusanmaeLong + $ltRaise);
-        $itAfter = (int) $tsusanmaeIchiji;
+        $stAfter = (int) ($shortT + $stRaise);
+        $ltAfter = (int) ($longT + $ltRaise);
+        $itAfter = $oneTime;
 
         $econNeg = (int) max(0, -$econAfter);
         $useFromSt = (int) min(max(0, $stAfter), $econNeg);
@@ -122,23 +144,8 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         $useFromIt = (int) min(max(0, $itAfter), $econNeg - $useFromSt - $useFromLt);
 
         $after1Econ = (int) ($econAfter + $useFromSt + $useFromLt + $useFromIt);
-
-        $econNeg = (int) max(0, -$econAfter);
-        $useFromSt = (int) min(max(0, $stAfter), $econNeg);
-
         $after1Short = (int) ($stAfter - $useFromSt);
-
-        $econNeg = (int) max(0, -$econAfter);
-        $useFromSt = (int) min(max(0, $stAfter), $econNeg);
-        $useFromLt = (int) min(max(0, $ltAfter), $econNeg - $useFromSt);
-
         $after1Long = (int) ($ltAfter - $useFromLt);
-
-        $econNeg = (int) max(0, -$econAfter);
-        $useFromSt = (int) min(max(0, $stAfter), $econNeg);
-        $useFromLt = (int) min(max(0, $ltAfter), $econNeg - $useFromSt);
-        $useFromIt = (int) min(max(0, $itAfter), $econNeg - $useFromSt - $useFromLt);
-
         $after1Ichiji = (int) max(0, $itAfter - $useFromIt);
         $after1Forest = $sashihikiForest;
 

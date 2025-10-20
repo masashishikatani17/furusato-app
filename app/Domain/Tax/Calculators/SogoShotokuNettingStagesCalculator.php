@@ -99,29 +99,14 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         
         $retireInput = $this->value($payload, sprintf('bunri_shotoku_taishoku_shotoku_%s', $period));
 
-        $sashihikiForest = $this->valueWithAliases($payload, [
-            sprintf('sashihiki_sanrin_%s', $period),
-            sprintf('bunri_shotoku_sanrin_shotoku_%s', $period),
-        ]);
-
         // 表示用の通算前（内部通算後）は after_joto_ichiji_tousan_* をセット
         $tsusanmaeShort  = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
         $tsusanmaeLong   = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
         $tsusanmaeIchiji = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
 
-        // 第1次通算の計算元は 差引（sashihiki_*) を優先、無ければ内部通算後にフォールバック
-        $shortT  = (int) $this->valueWithAliases($payload, [
-            sprintf('sashihiki_joto_tanki_sogo_%s', $period),
-            sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
-        ]);
-        $longT   = (int) $this->valueWithAliases($payload, [
-            sprintf('sashihiki_joto_choki_sogo_%s', $period),
-            sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
-        ]);
-        $oneTime = (int) $this->valueWithAliases($payload, [
-            sprintf('sashihiki_ichiji_%s', $period),
-            sprintf('after_joto_ichiji_tousan_ichiji_%s', $period),
-        ]);
+        $shortT  = (int) $this->value($payload, sprintf('tsusanmae_joto_tanki_sogo_%s', $period));
+        $longT   = (int) $this->value($payload, sprintf('tsusanmae_joto_choki_sogo_%s', $period));
+        $oneTime = (int) $this->value($payload, sprintf('tsusanmae_ichiji_%s', $period));
 
         $econPos = (int) max(0, $econ);
         $ltNeg = (int) max(0, -$longT);
@@ -145,7 +130,10 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         $after1Short = (int) ($stAfter - $useFromSt);
         $after1Long = (int) ($ltAfter - $useFromLt);
         $after1Ichiji = (int) max(0, $itAfter - $useFromIt);
-        $after1Forest = $sashihikiForest;
+        $after1Forest = $this->valueWithAliases($payload, [
+            sprintf('sashihiki_sanrin_%s', $period),
+            sprintf('bunri_shotoku_sanrin_shotoku_%s', $period),
+        ]);
 
         [$after2Econ, $after2Short, $after2Long, $after2Forest, $after2Ichiji] = $this->netWithForest(
             $after1Econ,

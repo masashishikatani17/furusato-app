@@ -103,28 +103,43 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         $tsusanmaeLong = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
         $tsusanmaeIchiji = $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
 
-        $econPos = max(0, $econ);
-        $ltNeg = max(0, -$tsusanmaeLong);
-        $stNeg = max(0, -$tsusanmaeShort);
-        $useEcon = min($econPos, $ltNeg + $stNeg);
+        $econPos = (int) max(0, $econ);
+        $ltNeg = (int) max(0, -$tsusanmaeLong);
+        $stNeg = (int) max(0, -$tsusanmaeShort);
+        $useEcon = (int) min($econPos, $ltNeg + $stNeg);
 
-        $ltRaise = min($useEcon, $ltNeg);
-        $stRaise = min($useEcon - $ltRaise, $stNeg);
+        $ltRaise = (int) min($useEcon, $ltNeg);
+        $stRaise = (int) min($useEcon - $ltRaise, $stNeg);
 
-        $econAfter = $econ - ($ltRaise + $stRaise);
-        $stAfter = $tsusanmaeShort + $stRaise;
-        $ltAfter = $tsusanmaeLong + $ltRaise;
-        $itAfter = $tsusanmaeIchiji;
+        $econAfter = (int) ($econ - ($ltRaise + $stRaise));
+        $stAfter = (int) ($tsusanmaeShort + $stRaise);
+        $ltAfter = (int) ($tsusanmaeLong + $ltRaise);
+        $itAfter = (int) $tsusanmaeIchiji;
 
-        $econNeg = max(0, -$econAfter);
-        $useFromSt = min(max(0, $stAfter), $econNeg);
-        $useFromLt = min(max(0, $ltAfter), $econNeg - $useFromSt);
-        $useFromIt = min(max(0, $itAfter), $econNeg - $useFromSt - $useFromLt);
+        $econNeg = (int) max(0, -$econAfter);
+        $useFromSt = (int) min(max(0, $stAfter), $econNeg);
+        $useFromLt = (int) min(max(0, $ltAfter), $econNeg - $useFromSt);
+        $useFromIt = (int) min(max(0, $itAfter), $econNeg - $useFromSt - $useFromLt);
 
-        $after1Econ = $econAfter + $useFromSt + $useFromLt + $useFromIt;
-        $after1Short = $stAfter - $useFromSt;
-        $after1Long = $ltAfter - $useFromLt;
-        $after1Ichiji = max(0, $itAfter - $useFromIt);
+        $after1Econ = (int) ($econAfter + $useFromSt + $useFromLt + $useFromIt);
+
+        $econNeg = (int) max(0, -$econAfter);
+        $useFromSt = (int) min(max(0, $stAfter), $econNeg);
+
+        $after1Short = (int) ($stAfter - $useFromSt);
+
+        $econNeg = (int) max(0, -$econAfter);
+        $useFromSt = (int) min(max(0, $stAfter), $econNeg);
+        $useFromLt = (int) min(max(0, $ltAfter), $econNeg - $useFromSt);
+
+        $after1Long = (int) ($ltAfter - $useFromLt);
+
+        $econNeg = (int) max(0, -$econAfter);
+        $useFromSt = (int) min(max(0, $stAfter), $econNeg);
+        $useFromLt = (int) min(max(0, $ltAfter), $econNeg - $useFromSt);
+        $useFromIt = (int) min(max(0, $itAfter), $econNeg - $useFromSt - $useFromLt);
+
+        $after1Ichiji = (int) max(0, $itAfter - $useFromIt);
         $after1Forest = $sashihikiForest;
 
         [$after2Econ, $after2Short, $after2Long, $after2Forest, $after2Ichiji] = $this->netWithForest(

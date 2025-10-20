@@ -36,7 +36,9 @@ class RecalculateFurusatoPayload
 
     /**
      * @param  array<string, mixed>  $inputDiff
-     * @param  array<string, mixed>  $ctx
+     * @param  array<string, mixed>  $ctx  Context for calculators and persistence. Pass
+     *                                     `should_flash_results` (bool) to control
+     *                                     whether session flashes should be emitted.
      * @return array{payload: array<string, mixed>}
      */
     public function handle(Data $data, array $inputDiff, array $ctx = []): array
@@ -48,13 +50,13 @@ class RecalculateFurusatoPayload
         [$payload, $syoriSettings] = $this->saveDiff($data, $payloadUpdates, $labelUpdates, $userId);
         $calculatorCtx = array_merge($ctx, ['syori_settings' => $syoriSettings]);
         $builtCtx = $this->buildContext($data, $calculatorCtx);
+        $shouldFlashResults = $builtCtx['should_flash_results'] ?? true;
+        unset($builtCtx['should_flash_results']);
         $finalPayload = $this->runCalculators($payload, $builtCtx);
 
         $this->persistFinalPayload($data, $finalPayload, $userId);
 
-        $this->persistResults($data, $finalPayload, $builtCtx, $userId);
-
-        session()->flash('show_furusato_result', true);
+        $this->persistResults($data, $finalPayload, $builtCtx, $userId, $shouldFlashResults);
 
         return ['payload' => $finalPayload];
     }
@@ -80,7 +82,7 @@ class RecalculateFurusatoPayload
         return [$payload, $labels];
     }
 
-    private function persistResults(Data $data, array $payload, array $ctx, ?int $userId): void
+    private function persistResults(Data $data, array $payload, array $ctx, ?int $userId, bool $shouldFlashResults): void
     {
         $details = $this->resultCalculator->buildDetails($payload, $ctx);
         $results = [
@@ -90,7 +92,10 @@ class RecalculateFurusatoPayload
 
         $this->storeResults($data, $results, $userId);
 
-        session()->flash('furusato_results', $results);
+        if ($shouldFlashResults) {
+            session()->flash('furusato_results', $results);
+            session()->flash('show_furusato_result', true);
+        }
     }
 
     private function storeResults(Data $data, array $results, ?int $userId): void

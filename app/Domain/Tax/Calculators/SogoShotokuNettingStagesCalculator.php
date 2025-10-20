@@ -158,29 +158,6 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         );
         $after2Retire = max(0, $retireInput);
 
-        [$after3Econ, $after3Short, $after3Long, $after3Forest, $after3Ichiji, $after3Retire] = $this->netWithRetirement(
-            $after2Econ,
-            $after2Short,
-            $after2Long,
-            $after2Forest,
-            $after2Ichiji,
-            $after2Retire
-        );
-
-        $shotokuKeijo = $after3Econ;
-        $shotokuJotoTanki = $after3Short;
-        $shotokuJotoChoki = $this->half($after3Long);
-        $shotokuIchiji = $this->half($after3Ichiji);
-        $shotokuSanrin = $after3Forest;
-        $shotokuTaishoku = $after3Retire;
-
-        $shotokuGokei = $shotokuKeijo
-            + $shotokuJotoTanki
-            + $shotokuJotoChoki
-            + $shotokuIchiji
-            + $shotokuSanrin
-            + $shotokuTaishoku;
-
         $outputs = [
             sprintf('tsusanmae_keijo_%s', $period) => $econ,
             sprintf('tsusanmae_joto_tanki_sogo_%s', $period) => $tsusanmaeShort,
@@ -204,26 +181,40 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         }
 
         // 第3次通算
-        $retire = $after2Retire;
+        $retire = (int) $after2Retire;
 
-        $retirePos = max(0, $retire);
-        $longNeg3 = max(0, -$after2Long);
-        $shortNeg3 = max(0, -$after2Short);
-        $econNeg3 = max(0, -$after2Econ);
-        $forestNeg3 = max(0, -$after2Forest);
+        $retirePos = (int) max(0, $retire);
+        $longNeg3 = (int) max(0, -$after2Long);
+        $shortNeg3 = (int) max(0, -$after2Short);
+        $econNeg3 = (int) max(0, -$after2Econ);
+        $forestNeg3 = (int) max(0, -$after2Forest);
 
-        $useLong3 = min($retirePos, $longNeg3);
-        $useShort3 = min($retirePos - $useLong3, $shortNeg3);
-        $useEcon3 = min($retirePos - $useLong3 - $useShort3, $econNeg3);
-        $useForest3 = min($retirePos - $useLong3 - $useShort3 - $useEcon3, $forestNeg3);
+        $useLong3 = (int) min($retirePos, $longNeg3);
+        $useShort3 = (int) min($retirePos - $useLong3, $shortNeg3);
+        $useEcon3 = (int) min($retirePos - $useLong3 - $useShort3, $econNeg3);
+        $useForest3 = (int) min($retirePos - $useLong3 - $useShort3 - $useEcon3, $forestNeg3);
 
-        $after3Econ = $after2Econ + $useEcon3;
-        $after3Short = $after2Short + $useShort3;
-        $after3Long = $after2Long + $useLong3;
-        $after3Ichiji = $after2Ichiji;
-        $after3Forest = $after2Forest + $useForest3;
-        $after3Retire = $retire - ($useLong3 + $useShort3 + $useEcon3 + $useForest3);
+        $after3Econ = (int) ($after2Econ + $useEcon3);
+        $after3Short = (int) ($after2Short + $useShort3);
+        $after3Long = (int) ($after2Long + $useLong3);
+        $after3Ichiji = (int) $after2Ichiji;
+        $after3Forest = (int) ($after2Forest + $useForest3);
+        $after3Retire = (int) ($retire - ($useLong3 + $useShort3 + $useEcon3 + $useForest3));
 
+        $shotokuKeijo = $after3Econ;
+        $shotokuJotoTanki = $after3Short;
+        $shotokuJotoChoki = $this->half($after3Long);
+        $shotokuIchiji = $this->half($after3Ichiji);
+        $shotokuSanrin = $after3Forest;
+        $shotokuTaishoku = $after3Retire;
+
+        $shotokuGokei = $shotokuKeijo
+            + $shotokuJotoTanki
+            + $shotokuJotoChoki
+            + $shotokuIchiji
+            + $shotokuSanrin
+            + $shotokuTaishoku;
+            
         $outputs = array_replace($outputs, [
             sprintf('after_3jitsusan_keijo_%s', $period) => $after3Econ,
             sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period) => $after3Short,

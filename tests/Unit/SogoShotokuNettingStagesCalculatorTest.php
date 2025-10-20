@@ -13,9 +13,10 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
         $calculator = new SogoShotokuNettingStagesCalculator();
 
         $payload = [
-            'shotoku_jigyo_eigyo_shotoku_prev' => 100,
+            'jigyo_eigyo_shotoku_prev' => 100,
             'shotoku_jigyo_nogyo_shotoku_prev' => -50,
-            'shotoku_fudosan_shotoku_prev' => 200,
+            'fudosan_shotoku_prev' => 200,
+            'shotoku_rishi_shotoku_prev' => -10,
             'shotoku_haito_shotoku_prev' => -30,
             'shotoku_kyuyo_shotoku_prev' => 70,
             'shotoku_zatsu_nenkin_shotoku_prev' => 40,
@@ -26,14 +27,17 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
             'sashihiki_ichiji_prev' => 100,
             'bunri_shotoku_sanrin_shotoku_prev' => -30,
             'bunri_shotoku_taishoku_shotoku_prev' => 50,
+            'after_joto_ichiji_tousan_joto_tanki_prev' => -70,
+            'after_joto_ichiji_tousan_joto_choki_sogo_prev' => -55,
+            'after_joto_ichiji_tousan_ichiji_prev' => 90,
         ];
 
         $result = $calculator->compute($payload, 'prev');
 
         $this->assertSame(380, $result['tsusanmae_keijo_prev']);
-        $this->assertSame(-80, $result['tsusanmae_joto_tanki_sogo_prev']);
-        $this->assertSame(-60, $result['tsusanmae_joto_choki_sogo_prev']);
-        $this->assertSame(100, $result['tsusanmae_ichiji_prev']);
+        $this->assertSame(-70, $result['tsusanmae_joto_tanki_sogo_prev']);
+        $this->assertSame(-55, $result['tsusanmae_joto_choki_sogo_prev']);
+        $this->assertSame(90, $result['tsusanmae_ichiji_prev']);
 
         $this->assertSame(240, $result['after_1jitsusan_keijo_prev']);
         $this->assertSame(0, $result['after_1jitsusan_joto_tanki_sogo_prev']);
@@ -69,9 +73,10 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
         $calculator = new SogoShotokuNettingStagesCalculator();
 
         $payload = [
-            'shotoku_jigyo_eigyo_shotoku_curr' => -200,
+            'jigyo_eigyo_shotoku_curr' => -200,
             'shotoku_jigyo_nogyo_shotoku_curr' => 0,
-            'shotoku_fudosan_shotoku_curr' => 0,
+            'fudosan_shotoku_curr' => 0,
+            'shotoku_rishi_shotoku_curr' => -10,
             'shotoku_haito_shotoku_curr' => 50,
             'shotoku_kyuyo_shotoku_curr' => -40,
             'shotoku_zatsu_nankin_shotoku_curr' => -10,
@@ -82,14 +87,17 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
             'sashihiki_ichiji_curr' => -60,
             'bunri_shotoku_sanrin_shotoku_curr' => 80,
             'bunri_shotoku_taishoku_shotoku_curr' => -150,
+            'after_joto_ichiji_tousan_joto_tanki_curr' => 25,
+            'after_joto_ichiji_tousan_joto_choki_sogo_curr' => -90,
+            'after_joto_ichiji_tousan_ichiji_curr' => 15,
         ];
 
         $result = $calculator->compute($payload, 'curr');
 
         $this->assertSame(-120, $result['tsusanmae_keijo_curr']);
-        $this->assertSame(40, $result['tsusanmae_joto_tanki_sogo_curr']);
-        $this->assertSame(-100, $result['tsusanmae_joto_choki_sogo_curr']);
-        $this->assertSame(-60, $result['tsusanmae_ichiji_curr']);
+        $this->assertSame(25, $result['tsusanmae_joto_tanki_sogo_curr']);
+        $this->assertSame(-90, $result['tsusanmae_joto_choki_sogo_curr']);
+        $this->assertSame(15, $result['tsusanmae_ichiji_curr']);
 
         $this->assertSame(-80, $result['after_1jitsusan_keijo_curr']);
         $this->assertSame(0, $result['after_1jitsusan_joto_tanki_sogo_curr']);

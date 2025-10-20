@@ -38,6 +38,7 @@
       $tokureiEnabledData = $tokureiEnabled ?? [];
       $warekiPrevLabel = $warekiPrev ?? '前年';
       $warekiCurrLabel = $warekiCurr ?? '当年';
+      $showSeparatedNettingFlag = (bool) ($showSeparatedNetting ?? false);
       $inputTabActiveClass = $showResultFlag ? '' : 'active';
       $inputPaneActiveClass = $showResultFlag ? '' : 'show active';
       $detailsTabActiveClass = $showResultFlag ? 'active' : '';
@@ -643,7 +644,7 @@
                 </tr>
                 <tr>
                   <th scope="rowgroup" rowspan="{{ $taxRowspan }}" class="text-center align-middle th-ccc">税金の金額</th>
-                  <th colspan="3" class="text-start align-middle ps-1">課税所得金額</th>
+                  <th colspan="3" class="text-start align-middle ps-1">課税所得金額又は第三表</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
@@ -730,7 +731,7 @@
         </div>
       @php $sogoContent = ob_get_clean(); @endphp
   
-      @if ((int) ($bunriFlag ?? 0) === 1)
+      @if ($showSeparatedNettingFlag)
         <div class="card mb-4">
           <div class="card-header pb-0">
             <ul class="nav nav-tabs card-header-tabs" id="furusato-input-tabs" role="tablist">
@@ -1347,6 +1348,7 @@
                 'warekiPrev' => $warekiPrevLabel,
                 'warekiCurr' => $warekiCurrLabel,
                 'periodFilter' => 'prev',
+                'showSeparatedNetting' => $showSeparatedNetting ?? false,
               ])
             </div>
             <div class="tab-pane fade {{ $currSubPaneActive }}" id="furusato-result-details-curr" role="tabpanel" aria-labelledby="furusato-result-details-curr-nav">
@@ -1360,6 +1362,7 @@
                 'warekiPrev' => $warekiPrevLabel,
                 'warekiCurr' => $warekiCurrLabel,
                 'periodFilter' => 'curr',
+                'showSeparatedNetting' => $showSeparatedNetting ?? false,
               ])
             </div>
           </div>

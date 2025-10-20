@@ -201,9 +201,16 @@ final class FurusatoController extends Controller
         $warekiCurr = null;
         $savedInputs = [];
         $data = null;
+        $syoriSettings = [];
+        $showSeparatedNetting = false;
 
         if ($dataId) {
             $data = $this->findDataForInput($request, $dataId);
+
+            $syoriSettings = $this->getSyoriSettings($dataId);
+            $prevOn = (int) ($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
+            $currOn = (int) ($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
+            $showSeparatedNetting = $prevOn || $currOn;
 
             $bunriFlag = $this->resolveBunriFlag($dataId);
 
@@ -338,6 +345,8 @@ final class FurusatoController extends Controller
             'results' => [],
             'showResult' => false,
             'shotokuRates' => $shotokuRates,
+            'syoriSettings' => $syoriSettings,
+            'showSeparatedNetting' => $showSeparatedNetting,
             'jintekiDiff' => $jintekiDiff,
             'tokureiStandardRate' => $tokureiStandardRate,
             'tokureiComputedPercent' => $tokureiComputedPercent,

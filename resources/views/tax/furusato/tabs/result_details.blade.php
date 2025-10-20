@@ -8,6 +8,7 @@
   $tokureiStandardRate = $tokureiStandardRate ?? [];
   $tkComputed = $tokureiComputedPercent ?? [];
   $tkEnabled = $tokureiEnabled ?? [];
+  $showSeparatedNettingFlag = (bool) ($showSeparatedNetting ?? false);
 
   // hiddenの値：payload 優先、なければ計算結果をそのままraw整数（カンマなし）
   $rawInt = static function (array $ins, string $key, ?int $fallback): string {
@@ -715,7 +716,7 @@
     @endforeach
   </div>
 
-
+  @if ($showSeparatedNettingFlag)
   <div class="mt-5">
     <h5 class="fw-bold">分離課税所得の損益通算</h5>
     <div class="mt-3">
@@ -918,4 +919,5 @@
       @endforeach
     </div>
   </div>
+  @endif
 </div>

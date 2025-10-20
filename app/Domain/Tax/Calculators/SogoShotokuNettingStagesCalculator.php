@@ -104,26 +104,13 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('bunri_shotoku_sanrin_shotoku_%s', $period),
         ]);
 
-        $tsusanmaeShort = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
-        $tsusanmaeLong = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
-        $tsusanmaeIchiji = $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
-
-        $shortBase = $this->valueWithAliases($payload, [
-            sprintf('sashihiki_joto_tanki_sogo_%s', $period),
-            sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
-        ]);
-        $longBase = $this->valueWithAliases($payload, [
-            sprintf('sashihiki_joto_choki_sogo_%s', $period),
-            sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
-        ]);
-        $oneTimeBase = $this->valueWithAliases($payload, [
-            sprintf('sashihiki_ichiji_%s', $period),
-            sprintf('after_joto_ichiji_tousan_ichiji_%s', $period),
-        ]);
-
-        $shortT = (int) $shortBase;
-        $longT = (int) $longBase;
-        $oneTime = (int) $oneTimeBase;
+        $shortT = (int) $this->value($payload, sprintf('tsusanmae_joto_tanki_sogo_%s', $period));
+        $longT = (int) $this->value($payload, sprintf('tsusanmae_joto_choki_sogo_%s', $period));
+        $oneTime = (int) $this->value($payload, sprintf('tsusanmae_ichiji_%s', $period));
+        
+        $tsusanmaeShort = $shortT;
+        $tsusanmaeLong = $longT;
+        $tsusanmaeIchiji = $oneTime;
 
         $econPos = (int) max(0, $econ);
         $ltNeg = (int) max(0, -$longT);

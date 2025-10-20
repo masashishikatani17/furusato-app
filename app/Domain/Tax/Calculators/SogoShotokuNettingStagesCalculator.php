@@ -95,22 +95,37 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             + max(0, $this->value($payload, sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)))
             + max(0, $this->value($payload, sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)));
 
-        $forestInput = $this->value($payload, sprintf('bunri_shotoku_sanrin_shotoku_%s', $period));
         $retireInput = $this->value($payload, sprintf('bunri_shotoku_taishoku_shotoku_%s', $period));
 
-        $shortSource = $this->valueWithAliases($payload, [
-            sprintf('sashihiki_joto_tanki_sogo_%s', $period),
-            sprintf('sashihiki_joto_tanki_%s', $period),
-        ]);
-        $longSource = $this->valueWithAliases($payload, [
-            sprintf('sashihiki_joto_choki_sogo_%s', $period),
-            sprintf('sashihiki_joto_choki_%s', $period),
-        ]);
-        $ichijiRaw = $this->value($payload, sprintf('sashihiki_ichiji_%s', $period));
+        $sashihikiForest = $this->value($payload, sprintf('sashihiki_sanrin_%s', $period));
 
-        [$after1Econ, $after1Short, $after1Long] = $this->netGeneralWithJoto($econ, $shortSource, $longSource);
-        $after1Ichiji = max(0, $ichijiRaw);
-        $after1Forest = $forestInput;
+        $tsusanmaeShort = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
+        $tsusanmaeLong = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
+        $tsusanmaeIchiji = $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
+
+        $econPos = max(0, $econ);
+        $ltNeg = max(0, -$tsusanmaeLong);
+        $stNeg = max(0, -$tsusanmaeShort);
+        $useEcon = min($econPos, $ltNeg + $stNeg);
+
+        $ltRaise = min($useEcon, $ltNeg);
+        $stRaise = min($useEcon - $ltRaise, $stNeg);
+
+        $econAfter = $econ - ($ltRaise + $stRaise);
+        $stAfter = $tsusanmaeShort + $stRaise;
+        $ltAfter = $tsusanmaeLong + $ltRaise;
+        $itAfter = $tsusanmaeIchiji;
+
+        $econNeg = max(0, -$econAfter);
+        $useFromSt = min(max(0, $stAfter), $econNeg);
+        $useFromLt = min(max(0, $ltAfter), $econNeg - $useFromSt);
+        $useFromIt = min(max(0, $itAfter), $econNeg - $useFromSt - $useFromLt);
+
+        $after1Econ = $econAfter + $useFromSt + $useFromLt + $useFromIt;
+        $after1Short = $stAfter - $useFromSt;
+        $after1Long = $ltAfter - $useFromLt;
+        $after1Ichiji = max(0, $itAfter - $useFromIt);
+        $after1Forest = $sashihikiForest;
 
         [$after2Econ, $after2Short, $after2Long, $after2Forest, $after2Ichiji] = $this->netWithForest(
             $after1Econ,
@@ -143,10 +158,6 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             + $shotokuIchiji
             + $shotokuSanrin
             + $shotokuTaishoku;
-
-        $tsusanmaeShort = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
-        $tsusanmaeLong = $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
-        $tsusanmaeIchiji = $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
 
         $outputs = [
             sprintf('tsusanmae_keijo_%s', $period) => $econ,
@@ -212,34 +223,6 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         }
 
         return $outputs;
-    }
-
-    /**
-     * @return array{0:int,1:int,2:int}
-     */
-    private function netGeneralWithJoto(int $econ, int $short, int $long): array
-    {
-        $econAfter = $econ;
-        $shortAfter = $short;
-        $longAfter = $long;
-
-        $use = min(max(0, $econAfter), max(0, -$shortAfter));
-        $econAfter -= $use;
-        $shortAfter += $use;
-
-        $use = min(max(0, $econAfter), max(0, -$longAfter));
-        $econAfter -= $use;
-        $longAfter += $use;
-
-        $use = min(max(0, $shortAfter), max(0, -$econAfter));
-        $shortAfter -= $use;
-        $econAfter += $use;
-
-        $use = min(max(0, $longAfter), max(0, -$econAfter));
-        $longAfter -= $use;
-        $econAfter += $use;
-
-        return [$econAfter, $shortAfter, $longAfter];
     }
 
     /**

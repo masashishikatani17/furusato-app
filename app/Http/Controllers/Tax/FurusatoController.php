@@ -481,9 +481,10 @@ final class FurusatoController extends Controller
         $goto = (string) $request->input('redirect_to', '');
         $shouldShowResult = $request->boolean('show_result') || $goto === '' || $goto === 'input';
 
-        // Always persist through the recalculation use case so that FurusatoInput and
-        // FurusatoResult remain the source of truth. Session flashes are used only for
-        // temporary display on the next request.
+        // Always persist through the recalculation use case so that the database-backed
+        // FurusatoInput / FurusatoResult pair remains the single source of truth. Session
+        // flashes (furusato_results / show_furusato_result) are used only for temporary
+        // display on the next request.
         $this->runRecalculationPipeline(
             $request,
             $data,
@@ -519,7 +520,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveJigyoEigyoDetails(Request $req): RedirectResponse
+    public function saveJigyoEigyoDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -530,13 +534,10 @@ final class FurusatoController extends Controller
             self::JIGYO_EIGYO_LABEL_FIELDS,
         )));
 
-        $calculations = $this->calculateJigyoEigyo($payload);
-        $payload = array_replace($payload, $calculations);
-
         $updatesForRecalc = array_merge($payload, $labelUpdates);
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -551,6 +552,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -582,7 +584,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveFudosanDetails(Request $req): RedirectResponse
+    public function saveFudosanDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -595,13 +600,10 @@ final class FurusatoController extends Controller
 
         $this->normalizeFudosanSyunyuKeys($payload);
 
-        $calculations = $this->calculateFudosan($payload);
-        $payload = array_replace($payload, $calculations);
-
         $updatesForRecalc = array_merge($payload, $labelUpdates);
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -616,6 +618,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -643,7 +646,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveKihukinDetails(Request $req): RedirectResponse
+    public function saveKihukinDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -651,7 +657,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -666,6 +672,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -690,7 +697,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveJotoIchijiDetails(Request $req): RedirectResponse
+    public function saveJotoIchijiDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -707,17 +717,10 @@ final class FurusatoController extends Controller
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         $this->normalizeJotoIchijiKeys($payload);
 
-        foreach (['prev', 'curr'] as $period) {
-            $shunyu = $this->valueOrZero($payload[sprintf('joto_ichiji_shunyu_%s', $period)] ?? null);
-            $keihi = $this->valueOrZero($payload[sprintf('joto_ichiji_keihi_%s', $period)] ?? null);
-            $sashihiki = $shunyu - $keihi;
-            $payload[sprintf('joto_ichiji_sashihiki_%s', $period)] = $sashihiki;
-        }
-
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -732,6 +735,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -757,7 +761,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveBunriJotoDetails(Request $req): RedirectResponse
+    public function saveBunriJotoDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -786,16 +793,11 @@ final class FurusatoController extends Controller
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
-        foreach (['prev', 'curr'] as $period) {
-            $key = sprintf('joto_choki_tokutei_sonshitsu_%s', $period);
-            $payload[sprintf('sashihiki_joto_choki_bunri_%s', $period)] = $this->toNullableInt($payload[$key] ?? null);
-        }
-        $this->recalculateBunriJoto($payload);
-
+        
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -810,6 +812,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -835,7 +838,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveBunriKabutekiDetails(Request $req): RedirectResponse
+    public function saveBunriKabutekiDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -871,12 +877,11 @@ final class FurusatoController extends Controller
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
-        $this->recalculateBunriKabuteki($payload);
 
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -891,6 +896,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -916,7 +922,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveBunriSakimonoDetails(Request $req): RedirectResponse
+    public function saveBunriSakimonoDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -930,12 +939,11 @@ final class FurusatoController extends Controller
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
-        $this->recalculateBunriSakimono($payload);
 
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -950,6 +958,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -975,7 +984,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveBunriSanrinDetails(Request $req): RedirectResponse
+    public function saveBunriSanrinDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -989,12 +1001,11 @@ final class FurusatoController extends Controller
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
-        $this->recalculateBunriSanrin($payload);
 
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -1009,6 +1020,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -1033,7 +1045,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveKojoSeimeiJishinDetails(Request $req): RedirectResponse
+    public function saveKojoSeimeiJishinDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -1065,56 +1080,10 @@ final class FurusatoController extends Controller
         $payload = Arr::only($req->all(), $inputKeys);
         $payload = $this->sanitizeDetailPayload($payload);
 
-        $seimeiPrevKeys = [
-            'kojo_seimei_shin_prev',
-            'kojo_seimei_kyu_prev',
-            'kojo_seimei_nenkin_shin_prev',
-            'kojo_seimei_nenkin_kyu_prev',
-            'kojo_seimei_kaigo_iryo_prev',
-        ];
-        $seimeiCurrKeys = [
-            'kojo_seimei_shin_curr',
-            'kojo_seimei_kyu_curr',
-            'kojo_seimei_nenkin_shin_curr',
-            'kojo_seimei_nenkin_kyu_curr',
-            'kojo_seimei_kaigo_iryo_curr',
-        ];
-
-        $jishinPrevKeys = [
-            'kojo_jishin_prev',
-            'kojo_kyuchoki_songai_prev',
-        ];
-        $jishinCurrKeys = [
-            'kojo_jishin_curr',
-            'kojo_kyuchoki_songai_curr',
-        ];
-
-        $payload['kojo_seimei_gokei_prev'] = array_reduce($seimeiPrevKeys, function (int $carry, string $key) use ($payload): int {
-            return $carry + $this->valueOrZero($payload[$key] ?? null);
-        }, 0);
-
-        $payload['kojo_seimei_gokei_curr'] = array_reduce($seimeiCurrKeys, function (int $carry, string $key) use ($payload): int {
-            return $carry + $this->valueOrZero($payload[$key] ?? null);
-        }, 0);
-
-        $payload['kojo_jishin_gokei_prev'] = array_reduce($jishinPrevKeys, function (int $carry, string $key) use ($payload): int {
-            return $carry + $this->valueOrZero($payload[$key] ?? null);
-        }, 0);
-
-        $payload['kojo_jishin_gokei_curr'] = array_reduce($jishinCurrKeys, function (int $carry, string $key) use ($payload): int {
-            return $carry + $this->valueOrZero($payload[$key] ?? null);
-        }, 0);
-
-        $calculator = app(KojoSeimeiJishinCalculator::class);
-        $computedPrev = $calculator->compute($payload, 'prev');
-        $computedCurr = $calculator->compute($payload, 'curr');
-
-        $payload = array_replace($payload, $computedPrev, $computedCurr);
-
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -1129,6 +1098,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -1153,7 +1123,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveKojoJintekiDetails(Request $req): RedirectResponse
+    public function saveKojoJintekiDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -1230,7 +1203,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -1245,6 +1218,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -1286,7 +1260,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveKojoIryoDetails(Request $req): RedirectResponse
+    public function saveKojoIryoDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
@@ -1302,51 +1279,10 @@ final class FurusatoController extends Controller
 
         $payload = $this->sanitizeDetailPayload(Arr::only($req->all(), $inputFields));
 
-        [$shotokuGokeiPrev, $shotokuGokeiCurr] = $this->resolveShotokuGokei($data->id);
-        $shotokuGokeiMap = [
-            'prev' => $shotokuGokeiPrev,
-            'curr' => $shotokuGokeiCurr,
-        ];
-
-        foreach ($shotokuGokeiMap as $period => $shotokuGokei) {
-            $shiharaiKey = sprintf('kojo_iryo_shiharai_%s', $period);
-            $hotenKey = sprintf('kojo_iryo_hotengaku_%s', $period);
-            $sashihikiKey = sprintf('kojo_iryo_sashihiki_%s', $period);
-            $shotokuGokeiKey = sprintf('kojo_iryo_shotoku_gokei_%s', $period);
-            $shotoku5pctKey = sprintf('kojo_iryo_shotoku_5pct_%s', $period);
-            $minThresholdKey = sprintf('kojo_iryo_min_threshold_%s', $period);
-            $kojogakuKey = sprintf('kojo_iryo_kojogaku_%s', $period);
-            $shotokuKey = sprintf('kojo_iryo_shotoku_%s', $period);
-            $juminKey = sprintf('kojo_iryo_jumin_%s', $period);
-
-            $shiharai = $this->valueOrZero($payload[$shiharaiKey] ?? null);
-            $hoten = $this->valueOrZero($payload[$hotenKey] ?? null);
-            $sashihiki = $shiharai - $hoten;
-            if ($shotokuGokei >= 0) {
-                $shotoku5pct = intdiv($shotokuGokei, 20);
-            } else {
-                $shotoku5pct = -intdiv(abs($shotokuGokei) + 19, 20);
-            }
-            $minThreshold = min($shotoku5pct, 100000);
-            $kojogaku = max($sashihiki - $minThreshold, 0);
-
-            $payload[$sashihikiKey] = $sashihiki;
-            $payload[$shotokuGokeiKey] = $shotokuGokei;
-            $payload[$shotoku5pctKey] = $shotoku5pct;
-            $payload[$minThresholdKey] = $minThreshold;
-            $payload[$kojogakuKey] = $kojogaku;
-            $payload[$shotokuKey] = $kojogaku;
-            $payload[$juminKey] = $kojogaku;
-        }
-
-        foreach (['kojo_iryo_shishutsu_prev', 'kojo_iryo_shishutsu_curr', 'kojo_iryo_hojokin_prev', 'kojo_iryo_hojokin_curr'] as $legacyKey) {
-            $payload[$legacyKey] = null;
-        }
-
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc);
+            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
@@ -1361,6 +1297,7 @@ final class FurusatoController extends Controller
             $data,
             $updatesForRecalc,
             ['should_flash_results' => false],
+            $recalculateUseCase,
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));

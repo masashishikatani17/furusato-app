@@ -455,44 +455,6 @@ select.bg-light[readonly] {
           padding: 1px 2px !important;
         }
         
-        /* ============================================
-          * 0.5pxギャップの超コンパクト版（ボーダー非考慮・最小指定）
-          * 使い方：<table class="table-base table-compact-05">…</table>
-          * ============================================*/
-         table.table-base.table-compact-05 th,
-         table.table-base.table-compact-05 td {
-           padding: 0.5px;   /* ★ここが“0.5px の隙間” */
-           line-height: 1.0;
-         }
-         table.table-base.table-compact-05 td > .form-control,
-         table.table-base.table-compact-05 td > .form-select,
-         table.table-base.table-compact-05 td > .input-group,
-         table.table-base.table-compact-05 td > .form-check {
-           margin: 0;        /* 入力側の上下マージンをゼロに */
-         }
-        
-        /* Bootstrapの高さ・余白に負けないようセレクタ強化（任意） */
-        table.table-base.table-compact-05 td > .form-control.form-control-compact,
-        table.table-base.table-compact-05 td > .form-control.form-control-compact-05 {
-          padding-top: 0 !important;
-          padding-bottom: 0 !important;
-          height: calc(1em + 2px) !important; /* さらに低く */
-          line-height: 1.0 !important;
-          margin-top: 0 !important;
-          margin-bottom: 0 !important;
-        }
-        
-        /* 数値入力はUA差で高さがブレやすいので見た目統一（任意） */
-        table.table-base.table-compact-05 input[type="number"].form-control {
-          -moz-appearance: textfield;
-        }
-        table.table-base.table-compact-05 input[type="number"].form-control::-webkit-outer-spin-button,
-        table.table-base.table-compact-05 input[type="number"].form-control::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        
-        
         
         /* 偶数ストライプ/ホバーを無効化（他所の指定がある場合に打消し） */
         .no-stripe tbody tr:nth-child(even),
@@ -643,6 +605,7 @@ select.bg-light[readonly] {
        /* ============================================
          * 0.5pxギャップの超コンパクト版（ボーダー非考慮・最小指定）
          * 使い方：<input  class="form-control form-control-compact-05
+         テーブルの-05と同時に使用しなければ効かない
         * ============================================*/
         .form-control-compact-05 {
           padding-top: 1px !important;
@@ -653,18 +616,45 @@ select.bg-light[readonly] {
           height: calc(1em + 4px) !important;
         }
         
+         /* ============================================
+          * 0.5pxギャップの超コンパクト版（ボーダー非考慮・最小指定）
+          * 使い方：<table class="table-base table-compact-05">…</table>
+          フォームコントロールの-05と同時に使用しなければ効かない
+          * ============================================*/
+         table.table-base.table-compact-05 th,
+         table.table-base.table-compact-05 td {
+           padding: 0.5px;   /* ★ここが“0.5px の隙間” */
+           line-height: 1.0;
+         }
+         table.table-base.table-compact-05 td > .form-control,
+         table.table-base.table-compact-05 td > .form-select,
+         table.table-base.table-compact-05 td > .input-group,
+         table.table-base.table-compact-05 td > .form-check {
+           margin: 0;        /* 入力側の上下マージンをゼロに */
+         }
         
-        table.table-base.table-compact-05 th,
-        table.table-base.table-compact-05 td {
-          padding: 0.5px;   /* ★ここが“0.5px の隙間” */
-          line-height: 1.0;
+        /* Bootstrapの高さ・余白に負けないようセレクタ強化（任意） */
+        table.table-base.table-compact-05 td > .form-control.form-control-compact,
+        table.table-base.table-compact-05 td > .form-control.form-control-compact-05 {
+          padding-top: 0 !important;
+          padding-bottom: 0 !important;
+          height: calc(1em + 2px) !important; /* さらに低く */
+          line-height: 1.0 !important;
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
         }
-        table.table-base.table-compact-05 td > .form-control,
-        table.table-base.table-compact-05 td > .form-select,
-        table.table-base.table-compact-05 td > .input-group,
-        table.table-base.table-compact-05 td > .form-check {
-          margin: 0;        /* 入力側の上下マージンをゼロに */
+        
+        /* 数値入力はUA差で高さがブレやすいので見た目統一（任意） */
+        table.table-base.table-compact-05 input[type="number"].form-control {
+          -moz-appearance: textfield;
         }
+        table.table-base.table-compact-05 input[type="number"].form-control::-webkit-outer-spin-button,
+        table.table-base.table-compact-05 input[type="number"].form-control::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        
+        
                 
         .kana2 {
             font-size: 13px;

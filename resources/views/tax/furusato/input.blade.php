@@ -232,10 +232,10 @@
                         }
 
                         if ($isForceDash) {
-                            $html .= '<td><input type="text" class="form-control text-center bg-light" value="－" readonly><input type="hidden" name="' . e($name) . '" value=""></td>';
+                            $html .= '<td><input type="text" class="form-control form-control-compact-05-compact-05 text-center bg-light" value="－" readonly><input type="hidden" name="' . e($name) . '" value=""></td>';
                         } else {
                             $readonlyAttr = $isReadonly ? ' readonly' : '';
-                            $class = 'form-control text-end';
+                            $class = 'form-control form-control-compact-05-compact-05 text-end';
                             if ($isReadonly) {
                                 $class .= ' bg-light';
                             }
@@ -992,7 +992,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1010,7 +1010,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1029,7 +1029,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1063,7 +1063,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1081,7 +1081,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1099,7 +1099,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1117,7 +1117,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1135,7 +1135,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1154,7 +1154,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1172,7 +1172,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1190,7 +1190,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1208,7 +1208,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1226,7 +1226,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1244,7 +1244,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1262,7 +1262,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1280,7 +1280,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1298,7 +1298,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1698,7 +1698,7 @@
       const disp = document.createElement('input');
       disp.type = 'text';
       disp.readOnly = true;
-      disp.className = 'form-control form-control-sm text-center bg-light';
+      disp.className = 'form-control form-control-compact-05 form-control form-control-compact-05-sm text-center bg-light';
       disp.value = '－';
       num.insertAdjacentElement('afterend', disp);
     };

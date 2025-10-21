@@ -452,7 +452,7 @@ select.bg-light[readonly] {
         /* コンパクト化ユーティリティ */
         .table-compact td,
         .table-compact th {
-          padding: 1px 4px !important;
+          padding: 1px 2px !important;
         }
         
         /* 偶数ストライプ/ホバーを無効化（他所の指定がある場合に打消し） */
@@ -588,6 +588,20 @@ select.bg-light[readonly] {
             border-radius: 5px;
             border-color:#d0d0d0;
         }
+        
+       /* さらに個別に“部品だけ”を締めたい場合の補助クラス */
+        .form-control-compact {
+          padding-top: 1px !important;
+          padding-bottom: 1px !important;
+          line-height: 1.0 !important;
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+          height: calc(1em + 4px) !important;
+        }
+        /* 使用法 
+        <input type="text" class="form-control form-control-compact">*/
+        
+        
         .kana2 {
             font-size: 13px;
             margin: auto;

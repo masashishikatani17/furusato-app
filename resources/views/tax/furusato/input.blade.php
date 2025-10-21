@@ -30,6 +30,7 @@
     <input type="hidden" name="show_result" value="1">
 
     @php
+      $syoriSettings = $syoriSettings ?? [];
       $resultsData = $results ?? [];
       $jintekiDiffData = $jintekiDiff ?? [];
       $showResultFlag = (bool) ($showResult ?? false);
@@ -231,10 +232,10 @@
                         }
 
                         if ($isForceDash) {
-                            $html .= '<td><input type="text" class="form-control form-control-sm text-center bg-light" value="－" readonly><input type="hidden" name="' . e($name) . '" value=""></td>';
+                            $html .= '<td><input type="text" class="form-control text-center bg-light" value="－" readonly><input type="hidden" name="' . e($name) . '" value=""></td>';
                         } else {
                             $readonlyAttr = $isReadonly ? ' readonly' : '';
-                            $class = 'form-control form-control-sm text-end';
+                            $class = 'form-control text-end';
                             if ($isReadonly) {
                                 $class .= ' bg-light';
                             }
@@ -253,9 +254,9 @@
   
           @php ob_start(); @endphp
         <div>
-          <hb class="card-title mb-3">確定申告書(総合課税)</hb>
+          <hb class="card-title mb-3">確定申告書(総合課税) 第一表</hb>
           <div class="table-responsive">
-            <table class="table table-base align-middle">
+            <table class="table table-base table-compact align-middle">
                 <tr>
                   <th rowspan="2" colspan="6" class="th-ccc">項  目</th>
                   <th colspan="2" style="height:30px;" class="th-ccc">所得税</th>
@@ -750,9 +751,9 @@
               </div>
               <div class="tab-pane fade" id="pane-bunri" role="tabpanel" aria-labelledby="tab-bunri">
                 <div>
-                  <hb class="card-title mb-3">確定申告書(分離課税)</hb>
+                  <hb class="card-title mb-3">確定申告書(分離課税) 第三表</hb>
                   <div class="table-responsive">
-                    <table class="table table-base align-middle">
+                    <table class="table table-base table-compact align-middle">
                       <thead class="table-light text-center align-middle">
                         <tr style="height:30px;">
                           <th rowspan="2" colspan="6" class="th-ccc">項  目</th>
@@ -813,7 +814,7 @@
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
-                          <td class="text-center align-middle" rowspan="3">
+                          <td class="text-center nowrap align-middle" rowspan="3">
                             <button type="submit"
                                     class="btn-base-green"
                                     name="redirect_to"
@@ -979,7 +980,7 @@
                         </tr>
                         <tr>
                           <th scope="rowgroup" rowspan="19" class="text-center align-middle th-ccc ps-1 pe-1" nowrap="nowrap">税金の計算</th>
-                          <th scope="row" colspan="3" class="align-middle text-start ps-1">総合課税の合計額</th>
+                          <th scope="row" colspan="3" class="align-middle text-start ps-1">総合課税の合計額（第一表より）</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -991,13 +992,13 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="3" class="align-middle text-start ps-1">所得から差し引かれる金額</th>
+                          <th scope="row" colspan="3" class="align-middle text-start ps-1">所得から差し引かれる金額（　〃〃　）</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1009,7 +1010,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1028,7 +1029,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1062,7 +1063,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1080,7 +1081,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1098,7 +1099,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1116,7 +1117,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1134,7 +1135,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1153,7 +1154,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1171,7 +1172,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1189,7 +1190,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1207,7 +1208,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1225,7 +1226,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1243,7 +1244,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1261,7 +1262,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1279,13 +1280,13 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="row" colspan="3" class="align-middle text-center th-cream">税額合計</th>
+                          <th scope="row" colspan="3" class="align-middle text-center th-cream">合計（第一表へ）</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
@@ -1297,7 +1298,7 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-sm text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="number" min="0" step="1" class="form-control text-end" name="{{ $name }}" value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1622,6 +1623,10 @@
     const shotokuRates = @json($shotokuRatesForScript);
     const taxTypes = ['shotoku', 'jumin'];
     const periods = ['prev', 'curr'];
+    const bunriFlags = {
+      prev: @json((int)($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0)) === 1,
+      curr: @json((int)($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0)) === 1,
+    };
     const shotokuGokeiBases = [
       'shotoku_jigyo_eigyo',
       'shotoku_jigyo_nogyo',
@@ -1675,6 +1680,77 @@
         const numeric = Number.isFinite(value) ? Math.trunc(value) : 0;
         input.value = numeric;
       }
+    };
+
+    const writeDashWithHidden = (name) => {
+      const input = getInput(name);
+      if (!input) {
+        return;
+      }
+
+      input.type = 'hidden';
+      input.value = '';
+      input.readOnly = false;
+      input.classList.remove('bg-light');
+
+      const parent = input.parentElement;
+      if (!parent) {
+        return;
+      }
+
+      let dashInput = parent.querySelector(`[data-dash-display-for="${name}"]`);
+      if (!dashInput) {
+        dashInput = document.createElement('input');
+        dashInput.type = 'text';
+        dashInput.readOnly = true;
+        dashInput.value = '－';
+        dashInput.className = 'form-control text-center bg-light';
+        dashInput.setAttribute('data-dash-display-for', name);
+        dashInput.tabIndex = -1;
+        input.insertAdjacentElement('afterend', dashInput);
+      } else {
+        dashInput.value = '－';
+      }
+    };
+
+    const restoreNumberInput = (name, value) => {
+      const input = getInput(name);
+      if (!input) {
+        return;
+      }
+
+      const parent = input.parentElement;
+      if (parent) {
+        const dashInput = parent.querySelector(`[data-dash-display-for="${name}"]`);
+        if (dashInput) {
+          dashInput.remove();
+        }
+      }
+
+      input.type = 'number';
+      input.readOnly = true;
+      input.classList.add('bg-light');
+      writeInt(name, value);
+    };
+
+    const ensureReadonlyLight = (name) => {
+      const el = getInput(name);
+      if (el) {
+        el.readOnly = true;
+        el.classList.add('bg-light');
+      }
+    };
+
+    const floorToThousands = (value) => {
+      const numeric = Math.trunc(Number(value) || 0);
+      if (numeric === 0) {
+        return 0;
+      }
+      if (numeric < 0) {
+        const magnitude = Math.floor(Math.abs(numeric) / 1000) * 1000;
+        return magnitude === 0 ? 0 : -magnitude;
+      }
+      return Math.floor(numeric / 1000) * 1000;
     };
 
     const resolveKojoFieldName = (base, tax, period) => {
@@ -1740,6 +1816,39 @@
       });
     };
 
+    const recalcTaxableSogoAndBunri = () => {
+      periods.forEach((period) => {
+        taxTypes.forEach((tax) => {
+          const name = `tax_kazeishotoku_${tax}_${period}`;
+          if (bunriFlags[period]) {
+            writeDashWithHidden(name);
+          } else {
+            const gokei = readInt(`shotoku_gokei_${tax}_${period}`);
+            const kojo = readInt(`kojo_gokei_${tax}_${period}`);
+            const value = gokei - kojo;
+            restoreNumberInput(name, value);
+          }
+        });
+
+        taxTypes.forEach((tax) => {
+          const mirrorName = `bunri_sogo_gokeigaku_${tax}_${period}`;
+          const gokeiValue = readInt(`shotoku_gokei_${tax}_${period}`);
+          writeInt(mirrorName, gokeiValue);
+          ensureReadonlyLight(mirrorName);
+        });
+
+        const kojoShotoku = readInt(`kojo_gokei_shotoku_${period}`);
+        const bunriSogoShotoku = readInt(`bunri_sogo_gokeigaku_shotoku_${period}`);
+        const sashihiki = Math.min(kojoShotoku, bunriSogoShotoku);
+        writeInt(`bunri_sashihiki_gokei_shotoku_${period}`, sashihiki);
+        ensureReadonlyLight(`bunri_sashihiki_gokei_shotoku_${period}`);
+
+        const taxable = floorToThousands(bunriSogoShotoku - sashihiki);
+        writeInt(`bunri_kazeishotoku_sogo_shotoku_${period}`, taxable);
+        ensureReadonlyLight(`bunri_kazeishotoku_sogo_shotoku_${period}`);
+      });
+    };
+
     const recalcTax = () => {
       periods.forEach((period) => {
         const shotokuAmount = readInt(`tax_kazeishotoku_shotoku_${period}`);
@@ -1748,6 +1857,13 @@
         const juminAmount = Math.max(0, readInt(`tax_kazeishotoku_jumin_${period}`));
         writeInt(`tax_zeigaku_jumin_${period}`, juminAmount * 0.1);
       });
+    };
+
+    const runFullRecalcChain = () => {
+      recalcShotokuGokei();
+      recalcKojo();
+      recalcTaxableSogoAndBunri();
+      recalcTax();
     };
 
     // ====== ここが不足していると ReferenceError になります ======
@@ -1761,6 +1877,7 @@
         // 下流の再計算に効くようにイベントも発火
         dst.dispatchEvent(new Event('input',  { bubbles: true }));
         dst.dispatchEvent(new Event('change', { bubbles: true }));
+        runFullRecalcChain();
       });
     };
 
@@ -1770,7 +1887,7 @@
         periods.forEach((period) => {
           const input = getInput(resolveKojoFieldName(base, tax, period));
           if (input) {
-            input.addEventListener('blur', recalcKojo);
+            input.addEventListener('blur', runFullRecalcChain);
           }
         });
       });
@@ -1782,7 +1899,7 @@
           const name = `${base}_${tax}_${period}`;
           const input = getInput(name);
           if (input) {
-            input.addEventListener('blur', recalcShotokuGokei);
+            input.addEventListener('blur', runFullRecalcChain);
           }
         });
       });
@@ -1797,9 +1914,7 @@
       });
     });
 
-    recalcShotokuGokei();
-    recalcKojo();
-    recalcTax();
+    runFullRecalcChain();
     // ============================
     // 再計算時・初期表示時にも
     // 「給与」「公的年金等」の所得税→住民税を強制同期
@@ -1835,7 +1950,7 @@
     const formEl = document.getElementById('furusato-input-form');
     if (formEl) {
       formEl.addEventListener('submit', (e) => {
-        recalcShotokuGokei();
+        runFullRecalcChain();
         // 送信トリガーのボタンを判定（再計算以外でも同期しておくと安全）
         const submitter = (e.submitter && e.submitter instanceof Element) ? e.submitter : null;
         const isRecalc = submitter

@@ -71,22 +71,26 @@ final class ResultToDetailsAliasCalculator implements ProvidesKeys
      * @param  array<string, mixed>  $payload
      * @param  array<string, mixed>  $context
      * @return array<string, int>
-     */
+    */
     public function compute(array $payload, array $context = []): array
     {
+        // 追加：既定で全提供キーを 0 で初期化（単体実行でも keys を必ず埋める）
+        $defaults = array_fill_keys(self::provides(), 0);
         $updates = [];
 
-        foreach (self::PERIODS as $period) {
-            $updates = array_replace(
-                $updates,
-                $this->computeSanrin($payload, $period),
-                $this->computeJotoIchiji($payload, $period),
-                $this->computeBunriJoto($payload, $period),
-                $this->computeKabuteki($payload, $period)
-            );
-        }
+        $updates = array_replace(
+            $updates,
+            $this->computeSanrin($payload, 'prev'),
+            $this->computeSanrin($payload, 'curr'),
+            $this->computeJotoIchiji($payload, 'prev'),
+            $this->computeJotoIchiji($payload, 'curr'),
+            $this->computeBunriJoto($payload, 'prev'),
+            $this->computeBunriJoto($payload, 'curr'),
+            $this->computeKabuteki($payload, 'prev'),
+            $this->computeKabuteki($payload, 'curr')
+        );
 
-        return $updates;
+        return array_replace($defaults, $updates);
     }
 
     /**

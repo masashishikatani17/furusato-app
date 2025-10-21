@@ -1622,6 +1622,18 @@
     const shotokuRates = @json($shotokuRatesForScript);
     const taxTypes = ['shotoku', 'jumin'];
     const periods = ['prev', 'curr'];
+    const shotokuGokeiBases = [
+      'shotoku_jigyo_eigyo',
+      'shotoku_jigyo_nogyo',
+      'shotoku_fudosan',
+      'shotoku_rishi',
+      'shotoku_haito',
+      'shotoku_kyuyo',
+      'shotoku_zatsu_nenkin',
+      'shotoku_zatsu_gyomu',
+      'shotoku_zatsu_sonota',
+      'shotoku_joto_ichiji',
+    ];
     const kojoShokeiBases = [
       'kojo_shakaihoken',
       'kojo_shokibo',
@@ -1697,6 +1709,19 @@
       return Number.isFinite(raw) ? Math.trunc(raw) : 0;
     };
 
+    const recalcShotokuGokei = () => {
+      taxTypes.forEach((tax) => {
+        periods.forEach((period) => {
+          let sum = 0;
+          shotokuGokeiBases.forEach((base) => {
+            const name = `${base}_${tax}_${period}`;
+            sum += readInt(name);
+          });
+          writeInt(`shotoku_gokei_${tax}_${period}`, sum);
+        });
+      });
+    };
+
     const recalcKojo = () => {
       taxTypes.forEach((tax) => {
         periods.forEach((period) => {
@@ -1751,6 +1776,18 @@
       });
     });
 
+    shotokuGokeiBases.forEach((base) => {
+      taxTypes.forEach((tax) => {
+        periods.forEach((period) => {
+          const name = `${base}_${tax}_${period}`;
+          const input = getInput(name);
+          if (input) {
+            input.addEventListener('blur', recalcShotokuGokei);
+          }
+        });
+      });
+    });
+
     taxTypes.forEach((tax) => {
       periods.forEach((period) => {
         const input = getInput(`tax_kazeishotoku_${tax}_${period}`);
@@ -1760,6 +1797,7 @@
       });
     });
 
+    recalcShotokuGokei();
     recalcKojo();
     recalcTax();
     // ============================
@@ -1797,6 +1835,7 @@
     const formEl = document.getElementById('furusato-input-form');
     if (formEl) {
       formEl.addEventListener('submit', (e) => {
+        recalcShotokuGokei();
         // 送信トリガーのボタンを判定（再計算以外でも同期しておくと安全）
         const submitter = (e.submitter && e.submitter instanceof Element) ? e.submitter : null;
         const isRecalc = submitter

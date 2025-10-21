@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Tax\FurusatoController;
+use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Models\Data;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
@@ -19,7 +19,6 @@ use App\Services\Tax\Kojo\KihonService;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
-use ReflectionMethod;
 use Tests\TestCase;
 
 final class ServicesProvideKeysTest extends TestCase
@@ -39,12 +38,10 @@ final class ServicesProvideKeysTest extends TestCase
             'visibility' => 'private',
         ]);
 
-        $controller = app(FurusatoController::class);
-        $method = new ReflectionMethod($controller, 'applyAutoCalculatedFields');
-        $method->setAccessible(true);
-
-        /** @var array<string, mixed> $result */
-        $result = $method->invoke($controller, $data, [], []);
+        /** @var RecalculateFurusatoPayload $useCase */
+        $useCase = app(RecalculateFurusatoPayload::class);
+        $result = $useCase->handle($data, [], ['should_flash_results' => false]);
+        $payload = $result['payload'];
 
         $services = [
             app(KifukinShotokuKojoService::class),
@@ -63,7 +60,7 @@ final class ServicesProvideKeysTest extends TestCase
         foreach ($services as $service) {
             $this->assertInstanceOf(ProvidesKeys::class, $service);
             foreach ($service::provides() as $key) {
-                $this->assertArrayHasKey($key, $result, sprintf('Failed asserting that %s populates %s', $service::class, $key));
+                $this->assertArrayHasKey($key, $payload, sprintf('Failed asserting that %s populates %s', $service::class, $key));
             }
         }
     }

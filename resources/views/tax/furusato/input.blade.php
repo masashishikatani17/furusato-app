@@ -256,7 +256,7 @@
         <div>
           <hb class="card-title mb-3">確定申告書(総合課税) 第一表</hb>
           <div class="table-responsive">
-            <table class="table table-base table-compact align-middle">
+            <table class="table table-base table-compact-05 align-middle">
                 <tr>
                   <th rowspan="2" colspan="6" class="th-ccc">項  目</th>
                   <th colspan="2" style="height:30px;" class="th-ccc">所得税</th>
@@ -753,7 +753,7 @@
                 <div>
                   <hb class="card-title mb-3">確定申告書(分離課税) 第三表</hb>
                   <div class="table-responsive">
-                    <table class="table table-base table-compact align-middle">
+                    <table class="table table-base table-compact-05 align-middle">
                       <thead class="table-light text-center align-middle">
                         <tr style="height:30px;">
                           <th rowspan="2" colspan="6" class="th-ccc">項  目</th>
@@ -1624,8 +1624,8 @@
     const taxTypes = ['shotoku', 'jumin'];
     const periods = ['prev', 'curr'];
     const bunriFlags = {
-      prev: @json((int)($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0)) === 1,
-      curr: @json((int)($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0)) === 1,
+      prev: (Number(@json($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0)) === 1),
+      curr: (Number(@json($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0)) === 1),
     };
     const shotokuGokeiBases = [
       'shotoku_jigyo_eigyo',
@@ -1682,75 +1682,42 @@
       }
     };
 
-    const writeDashWithHidden = (name) => {
-      const input = getInput(name);
-      if (!input) {
-        return;
-      }
-
-      input.type = 'hidden';
-      input.value = '';
-      input.readOnly = false;
-      input.classList.remove('bg-light');
-
-      const parent = input.parentElement;
-      if (!parent) {
-        return;
-      }
-
-      let dashInput = parent.querySelector(`[data-dash-display-for="${name}"]`);
-      if (!dashInput) {
-        dashInput = document.createElement('input');
-        dashInput.type = 'text';
-        dashInput.readOnly = true;
-        dashInput.value = '－';
-        dashInput.className = 'form-control text-center bg-light';
-        dashInput.setAttribute('data-dash-display-for', name);
-        dashInput.tabIndex = -1;
-        input.insertAdjacentElement('afterend', dashInput);
-      } else {
-        dashInput.value = '－';
-      }
+    const floorToThousands = (x) => {
+      const n = Math.trunc(Number(x) || 0);
+      if (n === 0) return 0;
+      return n >= 0 ? Math.floor(n / 1000) * 1000 : -Math.ceil(Math.abs(n) / 1000) * 1000;
     };
 
-    const restoreNumberInput = (name, value) => {
-      const input = getInput(name);
-      if (!input) {
-        return;
-      }
-
-      const parent = input.parentElement;
-      if (parent) {
-        const dashInput = parent.querySelector(`[data-dash-display-for="${name}"]`);
-        if (dashInput) {
-          dashInput.remove();
-        }
-      }
-
-      input.type = 'number';
-      input.readOnly = true;
-      input.classList.add('bg-light');
-      writeInt(name, value);
+    const dashify = (name) => {
+      const num = getInput(name);
+      if (!num) return;
+      if (num.dataset && num.dataset.dashed === '1') return;
+      num.type = 'hidden';
+      num.value = '';
+      num.dataset.dashed = '1';
+      const disp = document.createElement('input');
+      disp.type = 'text';
+      disp.readOnly = true;
+      disp.className = 'form-control form-control-sm text-center bg-light';
+      disp.value = '－';
+      num.insertAdjacentElement('afterend', disp);
     };
 
-    const ensureReadonlyLight = (name) => {
-      const el = getInput(name);
-      if (el) {
-        el.readOnly = true;
-        el.classList.add('bg-light');
+    const undashifySetNumber = (name, value) => {
+      const num = getInput(name);
+      if (!num) return;
+      const next = num.nextElementSibling;
+      if (num.dataset && num.dataset.dashed === '1') {
+        if (next && next.readOnly && next.value === '－') next.remove();
+        num.dataset.dashed = '0';
       }
-    };
-
-    const floorToThousands = (value) => {
-      const numeric = Math.trunc(Number(value) || 0);
-      if (numeric === 0) {
-        return 0;
+      num.type = 'number';
+      if (num.dataset) {
+        num.dataset.dashed = '0';
       }
-      if (numeric < 0) {
-        const magnitude = Math.floor(Math.abs(numeric) / 1000) * 1000;
-        return magnitude === 0 ? 0 : -magnitude;
-      }
-      return Math.floor(numeric / 1000) * 1000;
+      num.readOnly = true;
+      num.classList.add('bg-light');
+      num.value = Math.trunc(Number(value) || 0);
     };
 
     const resolveKojoFieldName = (base, tax, period) => {
@@ -1816,36 +1783,195 @@
       });
     };
 
-    const recalcTaxableSogoAndBunri = () => {
-      periods.forEach((period) => {
-        taxTypes.forEach((tax) => {
+    const recalcTaxableSogo = () => {
+      ['prev', 'curr'].forEach((period) => {
+        ['shotoku', 'jumin'].forEach((tax) => {
           const name = `tax_kazeishotoku_${tax}_${period}`;
           if (bunriFlags[period]) {
-            writeDashWithHidden(name);
+            dashify(name);
           } else {
-            const gokei = readInt(`shotoku_gokei_${tax}_${period}`);
-            const kojo = readInt(`kojo_gokei_${tax}_${period}`);
-            const value = gokei - kojo;
-            restoreNumberInput(name, value);
+            const g = readInt(`shotoku_gokei_${tax}_${period}`);
+            const k = readInt(`kojo_gokei_${tax}_${period}`);
+            undashifySetNumber(name, g - k);
           }
         });
+      });
+    };
 
-        taxTypes.forEach((tax) => {
-          const mirrorName = `bunri_sogo_gokeigaku_${tax}_${period}`;
-          const gokeiValue = readInt(`shotoku_gokei_${tax}_${period}`);
-          writeInt(mirrorName, gokeiValue);
-          ensureReadonlyLight(mirrorName);
+    const recalcBunriSogoMirror = () => {
+      ['prev', 'curr'].forEach((period) => {
+        ['shotoku', 'jumin'].forEach((tax) => {
+          const v = readInt(`shotoku_gokei_${tax}_${period}`);
+          writeInt(`bunri_sogo_gokeigaku_${tax}_${period}`, v);
+          const el = getInput(`bunri_sogo_gokeigaku_${tax}_${period}`);
+          if (el) { el.readOnly = true; el.classList.add('bg-light'); }
         });
+      });
+    };
 
-        const kojoShotoku = readInt(`kojo_gokei_shotoku_${period}`);
-        const bunriSogoShotoku = readInt(`bunri_sogo_gokeigaku_shotoku_${period}`);
-        const sashihiki = Math.min(kojoShotoku, bunriSogoShotoku);
-        writeInt(`bunri_sashihiki_gokei_shotoku_${period}`, sashihiki);
-        ensureReadonlyLight(`bunri_sashihiki_gokei_shotoku_${period}`);
+    const recalcBunriSashihikiGokei = () => {
+      ['prev', 'curr'].forEach((period) => {
+        let a = readInt(`kojo_gokei_shotoku_${period}`);
+        let b = readInt(`bunri_sogo_gokeigaku_shotoku_${period}`);
+        let v = Math.min(a, b);
+        writeInt(`bunri_sashihiki_gokei_shotoku_${period}`, v);
+        let el = getInput(`bunri_sashihiki_gokei_shotoku_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
 
-        const taxable = floorToThousands(bunriSogoShotoku - sashihiki);
-        writeInt(`bunri_kazeishotoku_sogo_shotoku_${period}`, taxable);
-        ensureReadonlyLight(`bunri_kazeishotoku_sogo_shotoku_${period}`);
+        a = readInt(`kojo_gokei_jumin_${period}`);
+        b = readInt(`bunri_sogo_gokeigaku_jumin_${period}`);
+        v = Math.min(a, b);
+        writeInt(`bunri_sashihiki_gokei_jumin_${period}`, v);
+        el = getInput(`bunri_sashihiki_gokei_jumin_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+      });
+    };
+
+    const recalcBunriKazeishotokuSogo = () => {
+      ['prev', 'curr'].forEach((period) => {
+        let sogo = readInt(`bunri_sogo_gokeigaku_shotoku_${period}`);
+        let sashihiki = readInt(`bunri_sashihiki_gokei_shotoku_${period}`);
+        let v = floorToThousands(sogo - sashihiki);
+        writeInt(`bunri_kazeishotoku_sogo_shotoku_${period}`, v);
+        let el = getInput(`bunri_kazeishotoku_sogo_shotoku_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+
+        sogo = readInt(`bunri_sogo_gokeigaku_jumin_${period}`);
+        sashihiki = readInt(`bunri_sashihiki_gokei_jumin_${period}`);
+        v = floorToThousands(sogo - sashihiki);
+        writeInt(`bunri_kazeishotoku_sogo_jumin_${period}`, v);
+        el = getInput(`bunri_kazeishotoku_sogo_jumin_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+      });
+    };
+
+    const recalcBunriKazeiBreakdownTanki = () => {
+      ['prev', 'curr'].forEach((period) => {
+        let v = floorToThousands(
+          readInt(`bunri_tanki_ippan_jumin_${period}`) + readInt(`bunri_tanki_keigen_jumin_${period}`)
+        );
+        writeInt(`bunri_kazeishotoku_tanki_shotoku_${period}`, v);
+        let el = getInput(`bunri_kazeishotoku_tanki_shotoku_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+
+        v = floorToThousands(
+          readInt(`bunri_tanki_ippan_jumin_${period}`) + readInt(`bunri_tanki_keigen_jumin_${period}`)
+        );
+        writeInt(`bunri_kazeishotoku_tanki_jumin_${period}`, v);
+        el = getInput(`bunri_kazeishotoku_tanki_jumin_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+      });
+    };
+
+    const recalcBunriKazeiBreakdownChoki = () => {
+      ['prev', 'curr'].forEach((period) => {
+        let v = floorToThousands(
+          readInt(`bunri_choki_ippan_jumin_${period}`)
+          + readInt(`bunri_choki_tokutei_jumin_${period}`)
+          + readInt(`bunri_choki_keika_jumin_${period}`)
+        );
+        writeInt(`bunri_kazeishotoku_choki_shotoku_${period}`, v);
+        let el = getInput(`bunri_kazeishotoku_choki_shotoku_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+
+        v = floorToThousands(
+          readInt(`bunri_choki_ippan_jumin_${period}`)
+          + readInt(`bunri_choki_tokutei_jumin_${period}`)
+          + readInt(`bunri_choki_keika_jumin_${period}`)
+        );
+        writeInt(`bunri_kazeishotoku_choki_jumin_${period}`, v);
+        el = getInput(`bunri_kazeishotoku_choki_jumin_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+      });
+    };
+
+    const recalcBunriKazeiBreakdownJoto = () => {
+      ['prev', 'curr'].forEach((period) => {
+        let v = floorToThousands(
+          readInt(`bunri_ippan_kabuteki_joto_jumin_${period}`)
+          + readInt(`bunri_jojo_kabuteki_joto_jumin_${period}`)
+        );
+        writeInt(`bunri_kazeishotoku_joto_shotoku_${period}`, v);
+        let el = getInput(`bunri_kazeishotoku_joto_shotoku_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+
+        v = floorToThousands(
+          readInt(`bunri_ippan_kabuteki_joto_jumin_${period}`)
+          + readInt(`bunri_jojo_kabuteki_joto_jumin_${period}`)
+        );
+        writeInt(`bunri_kazeishotoku_joto_jumin_${period}`, v);
+        el = getInput(`bunri_kazeishotoku_joto_jumin_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+      });
+    };
+
+    const recalcBunriKazeiBreakdownHaito = () => {
+      ['prev', 'curr'].forEach((period) => {
+        let v = floorToThousands(readInt(`bunri_jojo_kabuteki_haito_jumin_${period}`));
+        writeInt(`bunri_kazeishotoku_haito_shotoku_${period}`, v);
+        let el = getInput(`bunri_kazeishotoku_haito_shotoku_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+
+        v = floorToThousands(readInt(`bunri_jojo_kabuteki_haito_jumin_${period}`));
+        writeInt(`bunri_kazeishotoku_haito_jumin_${period}`, v);
+        el = getInput(`bunri_kazeishotoku_haito_jumin_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+      });
+    };
+
+    const recalcBunriKazeiBreakdownSakimono = () => {
+      ['prev', 'curr'].forEach((period) => {
+        const v = floorToThousands(readInt(`bunri_sakimono_jumin_${period}`));
+
+        writeInt(`bunri_kazeishotoku_sakimono_shotoku_${period}`, v);
+        let el = getInput(`bunri_kazeishotoku_sakimono_shotoku_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+
+        writeInt(`bunri_kazeishotoku_sakimono_jumin_${period}`, v);
+        el = getInput(`bunri_kazeishotoku_sakimono_jumin_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+      });
+    };
+
+    const recalcBunriKazeiBreakdownSanrin = () => {
+      ['prev', 'curr'].forEach((period) => {
+        let sanrinJ = readInt(`bunri_sanrin_jumin_${period}`);
+        let marginS = Math.max(0, readInt(`kojo_gokei_shotoku_${period}`) - readInt(`bunri_sogo_gokeigaku_shotoku_${period}`));
+        let v = floorToThousands(Math.max(0, sanrinJ - Math.max(0, marginS)));
+        writeInt(`bunri_kazeishotoku_sanrin_shotoku_${period}`, v);
+        let el = getInput(`bunri_kazeishotoku_sanrin_shotoku_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+
+        let marginJ = Math.max(0, readInt(`kojo_gokei_jumin_${period}`) - readInt(`bunri_sogo_gokeigaku_jumin_${period}`));
+        v = floorToThousands(Math.max(0, sanrinJ - Math.max(0, marginJ)));
+        writeInt(`bunri_kazeishotoku_sanrin_jumin_${period}`, v);
+        el = getInput(`bunri_kazeishotoku_sanrin_jumin_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+      });
+    };
+
+    const recalcBunriKazeiBreakdownTaishoku = () => {
+      ['prev', 'curr'].forEach((period) => {
+        let taiJ = readInt(`bunri_taishoku_jumin_${period}`);
+        let marginS = Math.max(0,
+          readInt(`kojo_gokei_shotoku_${period}`)
+          - readInt(`bunri_sogo_gokeigaku_shotoku_${period}`)
+          - readInt(`bunri_sanrin_jumin_${period}`)
+        );
+        let v = floorToThousands(Math.max(0, taiJ - Math.max(0, marginS)));
+        writeInt(`bunri_kazeishotoku_taishoku_shotoku_${period}`, v);
+        let el = getInput(`bunri_kazeishotoku_taishoku_shotoku_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+
+        let marginJ = Math.max(0,
+          readInt(`kojo_gokei_jumin_${period}`)
+          - readInt(`bunri_sogo_gokeigaku_jumin_${period}`)
+          - readInt(`bunri_sanrin_jumin_${period}`)
+        );
+        v = floorToThousands(Math.max(0, taiJ - Math.max(0, marginJ)));
+        writeInt(`bunri_kazeishotoku_taishoku_jumin_${period}`, v);
+        el = getInput(`bunri_kazeishotoku_taishoku_jumin_${period}`);
+        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
       });
     };
 
@@ -1862,7 +1988,17 @@
     const runFullRecalcChain = () => {
       recalcShotokuGokei();
       recalcKojo();
-      recalcTaxableSogoAndBunri();
+      recalcTaxableSogo();
+      recalcBunriSogoMirror();
+      recalcBunriSashihikiGokei();
+      recalcBunriKazeishotokuSogo();
+      recalcBunriKazeiBreakdownTanki();
+      recalcBunriKazeiBreakdownChoki();
+      recalcBunriKazeiBreakdownJoto();
+      recalcBunriKazeiBreakdownHaito();
+      recalcBunriKazeiBreakdownSakimono();
+      recalcBunriKazeiBreakdownSanrin();
+      recalcBunriKazeiBreakdownTaishoku();
       recalcTax();
     };
 
@@ -1905,11 +2041,37 @@
       });
     });
 
-    taxTypes.forEach((tax) => {
+    ['shotoku_gokei', 'kojo_gokei'].forEach((base) => {
+      taxTypes.forEach((tax) => {
+        periods.forEach((period) => {
+          const name = `${base}_${tax}_${period}`;
+          const input = getInput(name);
+          if (input) {
+            input.addEventListener('blur', runFullRecalcChain);
+          }
+        });
+      });
+    });
+
+    const bunriBlurBases = [
+      'bunri_tanki_ippan_jumin',
+      'bunri_tanki_keigen_jumin',
+      'bunri_choki_ippan_jumin',
+      'bunri_choki_tokutei_jumin',
+      'bunri_choki_keika_jumin',
+      'bunri_ippan_kabuteki_joto_jumin',
+      'bunri_jojo_kabuteki_joto_jumin',
+      'bunri_jojo_kabuteki_haito_jumin',
+      'bunri_sakimono_jumin',
+      'bunri_sanrin_jumin',
+      'bunri_taishoku_jumin',
+    ];
+
+    bunriBlurBases.forEach((base) => {
       periods.forEach((period) => {
-        const input = getInput(`tax_kazeishotoku_${tax}_${period}`);
+        const input = getInput(`${base}_${period}`);
         if (input) {
-          input.addEventListener('blur', recalcTax);
+          input.addEventListener('blur', runFullRecalcChain);
         }
       });
     });
@@ -1950,7 +2112,20 @@
     const formEl = document.getElementById('furusato-input-form');
     if (formEl) {
       formEl.addEventListener('submit', (e) => {
-        runFullRecalcChain();
+        recalcShotokuGokei();
+        recalcKojo();
+        recalcTaxableSogo();
+        recalcBunriSogoMirror();
+        recalcBunriSashihikiGokei();
+        recalcBunriKazeishotokuSogo();
+        recalcBunriKazeiBreakdownTanki();
+        recalcBunriKazeiBreakdownChoki();
+        recalcBunriKazeiBreakdownJoto();
+        recalcBunriKazeiBreakdownHaito();
+        recalcBunriKazeiBreakdownSakimono();
+        recalcBunriKazeiBreakdownSanrin();
+        recalcBunriKazeiBreakdownTaishoku();
+        recalcTax();
         // 送信トリガーのボタンを判定（再計算以外でも同期しておくと安全）
         const submitter = (e.submitter && e.submitter instanceof Element) ? e.submitter : null;
         const isRecalc = submitter

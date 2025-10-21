@@ -34,7 +34,7 @@
           @endif
       
           <div class="table-responsive">
-            <table class="table-base table-bordered align-middle">
+            <table class="table-base align-middle">
               <thead>
                 <tr>
                   <th class="th-ccc" colspan="2" style="height:30px;">項　目</th>

@@ -42,11 +42,10 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(PayloadNormalizer::class, PayloadNormalizer::class);
 
-        $calculatorClasses = [
+        $taggedCalculatorClasses = [
             KifukinCalculator::class,
             KisoKojoCalculator::class,
             KyuyoNenkinCalculator::class,
-            KojoSeimeiJishinCalculator::class,
             JintekiKojoCalculator::class,
             HaigushaKojoCalculator::class,
             KojoAggregationCalculator::class,
@@ -54,20 +53,26 @@ class AppServiceProvider extends ServiceProvider
             JuminTaxCalculator::class,
             SeitotoTokubetsuZeigakuKojoCalculator::class,
             TokureiRateCalculator::class,
-            BunriNettingCalculator::class,
-            BunriKabutekiNettingCalculator::class,
             BunriSeparatedMinRateCalculator::class,
             FurusatoResultCalculator::class,
         ];
+
+        $periodCalculatorClasses = [
+            KojoSeimeiJishinCalculator::class,
+            BunriNettingCalculator::class,
+            BunriKabutekiNettingCalculator::class,
+        ];
+
+        $calculatorClasses = array_merge($taggedCalculatorClasses, $periodCalculatorClasses);
 
         foreach ($calculatorClasses as $class) {
             $this->app->singleton($class, $class);
         }
 
-        $this->app->tag($calculatorClasses, 'tax.furusato.calculators');
+        $this->app->tag($taggedCalculatorClasses, 'tax.furusato.calculators');
 
-        $this->app->bind(RecalculateFurusatoPayload::class, function ($app) use ($calculatorClasses) {
-            $calculators = array_map(static fn (string $class) => $app->make($class), $calculatorClasses);
+        $this->app->bind(RecalculateFurusatoPayload::class, function ($app) use ($taggedCalculatorClasses) {
+            $calculators = array_map(static fn (string $class) => $app->make($class), $taggedCalculatorClasses);
 
             return new RecalculateFurusatoPayload(
                 $app->make(PayloadNormalizer::class),

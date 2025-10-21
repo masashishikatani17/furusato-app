@@ -1648,7 +1648,7 @@
       const el = getInput(name);
       if (el) {
         el.readOnly = true;
-        el.classList.add('form-control', 'form-control-sm', 'bg-light', 'text-end');
+        el.classList.add('bg-light', 'text-end');
         if (el.type !== 'number') el.type = 'number';
       }
     };
@@ -1824,6 +1824,92 @@
       });
     };
 
+    const recalcBunriZeigakuJuminAll = () => {
+      ['prev', 'curr'].forEach((period) => {
+        writeInt(
+          `bunri_zeigaku_sogo_jumin_${period}`,
+          Math.trunc(readInt(`bunri_kazeishotoku_sogo_jumin_${period}`) * 0.10),
+        );
+        makeReadonlyNumber(`bunri_zeigaku_sogo_jumin_${period}`);
+
+        const tIppan = readInt(`bunri_shotoku_tanki_ippan_jumin_${period}`);
+        const tKeigen = readInt(`bunri_shotoku_tanki_keigen_jumin_${period}`);
+        writeInt(
+          `bunri_zeigaku_tanki_jumin_${period}`,
+          Math.trunc(tIppan * 0.09 + tKeigen * 0.05),
+        );
+        makeReadonlyNumber(`bunri_zeigaku_tanki_jumin_${period}`);
+
+        const cIppan = readInt(`bunri_shotoku_choki_ippan_jumin_${period}`);
+        const cTokutei = readInt(`bunri_shotoku_choki_tokutei_jumin_${period}`);
+        const cKeika = readInt(`bunri_shotoku_choki_keika_jumin_${period}`);
+        const tokuteiTax = Math.trunc(
+          Math.min(20_000_000, cTokutei) * 0.04 + Math.max(0, cTokutei - 20_000_000) * 0.05,
+        );
+        const keikaTax = Math.trunc(
+          Math.min(60_000_000, cKeika) * 0.04 + Math.max(0, cKeika - 60_000_000) * 0.05,
+        );
+        writeInt(
+          `bunri_zeigaku_choki_jumin_${period}`,
+          Math.trunc(cIppan * 0.05 + tokuteiTax + keikaTax),
+        );
+        makeReadonlyNumber(`bunri_zeigaku_choki_jumin_${period}`);
+
+        writeInt(
+          `bunri_zeigaku_joto_jumin_${period}`,
+          Math.trunc(readInt(`bunri_kazeishotoku_joto_jumin_${period}`) * 0.05),
+        );
+        makeReadonlyNumber(`bunri_zeigaku_joto_jumin_${period}`);
+
+        writeInt(
+          `bunri_zeigaku_haito_jumin_${period}`,
+          Math.trunc(readInt(`bunri_kazeishotoku_haito_jumin_${period}`) * 0.05),
+        );
+        makeReadonlyNumber(`bunri_zeigaku_haito_jumin_${period}`);
+
+        writeInt(
+          `bunri_zeigaku_sakimono_jumin_${period}`,
+          Math.trunc(readInt(`bunri_kazeishotoku_sakimono_jumin_${period}`) * 0.05),
+        );
+        makeReadonlyNumber(`bunri_zeigaku_sakimono_jumin_${period}`);
+
+        writeInt(
+          `bunri_zeigaku_sanrin_jumin_${period}`,
+          Math.trunc(readInt(`bunri_kazeishotoku_sanrin_jumin_${period}`) * 0.10),
+        );
+        makeReadonlyNumber(`bunri_zeigaku_sanrin_jumin_${period}`);
+
+        writeInt(
+          `bunri_zaigaku_taishoku_jumin_${period}`,
+          Math.trunc(readInt(`bunri_kazeishotoku_taishoku_jumin_${period}`) * 0.10),
+        );
+        makeReadonlyNumber(`bunri_zaigaku_taishoku_jumin_${period}`);
+      });
+    };
+
+    const recalcZeigakuGokeiAll = () => {
+      ['prev', 'curr'].forEach((period) => {
+        ['shotoku', 'jumin'].forEach((tax) => {
+          const names = [
+            `bunri_zeigaku_sogo_${tax}_${period}`,
+            `bunri_zeigaku_tanki_${tax}_${period}`,
+            `bunri_zeigaku_choki_${tax}_${period}`,
+            `bunri_zeigaku_joto_${tax}_${period}`,
+            `bunri_zeigaku_haito_${tax}_${period}`,
+            `bunri_zeigaku_sakimono_${tax}_${period}`,
+            `bunri_zeigaku_sanrin_${tax}_${period}`,
+            tax === 'jumin'
+              ? `bunri_zaigaku_taishoku_${tax}_${period}`
+              : `bunri_zeigaku_taishoku_${tax}_${period}`,
+          ];
+          const sum = names.reduce((acc, name) => acc + readInt(name), 0);
+          const field = `bunri_zeigaku_gokei_${tax}_${period}`;
+          writeInt(field, sum);
+          makeReadonlyNumber(field);
+        });
+      });
+    };
+
     const recalcShotokuGokei = () => {
       taxTypes.forEach((tax) => {
         periods.forEach((period) => {
@@ -1979,12 +2065,14 @@
       recalcKojo();
       recalcTaxableSogo();
       recalcBunriSogoMirror();
+      mirrorRetirementToJumin();
       recalcBunriSashihikiGokei();
       recalcBunriKazeishotokuSogo();
       recalcShotokuTaxFromMaster();
       recalcBunriZeigakuShotokuAll();
+      recalcBunriZeigakuJuminAll();
+      recalcZeigakuGokeiAll();
       recalcBunriKazeishotokuGroup();
-      mirrorRetirementToJumin();
       recalcTax();
     };
 
@@ -2081,9 +2169,37 @@
     });
 
     ['prev', 'curr'].forEach((period) => {
+      [
+        `bunri_kazeishotoku_sanrin_jumin_${period}`,
+        `bunri_kazeishotoku_taishoku_jumin_${period}`,
+        `bunri_kazeishotoku_joto_jumin_${period}`,
+        `bunri_kazeishotoku_haito_jumin_${period}`,
+        `bunri_kazeishotoku_sakimono_jumin_${period}`,
+      ].forEach((name) => {
+        const input = getInput(name);
+        if (input) {
+          input.addEventListener('blur', runFullRecalcChain);
+        }
+      });
+    });
+
+    ['prev', 'curr'].forEach((period) => {
       const taxableInput = getInput(`bunri_kazeishotoku_sogo_shotoku_${period}`);
       if (taxableInput) {
-        taxableInput.addEventListener('blur', recalcShotokuTaxFromMaster);
+        taxableInput.addEventListener('blur', () => {
+          recalcShotokuTaxFromMaster();
+          recalcZeigakuGokeiAll();
+        });
+      }
+    });
+
+    ['prev', 'curr'].forEach((period) => {
+      const taxableInput = getInput(`bunri_kazeishotoku_sogo_jumin_${period}`);
+      if (taxableInput) {
+        taxableInput.addEventListener('blur', () => {
+          recalcBunriZeigakuJuminAll();
+          recalcZeigakuGokeiAll();
+        });
       }
     });
 
@@ -2105,6 +2221,8 @@
     });
 
     runFullRecalcChain();
+    recalcBunriZeigakuJuminAll();
+    recalcZeigakuGokeiAll();
     mirrorRetirementToJumin();
     // ============================
     // 再計算時・初期表示時にも
@@ -2145,12 +2263,14 @@
         recalcKojo();
         recalcTaxableSogo();
         recalcBunriSogoMirror();
+        mirrorRetirementToJumin();
         recalcBunriSashihikiGokei();
         recalcBunriKazeishotokuSogo();
         recalcShotokuTaxFromMaster();
         recalcBunriZeigakuShotokuAll();
+        recalcBunriZeigakuJuminAll();
+        recalcZeigakuGokeiAll();
         recalcBunriKazeishotokuGroup();
-        mirrorRetirementToJumin();
         recalcTax();
         // 送信トリガーのボタンを判定（再計算以外でも同期しておくと安全）
         const submitter = (e.submitter && e.submitter instanceof Element) ? e.submitter : null;

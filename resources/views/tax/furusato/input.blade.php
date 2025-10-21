@@ -1653,6 +1653,36 @@
       }
     };
 
+    function writeDashWithHidden(name) {
+      const form = document.getElementById('furusato-input-form');
+      if (!form) return;
+      let hidden = form.querySelector(`input[type="hidden"][name="${name}"]`);
+      let number = form.querySelector(`input[data-dash-original-name="${name}"]`);
+      if (!number) {
+        number = form.querySelector(`input[name="${name}"]`);
+      }
+      if (hidden && number && number.type === 'text') {
+        hidden.value = '';
+        return;
+      }
+      if (number) {
+        number.dataset.dashOriginalName = name;
+        number.removeAttribute('name');
+        number.type = 'text';
+        number.value = '－';
+        number.readOnly = true;
+        number.classList.add('bg-light', 'text-center');
+        number.classList.remove('text-end');
+      }
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = name;
+        form.appendChild(hidden);
+      }
+      hidden.value = '';
+    }
+
     function mirrorRetirementToJumin() {
       ['prev', 'curr'].forEach((period) => {
         const srcIncome = `bunri_syunyu_taishoku_shotoku_${period}`;
@@ -2091,18 +2121,18 @@
         writeInt(`tax_kijun_jumin_${period}`, kijunJumin);
         makeReadonlyNumber(`tax_kijun_jumin_${period}`);
 
-        taxTypes.forEach((tax) => {
-          const kijun = readInt(`tax_kijun_${tax}_${period}`);
-          const fukkou = Math.trunc(kijun * 0.021);
-          const fukkouName = `tax_fukkou_${tax}_${period}`;
-          writeInt(fukkouName, fukkou);
-          makeReadonlyNumber(fukkouName);
+        const fukkouShotokuName = `tax_fukkou_shotoku_${period}`;
+        writeInt(fukkouShotokuName, Math.trunc(kijunShotoku * 0.021));
+        makeReadonlyNumber(fukkouShotokuName);
 
-          const gokei = kijun + fukkou;
-          const gokeiName = `tax_gokei_${tax}_${period}`;
-          writeInt(gokeiName, gokei);
-          makeReadonlyNumber(gokeiName);
-        });
+        writeDashWithHidden(`tax_fukkou_jumin_${period}`);
+
+        const gokeiShotoku = readInt(`tax_kijun_shotoku_${period}`) + readInt(`tax_fukkou_shotoku_${period}`);
+        writeInt(`tax_gokei_shotoku_${period}`, gokeiShotoku);
+        makeReadonlyNumber(`tax_gokei_shotoku_${period}`);
+
+        writeInt(`tax_gokei_jumin_${period}`, kijunJumin);
+        makeReadonlyNumber(`tax_gokei_jumin_${period}`);
       });
     };
 

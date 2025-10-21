@@ -1656,24 +1656,10 @@
     function writeDashWithHidden(name) {
       const form = document.getElementById('furusato-input-form');
       if (!form) return;
-      let hidden = form.querySelector(`input[type="hidden"][name="${name}"]`);
-      let number = form.querySelector(`input[data-dash-original-name="${name}"]`);
-      if (!number) {
-        number = form.querySelector(`input[name="${name}"]`);
-      }
-      if (hidden && number && number.type === 'text') {
-        hidden.value = '';
-        return;
-      }
-      if (number) {
-        number.dataset.dashOriginalName = name;
-        number.removeAttribute('name');
-        number.type = 'text';
-        number.value = '－';
-        number.readOnly = true;
-        number.classList.add('bg-light', 'text-center');
-        number.classList.remove('text-end');
-      }
+
+      const hiddenList = Array.from(form.querySelectorAll(`input[type="hidden"][name="${name}"]`));
+      let hidden = hiddenList.shift() || null;
+      hiddenList.forEach((node) => node.remove());
       if (!hidden) {
         hidden = document.createElement('input');
         hidden.type = 'hidden';
@@ -1681,6 +1667,119 @@
         form.appendChild(hidden);
       }
       hidden.value = '';
+
+      const finalizeDisplay = (el) => {
+        if (!el) return;
+        el.removeAttribute('name');
+        el.removeAttribute('data-dash-original-name');
+        el.dataset.dashName = name;
+        el.type = 'text';
+        el.value = '－';
+        el.readOnly = true;
+        el.classList.add('bg-light', 'text-center');
+        el.classList.remove('text-end');
+        if (!el.classList.contains('form-control')) el.classList.add('form-control');
+        if (!el.classList.contains('form-control-sm')) el.classList.add('form-control-sm');
+        if (hidden) {
+          hidden.value = '';
+          hidden.remove();
+          el.insertAdjacentElement('afterend', hidden);
+        }
+      };
+
+      let display = null;
+
+      Array.from(form.querySelectorAll(`input[type="text"][data-dash-original-name="${name}"]`)).forEach((el) => {
+        if (!display) {
+          display = el;
+        } else {
+          el.remove();
+        }
+      });
+
+      Array.from(form.querySelectorAll(`input[type="text"][data-dash-name="${name}"]`)).forEach((el) => {
+        if (!display) {
+          display = el;
+        } else if (el !== display) {
+          el.remove();
+        }
+      });
+
+      if (!display) {
+        const source = form.querySelector(`input[name="${name}"]`);
+        if (source) {
+          display = source;
+        }
+      }
+
+      if (!display) {
+        const fallbackCandidates = hidden.parentNode
+          ? Array.from(hidden.parentNode.querySelectorAll('input[type="text"].bg-light.text-center'))
+            .filter((el) => el.value === '－' && !el.name)
+          : [];
+        if (fallbackCandidates.length > 0) {
+          display = fallbackCandidates.shift();
+          fallbackCandidates.forEach((el) => el.remove());
+        }
+      }
+
+      if (!display) {
+        display = document.createElement('input');
+        display.type = 'text';
+        display.readOnly = true;
+        display.classList.add('bg-light', 'text-center', 'form-control', 'form-control-sm');
+        if (hidden.parentNode) {
+          hidden.parentNode.insertBefore(display, hidden);
+        } else {
+          form.appendChild(display);
+        }
+      }
+
+      finalizeDisplay(display);
+    }
+
+    function restoreNumberInput(name, value) {
+      const form = document.getElementById('furusato-input-form');
+      if (!form) return;
+
+      const dashDisplays = Array.from(form.querySelectorAll(`input[type="text"][data-dash-name="${name}"]`));
+      const legacyDisplays = Array.from(form.querySelectorAll(`input[type="text"][data-dash-original-name="${name}"]`));
+      let number = form.querySelector(`input[name="${name}"]`);
+
+      const primaryDisplay = dashDisplays[0] || legacyDisplays[0] || null;
+
+      dashDisplays.forEach((el) => {
+        if (el !== primaryDisplay) {
+          el.remove();
+        }
+      });
+      legacyDisplays.forEach((el) => {
+        if (el !== primaryDisplay) {
+          el.remove();
+        }
+      });
+
+      if (!number && primaryDisplay) {
+        number = primaryDisplay;
+      }
+
+      if (number) {
+        number.name = name;
+        number.type = 'number';
+        number.readOnly = true;
+        number.classList.add('bg-light', 'text-end');
+        number.classList.remove('text-center');
+        number.removeAttribute('data-dash-name');
+        number.removeAttribute('data-dash-original-name');
+        const numeric = Number.isFinite(value) ? Math.trunc(value) : Math.trunc(Number(value) || 0);
+        number.value = numeric;
+      }
+
+      if (primaryDisplay && primaryDisplay !== number) {
+        primaryDisplay.remove();
+      }
+
+      Array.from(form.querySelectorAll(`input[type="hidden"][name="${name}"]`)).forEach((node) => node.remove());
     }
 
     function mirrorRetirementToJumin() {

@@ -13,7 +13,6 @@ class KojoAggregationCalculator implements ProvidesKeys
     public const AFTER = [
         KifukinCalculator::ID,
         KisoKojoCalculator::ID,
-        KojoSeimeiJishinCalculator::ID,
         JintekiKojoCalculator::ID,
         HaigushaKojoCalculator::ID,
     ];

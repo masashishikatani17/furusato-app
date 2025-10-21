@@ -243,7 +243,19 @@
                         }
                     }
                 }
-  
+
+                return $html;
+            };
+            $renderReadonlyBunriKazeishotoku = static function (string $base) use ($inputs) {
+                $html = '';
+                foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
+                    foreach ($periods as $period) {
+                        $name = sprintf('%s_%s_%s', $base, $tax, $period);
+                        $value = old($name, $inputs[$name] ?? 0);
+                        $html .= '<td><input type="number" class="form-control form-control-sm text-end bg-light" name="' . e($name) . '" value="' . e($value) . '" readonly></td>';
+                    }
+                }
+
                 return $html;
             };
             $syunyuRowspan = 11;
@@ -1040,7 +1052,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          {!! $renderInputs('bunri_kazeishotoku_tanki') !!}
+                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_tanki') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">長期譲渡</th>
@@ -1048,7 +1060,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          {!! $renderInputs('bunri_kazeishotoku_choki') !!}
+                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_choki') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 pe-1 th-ddd" nowrap="nowrap">一般・上場株式の譲渡</th>
@@ -1056,17 +1068,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_kazeishotoku_joto_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_joto') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">上場株式の配当等</th>
@@ -1074,17 +1076,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_kazeishotoku_haito_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_haito') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">先物取引</th>
@@ -1092,17 +1084,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_kazeishotoku_sakimono_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_sakimono') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">山林</th>
@@ -1110,17 +1092,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_kazeishotoku_sanrin_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_sanrin') !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">退職</th>
@@ -1128,17 +1100,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
-                            @foreach ($periods as $period)
-                              @php
-                                $name = sprintf('bunri_kazeishotoku_taishoku_%s_%s', $tax, $period);
-                                $value = old($name, $inputs[$name] ?? null);
-                              @endphp
-                              <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
-                              </td>
-                            @endforeach
-                          @endforeach
+                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_taishoku') !!}
                         </tr>
                         <tr>
                           <th scope="rowgroup" rowspan="8" class="text-center align-middle text-start ps-1">税 額</th>
@@ -1682,10 +1644,47 @@
       }
     };
 
+    const makeReadonlyNumber = (name) => {
+      const el = getInput(name);
+      if (el) {
+        el.readOnly = true;
+        el.classList.add('bg-light', 'text-end');
+        if (el.type !== 'number') el.type = 'number';
+      }
+    };
+
+    function mirrorRetirementToJumin() {
+      ['prev', 'curr'].forEach((period) => {
+        const srcIncome = `bunri_syunyu_taishoku_shotoku_${period}`;
+        const dstIncome = `bunri_syunyu_taishoku_jumin_${period}`;
+        writeInt(dstIncome, readInt(srcIncome));
+        makeReadonlyNumber(dstIncome);
+
+        const srcShotoku = `bunri_shotoku_taishoku_shotoku_${period}`;
+        const dstShotoku = `bunri_shotoku_taishoku_jumin_${period}`;
+        writeInt(dstShotoku, readInt(srcShotoku));
+        makeReadonlyNumber(dstShotoku);
+      });
+    }
+
     const floorToThousands = (x) => {
       const n = Math.trunc(Number(x) || 0);
       if (n === 0) return 0;
       return n >= 0 ? Math.floor(n / 1000) * 1000 : -Math.ceil(Math.abs(n) / 1000) * 1000;
+    };
+
+    const floorToThousandsSigned = (x) => {
+      const n = Number.isFinite(x) ? Math.trunc(x) : 0;
+      if (n === 0) return 0;
+      return n > 0 ? Math.floor(n / 1000) * 1000 : -Math.ceil(Math.abs(n) / 1000) * 1000;
+    };
+
+    const addReadonlyBg = (name) => {
+      const input = getInput(name);
+      if (input) {
+        input.readOnly = true;
+        input.classList.add('bg-light');
+      }
     };
 
     const dashify = (name) => {
@@ -1845,133 +1844,50 @@
       });
     };
 
-    const recalcBunriKazeiBreakdownTanki = () => {
-      ['prev', 'curr'].forEach((period) => {
-        let v = floorToThousands(
-          readInt(`bunri_tanki_ippan_jumin_${period}`) + readInt(`bunri_tanki_keigen_jumin_${period}`)
-        );
-        writeInt(`bunri_kazeishotoku_tanki_shotoku_${period}`, v);
-        let el = getInput(`bunri_kazeishotoku_tanki_shotoku_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+    const recalcBunriKazeishotokuGroup = () => {
+      periods.forEach((period) => {
+        const calcForTax = (tax) => {
+          const read = (base) => readInt(`${base}_${tax}_${period}`);
+          const write = (base, value) => {
+            const name = `${base}_${tax}_${period}`;
+            writeInt(name, value);
+            addReadonlyBg(name);
+          };
 
-        v = floorToThousands(
-          readInt(`bunri_tanki_ippan_jumin_${period}`) + readInt(`bunri_tanki_keigen_jumin_${period}`)
-        );
-        writeInt(`bunri_kazeishotoku_tanki_jumin_${period}`, v);
-        el = getInput(`bunri_kazeishotoku_tanki_jumin_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
-      });
-    };
+          const t1 = read('bunri_shotoku_tanki_ippan');
+          const t2 = read('bunri_shotoku_tanki_keigen');
+          write('bunri_kazeishotoku_tanki', floorToThousandsSigned(t1 + t2));
 
-    const recalcBunriKazeiBreakdownChoki = () => {
-      ['prev', 'curr'].forEach((period) => {
-        let v = floorToThousands(
-          readInt(`bunri_choki_ippan_jumin_${period}`)
-          + readInt(`bunri_choki_tokutei_jumin_${period}`)
-          + readInt(`bunri_choki_keika_jumin_${period}`)
-        );
-        writeInt(`bunri_kazeishotoku_choki_shotoku_${period}`, v);
-        let el = getInput(`bunri_kazeishotoku_choki_shotoku_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+          const c1 = read('bunri_shotoku_choki_ippan');
+          const c2 = read('bunri_shotoku_choki_tokutei');
+          const c3 = read('bunri_shotoku_choki_keika');
+          write('bunri_kazeishotoku_choki', floorToThousandsSigned(c1 + c2 + c3));
 
-        v = floorToThousands(
-          readInt(`bunri_choki_ippan_jumin_${period}`)
-          + readInt(`bunri_choki_tokutei_jumin_${period}`)
-          + readInt(`bunri_choki_keika_jumin_${period}`)
-        );
-        writeInt(`bunri_kazeishotoku_choki_jumin_${period}`, v);
-        el = getInput(`bunri_kazeishotoku_choki_jumin_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
-      });
-    };
+          const j1 = read('bunri_shotoku_ippan_kabuteki_joto');
+          const j2 = read('bunri_shotoku_jojo_kabuteki_joto');
+          write('bunri_kazeishotoku_joto', floorToThousandsSigned(j1 + j2));
 
-    const recalcBunriKazeiBreakdownJoto = () => {
-      ['prev', 'curr'].forEach((period) => {
-        let v = floorToThousands(
-          readInt(`bunri_ippan_kabuteki_joto_jumin_${period}`)
-          + readInt(`bunri_jojo_kabuteki_joto_jumin_${period}`)
-        );
-        writeInt(`bunri_kazeishotoku_joto_shotoku_${period}`, v);
-        let el = getInput(`bunri_kazeishotoku_joto_shotoku_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+          const h1 = read('bunri_shotoku_jojo_kabuteki_haito');
+          write('bunri_kazeishotoku_haito', floorToThousandsSigned(h1));
 
-        v = floorToThousands(
-          readInt(`bunri_ippan_kabuteki_joto_jumin_${period}`)
-          + readInt(`bunri_jojo_kabuteki_joto_jumin_${period}`)
-        );
-        writeInt(`bunri_kazeishotoku_joto_jumin_${period}`, v);
-        el = getInput(`bunri_kazeishotoku_joto_jumin_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
-      });
-    };
+          const s1 = read('bunri_shotoku_sakimono');
+          write('bunri_kazeishotoku_sakimono', floorToThousandsSigned(s1));
 
-    const recalcBunriKazeiBreakdownHaito = () => {
-      ['prev', 'curr'].forEach((period) => {
-        let v = floorToThousands(readInt(`bunri_jojo_kabuteki_haito_jumin_${period}`));
-        writeInt(`bunri_kazeishotoku_haito_shotoku_${period}`, v);
-        let el = getInput(`bunri_kazeishotoku_haito_shotoku_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+          const sanA = read('bunri_shotoku_sanrin');
+          const sanKojo = read('kojo_gokei');
+          const sanSogo = read('bunri_sogo_gokeigaku');
+          const sanAdj = Math.max(0, sanKojo - sanSogo);
+          write('bunri_kazeishotoku_sanrin', floorToThousandsSigned(Math.max(0, sanA - sanAdj)));
 
-        v = floorToThousands(readInt(`bunri_jojo_kabuteki_haito_jumin_${period}`));
-        writeInt(`bunri_kazeishotoku_haito_jumin_${period}`, v);
-        el = getInput(`bunri_kazeishotoku_haito_jumin_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
-      });
-    };
+          const taA = read('bunri_shotoku_taishoku');
+          const taKojo = read('kojo_gokei');
+          const taSogo = read('bunri_sogo_gokeigaku');
+          const sanJumin = readInt(`bunri_shotoku_sanrin_jumin_${period}`);
+          const taAdj = Math.max(0, taKojo - taSogo - sanJumin);
+          write('bunri_kazeishotoku_taishoku', floorToThousandsSigned(Math.max(0, taA - taAdj)));
+        };
 
-    const recalcBunriKazeiBreakdownSakimono = () => {
-      ['prev', 'curr'].forEach((period) => {
-        const v = floorToThousands(readInt(`bunri_sakimono_jumin_${period}`));
-
-        writeInt(`bunri_kazeishotoku_sakimono_shotoku_${period}`, v);
-        let el = getInput(`bunri_kazeishotoku_sakimono_shotoku_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
-
-        writeInt(`bunri_kazeishotoku_sakimono_jumin_${period}`, v);
-        el = getInput(`bunri_kazeishotoku_sakimono_jumin_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
-      });
-    };
-
-    const recalcBunriKazeiBreakdownSanrin = () => {
-      ['prev', 'curr'].forEach((period) => {
-        let sanrinJ = readInt(`bunri_sanrin_jumin_${period}`);
-        let marginS = Math.max(0, readInt(`kojo_gokei_shotoku_${period}`) - readInt(`bunri_sogo_gokeigaku_shotoku_${period}`));
-        let v = floorToThousands(Math.max(0, sanrinJ - Math.max(0, marginS)));
-        writeInt(`bunri_kazeishotoku_sanrin_shotoku_${period}`, v);
-        let el = getInput(`bunri_kazeishotoku_sanrin_shotoku_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
-
-        let marginJ = Math.max(0, readInt(`kojo_gokei_jumin_${period}`) - readInt(`bunri_sogo_gokeigaku_jumin_${period}`));
-        v = floorToThousands(Math.max(0, sanrinJ - Math.max(0, marginJ)));
-        writeInt(`bunri_kazeishotoku_sanrin_jumin_${period}`, v);
-        el = getInput(`bunri_kazeishotoku_sanrin_jumin_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
-      });
-    };
-
-    const recalcBunriKazeiBreakdownTaishoku = () => {
-      ['prev', 'curr'].forEach((period) => {
-        let taiJ = readInt(`bunri_taishoku_jumin_${period}`);
-        let marginS = Math.max(0,
-          readInt(`kojo_gokei_shotoku_${period}`)
-          - readInt(`bunri_sogo_gokeigaku_shotoku_${period}`)
-          - readInt(`bunri_sanrin_jumin_${period}`)
-        );
-        let v = floorToThousands(Math.max(0, taiJ - Math.max(0, marginS)));
-        writeInt(`bunri_kazeishotoku_taishoku_shotoku_${period}`, v);
-        let el = getInput(`bunri_kazeishotoku_taishoku_shotoku_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
-
-        let marginJ = Math.max(0,
-          readInt(`kojo_gokei_jumin_${period}`)
-          - readInt(`bunri_sogo_gokeigaku_jumin_${period}`)
-          - readInt(`bunri_sanrin_jumin_${period}`)
-        );
-        v = floorToThousands(Math.max(0, taiJ - Math.max(0, marginJ)));
-        writeInt(`bunri_kazeishotoku_taishoku_jumin_${period}`, v);
-        el = getInput(`bunri_kazeishotoku_taishoku_jumin_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
+        taxTypes.forEach(calcForTax);
       });
     };
 
@@ -1992,13 +1908,8 @@
       recalcBunriSogoMirror();
       recalcBunriSashihikiGokei();
       recalcBunriKazeishotokuSogo();
-      recalcBunriKazeiBreakdownTanki();
-      recalcBunriKazeiBreakdownChoki();
-      recalcBunriKazeiBreakdownJoto();
-      recalcBunriKazeiBreakdownHaito();
-      recalcBunriKazeiBreakdownSakimono();
-      recalcBunriKazeiBreakdownSanrin();
-      recalcBunriKazeiBreakdownTaishoku();
+      recalcBunriKazeishotokuGroup();
+      mirrorRetirementToJumin();
       recalcTax();
     };
 
@@ -2041,7 +1952,7 @@
       });
     });
 
-    ['shotoku_gokei', 'kojo_gokei'].forEach((base) => {
+    ['shotoku_gokei', 'kojo_gokei', 'bunri_sogo_gokeigaku'].forEach((base) => {
       taxTypes.forEach((tax) => {
         periods.forEach((period) => {
           const name = `${base}_${tax}_${period}`;
@@ -2053,30 +1964,51 @@
       });
     });
 
-    const bunriBlurBases = [
-      'bunri_tanki_ippan_jumin',
-      'bunri_tanki_keigen_jumin',
-      'bunri_choki_ippan_jumin',
-      'bunri_choki_tokutei_jumin',
-      'bunri_choki_keika_jumin',
-      'bunri_ippan_kabuteki_joto_jumin',
-      'bunri_jojo_kabuteki_joto_jumin',
-      'bunri_jojo_kabuteki_haito_jumin',
-      'bunri_sakimono_jumin',
-      'bunri_sanrin_jumin',
-      'bunri_taishoku_jumin',
+    const bunriKazeishotokuBases = [
+      'bunri_shotoku_tanki_ippan',
+      'bunri_shotoku_tanki_keigen',
+      'bunri_shotoku_choki_ippan',
+      'bunri_shotoku_choki_tokutei',
+      'bunri_shotoku_choki_keika',
+      'bunri_shotoku_ippan_kabuteki_joto',
+      'bunri_shotoku_jojo_kabuteki_joto',
+      'bunri_shotoku_jojo_kabuteki_haito',
+      'bunri_shotoku_sakimono',
+      'bunri_shotoku_sanrin',
+      'bunri_shotoku_taishoku',
     ];
 
-    bunriBlurBases.forEach((base) => {
-      periods.forEach((period) => {
-        const input = getInput(`${base}_${period}`);
-        if (input) {
-          input.addEventListener('blur', runFullRecalcChain);
-        }
+    bunriKazeishotokuBases.forEach((base) => {
+      taxTypes.forEach((tax) => {
+        periods.forEach((period) => {
+          const name = `${base}_${tax}_${period}`;
+          const input = getInput(name);
+          if (input) {
+            input.addEventListener('blur', runFullRecalcChain);
+          }
+        });
       });
     });
 
+    ['prev', 'curr'].forEach((period) => {
+      const incomeInput = getInput(`bunri_syunyu_taishoku_shotoku_${period}`);
+      const shotokuInput = getInput(`bunri_shotoku_taishoku_shotoku_${period}`);
+      if (incomeInput) {
+        incomeInput.addEventListener('blur', () => {
+          mirrorRetirementToJumin();
+          runFullRecalcChain();
+        });
+      }
+      if (shotokuInput) {
+        shotokuInput.addEventListener('blur', () => {
+          mirrorRetirementToJumin();
+          runFullRecalcChain();
+        });
+      }
+    });
+
     runFullRecalcChain();
+    mirrorRetirementToJumin();
     // ============================
     // 再計算時・初期表示時にも
     // 「給与」「公的年金等」の所得税→住民税を強制同期
@@ -2118,13 +2050,8 @@
         recalcBunriSogoMirror();
         recalcBunriSashihikiGokei();
         recalcBunriKazeishotokuSogo();
-        recalcBunriKazeiBreakdownTanki();
-        recalcBunriKazeiBreakdownChoki();
-        recalcBunriKazeiBreakdownJoto();
-        recalcBunriKazeiBreakdownHaito();
-        recalcBunriKazeiBreakdownSakimono();
-        recalcBunriKazeiBreakdownSanrin();
-        recalcBunriKazeiBreakdownTaishoku();
+        recalcBunriKazeishotokuGroup();
+        mirrorRetirementToJumin();
         recalcTax();
         // 送信トリガーのボタンを判定（再計算以外でも同期しておくと安全）
         const submitter = (e.submitter && e.submitter instanceof Element) ? e.submitter : null;

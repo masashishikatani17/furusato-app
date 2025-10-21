@@ -90,7 +90,7 @@ final class ResultToDetailsAliasCalculator implements ProvidesKeys
             $this->computeKabuteki($payload, 'curr')
         );
 
-        return array_replace($defaults, $updates);
+        return array_replace($payload, $defaults, $updates);
     }
 
     /**

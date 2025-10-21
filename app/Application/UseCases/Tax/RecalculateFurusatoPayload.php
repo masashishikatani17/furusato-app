@@ -7,6 +7,7 @@ use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
+use App\Domain\Tax\Calculators\ResultToDetailsAliasCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Support\PayloadNormalizer;
@@ -18,6 +19,7 @@ use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use DateTimeInterface;
 
 class RecalculateFurusatoPayload
 {
@@ -353,7 +355,7 @@ class RecalculateFurusatoPayload
      */
     private function applyAutoCalculatedFields(Data $data, array $payload, array $settings): array
     {
-        unset($data, $settings);
+        unset($settings);
         
         /** @var SeitotoKihukinTokubetsuService $seitotoService */
         $seitotoService = app(SeitotoKihukinTokubetsuService::class);
@@ -414,7 +416,40 @@ class RecalculateFurusatoPayload
         );
         $this->assertProvidedKeys($payload, $bunriKabutekiNettingCalculator);
 
+        /** @var ResultToDetailsAliasCalculator $resultToDetailsAliasCalculator */
+        $resultToDetailsAliasCalculator = app(ResultToDetailsAliasCalculator::class);
+
+        $resultAliasContext = [
+            'kihu_year' => $data->kihu_year ? (int) $data->kihu_year : self::MASTER_KIHU_YEAR,
+            'guest_birth_date' => $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null),
+            'data' => $data,
+        ];
+
+        $payload = array_replace(
+            $payload,
+            $resultToDetailsAliasCalculator->compute($payload, $resultAliasContext),
+        );
+        $this->assertProvidedKeys($payload, $resultToDetailsAliasCalculator);
+
         return $payload;
+    }
+    
+    private function normalizeBirthDateForContext(mixed $value): ?string
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_string($value)) {
+            $value = trim($value);
+            if ($value === '') {
+                return null;
+            }
+
+            return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? $value : null;
+        }
+
+        return null;
     }
 
     private function assertProvidedKeys(array $payload, ProvidesKeys $service): void

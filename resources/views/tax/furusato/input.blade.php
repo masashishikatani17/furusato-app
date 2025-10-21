@@ -1648,7 +1648,7 @@
       const el = getInput(name);
       if (el) {
         el.readOnly = true;
-        el.classList.add('bg-light', 'text-end');
+        el.classList.add('form-control', 'form-control-sm', 'bg-light', 'text-end');
         if (el.type !== 'number') el.type = 'number';
       }
     };
@@ -1728,7 +1728,7 @@
       return `${base}_${tax}_${period}`;
     };
 
-    const findShotokuRate = (amount) => {
+    const findShotokuRateBand = (amount) => {
       const taxable = Math.max(0, Math.trunc(Number(amount) || 0));
       let fallback = null;
       let fallbackLower = Number.MAX_SAFE_INTEGER;
@@ -1750,9 +1750,12 @@
       return fallback;
     };
 
-    const calculateShotokuTax = (amount) => {
+    const calcShotokuTaxByBand = (amount) => {
       const taxable = Math.max(0, Math.trunc(Number(amount) || 0));
-      const matched = findShotokuRate(taxable);
+      if (taxable <= 0) {
+        return 0;
+      }
+      const matched = findShotokuRateBand(taxable);
       if (!matched) {
         return 0;
       }
@@ -1763,6 +1766,8 @@
       return Number.isFinite(floored) ? floored : 0;
     };
 
+    const calculateShotokuTax = (amount) => calcShotokuTaxByBand(amount);
+
     const recalcShotokuTaxFromMaster = () => {
       ['prev', 'curr'].forEach((period) => {
         const taxable = readInt(`bunri_kazeishotoku_sogo_shotoku_${period}`);
@@ -1770,6 +1775,52 @@
         const field = `bunri_zeigaku_sogo_shotoku_${period}`;
         writeInt(field, tax);
         makeReadonlyNumber(field);
+      });
+    };
+
+    const recalcBunriZeigakuShotokuAll = () => {
+      ['prev', 'curr'].forEach((period) => {
+        const sanTaxable = readInt(`bunri_kazeishotoku_sanrin_shotoku_${period}`);
+        const san = sanTaxable <= 0 ? 0 : calcShotokuTaxByBand(sanTaxable / 5) * 5;
+        writeInt(`bunri_zeigaku_sanrin_shotoku_${period}`, san);
+        makeReadonlyNumber(`bunri_zeigaku_sanrin_shotoku_${period}`);
+
+        const taTaxable = readInt(`bunri_kazeishotoku_taishoku_shotoku_${period}`);
+        const ta = taTaxable <= 0 ? 0 : calcShotokuTaxByBand(taTaxable);
+        writeInt(`bunri_zeigaku_taishoku_shotoku_${period}`, ta);
+        makeReadonlyNumber(`bunri_zeigaku_taishoku_shotoku_${period}`);
+
+        const tIppan = readInt(`bunri_shotoku_tanki_ippan_shotoku_${period}`);
+        const tKeigen = readInt(`bunri_shotoku_tanki_keigen_shotoku_${period}`);
+        writeInt(`bunri_zeigaku_tanki_shotoku_${period}`, Math.trunc(tIppan * 0.30 + tKeigen * 0.15));
+        makeReadonlyNumber(`bunri_zeigaku_tanki_shotoku_${period}`);
+
+        const cIppan = readInt(`bunri_shotoku_choki_ippan_shotoku_${period}`);
+        const cTokutei = readInt(`bunri_shotoku_choki_tokutei_shotoku_${period}`);
+        const cKeika = readInt(`bunri_shotoku_choki_keika_shotoku_${period}`);
+        const tokuteiTax = cTokutei <= 20_000_000
+          ? Math.trunc(cTokutei * 0.10)
+          : Math.trunc((cTokutei - 20_000_000) * 0.15 + 2_000_000);
+        const keikaTax = cKeika <= 60_000_000
+          ? Math.trunc(cKeika * 0.10)
+          : Math.trunc((cKeika - 60_000_000) * 0.15 + 6_000_000);
+        writeInt(
+          `bunri_zeigaku_choki_shotoku_${period}`,
+          Math.trunc(cIppan * 0.15 + tokuteiTax + keikaTax),
+        );
+        makeReadonlyNumber(`bunri_zeigaku_choki_shotoku_${period}`);
+
+        const jotoTaxable = readInt(`bunri_kazeishotoku_joto_shotoku_${period}`);
+        writeInt(`bunri_zeigaku_joto_shotoku_${period}`, Math.trunc(jotoTaxable * 0.15));
+        makeReadonlyNumber(`bunri_zeigaku_joto_shotoku_${period}`);
+
+        const haitoTaxable = readInt(`bunri_kazeishotoku_haito_shotoku_${period}`);
+        writeInt(`bunri_zeigaku_haito_shotoku_${period}`, Math.trunc(haitoTaxable * 0.15));
+        makeReadonlyNumber(`bunri_zeigaku_haito_shotoku_${period}`);
+
+        const sakiTaxable = readInt(`bunri_kazeishotoku_sakimono_shotoku_${period}`);
+        writeInt(`bunri_zeigaku_sakimono_shotoku_${period}`, Math.trunc(sakiTaxable * 0.15));
+        makeReadonlyNumber(`bunri_zeigaku_sakimono_shotoku_${period}`);
       });
     };
 
@@ -1931,6 +1982,7 @@
       recalcBunriSashihikiGokei();
       recalcBunriKazeishotokuSogo();
       recalcShotokuTaxFromMaster();
+      recalcBunriZeigakuShotokuAll();
       recalcBunriKazeishotokuGroup();
       mirrorRetirementToJumin();
       recalcTax();
@@ -2014,6 +2066,21 @@
     });
 
     ['prev', 'curr'].forEach((period) => {
+      [
+        `bunri_kazeishotoku_sanrin_shotoku_${period}`,
+        `bunri_kazeishotoku_taishoku_shotoku_${period}`,
+        `bunri_kazeishotoku_joto_shotoku_${period}`,
+        `bunri_kazeishotoku_haito_shotoku_${period}`,
+        `bunri_kazeishotoku_sakimono_shotoku_${period}`,
+      ].forEach((name) => {
+        const input = getInput(name);
+        if (input) {
+          input.addEventListener('blur', runFullRecalcChain);
+        }
+      });
+    });
+
+    ['prev', 'curr'].forEach((period) => {
       const taxableInput = getInput(`bunri_kazeishotoku_sogo_shotoku_${period}`);
       if (taxableInput) {
         taxableInput.addEventListener('blur', recalcShotokuTaxFromMaster);
@@ -2081,6 +2148,7 @@
         recalcBunriSashihikiGokei();
         recalcBunriKazeishotokuSogo();
         recalcShotokuTaxFromMaster();
+        recalcBunriZeigakuShotokuAll();
         recalcBunriKazeishotokuGroup();
         mirrorRetirementToJumin();
         recalcTax();

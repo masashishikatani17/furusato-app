@@ -1729,14 +1729,25 @@
     };
 
     const findShotokuRate = (amount) => {
+      const taxable = Math.max(0, Math.trunc(Number(amount) || 0));
+      let fallback = null;
+      let fallbackLower = Number.MAX_SAFE_INTEGER;
       for (const rate of shotokuRates) {
         const lower = Number(rate.lower ?? 0);
         const upper = rate.upper === null || rate.upper === undefined ? null : Number(rate.upper);
-        if (amount >= lower && (upper === null || amount <= upper)) {
-          return rate;
+        if (lower < fallbackLower) {
+          fallbackLower = lower;
+          fallback = rate;
         }
+        if (taxable < lower) {
+          continue;
+        }
+        if (upper !== null && taxable > upper) {
+          continue;
+        }
+        return rate;
       }
-      return null;
+      return fallback;
     };
 
     const calculateShotokuTax = (amount) => {
@@ -1746,9 +1757,20 @@
         return 0;
       }
       const rateDecimal = Number(matched.rate ?? 0) / 100;
-      const deduction = Number(matched.deduction_amount ?? 0);
+      const deduction = Math.trunc(Number(matched.deduction_amount ?? 0));
       const raw = taxable * rateDecimal - deduction;
-      return Number.isFinite(raw) ? Math.trunc(raw) : 0;
+      const floored = Math.trunc(raw);
+      return Number.isFinite(floored) ? floored : 0;
+    };
+
+    const recalcShotokuTaxFromMaster = () => {
+      ['prev', 'curr'].forEach((period) => {
+        const taxable = readInt(`bunri_kazeishotoku_sogo_shotoku_${period}`);
+        const tax = calculateShotokuTax(taxable);
+        const field = `bunri_zeigaku_sogo_shotoku_${period}`;
+        writeInt(field, tax);
+        makeReadonlyNumber(field);
+      });
     };
 
     const recalcShotokuGokei = () => {
@@ -1908,6 +1930,7 @@
       recalcBunriSogoMirror();
       recalcBunriSashihikiGokei();
       recalcBunriKazeishotokuSogo();
+      recalcShotokuTaxFromMaster();
       recalcBunriKazeishotokuGroup();
       mirrorRetirementToJumin();
       recalcTax();
@@ -1991,6 +2014,13 @@
     });
 
     ['prev', 'curr'].forEach((period) => {
+      const taxableInput = getInput(`bunri_kazeishotoku_sogo_shotoku_${period}`);
+      if (taxableInput) {
+        taxableInput.addEventListener('blur', recalcShotokuTaxFromMaster);
+      }
+    });
+
+    ['prev', 'curr'].forEach((period) => {
       const incomeInput = getInput(`bunri_syunyu_taishoku_shotoku_${period}`);
       const shotokuInput = getInput(`bunri_shotoku_taishoku_shotoku_${period}`);
       if (incomeInput) {
@@ -2050,6 +2080,7 @@
         recalcBunriSogoMirror();
         recalcBunriSashihikiGokei();
         recalcBunriKazeishotokuSogo();
+        recalcShotokuTaxFromMaster();
         recalcBunriKazeishotokuGroup();
         mirrorRetirementToJumin();
         recalcTax();

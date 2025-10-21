@@ -3,17 +3,9 @@
 namespace App\Http\Controllers\Tax;
 
 use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
-use App\Domain\Tax\Calculators\BunriNettingCalculator;
-use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
-use App\Domain\Tax\Calculators\DetailsSourceAliasCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
-use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
-use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
-use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
-use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
-use App\Domain\Tax\Calculators\ResultToDetailsAliasCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Http\Controllers\Controller;
@@ -23,13 +15,7 @@ use App\Models\Data;
 use App\Models\FurusatoInput;
 use App\Models\FurusatoResult;
 use App\Models\FurusatoSyoriSetting;
-use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\FurusatoMasterService;
-use App\Services\Tax\Kojo\HaigushaKojoService;
-use App\Services\Tax\Kojo\JintekiKojoService;
-use App\Services\Tax\Kojo\KifukinShotokuKojoService;
-use App\Services\Tax\Kojo\KihonService;
-use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -442,6 +428,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         if ((int) $request->input('recalc_all') === 1) {
             $data = $this->resolveAuthorizedDataOrFail($request, 'update');
 
@@ -481,10 +468,6 @@ final class FurusatoController extends Controller
         $goto = (string) $request->input('redirect_to', '');
         $shouldShowResult = $request->boolean('show_result') || $goto === '' || $goto === 'input';
 
-        // Always persist through the recalculation use case so that the database-backed
-        // FurusatoInput / FurusatoResult pair remains the single source of truth. Session
-        // flashes (furusato_results / show_furusato_result) are used only for temporary
-        // display on the next request.
         $this->runRecalculationPipeline(
             $request,
             $data,
@@ -525,6 +508,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $labelUpdates = $this->validateAndNormalizeLabels($req, self::JIGYO_EIGYO_LABEL_FIELDS);
@@ -589,6 +573,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $labelUpdates = $this->validateAndNormalizeLabels($req, self::FUDOSAN_LABEL_FIELDS);
@@ -651,6 +636,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'redirect_to', 'origin_tab', 'origin_anchor']));
@@ -702,6 +688,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $bases = ['joto_ichiji_shunyu', 'joto_ichiji_keihi'];
@@ -766,6 +753,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $rowKeys = [
@@ -843,6 +831,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $rows = [
@@ -927,6 +916,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $rules = [];
@@ -989,6 +979,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $rules = [];
@@ -1050,6 +1041,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $inputKeys = [
@@ -1128,6 +1120,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $toggleFields = [
@@ -1265,6 +1258,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $inputFields = [
@@ -1579,75 +1573,6 @@ final class FurusatoController extends Controller
         }
     }
 
-    private function mirrorBunriJotoDetailsToInput(array &$payload): void
-    {
-        // 収入 → bunri_syunyu_* のみ
-        $incomeSources = [
-            'syunyu_tanki_ippan'   => 'bunri_syunyu_tanki_ippan',
-            'syunyu_tanki_keigen'  => 'bunri_syunyu_tanki_keigen',
-            'syunyu_choki_ippan'   => 'bunri_syunyu_choki_ippan',
-            'syunyu_choki_tokutei' => 'bunri_syunyu_choki_tokutei',
-            'syunyu_choki_keika'   => 'bunri_syunyu_choki_keika',
-        ];
-
-        // 譲渡所得 → bunri_shotoku_* のみ
-        $shotokuSources = [
-            'joto_shotoku_tanki_ippan'   => 'bunri_shotoku_tanki_ippan',
-            'joto_shotoku_tanki_keigen'  => 'bunri_shotoku_tanki_keigen',
-            'joto_shotoku_choki_ippan'   => 'bunri_shotoku_choki_ippan',
-            'joto_shotoku_choki_tokutei' => 'bunri_shotoku_choki_tokutei',
-            'joto_shotoku_choki_keika'   => 'bunri_shotoku_choki_keika',
-        ];
-
-        // 合計（課税所得金額） → bunri_kazeishotoku_*
-        $totalSources = [
-            'joto_shotoku_tanki_gokei' => 'bunri_kazeishotoku_tanki',
-            'joto_shotoku_choki_gokei' => 'bunri_kazeishotoku_choki',
-        ];
-
-        $periods = ['prev', 'curr'];
-
-        foreach ($periods as $period) {
-            // まず該当期間の分離“収入”/“所得”/“課税所得”の受け皿を初期化し、誤上書きを防止
-            foreach (array_values($incomeSources) as $mirrorBase) {
-                unset($payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)]);
-                unset($payload[sprintf('%s_jumin_%s',  $mirrorBase, $period)]);
-            }
-            foreach (array_values($shotokuSources) as $mirrorBase) {
-                unset($payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)]);
-                unset($payload[sprintf('%s_jumin_%s',  $mirrorBase, $period)]);
-            }
-            foreach (array_values($totalSources) as $mirrorBase) {
-                unset($payload[sprintf('%s_shotoku_%s', $mirrorBase, $period)]);
-                unset($payload[sprintf('%s_jumin_%s',  $mirrorBase, $period)]);
-            }
-
-            // 収入 → bunri_syunyu_*
-            foreach ($incomeSources as $sourceBase => $mirrorBase) {
-                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
-                foreach (['shotoku','jumin'] as $tax) {
-                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
-                }
-            }
-
-            // 譲渡所得 → bunri_shotoku_*
-            foreach ($shotokuSources as $sourceBase => $mirrorBase) {
-                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
-                foreach (['shotoku','jumin'] as $tax) {
-                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
-                }
-            }
-
-            // 合計（課税所得金額） → bunri_kazeishotoku_*
-            foreach ($totalSources as $sourceBase => $mirrorBase) {
-                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
-                foreach (['shotoku','jumin'] as $tax) {
-                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
-                }
-            }
-        }
-    }
-
     private function recalculateBunriKabuteki(array &$payload): void
     {
         $rows = [
@@ -1674,28 +1599,6 @@ final class FurusatoController extends Controller
         }
     }
 
-    private function mirrorBunriKabutekiDetailsToInput(array &$payload): void
-    {
-        $mirrorSources = [
-            'syunyu_ippan_joto' => 'bunri_syunyu_ippan_kabuteki_joto',
-            'syunyu_jojo_joto' => 'bunri_syunyu_jojo_kabuteki_joto',
-            'syunyu_jojo_haito' => 'bunri_syunyu_jojo_kabuteki_haito',
-            'shotoku_after_kurikoshi_ippan_joto' => 'bunri_shotoku_ippan_kabuteki_joto',
-            'shotoku_after_kurikoshi_jojo_joto' => 'bunri_shotoku_jojo_kabuteki_joto',
-            'shotoku_after_kurikoshi_jojo_haito' => 'bunri_shotoku_jojo_kabuteki_haito',
-        ];
-
-        foreach (['prev', 'curr'] as $period) {
-            foreach ($mirrorSources as $sourceBase => $mirrorBase) {
-                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
-
-                foreach (['shotoku', 'jumin'] as $tax) {
-                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
-                }
-            }
-        }
-    }
-
     private function recalculateBunriSakimono(array &$payload): void
     {
         foreach (['prev', 'curr'] as $period) {
@@ -1709,24 +1612,6 @@ final class FurusatoController extends Controller
         }
     }
 
-    private function mirrorBunriSakimonoDetailsToInput(array &$payload): void
-    {
-        $mirrorSources = [
-            'syunyu_sakimono' => 'bunri_syunyu_sakimono',
-            'shotoku_sakimono_after_kurikoshi' => 'bunri_shotoku_sakimono',
-        ];
-
-        foreach (['prev', 'curr'] as $period) {
-            foreach ($mirrorSources as $sourceBase => $mirrorBase) {
-                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
-
-                foreach (['shotoku', 'jumin'] as $tax) {
-                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
-                }
-            }
-        }
-    }
-
     private function recalculateBunriSanrin(array &$payload): void
     {
         foreach (['prev', 'curr'] as $period) {
@@ -1737,24 +1622,6 @@ final class FurusatoController extends Controller
 
             $tokubetsu = $this->valueOrZero($payload[sprintf('tokubetsukojo_sanrin_%s', $period)] ?? null);
             $payload[sprintf('shotoku_sanrin_%s', $period)] = $sashihiki - $tokubetsu;
-        }
-    }
-
-    private function mirrorBunriSanrinDetailsToInput(array &$payload): void
-    {
-        $mirrorSources = [
-            'syunyu_sanrin' => 'bunri_syunyu_sanrin',
-            'shotoku_sanrin' => 'bunri_shotoku_sanrin',
-        ];
-
-        foreach (['prev', 'curr'] as $period) {
-            foreach ($mirrorSources as $sourceBase => $mirrorBase) {
-                $value = $this->toNullableInt($payload[sprintf('%s_%s', $sourceBase, $period)] ?? null);
-
-                foreach (['shotoku', 'jumin'] as $tax) {
-                    $payload[sprintf('%s_%s_%s', $mirrorBase, $tax, $period)] = $value;
-                }
-            }
         }
     }
 
@@ -2282,278 +2149,6 @@ final class FurusatoController extends Controller
         }
 
         return $result;
-    }
-
-    private function updateFurusatoInputPayload(Data $data, array $updates, array $labelUpdates = []): void
-    {
-        $userId = (int) auth()->id();
-
-        FurusatoInput::unguarded(function () use ($data, $updates, $labelUpdates, $userId): void {
-            $this->normalizeJotoIchijiKeys($updates);
-            $this->normalizeFudosanSyunyuKeys($updates);
-            $this->normalizeBunriChokiSyunyuKeys($updates);
-            $this->normalizeBunriChokiShotokuKeys($updates);
-            $this->normalizeBunriIncomeShotokuKeys($updates);
-            $this->normalizeKojoRenamedKeys($updates, true);
-
-            $record = FurusatoInput::firstOrNew(['data_id' => $data->id]);
-
-            if (! $record->exists) {
-                $record->fill([
-                    'data_id'    => $data->id,
-                    'company_id' => $data->company_id,
-                    'group_id'   => $data->group_id,
-                    'created_by' => $userId ?: null,
-                ]);
-            }
-
-
-            $record->company_id = $data->company_id;
-            $record->group_id = $data->group_id;
-
-            if ($labelUpdates !== []) {
-                foreach ($labelUpdates as $column => $value) {
-                    $record->{$column} = $value;
-                }
-            }
-
-            $current = is_array($record->payload) ? $record->payload : [];
-            $this->normalizeJotoIchijiKeys($current);
-            $this->normalizeFudosanSyunyuKeys($current);
-            $this->normalizeBunriChokiSyunyuKeys($current);
-            $this->normalizeBunriChokiShotokuKeys($current);
-            $this->normalizeBunriIncomeShotokuKeys($current);
-            $this->normalizeKojoRenamedKeys($current, true);
-            $payload = array_replace($current, $updates);
-            $this->normalizeFudosanSyunyuKeys($payload);
-            $this->normalizeBunriChokiSyunyuKeys($payload);
-            $this->normalizeBunriChokiShotokuKeys($payload);
-            $this->normalizeBunriIncomeShotokuKeys($payload);
-            $this->normalizeKojoRenamedKeys($payload, true);
-            $settings = $this->getSyoriSettings($data->id);
-            $payload = $this->applyAutoCalculatedFields($data, $payload, $settings);
-            $this->normalizeKojoRenamedKeys($payload, true);
-            if ($this->shouldRemirrorBunriJoto($updates, $payload)) {
-                $this->recalculateBunriJoto($payload);
-                $this->mirrorBunriJotoDetailsToInput($payload);
-            }
-            $record->payload = $payload;
-            $record->updated_by = $userId ?: null;
-
-            $record->save();
-        });
-    }
-    
-    private function shouldRemirrorBunriJoto(array $updates, array $payload): bool
-    {
-        $rowKeys = [
-            'tanki_ippan', 'tanki_keigen',
-            'choki_ippan', 'choki_tokutei', 'choki_keika',
-        ];
-        $prefixes = ['syunyu', 'keihi', 'tsusango', 'tokubetsukojo', 'joto_shotoku'];
-        $periods  = ['prev', 'curr'];
-
-        foreach ($rowKeys as $row) {
-            foreach ($prefixes as $pre) {
-                foreach ($periods as $p) {
-                    $k = sprintf('%s_%s_%s', $pre, $row, $p);
-                    if (array_key_exists($k, $updates) || array_key_exists($k, $payload)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    private function applyAutoCalculatedFields(Data $data, array $payload, array $settings): array
-    {
-        $taxTypes = ['shotoku', 'jumin'];
-        $periods = ['prev', 'curr'];
-        $kojoShokeiBases = [
-            'kojo_shakaihoken',
-            'kojo_shokibo',
-            'kojo_seimei',
-            'kojo_jishin',
-            'kojo_kafu',
-            'kojo_hitorioya',
-            'kojo_kinrogakusei',
-            'kojo_shogaisha',
-            'kojo_haigusha',
-            'kojo_haigusha_tokubetsu',
-            'kojo_fuyo',
-            'kojo_tokutei_shinzoku',
-            'kojo_kiso',
-        ];
-        $kojoGokeiExtras = ['kojo_zasson', 'kojo_iryo', 'kojo_kifukin'];
-        /** @var FurusatoMasterService $masterService */
-        $masterService = app(FurusatoMasterService::class);
-        $companyId = $data->company_id !== null ? (int) $data->company_id : null;
-        $shotokuRates = $masterService
-            ->getShotokuRates(self::MASTER_KIHU_YEAR, $companyId)
-            ->all();
-
-        /** @var KifukinShotokuKojoService $kifukinService */
-        $kifukinService = app(KifukinShotokuKojoService::class);
-        $payload = array_replace($payload, $kifukinService->compute($payload, $settings));
-        $this->assertProvidedKeys($payload, $kifukinService);
-
-        /** @var KihonService $kihonService */
-        $kihonService = app(KihonService::class);
-        $payload = array_replace($payload, $kihonService->computeKisoKojo($payload, (int) ($data->kihu_year ?? 0)));
-        $this->assertProvidedKeys($payload, $kihonService);
-
-        /** @var JintekiKojoService $jintekiService */
-        $jintekiService = app(JintekiKojoService::class);
-        $payload = array_replace(
-            $payload,
-            $jintekiService->compute($payload, (int) ($data->kihu_year ?? 0))
-        );
-        $this->assertProvidedKeys($payload, $jintekiService);
-
-        /** @var HaigushaKojoService $haigushaService */
-        $haigushaService = app(HaigushaKojoService::class);
-        $payload = array_replace($payload, $haigushaService->compute($payload));
-        $this->assertProvidedKeys($payload, $haigushaService);
-
-        /** @var KyuyoNenkinCalculator $kyuyoNenkinCalculator */
-        $kyuyoNenkinCalculator = app(KyuyoNenkinCalculator::class);
-        $kyuyoNenkinContext = [
-            'kihu_year' => $data->kihu_year ? (int) $data->kihu_year : self::MASTER_KIHU_YEAR,
-            'guest_birth_date' => $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null),
-            'data' => $data,
-        ];
-        $kyuyoNenkin = $kyuyoNenkinCalculator->compute($payload, $kyuyoNenkinContext);
-        $payload = array_replace($payload, $kyuyoNenkin);
-        $this->assertProvidedKeys($payload, $kyuyoNenkinCalculator);
-
-        foreach ($taxTypes as $tax) {
-            foreach ($periods as $period) {
-                $shokei = 0;
-                foreach ($kojoShokeiBases as $base) {
-                    $key = $this->formatKojoFieldName($base, $tax, $period);
-                    $shokei += $this->valueOrZero($this->toNullableInt($payload[$key] ?? null));
-                }
-                $payload[sprintf('kojo_shokei_%s_%s', $tax, $period)] = $shokei;
-
-                $gokei = $shokei;
-                foreach ($kojoGokeiExtras as $base) {
-                    $key = $this->formatKojoFieldName($base, $tax, $period);
-                    $gokei += $this->valueOrZero($this->toNullableInt($payload[$key] ?? null));
-                }
-                $payload[sprintf('kojo_gokei_%s_%s', $tax, $period)] = $gokei;
-            }
-        }
-
-        foreach ($periods as $period) {
-            $shotokuKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
-            $shotokuAmount = $this->valueOrZero($this->toNullableInt($payload[$shotokuKey] ?? null));
-            $payload[sprintf('tax_zeigaku_shotoku_%s', $period)] = $this->calculateShotokuTaxAmount($shotokuRates, $shotokuAmount);
-
-            $juminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
-            $juminAmount = max(0, $this->valueOrZero($this->toNullableInt($payload[$juminKey] ?? null)));
-            $payload[sprintf('tax_zeigaku_jumin_%s', $period)] = (int) ($juminAmount * 0.1);
-        }
-
-        /** @var KojoSeimeiJishinCalculator $seimeiJishinCalculator */
-        $seimeiJishinCalculator = app(KojoSeimeiJishinCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $seimeiJishinCalculator->compute($payload, 'prev'),
-            $seimeiJishinCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $seimeiJishinCalculator);
-
-        /** @var SeitotoKihukinTokubetsuService $seitotoService */
-        $seitotoService = app(SeitotoKihukinTokubetsuService::class);
-        $payload = array_replace($payload, $seitotoService->compute($payload));
-        $this->assertProvidedKeys($payload, $seitotoService);
-
-        /** @var DetailsSourceAliasCalculator $detailsAliasCalculator */
-        $detailsAliasCalculator = app(DetailsSourceAliasCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $detailsAliasCalculator->compute($payload, 'prev'),
-            $detailsAliasCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $detailsAliasCalculator);
-
-        /** @var SogoShotokuNettingCalculator $sogoShotokuCalculator */
-        $sogoShotokuCalculator = app(SogoShotokuNettingCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $sogoShotokuCalculator->compute($payload, 'prev'),
-            $sogoShotokuCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $sogoShotokuCalculator);
-
-        /** @var SogoShotokuNettingStagesCalculator $sogoShotokuStagesCalculator */
-        $sogoShotokuStagesCalculator = app(SogoShotokuNettingStagesCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $sogoShotokuStagesCalculator->compute($payload, 'prev'),
-            $sogoShotokuStagesCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $sogoShotokuStagesCalculator);
-
-        /** @var BunriNettingCalculator $bunriNettingCalculator */
-        $bunriNettingCalculator = app(BunriNettingCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $bunriNettingCalculator->compute($payload, 'prev'),
-            $bunriNettingCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $bunriNettingCalculator);
-
-        /** @var BunriKabutekiNettingCalculator $bunriKabutekiNettingCalculator */
-        $bunriKabutekiNettingCalculator = app(BunriKabutekiNettingCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $bunriKabutekiNettingCalculator->compute($payload, 'prev'),
-            $bunriKabutekiNettingCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $bunriKabutekiNettingCalculator);
-
-        /** @var ResultToDetailsAliasCalculator $resultToDetailsAliasCalculator */
-        $resultToDetailsAliasCalculator = app(ResultToDetailsAliasCalculator::class);
-        $resultAliasContext = [
-            'kihu_year' => $data->kihu_year ? (int) $data->kihu_year : self::MASTER_KIHU_YEAR,
-            'guest_birth_date' => $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null),
-            'data' => $data,
-        ];
-        $payload = array_replace(
-            $payload,
-            $resultToDetailsAliasCalculator->compute($payload, $resultAliasContext),
-        );
-        $this->assertProvidedKeys($payload, $resultToDetailsAliasCalculator);
-
-        return $payload;
-    }
-
-    private function assertProvidedKeys(array $payload, ProvidesKeys $service): void
-    {
-        if (! config('app.debug')) {
-            return;
-        }
-
-        $missing = [];
-        foreach ($service::provides() as $key) {
-            if (! array_key_exists($key, $payload)) {
-                $missing[] = $key;
-            }
-        }
-
-        if ($missing === []) {
-            return;
-        }
-
-        $class = $service::class;
-        $message = sprintf('%s missing keys: %s', $class, implode(', ', $missing));
-        Log::warning($message);
-
-        $existing = session()->get('warning');
-        $combined = $existing ? $existing . PHP_EOL . $message : $message;
-        session()->flash('warning', $combined);
     }
 
     private function formatKojoFieldName(string $base, string $tax, string $period): string

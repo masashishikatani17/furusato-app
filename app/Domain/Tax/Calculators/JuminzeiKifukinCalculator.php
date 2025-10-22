@@ -44,6 +44,14 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             'choseigo_shotokuwari_pref_curr',
             'choseigo_shotokuwari_muni_prev',
             'choseigo_shotokuwari_muni_curr',
+            'kihon_kojo_pref_prev',
+            'kihon_kojo_pref_curr',
+            'kihon_kojo_muni_prev',
+            'kihon_kojo_muni_curr',
+            'tokurei_kojo_pref_prev',
+            'tokurei_kojo_pref_curr',
+            'tokurei_kojo_muni_prev',
+            'tokurei_kojo_muni_curr',
         ];
     }
 
@@ -85,6 +93,14 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             'choseigo_shotokuwari_pref_curr' => 0,
             'choseigo_shotokuwari_muni_prev' => 0,
             'choseigo_shotokuwari_muni_curr' => 0,
+            'kihon_kojo_pref_prev' => 0,
+            'kihon_kojo_pref_curr' => 0,
+            'kihon_kojo_muni_prev' => 0,
+            'kihon_kojo_muni_curr' => 0,
+            'tokurei_kojo_pref_prev' => 0,
+            'tokurei_kojo_pref_curr' => 0,
+            'tokurei_kojo_muni_prev' => 0,
+            'tokurei_kojo_muni_curr' => 0,
         ];
 
         foreach (self::PERIODS as $period) {
@@ -172,6 +188,42 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
 
             $out[$prefAfterKey] = $prefBefore - $prefKojo;
             $out[$muniAfterKey] = $muniBefore - $muniKojo;
+
+            $kihonPrefKey = sprintf('kihon_kojo_pref_%s', $period);
+            $kihonMuniKey = sprintf('kihon_kojo_muni_%s', $period);
+
+            $kihonPrefRate = $this->juminRate($rateRows, '基本控除', null, $shitei, 'pref');
+            $kihonMuniRate = $this->juminRate($rateRows, '基本控除', null, $shitei, 'city');
+
+            $eligibleKifu = 0;
+            if ($out[sprintf('kifu_gaku_%s', $period)] > 2_000) {
+                $guardedCap = $this->mulRate($guardedTotal, 0.3);
+                $limit = min($out[sprintf('kifu_gaku_%s', $period)], $guardedCap);
+                $eligibleKifu = max($limit - 2_000, 0);
+            }
+
+            $out[$kihonPrefKey] = $this->mulRate($eligibleKifu, $kihonPrefRate);
+            $out[$kihonMuniKey] = $this->mulRate($eligibleKifu, $kihonMuniRate);
+
+            $tokureiPrefKey = sprintf('tokurei_kojo_pref_%s', $period);
+            $tokureiMuniKey = sprintf('tokurei_kojo_muni_%s', $period);
+
+            $tokureiBase = 0;
+            if ($out[sprintf('furusato_kifu_gaku_%s', $period)] > 2_000) {
+                $tokureiBase = $out[sprintf('furusato_kifu_gaku_%s', $period)] - 2_000;
+            }
+
+            $tokureiRateFinal = $this->decimal($payload[sprintf('tokurei_rate_final_%s', $period)] ?? null) / 100.0;
+            $tokureiPrefRate = $this->juminRate($rateRows, '特例控除', null, $shitei, 'pref');
+            $tokureiMuniRate = $this->juminRate($rateRows, '特例控除', null, $shitei, 'city');
+
+            $out[$tokureiPrefKey] = $tokureiBase > 0 && $tokureiRateFinal > 0.0
+                ? $this->mulRate($tokureiBase, $tokureiRateFinal * $tokureiPrefRate)
+                : 0;
+
+            $out[$tokureiMuniKey] = $tokureiBase > 0 && $tokureiRateFinal > 0.0
+                ? $this->mulRate($tokureiBase, $tokureiRateFinal * $tokureiMuniRate)
+                : 0;
         }
 
         return array_replace($payload, $out);

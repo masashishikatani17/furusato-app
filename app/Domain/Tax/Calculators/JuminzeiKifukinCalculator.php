@@ -12,6 +12,8 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
     public const BEFORE = [];
     public const AFTER  = [
         \App\Domain\Tax\Calculators\KojoAggregationCalculator::ID,
+        \App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator::ID,
+        \App\Domain\Tax\Calculators\TokureiRateCalculator::ID,
     ];
 
     /** @var string[] */
@@ -52,6 +54,24 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             'tokurei_kojo_pref_curr',
             'tokurei_kojo_muni_prev',
             'tokurei_kojo_muni_curr',
+            'shotokuwari20_pref_prev',
+            'shotokuwari20_pref_curr',
+            'shotokuwari20_muni_prev',
+            'shotokuwari20_muni_curr',
+            'tokurei_kojo_jogen_pref_prev',
+            'tokurei_kojo_jogen_pref_curr',
+            'tokurei_kojo_jogen_muni_prev',
+            'tokurei_kojo_jogen_muni_curr',
+            'shinkokutokurei_kojo_pref_prev',
+            'shinkokutokurei_kojo_pref_curr',
+            'shinkokutokurei_kojo_muni_prev',
+            'shinkokutokurei_kojo_muni_curr',
+            'kifukin_zeigaku_kojo_pref_prev',
+            'kifukin_zeigaku_kojo_pref_curr',
+            'kifukin_zeigaku_kojo_muni_prev',
+            'kifukin_zeigaku_kojo_muni_curr',
+            'kifukin_zeigaku_kojo_gokei_prev',
+            'kifukin_zeigaku_kojo_gokei_curr',
         ];
     }
 
@@ -70,6 +90,9 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
 
         $rateRows = $year > 0
             ? $this->buildJuminRateRows($year, $companyId)
+            : [];
+        $shinkokuRateRows = $year > 0
+            ? $this->buildShinkokutokureiRateRows($year, $companyId)
             : [];
 
         $out = [
@@ -101,6 +124,24 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             'tokurei_kojo_pref_curr' => 0,
             'tokurei_kojo_muni_prev' => 0,
             'tokurei_kojo_muni_curr' => 0,
+            'shotokuwari20_pref_prev' => 0,
+            'shotokuwari20_pref_curr' => 0,
+            'shotokuwari20_muni_prev' => 0,
+            'shotokuwari20_muni_curr' => 0,
+            'tokurei_kojo_jogen_pref_prev' => 0,
+            'tokurei_kojo_jogen_pref_curr' => 0,
+            'tokurei_kojo_jogen_muni_prev' => 0,
+            'tokurei_kojo_jogen_muni_curr' => 0,
+            'shinkokutokurei_kojo_pref_prev' => 0,
+            'shinkokutokurei_kojo_pref_curr' => 0,
+            'shinkokutokurei_kojo_muni_prev' => 0,
+            'shinkokutokurei_kojo_muni_curr' => 0,
+            'kifukin_zeigaku_kojo_pref_prev' => 0,
+            'kifukin_zeigaku_kojo_pref_curr' => 0,
+            'kifukin_zeigaku_kojo_muni_prev' => 0,
+            'kifukin_zeigaku_kojo_muni_curr' => 0,
+            'kifukin_zeigaku_kojo_gokei_prev' => 0,
+            'kifukin_zeigaku_kojo_gokei_curr' => 0,
         ];
 
         foreach (self::PERIODS as $period) {
@@ -214,6 +255,9 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             }
 
             $tokureiRateFinalPercent = $this->decimal($payload[sprintf('tokurei_rate_final_%s', $period)] ?? null);
+            $tokureiRateFinalRatio = $tokureiRateFinalPercent > 0.0
+                ? $tokureiRateFinalPercent / 100.0
+                : 0.0;
             $tokureiPrefRate = $this->juminRate($rateRows, '特例控除', null, $shitei, 'pref');
             $tokureiMuniRate = $this->juminRate($rateRows, '特例控除', null, $shitei, 'city');
 
@@ -233,6 +277,77 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $out[$tokureiMuniKey] = $tokureiBaseAfterRate > 0 && $tokureiMuniRate > 0.0
                 ? $this->applyThousandRate($tokureiBaseAfterRate, $tokureiMuniRate)
                 : 0;
+
+            $prefAfter = max($out[$prefAfterKey], 0);
+            $muniAfter = max($out[$muniAfterKey], 0);
+
+            $shotokuwari20PrefKey = sprintf('shotokuwari20_pref_%s', $period);
+            $shotokuwari20MuniKey = sprintf('shotokuwari20_muni_%s', $period);
+            $shotokuwari20Pref = (int) floor($prefAfter * 0.2);
+            $shotokuwari20Muni = (int) floor($muniAfter * 0.2);
+
+            $out[$shotokuwari20PrefKey] = $shotokuwari20Pref;
+            $out[$shotokuwari20MuniKey] = $shotokuwari20Muni;
+
+            $tokureiKojoJogenPrefKey = sprintf('tokurei_kojo_jogen_pref_%s', $period);
+            $tokureiKojoJogenMuniKey = sprintf('tokurei_kojo_jogen_muni_%s', $period);
+
+            $tokureiKojoJogenPref = min(max($out[$tokureiPrefKey], 0), $shotokuwari20Pref);
+            $tokureiKojoJogenMuni = min(max($out[$tokureiMuniKey], 0), $shotokuwari20Muni);
+
+            $out[$tokureiKojoJogenPrefKey] = $tokureiKojoJogenPref;
+            $out[$tokureiKojoJogenMuniKey] = $tokureiKojoJogenMuni;
+
+            $oneStop = $this->resolveFlag($settings, $payload, 'one_stop_flag', $period);
+            $eligibleFurusato = max($out[sprintf('furusato_kifu_gaku_%s', $period)] - 2_000, 0);
+            $humanAdjustedTaxable = $this->n($payload[sprintf('human_adjusted_taxable_%s', $period)] ?? null);
+            $shinkokuRatio = $this->resolveShinkokutokureiRatio($shinkokuRateRows, $humanAdjustedTaxable);
+
+            if ($shitei) {
+                $prefShare = 0.2;
+                $muniShare = 0.8;
+            } else {
+                $prefShare = 0.4;
+                $muniShare = 0.6;
+            }
+
+            $shinkokuPrefKey = sprintf('shinkokutokurei_kojo_pref_%s', $period);
+            $shinkokuMuniKey = sprintf('shinkokutokurei_kojo_muni_%s', $period);
+
+            if ($oneStop) {
+                $upperPref = max($out[$prefAfterKey] * 0.2, 0.0);
+                $upperMuni = max($out[$muniAfterKey] * 0.2, 0.0);
+
+                $tmpPref = min($eligibleFurusato * $tokureiRateFinalRatio * $shinkokuRatio['ratio_a'], $upperPref);
+                $tmpMuni = min($eligibleFurusato * $tokureiRateFinalRatio * $shinkokuRatio['ratio_b'], $upperMuni);
+
+                $shinkokuPref = $this->ceilPositive($tmpPref * $prefShare);
+                $shinkokuMuni = $this->ceilPositive($tmpMuni * $muniShare);
+            } else {
+                $shinkokuPref = $this->ceilPositive($out[$prefAfterKey] * 0.2);
+                $shinkokuMuni = $this->ceilPositive($out[$muniAfterKey] * 0.2);
+            }
+
+            $out[$shinkokuPrefKey] = $shinkokuPref;
+            $out[$shinkokuMuniKey] = $shinkokuMuni;
+
+            $kifukinPrefKey = sprintf('kifukin_zeigaku_kojo_pref_%s', $period);
+            $kifukinMuniKey = sprintf('kifukin_zeigaku_kojo_muni_%s', $period);
+            $kifukinGokeiKey = sprintf('kifukin_zeigaku_kojo_gokei_%s', $period);
+
+            $kihonPref = max($out[$kihonPrefKey], 0);
+            $kihonMuni = max($out[$kihonMuniKey], 0);
+
+            $prefAddition = $oneStop ? $shinkokuPref : $tokureiKojoJogenPref;
+            $muniAddition = $oneStop ? $shinkokuMuni : $tokureiKojoJogenMuni;
+
+            $prefTotal = $this->ceilPositive($kihonPref + $prefAddition);
+            $muniTotal = $this->ceilPositive($kihonMuni + $muniAddition);
+            $gokeiTotal = $prefTotal + $muniTotal;
+
+            $out[$kifukinPrefKey] = $prefTotal;
+            $out[$kifukinMuniKey] = $muniTotal;
+            $out[$kifukinGokeiKey] = $gokeiTotal;
         }
 
         return array_replace($payload, $out);
@@ -261,6 +376,53 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
         }
 
         return $rows;
+    }
+
+    /**
+     * @return array<int, array{lower: int, upper: int|null, ratio_a: float, ratio_b: float}>
+     */
+    private function buildShinkokutokureiRateRows(int $year, ?int $companyId): array
+    {
+        $collection = $this->masterProvider->getShinkokutokureiRates($year, $companyId);
+
+        $rows = [];
+        foreach ($collection as $row) {
+            $rows[] = [
+                'lower' => isset($row->lower) ? (int) $row->lower : 0,
+                'upper' => isset($row->upper) && $row->upper !== null ? (int) $row->upper : null,
+                'ratio_a' => isset($row->ratio_a) ? (float) $row->ratio_a : 0.0,
+                'ratio_b' => isset($row->ratio_b) ? (float) $row->ratio_b : 0.0,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param  array<int, array{lower: int, upper: int|null, ratio_a: float, ratio_b: float}>  $rows
+     * @return array{ratio_a: float, ratio_b: float}
+     */
+    private function resolveShinkokutokureiRatio(array $rows, int $taxable): array
+    {
+        foreach ($rows as $row) {
+            $lower = (int) ($row['lower'] ?? 0);
+            $upper = $row['upper'] ?? null;
+
+            if ($taxable < $lower) {
+                continue;
+            }
+
+            if ($upper !== null && $taxable > $upper) {
+                continue;
+            }
+
+            return [
+                'ratio_a' => isset($row['ratio_a']) ? (float) $row['ratio_a'] : 0.0,
+                'ratio_b' => isset($row['ratio_b']) ? (float) $row['ratio_b'] : 0.0,
+            ];
+        }
+
+        return ['ratio_a' => 0.0, 'ratio_b' => 0.0];
     }
 
     private function resolveAppliedRate(array $settings, array $payload, string $prefix, string $period): float
@@ -446,6 +608,11 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
         }
 
         return intdiv($amount * $scaled, 1000);
+    }
+
+    private function ceilPositive(float $value): int
+    {
+        return (int) ceil(max($value, 0.0));
     }
 
     private function mulRate(int $amount, float $rate): int

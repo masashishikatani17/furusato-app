@@ -12,7 +12,6 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
     public const BEFORE = [];
     public const AFTER  = [
         \App\Domain\Tax\Calculators\KojoAggregationCalculator::ID,
-        \App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator::ID,
         \App\Domain\Tax\Calculators\TokureiRateCalculator::ID,
     ];
 

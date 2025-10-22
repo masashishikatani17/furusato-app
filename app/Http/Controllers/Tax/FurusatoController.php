@@ -8,6 +8,7 @@ use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
+use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tax\FurusatoInputRequest;
 use App\Http\Requests\Tax\FurusatoSyoriRequest;
@@ -611,7 +612,7 @@ final class FurusatoController extends Controller
         return $this->redirectToInputWithAnchor($data, $anchor);
     }
 
-    public function kihukinDetails(Request $req)
+    public function kifukinDetails(Request $req)
     {
         $data = $this->resolveAuthorizedDataOrFail($req);
         $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
@@ -620,9 +621,10 @@ final class FurusatoController extends Controller
         $payload = FurusatoInput::query()
             ->where('data_id', $data->id)
             ->value('payload');
-        $out = ['inputs' => is_array($payload) ? $payload : []];
+        $normalizer = app(PayloadNormalizer::class);
+        $out = ['inputs' => is_array($payload) ? $normalizer->normalize($payload) : []];
 
-        return view('tax.furusato.details.kihukin_details', [
+        return view('tax.furusato.details.kifukin_details', [
             'dataId' => $data->id,
             'kihuYear' => $kihuYear,
             'warekiPrev' => $warekiPrev,
@@ -631,7 +633,7 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function saveKihukinDetails(
+    public function saveKifukinDetails(
         Request $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
@@ -647,7 +649,7 @@ final class FurusatoController extends Controller
 
             $goto = (string) $req->input('redirect_to', '');
             if ($goto === '' || $goto === 'input') {
-                $goto = 'kihukin_details';
+                $goto = 'kifukin_details';
             }
 
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
@@ -1433,6 +1435,9 @@ final class FurusatoController extends Controller
             return [];
         }
 
+        $normalizer = app(PayloadNormalizer::class);
+        $payload = $normalizer->normalize($payload);
+
         $this->normalizeJotoIchijiKeys($payload);
         $this->normalizeFudosanSyunyuKeys($payload);
         $this->normalizeBunriChokiSyunyuKeys($payload);
@@ -1986,8 +1991,8 @@ final class FurusatoController extends Controller
                 return redirect()->route('furusato.details.jigyo', array_merge($routeParams, $originQuery))->with('success', $message);
             case 'fudosan':
                 return redirect()->route('furusato.details.fudosan', array_merge($routeParams, $originQuery))->with('success', $message);
-            case 'kihukin_details':
-                return redirect()->route('furusato.details.kihukin', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'kifukin_details':
+                return redirect()->route('furusato.details.kifukin', array_merge($routeParams, $originQuery))->with('success', $message);
             case 'joto_ichiji':
                 return redirect()->route('furusato.details.joto_ichiji', array_merge($routeParams, $originQuery))->with('success', $message);
             case 'kojo_seimei_jishin':

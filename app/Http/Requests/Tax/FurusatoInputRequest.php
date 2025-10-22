@@ -305,8 +305,7 @@ final class FurusatoInputRequest extends FormRequest
         $kihukinFields = [
             'shotokuzei_shotokukojo',
             'shotokuzei_zeigakukojo',
-            'juminzei_zeigakukojo_pref',
-            'juminzei_zeigakukojo_muni',
+            'juminzei_zeigakukojo',
         ];
 
         foreach ($kihukinCategories as $category) {
@@ -409,8 +408,7 @@ final class FurusatoInputRequest extends FormRequest
         $kihukinFieldLabels = [
             'shotokuzei_shotokukojo' => '所得税・所得控除',
             'shotokuzei_zeigakukojo' => '所得税・税額控除',
-            'juminzei_zeigakukojo_pref' => '住民税・都道府県税額控除',
-            'juminzei_zeigakukojo_muni' => '住民税・市区町村税額控除',
+            'juminzei_zeigakukojo' => '住民税・税額控除',
         ];
         $periodLabels = [
             'prev' => '前年',

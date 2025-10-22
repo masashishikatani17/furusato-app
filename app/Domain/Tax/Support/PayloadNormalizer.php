@@ -17,6 +17,7 @@ class PayloadNormalizer
         $payload = $this->normalizeBunriChokiSyunyuKeys($payload);
         $payload = $this->normalizeBunriChokiShotokuKeys($payload);
         $payload = $this->normalizeBunriIncomeShotokuKeys($payload);
+        $payload = $this->normalizeKifukinJuminzeiKeys($payload);
 
         foreach ($payload as $key => $value) {
             if ($this->isLabelField($key)) {
@@ -196,6 +197,56 @@ class PayloadNormalizer
                     if ($hasLegacy) {
                         $payload[$canonicalKey] = $legacySum ?? 0;
                     }
+                }
+            }
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeKifukinJuminzeiKeys(array $payload): array
+    {
+        $categories = [
+            'furusato',
+            'kyodobokin_nisseki',
+            'seito',
+            'npo',
+            'koueki',
+            'kuni',
+            'sonota',
+        ];
+        $periods = ['prev', 'curr'];
+
+        foreach ($categories as $category) {
+            foreach ($periods as $period) {
+                $canonicalKey = sprintf('juminzei_zeigakukojo_%s_%s', $category, $period);
+                $canonicalValue = 0;
+                $hasValue = false;
+
+                if (array_key_exists($canonicalKey, $payload)) {
+                    $canonicalValue = (int) ($this->normalizeValue($payload[$canonicalKey]) ?? 0);
+                    $hasValue = true;
+                }
+
+                foreach (['pref', 'muni'] as $type) {
+                    $legacyKey = sprintf('juminzei_zeigakukojo_%s_%s_%s', $type, $category, $period);
+
+                    if (! array_key_exists($legacyKey, $payload)) {
+                        continue;
+                    }
+
+                    $legacyValue = (int) ($this->normalizeValue($payload[$legacyKey]) ?? 0);
+                    $canonicalValue += $legacyValue;
+                    $hasValue = true;
+                    unset($payload[$legacyKey]);
+                }
+
+                if ($hasValue) {
+                    $payload[$canonicalKey] = $canonicalValue;
                 }
             }
         }

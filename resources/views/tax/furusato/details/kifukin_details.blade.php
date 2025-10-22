@@ -20,10 +20,12 @@
     $columns = [
         ['base' => 'shotokuzei_shotokukojo', 'period' => 'prev'],
         ['base' => 'shotokuzei_zeigakukojo', 'period' => 'prev'],
-        ['base' => 'juminzei_zeigakukojo', 'period' => 'prev'],
+        ['base' => 'juminzei_zeigakukojo_pref', 'period' => 'prev'],
+        ['base' => 'juminzei_zeigakukojo_muni', 'period' => 'prev'],
         ['base' => 'shotokuzei_shotokukojo', 'period' => 'curr'],
         ['base' => 'shotokuzei_zeigakukojo', 'period' => 'curr'],
-        ['base' => 'juminzei_zeigakukojo', 'period' => 'curr'],
+        ['base' => 'juminzei_zeigakukojo_pref', 'period' => 'curr'],
+        ['base' => 'juminzei_zeigakukojo_muni', 'period' => 'curr'],
     ];
     $makeField = static fn(string $base, string $category, string $period): string => sprintf('%s_%s_%s', $base, $category, $period);
 
@@ -33,8 +35,10 @@
         $inputDisabled[$makeField('shotokuzei_zeigakukojo', $category, 'curr')] = true;
     }
     foreach (['seito', 'kuni'] as $category) {
-        $inputDisabled[$makeField('juminzei_zeigakukojo', $category, 'prev')] = true;
-        $inputDisabled[$makeField('juminzei_zeigakukojo', $category, 'curr')] = true;
+        foreach (['pref', 'muni'] as $area) {
+            $inputDisabled[$makeField("juminzei_zeigakukojo_{$area}", $category, 'prev')] = true;
+            $inputDisabled[$makeField("juminzei_zeigakukojo_{$area}", $category, 'curr')] = true;
+        }
     }
 
     $referenceSymbols = [];
@@ -50,13 +54,17 @@
         $referenceSymbols[$makeField('shotokuzei_zeigakukojo', $category, 'curr')] = '〇';
     }
     foreach (['furusato'] as $category) {
-        $referenceSymbols[$makeField('juminzei_zeigakukojo', $category, 'prev')] = '〇';
-        $referenceSymbols[$makeField('juminzei_zeigakukojo', $category, 'curr')] = '〇';
+        foreach (['pref', 'muni'] as $area) {
+            $referenceSymbols[$makeField("juminzei_zeigakukojo_{$area}", $category, 'prev')] = '〇';
+            $referenceSymbols[$makeField("juminzei_zeigakukojo_{$area}", $category, 'curr')] = '〇';
+        }
     }
     foreach (['kyodobokin_nisseki', 'npo', 'koueki', 'sonota'] as $category) {
         $symbol = '〇(※)';
-        $referenceSymbols[$makeField('juminzei_zeigakukojo', $category, 'prev')] = $symbol;
-        $referenceSymbols[$makeField('juminzei_zeigakukojo', $category, 'curr')] = $symbol;
+        foreach (['pref', 'muni'] as $area) {
+            $referenceSymbols[$makeField("juminzei_zeigakukojo_{$area}", $category, 'prev')] = $symbol;
+            $referenceSymbols[$makeField("juminzei_zeigakukojo_{$area}", $category, 'curr')] = $symbol;
+        }
     }
 
     $originTabRaw = request()->input('origin_tab', 'input');
@@ -102,21 +110,29 @@
           <div class="table-responsive mb-4">
             <table class="table-base table-bordered align-middle text-start ms-2">
                 <tr>
-                  <th rowspan="3" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
-                  <th colspan="3" class="th-ccc">{{ $warekiPrevLabel }}</th>
-                  <th colspan="3" class="th-ccc">{{ $warekiCurrLabel }}</th>
+                  <th rowspan="4" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
+                  <th colspan="4" class="th-ccc">{{ $warekiPrevLabel }}</th>
+                  <th colspan="4" class="th-ccc">{{ $warekiCurrLabel }}</th>
                 </tr>
                 <tr>
-                  <th colspan="2">所得税</th>
-                  <th>住民税</th>
-                  <th colspan="2">所得税</th>
-                  <th>住民税</th>
+                  <th colspan="2" rowspan="2">所得税</th>
+                  <th colspan="2">住民税</th>
+                  <th colspan="2" rowspan="2">所得税</th>
+                  <th colspan="2">住民税</th>
+                </tr>
+                <tr>
+                  <th>都道府県</th>
+                  <th>市区町村</th>
+                  <th>都道府県</th>
+                  <th>市区町村</th>
                 </tr>
                 <tr>
                   <th class="th-ddd">所得控除</th>
                   <th class="th-ddd">税額控除</th>
                   <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
                   <th class="th-ddd">所得控除</th>
+                  <th class="th-ddd">税額控除</th>
                   <th class="th-ddd">税額控除</th>
                   <th class="th-ddd">税額控除</th>
                 </tr>
@@ -143,21 +159,29 @@
           <div class="table-responsive">
             <table class="table-base table-bordered align-middle text-start ms-2">
                 <tr>
-                  <th rowspan="3" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
-                  <th colspan="3" class="th-ccc">{{ $warekiPrevLabel }}</th>
-                  <th colspan="3" class="th-ccc">{{ $warekiCurrLabel }}</th>
+                  <th rowspan="4" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
+                  <th colspan="4" class="th-ccc">{{ $warekiPrevLabel }}</th>
+                  <th colspan="4" class="th-ccc">{{ $warekiCurrLabel }}</th>
                 </tr>
                 <tr>
-                  <th colspan="2">所得税</th>
-                  <th>住民税</th>
-                  <th colspan="2">所得税</th>
-                  <th>住民税</th>
+                  <th colspan="2" rowspan="2">所得税</th>
+                  <th colspan="2">住民税</th>
+                  <th colspan="2" rowspan="2">所得税</th>
+                  <th colspan="2">住民税</th>
+                </tr>
+                <tr>
+                  <th>都道府県</th>
+                  <th>市区町村</th>
+                  <th>都道府県</th>
+                  <th>市区町村</th>
                 </tr>
                 <tr>
                   <th class="th-ddd">所得控除</th>
                   <th class="th-ddd">税額控除</th>
                   <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
                   <th class="th-ddd">所得控除</th>
+                  <th class="th-ddd">税額控除</th>
                   <th class="th-ddd">税額控除</th>
                   <th class="th-ddd">税額控除</th>
                 </tr>

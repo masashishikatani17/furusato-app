@@ -249,30 +249,35 @@ class PayloadNormalizer
 
         foreach ($categories as $category) {
             foreach ($periods as $period) {
-                $canonicalKey = sprintf('juminzei_zeigakukojo_%s_%s', $category, $period);
-                $canonicalValue = 0;
-                $hasValue = false;
+                $legacyKey = sprintf('juminzei_zeigakukojo_%s_%s', $category, $period);
+                $prefKey = sprintf('juminzei_zeigakukojo_pref_%s_%s', $category, $period);
+                $muniKey = sprintf('juminzei_zeigakukojo_muni_%s_%s', $category, $period);
 
-                if (array_key_exists($canonicalKey, $payload)) {
-                    $canonicalValue = (int) ($this->normalizeValue($payload[$canonicalKey]) ?? 0);
-                    $hasValue = true;
+                $prefValue = null;
+                $muniValue = null;
+
+                if (array_key_exists($prefKey, $payload)) {
+                    $prefValue = (int) ($this->normalizeValue($payload[$prefKey]) ?? 0);
                 }
 
-                foreach (['pref', 'muni'] as $type) {
-                    $legacyKey = sprintf('juminzei_zeigakukojo_%s_%s_%s', $type, $category, $period);
+                if (array_key_exists($muniKey, $payload)) {
+                    $muniValue = (int) ($this->normalizeValue($payload[$muniKey]) ?? 0);
+                }
 
-                    if (! array_key_exists($legacyKey, $payload)) {
-                        continue;
+                if (array_key_exists($legacyKey, $payload)) {
+                    $legacyValue = (int) ($this->normalizeValue($payload[$legacyKey]) ?? 0);
+
+                    if ($prefValue === null && $muniValue === null) {
+                        $prefValue = 0;
+                        $muniValue = $legacyValue;
                     }
 
-                    $legacyValue = (int) ($this->normalizeValue($payload[$legacyKey]) ?? 0);
-                    $canonicalValue += $legacyValue;
-                    $hasValue = true;
                     unset($payload[$legacyKey]);
                 }
 
-                if ($hasValue) {
-                    $payload[$canonicalKey] = $canonicalValue;
+                if ($prefValue !== null || $muniValue !== null) {
+                    $payload[$prefKey] = $prefValue ?? 0;
+                    $payload[$muniKey] = $muniValue ?? 0;
                 }
             }
         }

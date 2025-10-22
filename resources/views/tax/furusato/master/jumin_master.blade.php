@@ -24,7 +24,7 @@
         </thead>
         <tbody>
           @php
-            $formatPercent = static fn (?float $value): string => $value === null ? '' : rtrim(rtrim(number_format($value, 3), '0'), '.').'%';
+            $formatRatio = static fn (?float $value): string => $value === null ? '' : rtrim(rtrim(number_format($value, 3), '0'), '.');
             $categoryCounts = $rates->groupBy('category')->map->count();
             $subcategoryCounts = $rates->groupBy(fn ($rate) => $rate->category.'|'.($rate->sub_category ?? ''))->map->count();
             $renderedCategories = [];
@@ -63,10 +63,10 @@
               @else
                 <th class="text-start" colspan="2">{{ $rate->category }}</th>
               @endif
-              <td class="text-end">{{ $formatPercent($rate->city_specified) }}</td>
-              <td class="text-end">{{ $formatPercent($rate->pref_specified) }}</td>
-              <td class="text-end">{{ $formatPercent($rate->city_non_specified) }}</td>
-              <td class="text-end">{{ $formatPercent($rate->pref_non_specified) }}</td>
+              <td class="text-end">{{ $formatRatio($rate->city_specified) }}</td>
+              <td class="text-end">{{ $formatRatio($rate->pref_specified) }}</td>
+              <td class="text-end">{{ $formatRatio($rate->city_non_specified) }}</td>
+              <td class="text-end">{{ $formatRatio($rate->pref_non_specified) }}</td>
               <td class="text-start">{{ $rate->remark }}</td>
             </tr>
           @endforeach

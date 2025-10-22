@@ -1012,7 +1012,7 @@
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="chosei_mae_shotowari_pref_curr"
+                     name="chosei_mae_shotokuwari_pref_curr"
                      class="form-control form-control-sm text-end bg-light"
                      value="{{ $readonlyValue('chosei_mae_shotokuwari_pref_curr') }}">
             </td>
@@ -1075,16 +1075,16 @@
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="choseigo_shotowari_pref_prev"
+                     name="choseigo_shotokuwari_pref_prev"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('choseigo_shotowari_pref_prev') }}">
+                     value="{{ $readonlyValue('choseigo_shotokuwari_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="choseigo_shotowari_pref_curr"
+                     name="choseigo_shotokuwari_pref_curr"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('choseigo_shotowari_pref_curr') }}">
+                     value="{{ $readonlyValue('choseigo_shotokuwari_pref_curr') }}">
             </td>
           </tr>
           <tr>
@@ -1092,16 +1092,16 @@
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="choseigo_shotowari_muni_prev"
+                     name="choseigo_shotokuwari_muni_prev"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('choseigo_shotowari_muni_prev') }}">
+                     value="{{ $readonlyValue('choseigo_shotokuwari_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="choseigo_shotowari_muni_curr"
+                     name="choseigo_shotokuwari_muni_curr"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('choseigo_shotowari_muni_curr') }}">
+                     value="{{ $readonlyValue('choseigo_shotokuwari_muni_curr') }}">
             </td>
           </tr>
           <tr>

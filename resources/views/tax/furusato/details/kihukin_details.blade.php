@@ -1,3 +1,4 @@
+<!-- views/tax/furusato/details/kihukin_details.blade.php-->
 @extends('layouts.min')
 
 @section('title', '寄付金控除の内訳')
@@ -82,7 +83,6 @@
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">寄付金控除の内訳</h0>
-    <a href="{{ $returnUrl }}" class="btn btn-link btn-sm">入力へ戻る</a>
   </div>
 
   @if (session('success'))

@@ -5,6 +5,13 @@
   $currDetails = $details['curr'] ?? [];
   $jintekiDiff = $jintekiDiff ?? [];
   $inputs = $inputs ?? [];
+  $syoriSettings = $syoriSettings ?? [];
+  $oneStopPrevFlag = (int) ($syoriSettings['one_stop_flag_prev'] ?? $syoriSettings['one_stop_flag'] ?? 0);
+  $oneStopCurrFlag = (int) ($syoriSettings['one_stop_flag_curr'] ?? $syoriSettings['one_stop_flag'] ?? $oneStopPrevFlag);
+  $shiteiPrevFlag = (int) ($syoriSettings['shitei_toshi_flag_prev'] ?? $syoriSettings['shitei_toshi_flag'] ?? 0);
+  $shiteiCurrFlag = (int) ($syoriSettings['shitei_toshi_flag_curr'] ?? $syoriSettings['shitei_toshi_flag'] ?? $shiteiPrevFlag);
+  $oneStopText = static fn(int $flag): string => $flag === 1 ? '利用する' : '利用しない';
+  $shiteiText = static fn(int $flag): string => $flag === 1 ? '指定都市' : '指定都市以外';
   $tokureiStandardRate = $tokureiStandardRate ?? [];
   $tkComputed = $tokureiComputedPercent ?? [];
   $tkEnabled = $tokureiEnabled ?? [];
@@ -920,4 +927,412 @@
     </div>
   </div>
   @endif
+
+  <div class="mt-5">
+    <h5 class="fw-bold">寄附金税額控除の算定</h5>
+    <div class="table-responsive">
+      <table class="table table-base align-middle" style="width:720px;">
+        <tbody>
+          <tr>
+            <th colspan="2" class="th-ccc" style="height:30px;"></th>
+            <th class="text-center th-ccc">{{ $warekiPrevLabel }}</th>
+            <th class="text-center th-ccc">{{ $warekiCurrLabel }}</th>
+          </tr>
+          <tr>
+            <th colspan="2" class="text-start ps-1">ワンストップ特例</th>
+            <td>{{ $oneStopText($oneStopPrevFlag) }}</td>
+            <td>{{ $oneStopText($oneStopCurrFlag) }}</td>
+          </tr>
+          <tr>
+            <th colspan="2" class="text-start ps-1">指定都市区分</th>
+            <td>{{ $shiteiText($shiteiPrevFlag) }}</td>
+            <td>{{ $shiteiText($shiteiCurrFlag) }}</td>
+          </tr>
+          <tr>
+            <th colspan="2" class="text-start ps-1">課税総所得金額</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kazeisoushotoku_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kazeisoushotoku_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kazeisoushotoku_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kazeisoushotoku_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th colspan="2" class="text-start ps-1">寄付金額</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kifu_gaku_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kifu_gaku_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kifu_gaku_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kifu_gaku_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th colspan="2" class="text-start ps-1">ふるさと納税寄付金額</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="furusato_kifu_gaku_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('furusato_kifu_gaku_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="furusato_kifu_gaku_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('furusato_kifu_gaku_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th rowspan="2" class="text-start ps-1 align-middle">調整控除前所得割額</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="chosei_mae_shotowari_pref_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('chosei_mae_shotowari_pref_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="chosei_mae_shotowari_pref_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('chosei_mae_shotowari_pref_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th class="text-start ps-1">市区町村</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="chosei_mae_shotowari_muni_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('chosei_mae_shotowari_muni_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="chosei_mae_shotowari_muni_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('chosei_mae_shotowari_muni_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th rowspan="2" class="text-start ps-1 align-middle">調整控除額</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="chosei_kojo_pref_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('chosei_kojo_pref_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="chosei_kojo_pref_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('chosei_kojo_pref_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th class="text-start ps-1">市区町村</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="chosei_kojo_muni_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('chosei_kojo_muni_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="chosei_kojo_muni_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('chosei_kojo_muni_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th rowspan="2" class="text-start ps-1 align-middle">調整控除後所得割額</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="choseigo_shotowari_pref_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('choseigo_shotowari_pref_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="choseigo_shotowari_pref_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('choseigo_shotowari_pref_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th class="text-start ps-1">市区町村</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="choseigo_shotowari_muni_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('choseigo_shotowari_muni_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="choseigo_shotowari_muni_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('choseigo_shotowari_muni_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th rowspan="2" class="text-start ps-1 align-middle">基本控除額</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kihon_kojo_pref_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kihon_kojo_pref_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kihon_kojo_pref_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kihon_kojo_pref_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th class="text-start ps-1">市区町村</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kihon_kojo_muni_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kihon_kojo_muni_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kihon_kojo_muni_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kihon_kojo_muni_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th rowspan="2" class="text-start ps-1 align-middle">特例控除額</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="tokurei_kojo_pref_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('tokurei_kojo_pref_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="tokurei_kojo_pref_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('tokurei_kojo_pref_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th class="text-start ps-1">市区町村</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="tokurei_kojo_muni_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('tokurei_kojo_muni_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="tokurei_kojo_muni_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('tokurei_kojo_muni_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th rowspan="2" class="text-start ps-1 align-middle">所得割額の20％</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="shotowari20_pref_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('shotowari20_pref_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="shotowari20_pref_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('shotowari20_pref_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th class="text-start ps-1">市区町村</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="shotowari20_muni_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('shotowari20_muni_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="shotowari20_muni_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('shotowari20_muni_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th rowspan="2" class="text-start ps-1 align-middle">上限適用後特例控除</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="tokurei_kojo_jogen_pref_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('tokurei_kojo_jogen_pref_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="tokurei_kojo_jogen_pref_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('tokurei_kojo_jogen_pref_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th class="text-start ps-1">市区町村</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="tokurei_kojo_jogen_muni_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('tokurei_kojo_jogen_muni_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="tokurei_kojo_jogen_muni_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('tokurei_kojo_jogen_muni_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th rowspan="2" class="text-start ps-1 align-middle">申告特例控除</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="shinkokutokurei_kojo_pref_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('shinkokutokurei_kojo_pref_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="shinkokutokurei_kojo_pref_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('shinkokutokurei_kojo_pref_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th class="text-start ps-1">市区町村</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="shinkokutokurei_kojo_muni_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('shinkokutokurei_kojo_muni_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="shinkokutokurei_kojo_muni_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('shinkokutokurei_kojo_muni_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th rowspan="3" class="text-start ps-1 align-middle">寄附金税額控除</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kifukin_zeigaku_kojo_pref_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_pref_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kifukin_zeigaku_kojo_pref_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_pref_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th class="text-start ps-1">市区町村</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kifukin_zeigaku_kojo_muni_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_muni_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kifukin_zeigaku_kojo_muni_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_muni_curr') }}">
+            </td>
+          </tr>
+          <tr>
+            <th class="text-start ps-1">合計</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kifukin_zeigaku_kojo_gokei_prev"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_gokei_prev') }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     name="kifukin_zeigaku_kojo_gokei_curr"
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_gokei_curr') }}">
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>

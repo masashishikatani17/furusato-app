@@ -1312,6 +1312,7 @@
                 'warekiCurr' => $warekiCurrLabel,
                 'periodFilter' => 'prev',
                 'showSeparatedNetting' => $showSeparatedNetting ?? false,
+                'syoriSettings' => $syoriSettings,
               ])
             </div>
             <div class="tab-pane fade {{ $currSubPaneActive }}" id="furusato-result-details-curr" role="tabpanel" aria-labelledby="furusato-result-details-curr-nav">
@@ -1326,6 +1327,7 @@
                 'warekiCurr' => $warekiCurrLabel,
                 'periodFilter' => 'curr',
                 'showSeparatedNetting' => $showSeparatedNetting ?? false,
+                'syoriSettings' => $syoriSettings,
               ])
             </div>
           </div>

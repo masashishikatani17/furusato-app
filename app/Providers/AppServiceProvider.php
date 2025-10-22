@@ -9,6 +9,7 @@ use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
 use App\Domain\Tax\Calculators\JintekiKojoCalculator;
+use App\Domain\Tax\Calculators\JuminzeiKifukinCalculator;
 use App\Domain\Tax\Calculators\JuminTaxCalculator;
 use App\Domain\Tax\Calculators\KifukinCalculator;
 use App\Domain\Tax\Calculators\KisoKojoCalculator;
@@ -49,6 +50,7 @@ class AppServiceProvider extends ServiceProvider
             JintekiKojoCalculator::class,
             HaigushaKojoCalculator::class,
             KojoAggregationCalculator::class,
+            JuminzeiKifukinCalculator::class,
             ShotokuTaxCalculator::class,
             JuminTaxCalculator::class,
             SeitotoTokubetsuZeigakuKojoCalculator::class,

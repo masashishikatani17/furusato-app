@@ -1320,7 +1320,10 @@ final class FurusatoController extends Controller
         ]);
     }
 
-    public function syoriSave(FurusatoSyoriRequest $request): RedirectResponse
+    public function syoriSave(
+        FurusatoSyoriRequest $request,
+        RecalculateFurusatoPayload $recalculateUseCase,
+    ): RedirectResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
         $validated = $request->validated();
@@ -1347,6 +1350,8 @@ final class FurusatoController extends Controller
 
             $record->save();
         });
+
+        $this->performFullRecalculation($request, $data, [], $recalculateUseCase);
 
         $goto = (string) $request->input('redirect_to', '');
         $routeParams = ['data_id' => $data->id];

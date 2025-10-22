@@ -1180,16 +1180,16 @@
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="shotowari20_pref_prev"
+                     name="shotokuwari20_pref_prev"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('shotowari20_pref_prev') }}">
+                     value="{{ $readonlyValue('shotokuwari20_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="shotowari20_pref_curr"
+                     name="shotokuwari20_pref_curr"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('shotowari20_pref_curr') }}">
+                     value="{{ $readonlyValue('shotokuwari20_pref_curr') }}">
             </td>
           </tr>
           <tr>
@@ -1197,16 +1197,16 @@
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="shotowari20_muni_prev"
+                     name="shotokuwari20_muni_prev"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('shotowari20_muni_prev') }}">
+                     value="{{ $readonlyValue('shotokuwari20_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="shotowari20_muni_curr"
+                     name="shotokuwari20_muni_curr"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('shotowari20_muni_curr') }}">
+                     value="{{ $readonlyValue('shotokuwari20_muni_curr') }}">
             </td>
           </tr>
           <tr>

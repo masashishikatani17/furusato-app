@@ -213,16 +213,25 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
                 $tokureiBase = $out[sprintf('furusato_kifu_gaku_%s', $period)] - 2_000;
             }
 
-            $tokureiRateFinal = $this->decimal($payload[sprintf('tokurei_rate_final_%s', $period)] ?? null) / 100.0;
+            $tokureiRateFinalPercent = $this->decimal($payload[sprintf('tokurei_rate_final_%s', $period)] ?? null);
             $tokureiPrefRate = $this->juminRate($rateRows, '特例控除', null, $shitei, 'pref');
             $tokureiMuniRate = $this->juminRate($rateRows, '特例控除', null, $shitei, 'city');
 
-            $out[$tokureiPrefKey] = $tokureiBase > 0 && $tokureiRateFinal > 0.0
-                ? $this->mulRate($tokureiBase, $tokureiRateFinal * $tokureiPrefRate)
+            $tokureiBaseAfterRate = 0;
+            if ($tokureiBase > 0 && $tokureiRateFinalPercent > 0.0) {
+                $basisPoints = (int) max(round($tokureiRateFinalPercent * 100), 0);
+
+                if ($basisPoints > 0) {
+                    $tokureiBaseAfterRate = intdiv($tokureiBase * $basisPoints, 10_000);
+                }
+            }
+
+            $out[$tokureiPrefKey] = $tokureiBaseAfterRate > 0 && $tokureiPrefRate > 0.0
+                ? $this->applyThousandRate($tokureiBaseAfterRate, $tokureiPrefRate)
                 : 0;
 
-            $out[$tokureiMuniKey] = $tokureiBase > 0 && $tokureiRateFinal > 0.0
-                ? $this->mulRate($tokureiBase, $tokureiRateFinal * $tokureiMuniRate)
+            $out[$tokureiMuniKey] = $tokureiBaseAfterRate > 0 && $tokureiMuniRate > 0.0
+                ? $this->applyThousandRate($tokureiBaseAfterRate, $tokureiMuniRate)
                 : 0;
         }
 
@@ -412,10 +421,31 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
                 ? ($target === 'pref' ? $rate['pref_specified'] : $rate['city_specified'])
                 : ($target === 'pref' ? $rate['pref_non_specified'] : $rate['city_non_specified']);
 
-            return ((float) $value) / 100.0;
+            $numeric = (float) $value;
+
+            if ($category === '特例控除' || $category === '基本控除') {
+                return $numeric;
+            }
+
+            return $numeric / 100.0;
         }
 
         return 0.0;
+    }
+
+    private function applyThousandRate(int $amount, float $rate): int
+    {
+        if ($amount <= 0 || $rate <= 0.0) {
+            return 0;
+        }
+
+        $scaled = (int) max(round($rate * 1000), 0);
+
+        if ($scaled === 0) {
+            return 0;
+        }
+
+        return intdiv($amount * $scaled, 1000);
     }
 
     private function mulRate(int $amount, float $rate): int

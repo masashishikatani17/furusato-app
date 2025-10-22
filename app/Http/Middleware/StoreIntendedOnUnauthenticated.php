@@ -88,7 +88,7 @@ class StoreIntendedOnUnauthenticated
             'syori' => $this->buildRouteUrl('furusato.syori', $dataId),
             'jigyo' => $this->buildRouteUrl('furusato.details.jigyo', $dataId),
             'fudosan' => $this->buildRouteUrl('furusato.details.fudosan', $dataId),
-            'kihukin_details' => $this->buildRouteUrl('furusato.details.kihukin', $dataId),
+            'kifukin_details' => $this->buildRouteUrl('furusato.details.kifukin', $dataId),
             'joto_ichiji' => $this->buildRouteUrl('furusato.details.joto_ichiji', $dataId),
             'kojo_seimei_jishin' => $this->buildRouteUrl('furusato.details.kojo_seimei_jishin', $dataId),
             'kojo_jinteki' => $this->buildRouteUrl('furusato.details.kojo_jinteki', $dataId),

@@ -229,9 +229,9 @@ Route::middleware(['auth'])->prefix('furusato')->group(function () {
         ->name('furusato.details.kojo_iryo');
     Route::post('/details/kojo_iryo/save', [FurusatoController::class, 'saveKojoIryoDetails'])
         ->name('furusato.details.kojo_iryo.save');
-    Route::get('/details/kihukin', [FurusatoController::class, 'kihukinDetails'])
-        ->name('furusato.details.kihukin');
-    Route::post('/details/kihukin/save', [FurusatoController::class, 'saveKihukinDetails'])
-        ->name('furusato.details.kihukin.save');
+    Route::get('/details/kifukin', [FurusatoController::class, 'kifukinDetails'])
+        ->name('furusato.details.kifukin');
+    Route::post('/details/kifukin/save', [FurusatoController::class, 'saveKifukinDetails'])
+        ->name('furusato.details.kifukin.save');
 });
 

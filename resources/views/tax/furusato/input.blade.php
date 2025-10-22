@@ -642,7 +642,7 @@
                     <button type="submit"
                             class="btn-base-green"
                             name="redirect_to"
-                            value="kihukin_details"
+                            value="kifukin_details"
                             data-return-anchor="kojo_row_kifukin">内訳</button>
                   </td>
                   {!! $renderInputs('kojo_kifukin') !!}

@@ -108,14 +108,16 @@
                 </tr>
                 <tr>
                   <th colspan="2">所得税</th>
-                  <th rowspan="2">住民税<br>税額控除</th>
+                  <th>住民税</th>
                   <th colspan="2">所得税</th>
-                  <th rowspan="2">住民税<br>税額控除</th>
+                  <th>住民税</th>
                 </tr>
                 <tr>
                   <th class="th-ddd">所得控除</th>
                   <th class="th-ddd">税額控除</th>
+                  <th class="th-ddd">税額控除</th>
                   <th class="th-ddd">所得控除</th>
+                  <th class="th-ddd">税額控除</th>
                   <th class="th-ddd">税額控除</th>
                 </tr>
               <tbody>

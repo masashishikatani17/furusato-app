@@ -9,30 +9,32 @@ use Tests\TestCase;
 final class PayloadNormalizerTest extends TestCase
 {
     #[Test]
-    public function it_sums_legacy_kifukin_resident_tax_keys(): void
+    public function it_splits_legacy_kifukin_resident_tax_keys(): void
     {
         $normalizer = new PayloadNormalizer();
 
         $payload = $normalizer->normalize([
-            'juminzei_zeigakukojo_pref_furusato_prev' => '10',
-            'juminzei_zeigakukojo_muni_furusato_prev' => '5',
-            'juminzei_zeigakukojo_furusato_prev' => '3',
+            'juminzei_zeigakukojo_furusato_prev' => '18',
         ]);
 
-        $this->assertSame(18, $payload['juminzei_zeigakukojo_furusato_prev']);
-        $this->assertArrayNotHasKey('juminzei_zeigakukojo_pref_furusato_prev', $payload);
-        $this->assertArrayNotHasKey('juminzei_zeigakukojo_muni_furusato_prev', $payload);
+        $this->assertArrayNotHasKey('juminzei_zeigakukojo_furusato_prev', $payload);
+        $this->assertSame(0, $payload['juminzei_zeigakukojo_pref_furusato_prev']);
+        $this->assertSame(18, $payload['juminzei_zeigakukojo_muni_furusato_prev']);
     }
 
     #[Test]
-    public function it_keeps_canonical_values_when_no_legacy_keys_exist(): void
+    public function it_keeps_split_values_when_present(): void
     {
         $normalizer = new PayloadNormalizer();
 
         $payload = $normalizer->normalize([
-            'juminzei_zeigakukojo_npo_curr' => '12',
+            'juminzei_zeigakukojo_pref_npo_curr' => '12',
+            'juminzei_zeigakukojo_muni_npo_curr' => '8',
+            'juminzei_zeigakukojo_npo_curr' => '999',
         ]);
 
-        $this->assertSame(12, $payload['juminzei_zeigakukojo_npo_curr']);
+        $this->assertSame(12, $payload['juminzei_zeigakukojo_pref_npo_curr']);
+        $this->assertSame(8, $payload['juminzei_zeigakukojo_muni_npo_curr']);
+        $this->assertArrayNotHasKey('juminzei_zeigakukojo_npo_curr', $payload);
     }
 }

@@ -157,11 +157,14 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $categories = ['furusato', 'kyodobokin_nisseki', 'npo', 'koueki', 'sonota'];
             $sumKifu = 0;
             foreach ($categories as $category) {
-                $sumKifu += $this->n($payload["juminzei_zeigakukojo_{$category}_{$period}"] ?? null);
+                $sumKifu += $this->n($payload["juminzei_zeigakukojo_pref_{$category}_{$period}"] ?? null);
+                $sumKifu += $this->n($payload["juminzei_zeigakukojo_muni_{$category}_{$period}"] ?? null);
             }
             $out["kifu_gaku_{$period}"] = $sumKifu;
 
-            $out["furusato_kifu_gaku_{$period}"] = $this->n($payload["juminzei_zeigakukojo_furusato_{$period}"] ?? null);
+            $out["furusato_kifu_gaku_{$period}"] =
+                $this->n($payload["juminzei_zeigakukojo_pref_furusato_{$period}"] ?? null)
+                + $this->n($payload["juminzei_zeigakukojo_muni_furusato_{$period}"] ?? null);
 
             $prefApplied = $this->resolveAppliedRate($settings, $payload, 'pref', $period);
             $muniApplied = $this->resolveAppliedRate($settings, $payload, 'muni', $period);
@@ -302,18 +305,21 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $humanAdjustedTaxable = $this->n($payload[sprintf('human_adjusted_taxable_%s', $period)] ?? null);
             $shinkokuRatio = $this->resolveShinkokutokureiRatio($shinkokuRateRows, $humanAdjustedTaxable);
 
-            if ($shitei) {
-                $prefShare = 0.2;
-                $muniShare = 0.8;
-            } else {
-                $prefShare = 0.4;
-                $muniShare = 0.6;
-            }
-
             $shinkokuPrefKey = sprintf('shinkokutokurei_kojo_pref_%s', $period);
             $shinkokuMuniKey = sprintf('shinkokutokurei_kojo_muni_%s', $period);
 
+            $shinkokuPref = 0;
+            $shinkokuMuni = 0;
+
             if ($oneStop) {
+                if ($shitei) {
+                    $prefShare = 0.2;
+                    $muniShare = 0.8;
+                } else {
+                    $prefShare = 0.4;
+                    $muniShare = 0.6;
+                }
+
                 $upperPref = max($out[$prefAfterKey] * 0.2, 0.0);
                 $upperMuni = max($out[$muniAfterKey] * 0.2, 0.0);
 
@@ -322,9 +328,6 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
 
                 $shinkokuPref = $this->ceilPositive($tmpPref * $prefShare);
                 $shinkokuMuni = $this->ceilPositive($tmpMuni * $muniShare);
-            } else {
-                $shinkokuPref = $this->ceilPositive($out[$prefAfterKey] * 0.2);
-                $shinkokuMuni = $this->ceilPositive($out[$muniAfterKey] * 0.2);
             }
 
             $out[$shinkokuPrefKey] = $shinkokuPref;

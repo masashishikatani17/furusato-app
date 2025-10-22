@@ -641,6 +641,32 @@ final class FurusatoController extends Controller
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
+        $categories = [
+            'furusato',
+            'kyodobokin_nisseki',
+            'seito',
+            'npo',
+            'koueki',
+            'kuni',
+            'sonota',
+        ];
+        $periods = ['prev', 'curr'];
+        $areas = ['pref', 'muni'];
+
+        $rules = [];
+        foreach ($categories as $category) {
+            foreach ($periods as $period) {
+                foreach ($areas as $area) {
+                    $key = sprintf('juminzei_zeigakukojo_%s_%s_%s', $area, $category, $period);
+                    $rules[$key] = ['bail', 'nullable', 'integer', 'min:0'];
+                }
+            }
+        }
+
+        if ($rules !== []) {
+            Validator::make($req->only(array_keys($rules)), $rules)->validate();
+        }
+
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'redirect_to', 'origin_tab', 'origin_anchor']));
         $updatesForRecalc = $payload;
 

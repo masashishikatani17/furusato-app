@@ -72,7 +72,7 @@
         {{-- 2) お客様名（existingは読み取り・sameは元の名前、newのみ入力必須） --}}
         <div class="mt-4">
           <label for="target_guest_name" class="form-label">
-            <hb class="ms-4 me-3">・お客様名</hb></label>
+            <hb class="ms-4 me-5">・お客様名</hb></label>
               <input type="text" name="target_guest_name" id="target_guest_name" class="form-control kana10"
                      maxlength="25" placeholder="（新規のお客様の場合は入力）"
                      value="{{ old('target_guest_name') }}">
@@ -87,6 +87,7 @@
                  name="birth_date"
                  id="copy_birth_date"
                  class="form-control"
+                 style="width:180px;"
                  placeholder="YYYY-MM-DD"
                  value="{{ old('birth_date', $defaultBirthDate) }}">
         </div

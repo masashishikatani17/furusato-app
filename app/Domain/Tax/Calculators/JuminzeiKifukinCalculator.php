@@ -36,6 +36,14 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             'chosei_mae_shotokuwari_pref_curr',
             'chosei_mae_shotokuwari_muni_prev',
             'chosei_mae_shotokuwari_muni_curr',
+            'chosei_kojo_pref_prev',
+            'chosei_kojo_pref_curr',
+            'chosei_kojo_muni_prev',
+            'chosei_kojo_muni_curr',
+            'choseigo_shotokuwari_pref_prev',
+            'choseigo_shotokuwari_pref_curr',
+            'choseigo_shotokuwari_muni_prev',
+            'choseigo_shotokuwari_muni_curr',
         ];
     }
 
@@ -69,6 +77,14 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             'chosei_mae_shotokuwari_pref_curr' => 0,
             'chosei_mae_shotokuwari_muni_prev' => 0,
             'chosei_mae_shotokuwari_muni_curr' => 0,
+            'chosei_kojo_pref_prev' => 0,
+            'chosei_kojo_pref_curr' => 0,
+            'chosei_kojo_muni_prev' => 0,
+            'chosei_kojo_muni_curr' => 0,
+            'choseigo_shotokuwari_pref_prev' => 0,
+            'choseigo_shotokuwari_pref_curr' => 0,
+            'choseigo_shotokuwari_muni_prev' => 0,
+            'choseigo_shotokuwari_muni_curr' => 0,
         ];
 
         foreach (self::PERIODS as $period) {
@@ -114,6 +130,48 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
                 $shitei,
                 'city'
             );
+
+            $guardedTotal = $shotokuGokei + $sanrin + $taishoku;
+            $baseTotal = 0;
+
+            if ($guardedTotal <= 25_000_000 && $kazeisoushotoku > 0) {
+                $humanDiffSum = $this->n($payload[sprintf('human_diff_sum_%s', $period)] ?? null);
+                $humanDiffKiso = $this->n($payload[sprintf('human_diff_kiso_%s', $period)] ?? null);
+
+                $baseValue = $humanDiffSum - $humanDiffKiso + 50_000;
+
+                if ($kazeisoushotoku <= 2_000_000) {
+                    $baseValue = max(min($baseValue, $kazeisoushotoku), 0);
+                    $baseTotal = $this->mulRate($baseValue, 0.05);
+                } else {
+                    $baseValue = max($baseValue - ($kazeisoushotoku - 2_000_000), 0);
+                    $baseTotal = max($this->mulRate($baseValue, 0.05), 2_500);
+                }
+            }
+
+            $prefKey = sprintf('chosei_kojo_pref_%s', $period);
+            $muniKey = sprintf('chosei_kojo_muni_%s', $period);
+
+            if ($baseTotal === 0) {
+                $prefKojo = 0;
+                $muniKojo = 0;
+            } else {
+                $prefRatio = $shitei ? 0.2 : 0.4;
+                $prefKojo = $this->mulRate($baseTotal, $prefRatio);
+                $muniKojo = max($baseTotal - $prefKojo, 0);
+            }
+
+            $out[$prefKey] = $prefKojo;
+            $out[$muniKey] = $muniKojo;
+
+            $prefAfterKey = sprintf('choseigo_shotokuwari_pref_%s', $period);
+            $muniAfterKey = sprintf('choseigo_shotokuwari_muni_%s', $period);
+
+            $prefBefore = $out[sprintf('chosei_mae_shotokuwari_pref_%s', $period)] ?? 0;
+            $muniBefore = $out[sprintf('chosei_mae_shotokuwari_muni_%s', $period)] ?? 0;
+
+            $out[$prefAfterKey] = $prefBefore - $prefKojo;
+            $out[$muniAfterKey] = $muniBefore - $muniKojo;
         }
 
         return array_replace($payload, $out);

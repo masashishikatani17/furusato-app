@@ -18,6 +18,7 @@ class PayloadNormalizer
         $payload = $this->normalizeBunriChokiShotokuKeys($payload);
         $payload = $this->normalizeBunriIncomeShotokuKeys($payload);
         $payload = $this->normalizeKifukinJuminzeiKeys($payload);
+        $payload = $this->normalizeShotokuwariKeys($payload);
 
         foreach ($payload as $key => $value) {
             if ($this->isLabelField($key)) {
@@ -25,6 +26,31 @@ class PayloadNormalizer
             }
 
             $payload[$key] = $this->normalizeValue($value);
+        }
+
+        return $payload;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeShotokuwariKeys(array $payload): array
+    {
+        $keys = array_keys($payload);
+
+        foreach ($keys as $key) {
+            if (! str_contains($key, 'shotowari')) {
+                continue;
+            }
+
+            $canonical = str_replace('shotowari', 'shotokuwari', $key);
+
+            if (! array_key_exists($canonical, $payload)) {
+                $payload[$canonical] = $payload[$key];
+            }
+
+            unset($payload[$key]);
         }
 
         return $payload;

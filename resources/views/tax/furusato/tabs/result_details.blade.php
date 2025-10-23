@@ -210,7 +210,16 @@
   @php
     $stdPrev = $tokureiStandardRate['prev'] ?? (isset($prevDetails['AA50']) ? $prevDetails['AA50'] * 100 : null);
     $stdCurr = $tokureiStandardRate['curr'] ?? (isset($currDetails['AA50']) ? $currDetails['AA50'] * 100 : null);
-    $fmt = static fn($v) => $v === null ? '' : $formatPercentDisplay((float) $v);
+    $fmt = static function ($v): string {
+        if ($v === null) {
+            return '';
+        }
+
+        $formatted = number_format((float) $v, 3, '.', '');
+        $trimmed = rtrim(rtrim($formatted, '0'), '.');
+
+        return $trimmed . '%';
+    };
     $detailsByPeriod = ['prev' => $prevDetails, 'curr' => $currDetails];
     $tokureiRateRows = [];
     $makeEntry = static function (bool $enabled, ?float $value) use ($formatPercentPair) {

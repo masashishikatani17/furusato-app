@@ -309,9 +309,6 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $shinkokuPrefKey = sprintf('shinkokutokurei_kojo_pref_%s', $period);
             $shinkokuMuniKey = sprintf('shinkokutokurei_kojo_muni_%s', $period);
 
-            $shinkokuPref = 0;
-            $shinkokuMuni = 0;
-
             if ($oneStop) {
                 if ($shitei) {
                     $prefShare = 0.2;
@@ -329,6 +326,9 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
 
                 $shinkokuPref = $this->ceilPositive($tmpPref * $prefShare);
                 $shinkokuMuni = $this->ceilPositive($tmpMuni * $muniShare);
+            } else {
+                $shinkokuPref = 0;
+                $shinkokuMuni = 0;
             }
 
             $out[$shinkokuPrefKey] = $shinkokuPref;

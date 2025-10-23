@@ -63,7 +63,15 @@ class FurusatoResultCalculator implements ProvidesKeys
      */
     public function compute(array $payload, array $ctx): array
     {
-        $details = $this->buildDetails($payload, $ctx);
+        $humanAdjustedPairs = $this->buildHumanAdjustedPairs($payload, $ctx);
+
+        foreach (self::PERIODS as $period) {
+            $pair = $humanAdjustedPairs[$period] ?? ['display' => null, 'raw' => null];
+            $payload[sprintf('human_adjusted_taxable_%s', $period)] = $pair['display'];
+            $payload[sprintf('human_adjusted_taxable_raw_%s', $period)] = $pair['raw'];
+        }
+
+        $details = $this->buildDetailsFromPairs($payload, $ctx, $humanAdjustedPairs);
 
         foreach (self::PERIODS as $period) {
             $payload[sprintf('furusato_result_details_%s', $period)] = $details[$period] ?? [];
@@ -79,6 +87,19 @@ class FurusatoResultCalculator implements ProvidesKeys
      */
     public function buildDetails(array $payload, array $ctx): array
     {
+        $humanAdjustedPairs = $this->buildHumanAdjustedPairs($payload, $ctx);
+
+        return $this->buildDetailsFromPairs($payload, $ctx, $humanAdjustedPairs);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, mixed>  $ctx
+     * @param  array<string, array{display:int|null, raw:int|null}>  $humanAdjustedPairs
+     * @return array{prev: array<string, float|null>, curr: array<string, float|null>}
+     */
+    private function buildDetailsFromPairs(array $payload, array $ctx, array $humanAdjustedPairs): array
+    {
         $year = $this->resolveMasterYear($ctx);
         $companyId = isset($ctx['company_id']) && $ctx['company_id'] !== ''
             ? (int) $ctx['company_id']
@@ -88,7 +109,8 @@ class FurusatoResultCalculator implements ProvidesKeys
 
         $details = [];
         foreach (self::PERIODS as $period) {
-            $details[$period] = $this->buildPeriodDetails($payload, $rows, $period);
+            $pair = $humanAdjustedPairs[$period] ?? ['display' => null, 'raw' => null];
+            $details[$period] = $this->buildPeriodDetails($payload, $rows, $period, $pair);
         }
 
         return [
@@ -101,9 +123,9 @@ class FurusatoResultCalculator implements ProvidesKeys
      * @param  array<int, array{lower:int, upper:int|null, rate:float}>  $rows
      * @return array<string, float|null>
      */
-    private function buildPeriodDetails(array $payload, array $rows, string $period): array
+    private function buildPeriodDetails(array $payload, array $rows, string $period, array $pair): array
     {
-        $adjustedTaxable = $this->adjustedTaxable($payload, $period);
+        $adjustedTaxable = $pair['display'] ?? null;
 
         $aa50 = $adjustedTaxable !== null
             ? $this->lowerBoundRate($adjustedTaxable, $rows)
@@ -142,6 +164,38 @@ class FurusatoResultCalculator implements ProvidesKeys
     }
 
     /**
+     * @return array<string, array{display:int|null, raw:int|null}>
+     */
+    private function buildHumanAdjustedPairs(array $payload, array $ctx): array
+    {
+        $pairs = [];
+        foreach (self::PERIODS as $period) {
+            $pairs[$period] = $this->humanAdjustedPair($payload, $ctx, $period);
+        }
+
+        return $pairs;
+    }
+
+    /**
+     * @return array{display:int|null, raw:int|null}
+     */
+    private function humanAdjustedPair(array $payload, array $ctx, string $period): array
+    {
+        $taxable = $this->taxableBase($payload, $ctx, $period);
+        if ($taxable === null) {
+            return ['display' => null, 'raw' => null];
+        }
+
+        $humanDiffSum = $this->humanDiffSum($payload, $period);
+        $raw = $taxable - $humanDiffSum;
+
+        return [
+            'display' => $this->floorToThousands($this->nonNegative($raw)),
+            'raw' => $raw,
+        ];
+    }
+
+    /**
      * @return array<string, float|null>
      */
     private function emptyDetails(): array
@@ -155,6 +209,53 @@ class FurusatoResultCalculator implements ProvidesKeys
             'AA55' => null,
             'AA56' => null,
         ];
+    }
+
+    private function humanDiffSum(array $payload, string $period): int
+    {
+        $sum = 0;
+
+        foreach (self::HUMAN_DIFF_BASES as $base) {
+            $shotokuKey = sprintf('%s_shotoku_%s', $base, $period);
+            $juminKey = sprintf('%s_jumin_%s', $base, $period);
+
+            $shotoku = $this->intOrNull($payload[$shotokuKey] ?? null) ?? 0;
+            $jumin = $this->intOrNull($payload[$juminKey] ?? null) ?? 0;
+
+            $sum += ($shotoku - $jumin);
+        }
+
+        return $sum;
+    }
+
+    private function taxableBase(array $payload, array $ctx, string $period): ?int
+    {
+        $settings = $this->syoriSettings($ctx);
+        $flagKey = sprintf('bunri_flag_%s', $period);
+        $flag = $settings[$flagKey] ?? ($settings['bunri_flag'] ?? 0);
+        $isSeparated = (int) $flag === 1;
+
+        $key = $isSeparated
+            ? sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)
+            : sprintf('tax_kazeishotoku_shotoku_%s', $period);
+
+        $raw = $this->intOrNull($payload[$key] ?? null);
+        if ($raw === null) {
+            return null;
+        }
+
+        return $this->floorToThousands($this->nonNegative($raw));
+    }
+
+    /**
+     * @param  array<string, mixed>  $ctx
+     * @return array<string, mixed>
+     */
+    private function syoriSettings(array $ctx): array
+    {
+        $settings = $ctx['syori_settings'] ?? [];
+
+        return is_array($settings) ? $settings : [];
     }
 
     /**
@@ -278,41 +379,6 @@ class FurusatoResultCalculator implements ProvidesKeys
         $shotoku = $this->intOrNull($payload[$shotokuKey] ?? null);
 
         return $shotoku !== null ? max(0, $shotoku) : 0;
-    }
-
-    private function adjustedTaxable(array $payload, string $period): ?int
-    {
-        $taxable = $this->taxableShotoku($payload, $period);
-        if ($taxable === null) {
-            return null;
-        }
-
-        $sum = 0;
-        foreach (self::HUMAN_DIFF_BASES as $base) {
-            $shotokuKey = sprintf('%s_shotoku_%s', $base, $period);
-            $juminKey = sprintf('%s_jumin_%s', $base, $period);
-
-            $shotoku = $this->intOrNull($payload[$shotokuKey] ?? null) ?? 0;
-            $jumin = $this->intOrNull($payload[$juminKey] ?? null) ?? 0;
-
-            $sum += ($shotoku - $jumin);
-        }
-
-        $adjusted = $taxable - $sum;
-
-        return $this->floorToThousands($this->nonNegative($adjusted));
-    }
-
-    private function taxableShotoku(array $payload, string $period): ?int
-    {
-        $key = sprintf('tax_kazeishotoku_shotoku_%s', $period);
-        $raw = $this->intOrNull($payload[$key] ?? null);
-
-        if ($raw === null) {
-            return null;
-        }
-
-        return $this->floorToThousands($this->nonNegative($raw));
     }
 
     private function lowerBoundRate(int $amount, array $rows): ?float

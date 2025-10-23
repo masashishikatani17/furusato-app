@@ -64,7 +64,7 @@ class TokureiRateCalculator implements ProvidesKeys
         }
 
         foreach (self::PERIODS as $period) {
-            $standardAmount = $this->floorToThousands(max(0, $this->n($payload[sprintf('tax_kazeishotoku_shotoku_%s', $period)] ?? null)));
+            $standardAmount = $this->taxableBase($payload, $ctx, $period);
             $standardRate = $this->rateForAmount($rows, $standardAmount);
             $updates[sprintf('tokurei_rate_standard_%s', $period)] = $standardRate;
 
@@ -135,6 +135,33 @@ class TokureiRateCalculator implements ProvidesKeys
         });
 
         return $rows;
+    }
+
+    private function taxableBase(array $payload, array $ctx, string $period): int
+    {
+        $settings = $this->syoriSettings($ctx);
+        $flagKey = sprintf('bunri_flag_%s', $period);
+        $flag = $settings[$flagKey] ?? ($settings['bunri_flag'] ?? 0);
+        $isSeparated = (int) $flag === 1;
+
+        $key = $isSeparated
+            ? sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)
+            : sprintf('tax_kazeishotoku_shotoku_%s', $period);
+
+        $raw = $this->n($payload[$key] ?? null);
+
+        return $this->floorToThousands(max(0, $raw));
+    }
+
+    /**
+     * @param  array<string, mixed>  $ctx
+     * @return array<string, mixed>
+     */
+    private function syoriSettings(array $ctx): array
+    {
+        $settings = $ctx['syori_settings'] ?? [];
+
+        return is_array($settings) ? $settings : [];
     }
 
     private function computeSanrinRate(array $rows, array $payload, string $period): ?float

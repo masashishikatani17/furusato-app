@@ -233,18 +233,27 @@ final class FurusatoController extends Controller
 
         $jintekiDiff = $this->computeJintekiDiff($savedInputs);
 
-        $taxablePrev = $this->valueOrZero($this->toNullableInt($savedInputs['tax_kazeishotoku_shotoku_prev'] ?? null));
-        $taxableCurr = $this->valueOrZero($this->toNullableInt($savedInputs['tax_kazeishotoku_shotoku_curr'] ?? null));
+        $periods = ['prev', 'curr'];
+        $humanAdjustedRaw = [];
+        $humanAdjustedDisplay = [];
 
-        $jintekiSumPrev = $this->valueOrZero($this->toNullableInt($jintekiDiff['sum']['prev'] ?? null));
-        $jintekiSumCurr = $this->valueOrZero($this->toNullableInt($jintekiDiff['sum']['curr'] ?? null));
+        foreach ($periods as $period) {
+            $taxableBase = $this->resolveTaxableBase($savedInputs, $syoriSettings, $period);
+            $humanDiffSum = (int) ($jintekiDiff['sum'][$period] ?? 0);
+            $raw = $taxableBase - $humanDiffSum;
 
-        $adjustedTaxablePrev = max(0, $taxablePrev - $jintekiSumPrev);
-        $adjustedTaxableCurr = max(0, $taxableCurr - $jintekiSumCurr);
+            $humanAdjustedRaw[$period] = $raw;
+            $humanAdjustedDisplay[$period] = $this->floorToThousands(max(0, $raw));
+        }
 
         $jintekiDiff['adjusted_taxable'] = [
-            'prev' => $adjustedTaxablePrev,
-            'curr' => $adjustedTaxableCurr,
+            'prev' => $humanAdjustedDisplay['prev'],
+            'curr' => $humanAdjustedDisplay['curr'],
+        ];
+
+        $jintekiDiff['adjusted_taxable_raw'] = [
+            'prev' => $humanAdjustedRaw['prev'],
+            'curr' => $humanAdjustedRaw['curr'],
         ];
 
         $calculatorYear = (int) ($kihuYear ?? self::MASTER_KIHU_YEAR);
@@ -252,6 +261,7 @@ final class FurusatoController extends Controller
             'master_kihu_year' => self::MASTER_KIHU_YEAR,
             'kihu_year' => $calculatorYear,
             'company_id' => $companyId,
+            'syori_settings' => $syoriSettings,
         ];
 
         $sanrinBasePrev = $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_sanrin_shotoku_prev'] ?? null));
@@ -273,7 +283,12 @@ final class FurusatoController extends Controller
             || $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_haito_shotoku_curr'] ?? null)) > 0
             || $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_joto_shotoku_curr'] ?? null)) > 0;
 
-        $previewPayload = $savedInputs;
+        $previewPayload = array_replace($savedInputs, [
+            'human_adjusted_taxable_prev' => $humanAdjustedDisplay['prev'],
+            'human_adjusted_taxable_curr' => $humanAdjustedDisplay['curr'],
+            'human_adjusted_taxable_raw_prev' => $humanAdjustedRaw['prev'],
+            'human_adjusted_taxable_raw_curr' => $humanAdjustedRaw['curr'],
+        ]);
 
         /** @var TokureiRateCalculator $tokureiCalculator */
         $tokureiCalculator = app(TokureiRateCalculator::class);
@@ -2293,6 +2308,34 @@ final class FurusatoController extends Controller
     private function valueOrZero(?int $value): int
     {
         return $value ?? 0;
+    }
+
+    private function resolveTaxableBase(array $payload, array $syoriSettings, string $period): int
+    {
+        $flagKey = sprintf('bunri_flag_%s', $period);
+        $flag = $syoriSettings[$flagKey] ?? ($syoriSettings['bunri_flag'] ?? 0);
+        $isSeparated = (int) $flag === 1;
+
+        $key = $isSeparated
+            ? sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)
+            : sprintf('tax_kazeishotoku_shotoku_%s', $period);
+
+        $raw = $this->toNullableInt($payload[$key] ?? null);
+
+        if ($raw === null) {
+            return 0;
+        }
+
+        return $this->floorToThousands(max(0, $raw));
+    }
+
+    private function floorToThousands(int $value): int
+    {
+        if ($value <= 0) {
+            return 0;
+        }
+
+        return (int) (floor($value / 1000) * 1000);
     }
 
     private function resolveAuthorizedDataOrFail(Request $request, string $ability = 'view'): Data

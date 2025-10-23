@@ -234,26 +234,15 @@ final class FurusatoController extends Controller
         $jintekiDiff = $this->computeJintekiDiff($savedInputs);
 
         $periods = ['prev', 'curr'];
-        $humanAdjustedRaw = [];
-        $humanAdjustedDisplay = [];
-
+        $humanAdjusted = [];
         foreach ($periods as $period) {
-            $taxableBase = $this->resolveTaxableBase($savedInputs, $syoriSettings, $period);
+            $taxableBase  = $this->resolveTaxableBase($savedInputs, $syoriSettings, $period);
             $humanDiffSum = (int) ($jintekiDiff['sum'][$period] ?? 0);
-            $raw = $taxableBase - $humanDiffSum;
-
-            $humanAdjustedRaw[$period] = $raw;
-            $humanAdjustedDisplay[$period] = $this->floorToThousands(max(0, $raw));
+            $humanAdjusted[$period] = $taxableBase - $humanDiffSum;
         }
-
         $jintekiDiff['adjusted_taxable'] = [
-            'prev' => $humanAdjustedDisplay['prev'],
-            'curr' => $humanAdjustedDisplay['curr'],
-        ];
-
-        $jintekiDiff['adjusted_taxable_raw'] = [
-            'prev' => $humanAdjustedRaw['prev'],
-            'curr' => $humanAdjustedRaw['curr'],
+            'prev' => $humanAdjusted['prev'],
+            'curr' => $humanAdjusted['curr'],
         ];
 
         $calculatorYear = (int) ($kihuYear ?? self::MASTER_KIHU_YEAR);
@@ -284,10 +273,8 @@ final class FurusatoController extends Controller
             || $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_joto_shotoku_curr'] ?? null)) > 0;
 
         $previewPayload = array_replace($savedInputs, [
-            'human_adjusted_taxable_prev' => $humanAdjustedDisplay['prev'],
-            'human_adjusted_taxable_curr' => $humanAdjustedDisplay['curr'],
-            'human_adjusted_taxable_raw_prev' => $humanAdjustedRaw['prev'],
-            'human_adjusted_taxable_raw_curr' => $humanAdjustedRaw['curr'],
+            'human_adjusted_taxable_prev' => $humanAdjusted['prev'],
+            'human_adjusted_taxable_curr' => $humanAdjusted['curr'],
         ]);
 
         /** @var TokureiRateCalculator $tokureiCalculator */

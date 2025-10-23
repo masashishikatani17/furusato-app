@@ -66,9 +66,8 @@ class FurusatoResultCalculator implements ProvidesKeys
         $humanAdjustedPairs = $this->buildHumanAdjustedPairs($payload, $ctx);
 
         foreach (self::PERIODS as $period) {
-            $pair = $humanAdjustedPairs[$period] ?? ['display' => null, 'raw' => null];
-            $payload[sprintf('human_adjusted_taxable_%s', $period)] = $pair['display'];
-            $payload[sprintf('human_adjusted_taxable_raw_%s', $period)] = $pair['raw'];
+            $pair = $humanAdjustedPairs[$period] ?? ['value' => null];
+            $payload[sprintf('human_adjusted_taxable_%s', $period)] = $pair['value'];
         }
 
         $details = $this->buildDetailsFromPairs($payload, $ctx, $humanAdjustedPairs);
@@ -88,7 +87,6 @@ class FurusatoResultCalculator implements ProvidesKeys
     public function buildDetails(array $payload, array $ctx): array
     {
         $humanAdjustedPairs = $this->buildHumanAdjustedPairs($payload, $ctx);
-
         return $this->buildDetailsFromPairs($payload, $ctx, $humanAdjustedPairs);
     }
 
@@ -109,7 +107,7 @@ class FurusatoResultCalculator implements ProvidesKeys
 
         $details = [];
         foreach (self::PERIODS as $period) {
-            $pair = $humanAdjustedPairs[$period] ?? ['display' => null, 'raw' => null];
+            $pair = $humanAdjustedPairs[$period] ?? ['value' => null];
             $details[$period] = $this->buildPeriodDetails($payload, $rows, $period, $pair);
         }
 
@@ -125,10 +123,10 @@ class FurusatoResultCalculator implements ProvidesKeys
      */
     private function buildPeriodDetails(array $payload, array $rows, string $period, array $pair): array
     {
-        $adjustedTaxable = $pair['display'] ?? null;
-
+        $adjustedTaxable = $pair['value'] ?? null;
         $aa50 = $adjustedTaxable !== null
-            ? $this->lowerBoundRate($adjustedTaxable, $rows)
+            // AA50 の“表当て”直前でだけ千円未満切り捨て
+            ? $this->lowerBoundRate($this->floorToThousands($adjustedTaxable), $rows)
             : null;
 
         $aa51 = self::FIXED_NINETY_RATE;
@@ -183,16 +181,12 @@ class FurusatoResultCalculator implements ProvidesKeys
     {
         $taxable = $this->taxableBase($payload, $ctx, $period);
         if ($taxable === null) {
-            return ['display' => null, 'raw' => null];
+            return ['value' => null];
         }
 
         $humanDiffSum = $this->humanDiffSum($payload, $period);
         $raw = $taxable - $humanDiffSum;
-
-        return [
-            'display' => $this->floorToThousands($raw),
-            'raw' => $raw,
-        ];
+        return ['value' => $raw];
     }
 
     /**

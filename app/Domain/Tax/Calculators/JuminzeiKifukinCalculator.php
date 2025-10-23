@@ -159,13 +159,27 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             foreach ($categories as $category) {
                 $pref = $this->n($payload["juminzei_zeigakukojo_pref_{$category}_{$period}"] ?? null);
                 $muni = $this->n($payload["juminzei_zeigakukojo_muni_{$category}_{$period}"] ?? null);
-                $sumKifu += $pref + $muni;
+                $both = $pref + $muni;
+
+                if ($both === 0) {
+                    $legacy = $this->n($payload["juminzei_zeigakukojo_{$category}_{$period}"] ?? null);
+                    $sumKifu += $legacy;
+                } else {
+                    $sumKifu += $both;
+                }
             }
             $out["kifu_gaku_{$period}"] = $sumKifu;
 
             $prefF = $this->n($payload["juminzei_zeigakukojo_pref_furusato_{$period}"] ?? null);
             $muniF = $this->n($payload["juminzei_zeigakukojo_muni_furusato_{$period}"] ?? null);
-            $out["furusato_kifu_gaku_{$period}"] = $prefF + $muniF;
+            $splitFurusato = $prefF + $muniF;
+
+            if ($splitFurusato === 0) {
+                $legacyF = $this->n($payload["juminzei_zeigakukojo_furusato_{$period}"] ?? null);
+                $out["furusato_kifu_gaku_{$period}"] = $legacyF;
+            } else {
+                $out["furusato_kifu_gaku_{$period}"] = $splitFurusato;
+            }
 
             $prefApplied = $this->resolveAppliedRate($settings, $payload, 'pref', $period);
             $muniApplied = $this->resolveAppliedRate($settings, $payload, 'muni', $period);

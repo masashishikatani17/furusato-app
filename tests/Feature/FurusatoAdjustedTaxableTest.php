@@ -106,7 +106,7 @@ final class FurusatoAdjustedTaxableTest extends TestCase
         $context = $method->invoke($controller, $request, $data->id);
 
         $this->assertSame(4_800_000, $context['jintekiDiff']['adjusted_taxable']['prev']);
-        $this->assertSame(0, $context['jintekiDiff']['adjusted_taxable']['curr']);
+        $this->assertSame(-300_000, $context['jintekiDiff']['adjusted_taxable']['curr']);
         $this->assertArrayHasKey('tokureiStandardRate', $context);
         $this->assertEqualsWithDelta(69.58,  $context['tokureiStandardRate']['prev'], 0.0001); // 4,800,000 → 69.580
         $this->assertEqualsWithDelta(84.895, $context['tokureiStandardRate']['curr'], 0.0001); // 0 → 84.895

@@ -4,6 +4,7 @@
   $prevDetails = $details['prev'] ?? [];
   $currDetails = $details['curr'] ?? [];
   $jintekiDiff = $jintekiDiff ?? [];
+  $jintekiAdjustedRaw = $jintekiDiff['adjusted_taxable_raw'] ?? [];
   $inputs = $inputs ?? [];
   $syoriSettings = $syoriSettings ?? [];
   $oneStopPrevFlag = (int) ($syoriSettings['one_stop_flag_prev'] ?? $syoriSettings['one_stop_flag'] ?? 0);
@@ -249,10 +250,10 @@
             $taxableDiff = $shotoku - $kojo;
         }
 
-        $humanAdjusted = $firstNumber([
-            $resultsUpper[sprintf('human_adjusted_taxable_%s', $period)] ?? null,
-            $jintekiDiff['adjusted_taxable'][$period] ?? null,
-            $inputs[sprintf('human_adjusted_taxable_%s', $period)] ?? null,
+        $humanAdjustedRaw = $firstNumber([
+            $resultsUpper[sprintf('human_adjusted_taxable_raw_%s', $period)] ?? null,
+            $jintekiAdjustedRaw[$period] ?? null,
+            $inputs[sprintf('human_adjusted_taxable_raw_%s', $period)] ?? null,
         ]);
 
         $sanrinBase = $firstNumber([
@@ -301,8 +302,8 @@
 
         $taxablePositive = $taxableDiff !== null && $taxableDiff > 0;
         $taxableZeroOrEmpty = $taxableDiff === null || abs($taxableDiff) < 0.5;
-        $humanNonNegative = $humanAdjusted !== null && $humanAdjusted >= 0;
-        $humanNegative = $humanAdjusted !== null && $humanAdjusted < 0;
+        $humanNonNegative = $humanAdjustedRaw !== null && $humanAdjustedRaw >= 0;
+        $humanNegative = $humanAdjustedRaw !== null && $humanAdjustedRaw < 0;
 
         $standardEnabled = $taxablePositive && $humanNonNegative && $standardValue !== null;
 

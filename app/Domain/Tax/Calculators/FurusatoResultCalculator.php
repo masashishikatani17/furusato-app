@@ -190,7 +190,7 @@ class FurusatoResultCalculator implements ProvidesKeys
         $raw = $taxable - $humanDiffSum;
 
         return [
-            'display' => $this->floorToThousands($this->nonNegative($raw)),
+            'display' => $this->floorToThousands($raw),
             'raw' => $raw,
         ];
     }
@@ -244,7 +244,8 @@ class FurusatoResultCalculator implements ProvidesKeys
             return null;
         }
 
-        return $this->floorToThousands($this->nonNegative($raw));
+        $base = $raw < 0 ? 0 : $raw;
+        return $this->floorToThousands($base);
     }
 
     /**
@@ -485,17 +486,15 @@ class FurusatoResultCalculator implements ProvidesKeys
         return (int) floor((float) $value);
     }
 
-    private function nonNegative(int|float $value): float
-    {
-        return max(0.0, (float) $value);
-    }
-
     private function floorToThousands(int|float $value): int
     {
-        if ($value <= 0) {
-            return 0;
+        $v = (float) $value;
+        if ($v >= 0) {
+            return (int) (floor($v / 1000) * 1000);
         }
-
-        return (int) (floor(((float) $value) / 1000) * 1000);
+        // 負は “より小さいほうへ” の切り捨て（-1,234 → -2,000）
+        $abs = abs($v);
+        $thousand = (int) (ceil($abs / 1000) * 1000);
+        return -$thousand;
     }
 }

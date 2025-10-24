@@ -83,7 +83,17 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $updates[sprintf('shotoku_sanrin_%s', $period)] = $shotokuSanrin;
             $updates[sprintf('shotoku_taishoku_%s', $period)] = $shotokuTaishoku;
 
-            $sumJotoIchiji = $this->nonNegative($shotokuShort + $shotokuLong + $shotokuIchiji);
+            $sumSource = array_replace($payload, $updates);
+
+            $sumShotokuShort = $this->nonNegative($this->n($sumSource[sprintf('shotoku_joto_tanki_%s', $period)] ?? null));
+            $sumShotokuLong = $this->nonNegative($this->n(
+                $sumSource[sprintf('shotoku_joto_choki_sogo_%s', $period)]
+                    ?? $sumSource[sprintf('shotoku_joto_choki_%s', $period)]
+                    ?? null
+            ));
+            $sumShotokuIchiji = $this->nonNegative($this->n($sumSource[sprintf('shotoku_ichiji_%s', $period)] ?? null));
+
+            $sumJotoIchiji = $this->nonNegative($sumShotokuShort + $sumShotokuLong + $sumShotokuIchiji);
             $updates[sprintf('shotoku_joto_ichiji_shotoku_%s', $period)] = $sumJotoIchiji;
             $updates[sprintf('shotoku_joto_ichiji_jumin_%s', $period)] = $sumJotoIchiji;
 

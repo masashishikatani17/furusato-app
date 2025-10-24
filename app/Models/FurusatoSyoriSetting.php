@@ -13,16 +13,14 @@ class FurusatoSyoriSetting extends Model
 
     protected $table = 'furusato_syori_settings';
 
-    protected $guarded = [
-        'id',
-        'data_id',
-        'company_id',
-        'group_id',
-        'created_by',
-        'updated_by',
-    ];
+    protected $guarded = [];
 
     protected $casts = [
+        'data_id' => 'integer',
+        'company_id' => 'integer',
+        'group_id' => 'integer',
+        'created_by' => 'integer',
+        'updated_by' => 'integer',
         'payload' => 'array',
     ];
 }

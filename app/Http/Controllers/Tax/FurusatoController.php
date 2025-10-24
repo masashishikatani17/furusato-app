@@ -1514,21 +1514,22 @@ final class FurusatoController extends Controller
         $userId = (int) auth()->id();
 
         FurusatoSyoriSetting::unguarded(function () use ($data, $payload, $userId): void {
-            $record = FurusatoSyoriSetting::firstOrNew(['data_id' => $data->id]);
+            $record = FurusatoSyoriSetting::firstOrNew([
+                'data_id' => $data->id,
+            ]);
+
+            $record->data_id = $data->id;
+            $record->company_id = $data->company_id;
+            $record->group_id = $data->group_id;
 
             if (! $record->exists) {
-                $record->data_id = $data->id;
-                $record->company_id = $data->company_id;
-                $record->group_id = $data->group_id;
                 $record->created_by = $userId ?: null;
             }
 
-            $record->company_id = $data->company_id;
-            $record->group_id = $data->group_id;
             $record->payload = $payload;
             $record->updated_by = $userId ?: null;
 
-            $record->save();
+            $record->saveOrFail();
         });
 
         $this->performFullRecalculation($request, $data, [], $recalculateUseCase);

@@ -378,8 +378,46 @@ select.bg-light[readonly] {
 /* --------------------------------------
   * テーブル
   * ------------------------------------ */         
-       
+      
+   /* 帳票専用テーブル */
+            .table-p {
+              position: absolute;
+              left: 20mm;         /* 必要に応じて調整 */
+              top: calc(var(--header-h, 8mm) + 8mm);  /* 見出し高さ + 余白（重なる場合は値を増やす/詰める） */
+              border-collapse: collapse;
+              border-spacing: 0;
+              z-index: 1;
+              width: 261mm;       /* 見出しと同じ幅に寄せる */
+              font-size: 11px;
+        	  border: 0.6mm solid #000;
+            }
         
+            table.table-p td, th {
+              border: 0.3mm solid #000;   /* 罫線太さは要件に応じ調整可 */
+              padding: 0mm 0mm;           /* Excel見た目に合わせて微調整 */
+              font-size: 13px;            /* おおむね9pt相当。必要に応じて調整 */
+              line-height: 1.2;
+              vertical-align: middle;
+            }
+            .center { text-align: center; }
+            .right  { text-align: right;  }
+        	  
+        /*セルの罫線を太くするためのユーティリティ */
+            .bl-strong { border-left: 0.6mm solid #000 !important; }
+            .br-strong { border-right: 0.6mm solid #000 !important; } 
+        	.bt-strong { border-top: 0.6mm solid #000 !important; }
+            .bb-strong { border-bottom: 0.6mm solid #000 !important; }
+        	  
+        /* ▼ 行全体（tr）の罫線を太くするために付けるバージョン：セル(td/th)へ適用して安定化 */
+            .bt-row > td, .bt-row > th { border-top: 0.6mm solid #000 !important; }
+            .bb-row > td, .bb-row > th { border-bottom: 0.6mm solid #000 !important; }
+        
+         /* ▼ 左パディング用ユーティリティ（Bootstrapのps-*が効かないため自前で上書き） */
+            .pl-1 { padding-left: 1mm !important; }
+            .pl-2 { padding-left: 2mm !important; }
+            .pl-3 { padding-left: 3mm !important; }
+            
+  /* インプット表テーブル */      
         /* 選択系の軽量テーブル（行間詰め、左寄せ） */
         .table-m-sentaku {
           background-color: #fff;

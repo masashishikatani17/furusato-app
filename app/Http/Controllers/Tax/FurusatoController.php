@@ -464,12 +464,23 @@ final class FurusatoController extends Controller
             $inputsForView[sprintf('bunri_shotoku_taishoku_shotoku_%s', $period)] = $taishoku;
             $inputsForView[sprintf('bunri_shotoku_taishoku_jumin_%s', $period)] = $taishoku;
 
-            $sumJotoIchiji = 0;
-            foreach (['shotoku_joto_tanki_', 'shotoku_joto_choki_', 'shotoku_ichiji_'] as $prefix) {
-                $sumJotoIchiji += (int) ($inputsForView[$prefix . $period] ?? 0);
+            $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
+            $sumShotokuPayload = $lookup($previewPayload, [$sumShotokuKey]);
+            if ($sumShotokuPayload !== null) {
+                $sumJotoIchiji = $this->valueOrZero($this->toNullableInt($sumShotokuPayload));
+            } else {
+                $sumJotoIchiji = 0;
+                foreach (['shotoku_joto_tanki_', 'shotoku_joto_choki_', 'shotoku_ichiji_'] as $prefix) {
+                    $sumJotoIchiji += (int) ($inputsForView[$prefix . $period] ?? 0);
+                }
             }
-            $inputsForView[sprintf('shotoku_joto_ichiji_shotoku_%s', $period)] = $sumJotoIchiji;
-            $inputsForView[sprintf('shotoku_joto_ichiji_jumin_%s', $period)] = $sumJotoIchiji;
+            $inputsForView[$sumShotokuKey] = $sumJotoIchiji;
+
+            $sumJuminKey = sprintf('shotoku_joto_ichiji_jumin_%s', $period);
+            $sumJuminPayload = $lookup($previewPayload, [$sumJuminKey]);
+            $inputsForView[$sumJuminKey] = $sumJuminPayload !== null
+                ? $this->valueOrZero($this->toNullableInt($sumJuminPayload))
+                : $sumJotoIchiji;
 
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? ($syoriSettings['bunri_flag'] ?? 0)) === 1;
             $shotokuKeijo = (int) ($inputsForView[sprintf('shotoku_keijo_%s', $period)] ?? 0);
@@ -505,8 +516,19 @@ final class FurusatoController extends Controller
             $taxBase = max(0, $generalSum - $kojoShotoku);
             $taxBaseRounded = $this->floorToThousands($taxBase);
 
-            $inputsForView[sprintf('tax_kazeishotoku_shotoku_%s', $period)] = $taxBaseRounded;
-            $inputsForView[sprintf('tax_kazeishotoku_jumin_%s', $period)] = $taxBaseRounded;
+            $taxShotokuKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
+            $taxShotokuPayload = $lookup($previewPayload, [$taxShotokuKey]);
+            $taxShotoku = $taxShotokuPayload !== null
+                ? $this->valueOrZero($this->toNullableInt($taxShotokuPayload))
+                : $taxBaseRounded;
+            $inputsForView[$taxShotokuKey] = $taxShotoku;
+
+            $taxJuminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
+            $taxJuminPayload = $lookup($previewPayload, [$taxJuminKey]);
+            $taxJumin = $taxJuminPayload !== null
+                ? $this->valueOrZero($this->toNullableInt($taxJuminPayload))
+                : $taxShotoku;
+            $inputsForView[$taxJuminKey] = $taxJumin;
         }
 
         foreach (['prev', 'curr'] as $period) {

@@ -208,6 +208,8 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             'shotoku_gokei_curr' => 880_000,
             'kojo_gokei_shotoku_prev' => 150_000,
             'kojo_gokei_shotoku_curr' => 120_000,
+            'bunri_kazeishotoku_sogo_shotoku_curr' => 732_345,
+            'kazeisoushotoku_curr' => 481_234,
         ];
 
         $details = [
@@ -278,20 +280,22 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             $this->assertSame(10_000, $inputs['tsusanmae_joto_ichiji_prev']);
             $this->assertSame(45_000, $inputs['after_1jitsusan_sanrin_prev']);
             $this->assertSame(300_000, $inputs['bunri_syunyu_sanrin_shotoku_prev']);
-            $this->assertSame(410_000, $inputs['shotoku_joto_ichiji_shotoku_prev']);
-            $this->assertSame(410_000, $inputs['shotoku_joto_ichiji_jumin_prev']);
-            $this->assertSame(460_000, $inputs['tax_kazeishotoku_shotoku_prev']);
-            $this->assertSame(460_000, $inputs['tax_kazeishotoku_jumin_prev']);
+            $this->assertSame(460_000, $inputs['shotoku_joto_ichiji_shotoku_prev']);
+            $this->assertSame(460_000, $inputs['shotoku_joto_ichiji_jumin_prev']);
+            $this->assertSame(510_000, $inputs['tax_kazeishotoku_shotoku_prev']);
+            $this->assertSame(510_000, $inputs['tax_kazeishotoku_jumin_prev']);
             $this->assertSame(0, $inputs['bunri_sogo_gokeigaku_shotoku_prev']);
             $this->assertSame(0, $inputs['bunri_sogo_gokeigaku_jumin_prev']);
 
             $this->assertSame(100_000, $inputs['tsusango_joto_tanki_curr']);
             $this->assertSame(200_000, $inputs['tsusango_joto_choki_curr']);
             $this->assertSame(50_000, $inputs['tsusango_ichiji_curr']);
+            $this->assertSame(350_000, $inputs['shotoku_joto_ichiji_shotoku_curr']);
+            $this->assertSame(350_000, $inputs['shotoku_joto_ichiji_jumin_curr']);
             $this->assertSame(480_000, $inputs['bunri_sogo_gokeigaku_shotoku_curr']);
             $this->assertSame(480_000, $inputs['bunri_sogo_gokeigaku_jumin_curr']);
-            $this->assertSame(730_000, $inputs['tax_kazeishotoku_shotoku_curr']);
-            $this->assertSame(730_000, $inputs['tax_kazeishotoku_jumin_curr']);
+            $this->assertSame(732_000, $inputs['tax_kazeishotoku_shotoku_curr']);
+            $this->assertSame(481_000, $inputs['tax_kazeishotoku_jumin_curr']);
             $this->assertSame(30_000, $inputs['bunri_shotoku_taishoku_shotoku_curr']);
             $this->assertSame(30_000, $inputs['bunri_shotoku_taishoku_jumin_curr']);
             $this->assertSame(880_000, $inputs['shotoku_gokei_curr']);

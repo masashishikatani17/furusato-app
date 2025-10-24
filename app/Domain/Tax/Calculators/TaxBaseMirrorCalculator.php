@@ -150,17 +150,22 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $taxShotoku = $this->floorToThousands(max(0, $sumS - $kojoShotoku));
             $taxJumin = $this->floorToThousands(max(0, $sumS - $kojoJumin));
 
-            $bunriSogoShotoku = $sumS;
-            $bunriSogoJumin = $sumS;
-            $bunriSashihikiShotoku = min($kojoShotoku, $bunriSogoShotoku);
-            $bunriSashihikiJumin = min($kojoJumin, $bunriSogoJumin);
-            $bunriKazeishotokuShotoku = $this->floorToThousands(max(0, $bunriSogoShotoku - $bunriSashihikiShotoku));
-            $bunriKazeishotokuJumin = $this->floorToThousands(max(0, $bunriSogoJumin - $bunriSashihikiJumin));
+            $bunriSogoShotoku = 0;
+            $bunriSogoJumin = 0;
+            $bunriSashihikiShotoku = 0;
+            $bunriSashihikiJumin = 0;
+            $bunriKazeishotokuShotoku = 0;
+            $bunriKazeishotokuJumin = 0;
 
             if ($isSeparated) {
+                $bunriSogoShotoku = $sumS;
+                $bunriSogoJumin = $sumS;
+                $bunriSashihikiShotoku = min($kojoShotoku, $bunriSogoShotoku);
+                $bunriSashihikiJumin = min($kojoJumin, $bunriSogoJumin);
+                $bunriKazeishotokuShotoku = $this->floorToThousands(max(0, $bunriSogoShotoku - $bunriSashihikiShotoku));
+                $bunriKazeishotokuJumin = $this->floorToThousands(max(0, $bunriSogoJumin - $bunriSashihikiJumin));
+
                 $taxShotoku = $bunriKazeishotokuShotoku;
-                $taxJumin = $bunriKazeishotokuJumin;
-            } else {
                 $taxJumin = $bunriKazeishotokuJumin;
             }
 

@@ -274,7 +274,7 @@ final class FurusatoAdjustedTaxableTest extends TestCase
 
             $this->assertSame(120_000, $inputs['tsusango_joto_tanki_prev']);
             $this->assertSame(340_000, $inputs['tsusango_joto_choki_prev']);
-            $this->assertSame(-50_000, $inputs['tsusango_ichiji_prev']);
+            $this->assertSame(0, $inputs['tsusango_ichiji_prev']);
             $this->assertSame(50_000, $inputs['tsusanmae_joto_tanki_prev']);
             $this->assertSame(25_000, $inputs['tsusanmae_joto_choki_prev']);
             $this->assertSame(10_000, $inputs['tsusanmae_joto_ichiji_prev']);

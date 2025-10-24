@@ -207,10 +207,12 @@
         const sashihiki = syunyu - keihi;
         setValue(`sashihiki_${base}`, sashihiki);
 
-        let tsusango = getValue(`tsusango_${base}`);
+        let tsusango;
         if (row.key === 'ichiji') {
           tsusango = Math.max(0, sashihiki);
           setValue(`tsusango_${base}`, tsusango);
+        } else {
+          tsusango = getValue(`tsusango_${base}`);
         }
         if (row.hasHalf) {
           const half = Math.floor(tsusango / 2);

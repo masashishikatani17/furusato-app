@@ -4,7 +4,6 @@
   $prevDetails = $details['prev'] ?? [];
   $currDetails = $details['curr'] ?? [];
   $jintekiDiff = $jintekiDiff ?? [];
-  $jintekiAdjustedRaw = $jintekiDiff['adjusted_taxable_raw'] ?? [];
   $inputs = $inputs ?? [];
   $syoriSettings = $syoriSettings ?? [];
   $oneStopPrevFlag = (int) ($syoriSettings['one_stop_flag_prev'] ?? $syoriSettings['one_stop_flag'] ?? 0);
@@ -30,6 +29,17 @@
   // 表示（素テキスト）用：rawをカンマ区切り、nullなら空
   $dispInt = static function (?int $v): string {
       return $v === null ? '' : number_format((int) $v);
+  };
+  $floorDisplay = static function (?int $value): ?int {
+      if ($value === null) {
+          return null;
+      }
+
+      if ($value <= 0) {
+          return 0;
+      }
+
+      return (int) (floor($value / 1000) * 1000);
   };
 
   $formatPercentRaw = static fn (float $num): string => number_format($num, 3, '.', '');
@@ -146,7 +156,7 @@
 @php
   /**
    * ▼ 表示ガードと値計算（prev/curr 共通）
-   *  - 調整後課税: human_adjusted_taxable_{p} は「負OK」(raw/displayの区別なし)
+   *  - 調整後課税: human_adjusted_taxable_{p} は raw（負も許容）を保持
    *  - 課税総所得（所得税）の参照先は分離フラグで切替
    *  - 採用(min)、90%、分離最小の相互作用はあなたの指示どおり
    */
@@ -313,10 +323,12 @@
 @php
   // テスト互換用：上表の「調整後課税」を素テキストで 1 行出す（視覚的に非表示）
   // 優先：jintekiDiff → payload（hidden入力）→ 空
-  $adjPrevRaw = $jintekiDiff['adjusted_taxable']['prev'] ?? ($inputs['human_adjusted_taxable_prev'] ?? null);
-  $adjCurrRaw = $jintekiDiff['adjusted_taxable']['curr'] ?? ($inputs['human_adjusted_taxable_curr'] ?? null);
-  $adjPrevText = $adjPrevRaw !== null ? number_format((int) $adjPrevRaw) : '';
-  $adjCurrText = $adjCurrRaw !== null ? number_format((int) $adjCurrRaw) : '';
+  $adjPrevDisplay = $jintekiDiff['adjusted_taxable']['prev']
+      ?? $floorDisplay($humanAdjTaxable['prev'] ?? null);
+  $adjCurrDisplay = $jintekiDiff['adjusted_taxable']['curr']
+      ?? $floorDisplay($humanAdjTaxable['curr'] ?? null);
+  $adjPrevText = $adjPrevDisplay !== null ? number_format((int) $adjPrevDisplay) : '';
+  $adjCurrText = $adjCurrDisplay !== null ? number_format((int) $adjCurrDisplay) : '';
 @endphp
 
 @if($adjPrevText !== '' || $adjCurrText !== '')
@@ -384,8 +396,8 @@
         <tr>
           <th class="text-start ps-1 th-cream">課税総所得金額-人的控除差調整額</th>
           @php
-            $fallbackPrev = $jintekiDiff['adjusted_taxable']['prev'] ?? null;
-            $fallbackCurr = $jintekiDiff['adjusted_taxable']['curr'] ?? null;
+            $fallbackPrev = $jintekiDiff['adjusted_taxable']['prev'] ?? $floorDisplay($humanAdjTaxable['prev'] ?? null);
+            $fallbackCurr = $jintekiDiff['adjusted_taxable']['curr'] ?? $floorDisplay($humanAdjTaxable['curr'] ?? null);
           @endphp
           @if($showPrev)
             <td class="text-end">
@@ -464,9 +476,9 @@
         }
 
         $humanAdjustedRaw = $firstNumber([
-            $resultsUpper[sprintf('human_adjusted_taxable_raw_%s', $period)] ?? null,
-            $jintekiAdjustedRaw[$period] ?? null,
-            $inputs[sprintf('human_adjusted_taxable_raw_%s', $period)] ?? null,
+            $resultsUpper[sprintf('human_adjusted_taxable_%s', $period)] ?? null,
+            $inputs[sprintf('human_adjusted_taxable_%s', $period)] ?? null,
+            $humanAdjTaxable[$period] ?? null,
         ]);
 
         $sanrinBase = $firstNumber([

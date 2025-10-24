@@ -437,13 +437,6 @@ final class FurusatoController extends Controller
 
         $lookup = function (array $candidates) use ($resultUpper, $previewPayload, $savedInputs): ?int {
             foreach ($candidates as $key) {
-                if (array_key_exists($key, $resultUpper) && $resultUpper[$key] !== null) {
-                    $value = $this->toNullableInt($resultUpper[$key]);
-                    if ($value !== null) {
-                        return $value;
-                    }
-                }
-
                 if (array_key_exists($key, $previewPayload) && $previewPayload[$key] !== null) {
                     $value = $this->toNullableInt($previewPayload[$key]);
                     if ($value !== null) {
@@ -453,6 +446,13 @@ final class FurusatoController extends Controller
 
                 if (array_key_exists($key, $savedInputs) && $savedInputs[$key] !== null && $savedInputs[$key] !== '') {
                     $value = $this->toNullableInt($savedInputs[$key]);
+                    if ($value !== null) {
+                        return $value;
+                    }
+                }
+
+                if (array_key_exists($key, $resultUpper) && $resultUpper[$key] !== null) {
+                    $value = $this->toNullableInt($resultUpper[$key]);
                     if ($value !== null) {
                         return $value;
                     }
@@ -577,19 +577,27 @@ final class FurusatoController extends Controller
                 [sprintf('after_joto_ichiji_tousan_ichiji_%s', $period)],
             );
 
-            $assign(
-                sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
+            $mirrorMany(
+                [
+                    sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
+                    sprintf('tsusanmae_joto_tanki_%s', $period),
+                ],
                 [
                     sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
                     sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
+                    sprintf('tsusanmae_joto_tanki_%s', $period),
                 ],
             );
-            $assign(
-                sprintf('tsusanmae_joto_choki_sogo_%s', $period),
+            $mirrorMany(
+                [
+                    sprintf('tsusanmae_joto_choki_sogo_%s', $period),
+                    sprintf('tsusanmae_joto_choki_%s', $period),
+                ],
                 [
                     sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
                     sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
                     sprintf('tsusanmae_joto_choki_sogo_%s', $period),
+                    sprintf('tsusanmae_joto_choki_%s', $period),
                 ],
             );
             $assign(

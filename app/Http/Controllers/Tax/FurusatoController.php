@@ -600,11 +600,15 @@ final class FurusatoController extends Controller
                     sprintf('tsusanmae_joto_choki_%s', $period),
                 ],
             );
-            $assign(
-                sprintf('tsusanmae_ichiji_%s', $period),
+            $mirrorMany(
+                [
+                    sprintf('tsusanmae_ichiji_%s', $period),
+                    sprintf('tsusanmae_joto_ichiji_%s', $period),
+                ],
                 [
                     sprintf('after_joto_ichiji_tousan_ichiji_%s', $period),
                     sprintf('tsusanmae_ichiji_%s', $period),
+                    sprintf('tsusanmae_joto_ichiji_%s', $period),
                 ],
             );
 

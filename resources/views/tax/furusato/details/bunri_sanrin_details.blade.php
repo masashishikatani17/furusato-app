@@ -1,3 +1,4 @@
+<!-- resources/views/tax/furusato/details/bunri_sanrin_details.blade.php -->
 @extends('layouts.min')
 
 @section('title', '山林所得 内訳')

@@ -33,7 +33,7 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
 
             $keys[] = sprintf('shotoku_keijo_%s', $period);
             $keys[] = sprintf('shotoku_joto_tanki_%s', $period);
-            $keys[] = sprintf('shotoku_joto_choki_%s', $period);
+            $keys[] = sprintf('shotoku_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('shotoku_ichiji_%s', $period);
             $keys[] = sprintf('shotoku_sanrin_%s', $period);
             $keys[] = sprintf('shotoku_taishoku_%s', $period);
@@ -43,6 +43,17 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
 
             $keys[] = sprintf('tax_kazeishotoku_shotoku_%s', $period);
             $keys[] = sprintf('tax_kazeishotoku_jumin_%s', $period);
+
+            $keys[] = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
+            $keys[] = sprintf('bunri_sogo_gokeigaku_jumin_%s', $period);
+            $keys[] = sprintf('bunri_sashihiki_gokei_shotoku_%s', $period);
+            $keys[] = sprintf('bunri_sashihiki_gokei_jumin_%s', $period);
+            $keys[] = sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period);
+            $keys[] = sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period);
+
+            $keys[] = sprintf('tokurei_kojo_sanrin_%s', $period);
+
+            $keys[] = sprintf('after_2jitsusan_taishoku_%s', $period);
         }
 
         return $keys;
@@ -61,56 +72,75 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
         foreach (self::PERIODS as $period) {
             $isSeparated = $this->isSeparated($settings, $period);
 
-            $afterShort = $this->n($payload[sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period)] ?? null);
-            $afterLong = $this->n($payload[sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period)] ?? null);
-            $afterOneTime = $this->n($payload[sprintf('after_joto_ichiji_tousan_ichiji_%s', $period)] ?? null);
+            $tsusanmaeShort = $this->n($payload[sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period)] ?? null);
+            $tsusanmaeLong = $this->n($payload[sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period)] ?? null);
+            $tsusanmaeIchiji = $this->n($payload[sprintf('after_joto_ichiji_tousan_ichiji_%s', $period)] ?? null);
 
-            $updates[sprintf('tsusanmae_joto_tanki_sogo_%s', $period)] = $this->nonNegative($afterShort);
-            $updates[sprintf('tsusanmae_joto_choki_sogo_%s', $period)] = $this->nonNegative($afterLong);
-            $updates[sprintf('tsusanmae_ichiji_%s', $period)] = $this->nonNegative($afterOneTime);
+            $updates[sprintf('tsusanmae_joto_tanki_sogo_%s', $period)] = $tsusanmaeShort;
+            $updates[sprintf('tsusanmae_joto_choki_sogo_%s', $period)] = $tsusanmaeLong;
+            $updates[sprintf('tsusanmae_ichiji_%s', $period)] = $tsusanmaeIchiji;
 
-            $shotokuKeijo = $this->nonNegative($this->n($payload[sprintf('after_3jitsusan_keijo_%s', $period)] ?? null));
-            $shotokuShort = $this->nonNegative($this->n($payload[sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period)] ?? null));
-            $shotokuLong = $this->nonNegative($this->n($payload[sprintf('after_3jitsusan_joto_choki_sogo_%s', $period)] ?? null));
-            $shotokuIchiji = $this->nonNegative($this->n($payload[sprintf('after_3jitsusan_ichiji_%s', $period)] ?? null));
-            $shotokuSanrin = $this->nonNegative($this->n($payload[sprintf('after_3jitsusan_sanrin_%s', $period)] ?? null));
-            $shotokuTaishoku = $this->nonNegative($this->n($payload[sprintf('after_3jitsusan_taishoku_%s', $period)] ?? null));
+            $shotokuKeijo = $this->n($payload[sprintf('shotoku_keijo_%s', $period)] ?? $payload[sprintf('after_3jitsusan_keijo_%s', $period)] ?? null);
+            $shotokuShort = $this->n($payload[sprintf('shotoku_joto_tanki_%s', $period)] ?? $payload[sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period)] ?? null);
+            $shotokuLong = $this->n(
+                $payload[sprintf('shotoku_joto_choki_sogo_%s', $period)]
+                ?? $payload[sprintf('shotoku_joto_choki_%s', $period)]
+                ?? $payload[sprintf('after_3jitsusan_joto_choki_sogo_%s', $period)]
+                ?? $payload[sprintf('after_3jitsusan_joto_choki_%s', $period)]
+                ?? null
+            );
+            $shotokuIchiji = $this->n($payload[sprintf('shotoku_ichiji_%s', $period)] ?? $payload[sprintf('after_3jitsusan_ichiji_%s', $period)] ?? null);
+            $shotokuSanrin = $this->n($payload[sprintf('shotoku_sanrin_%s', $period)] ?? $payload[sprintf('after_3jitsusan_sanrin_%s', $period)] ?? null);
+            $shotokuTaishoku = $this->n($payload[sprintf('shotoku_taishoku_%s', $period)] ?? $payload[sprintf('after_3jitsusan_taishoku_%s', $period)] ?? null);
 
             $updates[sprintf('shotoku_keijo_%s', $period)] = $shotokuKeijo;
             $updates[sprintf('shotoku_joto_tanki_%s', $period)] = $shotokuShort;
-            $updates[sprintf('shotoku_joto_choki_%s', $period)] = $shotokuLong;
+            $updates[sprintf('shotoku_joto_choki_sogo_%s', $period)] = $shotokuLong;
             $updates[sprintf('shotoku_ichiji_%s', $period)] = $shotokuIchiji;
             $updates[sprintf('shotoku_sanrin_%s', $period)] = $shotokuSanrin;
             $updates[sprintf('shotoku_taishoku_%s', $period)] = $shotokuTaishoku;
 
-            $sumSource = array_replace($payload, $updates);
-
-            $sumShotokuShort = $this->nonNegative($this->n($sumSource[sprintf('shotoku_joto_tanki_%s', $period)] ?? null));
-            $sumShotokuLong = $this->nonNegative($this->n(
-                $sumSource[sprintf('shotoku_joto_choki_sogo_%s', $period)]
-                    ?? $sumSource[sprintf('shotoku_joto_choki_%s', $period)]
-                    ?? null
-            ));
-            $sumShotokuIchiji = $this->nonNegative($this->n($sumSource[sprintf('shotoku_ichiji_%s', $period)] ?? null));
-
-            $sumJotoIchiji = $this->nonNegative($sumShotokuShort + $sumShotokuLong + $sumShotokuIchiji);
+            $sumJotoIchiji = $shotokuShort + $shotokuLong + $shotokuIchiji;
             $updates[sprintf('shotoku_joto_ichiji_shotoku_%s', $period)] = $sumJotoIchiji;
             $updates[sprintf('shotoku_joto_ichiji_jumin_%s', $period)] = $sumJotoIchiji;
 
-            $kojoShotoku = $this->nonNegative($this->n($payload[sprintf('kojo_gokei_shotoku_%s', $period)] ?? null));
+            $sumS = $shotokuKeijo + $shotokuShort + $shotokuLong + $shotokuIchiji;
+            $kojoShotoku = $this->n($payload[sprintf('kojo_gokei_shotoku_%s', $period)] ?? null);
+            $kojoJumin = $this->n($payload[sprintf('kojo_gokei_jumin_%s', $period)] ?? null);
+
+            $taxShotoku = $this->floorToThousands(max(0, $sumS - $kojoShotoku));
+            $taxJumin = $this->floorToThousands(max(0, $sumS - $kojoJumin));
+
+            $bunriSogoShotoku = $sumS;
+            $bunriSogoJumin = $sumS;
+            $bunriSashihikiShotoku = min($kojoShotoku, $bunriSogoShotoku);
+            $bunriSashihikiJumin = min($kojoJumin, $bunriSogoJumin);
+            $bunriKazeishotokuShotoku = $this->floorToThousands(max(0, $bunriSogoShotoku - $bunriSashihikiShotoku));
+            $bunriKazeishotokuJumin = $this->floorToThousands(max(0, $bunriSogoJumin - $bunriSashihikiJumin));
 
             if ($isSeparated) {
-                $bunriBase = $this->nonNegative($this->n($payload[sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)] ?? null));
-                $updates[sprintf('tax_kazeishotoku_shotoku_%s', $period)] = $this->floorToThousands($bunriBase);
-
-                $kazeiSogo = $this->nonNegative($this->n($payload[sprintf('kazeisoushotoku_%s', $period)] ?? null));
-                $updates[sprintf('tax_kazeishotoku_jumin_%s', $period)] = $this->floorToThousands($kazeiSogo);
+                $taxShotoku = $bunriKazeishotokuShotoku;
+                $taxJumin = $bunriKazeishotokuJumin;
             } else {
-                $calcBase = $this->nonNegative($shotokuKeijo + $shotokuShort + $shotokuLong + $shotokuIchiji - $kojoShotoku);
-                $rounded = $this->floorToThousands($calcBase);
-                $updates[sprintf('tax_kazeishotoku_shotoku_%s', $period)] = $rounded;
-                $updates[sprintf('tax_kazeishotoku_jumin_%s', $period)] = $rounded;
+                $taxJumin = $bunriKazeishotokuJumin;
             }
+
+            $updates[sprintf('tax_kazeishotoku_shotoku_%s', $period)] = $taxShotoku;
+            $updates[sprintf('tax_kazeishotoku_jumin_%s', $period)] = $taxJumin;
+
+            $updates[sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period)] = $bunriSogoShotoku;
+            $updates[sprintf('bunri_sogo_gokeigaku_jumin_%s', $period)] = $bunriSogoJumin;
+            $updates[sprintf('bunri_sashihiki_gokei_shotoku_%s', $period)] = $bunriSashihikiShotoku;
+            $updates[sprintf('bunri_sashihiki_gokei_jumin_%s', $period)] = $bunriSashihikiJumin;
+            $updates[sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)] = $bunriKazeishotokuShotoku;
+            $updates[sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period)] = $bunriKazeishotokuJumin;
+
+            $after3Sanrin = $this->n($payload[sprintf('after_3jitsusan_sanrin_%s', $period)] ?? null);
+            $tokureiKojoSanrin = max(0, $after3Sanrin - $shotokuSanrin);
+            $updates[sprintf('tokurei_kojo_sanrin_%s', $period)] = $tokureiKojoSanrin;
+
+            $after2Taishoku = $this->n($payload[sprintf('after_2jitsusan_taishoku_%s', $period)] ?? null);
+            $updates[sprintf('after_2jitsusan_taishoku_%s', $period)] = $after2Taishoku;
         }
 
         return array_replace($payload, $updates);
@@ -141,11 +171,6 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
         }
 
         return 0;
-    }
-
-    private function nonNegative(int $value): int
-    {
-        return $value > 0 ? $value : 0;
     }
 
     private function floorToThousands(int $value): int

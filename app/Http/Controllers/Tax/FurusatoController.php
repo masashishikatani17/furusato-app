@@ -485,6 +485,8 @@ final class FurusatoController extends Controller
         };
 
         foreach (['prev', 'curr'] as $period) {
+            $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
+
             $mirrorMany(
                 [
                     sprintf('syunyu_joto_tanki_shotoku_%s', $period),
@@ -689,11 +691,37 @@ final class FurusatoController extends Controller
                 $assign($key, [$key]);
             }
 
-            foreach (['shotoku', 'jumin'] as $kind) {
-                $key = sprintf('tax_kazeishotoku_%s_%s', $kind, $period);
-                $inputsForView[$key] = 0;
-                $assign($key, [$key]);
+            $shotokuKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
+            $juminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
+
+            if ($isSeparated) {
+                foreach (['shotoku', 'jumin'] as $kind) {
+                    $key = sprintf('tax_kazeishotoku_%s_%s', $kind, $period);
+                    $inputsForView[$key] = 0;
+                    $assign($key, [$key]);
+                }
+
+                continue;
             }
+
+            $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
+            $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
+            $shotokuJotoChoki = $this->valueOrZero($lookup([
+                sprintf('shotoku_joto_choki_sogo_%s', $period),
+                sprintf('shotoku_joto_choki_%s', $period),
+            ]));
+            $shotokuIchiji = max(0, $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)])));
+
+            $sumShotoku = $shotokuKeijo + $shotokuJotoTanki + $shotokuJotoChoki + $shotokuIchiji;
+
+            $shotokuKojo = $this->valueOrZero($lookup([sprintf('kojo_gokei_shotoku_%s', $period)]));
+            $juminKojo = $this->valueOrZero($lookup([sprintf('kojo_gokei_jumin_%s', $period)]));
+
+            $roundedShotoku = $this->floorToThousands(max(0, $sumShotoku - $shotokuKojo));
+            $roundedJumin = $this->floorToThousands(max(0, $sumShotoku - $juminKojo));
+
+            $inputsForView[$shotokuKey] = $lookup([$shotokuKey]) ?? $roundedShotoku;
+            $inputsForView[$juminKey] = $lookup([$juminKey]) ?? $roundedJumin;
         }
 
         foreach (['prev', 'curr'] as $period) {

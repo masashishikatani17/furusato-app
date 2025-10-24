@@ -293,6 +293,22 @@ final class FurusatoController extends Controller
         $bunriMinCalculator = app(BunriSeparatedMinRateCalculator::class);
         $previewPayload = $bunriMinCalculator->compute($previewPayload, $calculatorCtx);
 
+        $floorToThousands = static function (int $value): int {
+            return $value > 0 ? intdiv($value, 1000) * 1000 : 0;
+        };
+
+        foreach (['prev', 'curr'] as $period) {
+            $isSeparated = (int) ($syoriSettings["bunri_flag_{$period}"] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
+
+            if ($isSeparated) {
+                $bunriBaseShotoku = (int) ($previewPayload["bunri_kazeishotoku_sogo_shotoku_{$period}"] ?? 0);
+                $previewPayload["tax_kazeishotoku_shotoku_{$period}"] = $floorToThousands($bunriBaseShotoku);
+
+                $kazeiSogoJumin = (int) ($previewPayload["kazeisoushotoku_{$period}"] ?? 0);
+                $previewPayload["tax_kazeishotoku_jumin_{$period}"] = $floorToThousands($kazeiSogoJumin);
+            }
+        }
+
         foreach (['prev', 'curr'] as $period) {
             $short = (int) ($previewPayload[sprintf('shotoku_joto_tanki_%s', $period)] ?? 0);
             $long = (int) (

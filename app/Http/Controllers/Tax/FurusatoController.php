@@ -293,6 +293,26 @@ final class FurusatoController extends Controller
         $bunriMinCalculator = app(BunriSeparatedMinRateCalculator::class);
         $previewPayload = $bunriMinCalculator->compute($previewPayload, $calculatorCtx);
 
+        foreach (['prev', 'curr'] as $period) {
+            $short = (int) ($previewPayload[sprintf('shotoku_joto_tanki_%s', $period)] ?? 0);
+            $long = (int) (
+                $previewPayload[sprintf('shotoku_joto_choki_sogo_%s', $period)]
+                ?? $previewPayload[sprintf('shotoku_joto_choki_%s', $period)]
+                ?? 0
+            );
+            $oneRaw = $previewPayload[sprintf('after_3jitsusan_ichiji_%s', $period)]
+                ?? $previewPayload[sprintf('shotoku_ichiji_%s', $period)]
+                ?? 0;
+            $one = max(0, (int) $oneRaw);
+
+            $previewPayload[sprintf('shotoku_ichiji_%s', $period)] = $one;
+
+            $total = max(0, $short) + max(0, $long) + $one;
+
+            $previewPayload[sprintf('shotoku_joto_ichiji_shotoku_%s', $period)] = $total;
+            $previewPayload[sprintf('shotoku_joto_ichiji_jumin_%s', $period)] = $total;
+        }
+
         /** @var FurusatoResultCalculator $resultCalculator */
         $resultCalculator = app(FurusatoResultCalculator::class);
         $previewDetails = $resultCalculator->buildDetails($previewPayload, $calculatorCtx);

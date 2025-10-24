@@ -18,6 +18,7 @@ use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\SeitotoTokubetsuZeigakuKojoCalculator;
 use App\Domain\Tax\Calculators\ShotokuTaxCalculator;
+use App\Domain\Tax\Calculators\TaxBaseMirrorCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Domain\Tax\Providers\MasterProvider;
@@ -51,6 +52,7 @@ class AppServiceProvider extends ServiceProvider
             HaigushaKojoCalculator::class,
             KojoAggregationCalculator::class,
             JuminzeiKifukinCalculator::class,
+            TaxBaseMirrorCalculator::class,
             ShotokuTaxCalculator::class,
             JuminTaxCalculator::class,
             SeitotoTokubetsuZeigakuKojoCalculator::class,

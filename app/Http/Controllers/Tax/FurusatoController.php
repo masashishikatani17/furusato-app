@@ -518,19 +518,33 @@ final class FurusatoController extends Controller
 
             $assign(
                 sprintf('tsusango_joto_tanki_%s', $period),
-                [sprintf('tsusango_joto_tanki_%s', $period)],
+                [
+                    sprintf('after_3jitsusan_joto_tanki_%s', $period),
+                    sprintf('tsusango_joto_tanki_%s', $period),
+                ],
             );
             $assign(
                 sprintf('tsusango_joto_choki_sogo_%s', $period),
-                [sprintf('tsusango_joto_choki_sogo_%s', $period)],
+                [
+                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                    sprintf('tsusango_joto_choki_sogo_%s', $period),
+                ],
             );
             $assign(
                 sprintf('tsusango_joto_choki_%s', $period),
-                [sprintf('tsusango_joto_choki_%s', $period)],
+                [
+                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_%s', $period),
+                    sprintf('tsusango_joto_choki_%s', $period),
+                ],
             );
             $assign(
                 sprintf('tsusango_ichiji_%s', $period),
-                [sprintf('tsusango_ichiji_%s', $period)],
+                [
+                    sprintf('after_3jitsusan_ichiji_%s', $period),
+                    sprintf('tsusango_ichiji_%s', $period),
+                ],
+                static fn (int $value): int => max(0, $value),
             );
 
             $assign(
@@ -566,22 +580,23 @@ final class FurusatoController extends Controller
             $assign(
                 sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
                 [
-                    sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
                     sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
+                    sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
                 ],
             );
             $assign(
                 sprintf('tsusanmae_joto_choki_sogo_%s', $period),
                 [
-                    sprintf('tsusanmae_joto_choki_sogo_%s', $period),
                     sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
+                    sprintf('tsusanmae_joto_choki_sogo_%s', $period),
                 ],
             );
             $assign(
                 sprintf('tsusanmae_ichiji_%s', $period),
                 [
-                    sprintf('tsusanmae_ichiji_%s', $period),
                     sprintf('after_joto_ichiji_tousan_ichiji_%s', $period),
+                    sprintf('tsusanmae_ichiji_%s', $period),
                 ],
             );
 

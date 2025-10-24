@@ -120,7 +120,9 @@ final class FurusatoController extends Controller
         }
 
         $context = $this->makeInputContext($req, $dataId);
-        $context['out'] = ['inputs' => $context['savedInputs']];
+        $inputsForView = $context['outInputs'] ?? $context['savedInputs'];
+        $context['out'] = ['inputs' => $inputsForView];
+        unset($context['outInputs']);
 
         $session = session();
         if ($session->has('furusato_results')) {
@@ -155,7 +157,9 @@ final class FurusatoController extends Controller
 
         session()->flash('_old_input', $req->except(['_token']));
         $context = $this->makeInputContext($req, $dataId);
-        $context['out'] = ['inputs' => array_replace($context['savedInputs'], $dto->toArray())];
+        $baseInputs = $context['outInputs'] ?? $context['savedInputs'];
+        $context['out'] = ['inputs' => array_replace($baseInputs, $dto->toArray())];
+        unset($context['outInputs']);
         unset($context['savedInputs']);
         
         return view('tax.furusato.input', $context);
@@ -364,7 +368,155 @@ final class FurusatoController extends Controller
             $context['results'] = $previewResults;
         }
 
+        $context['outInputs'] = $this->buildInputsForView($savedInputs, $previewPayload, $syoriSettings);
+
         return $context;
+    }
+
+    /**
+     * @param  array<string, mixed>  $savedInputs
+     * @param  array<string, mixed>  $previewPayload
+     * @param  array<string, mixed>  $syoriSettings
+     * @return array<string, mixed>
+     */
+    private function buildInputsForView(array $savedInputs, array $previewPayload, array $syoriSettings): array
+    {
+        $inputsForView = $savedInputs;
+        $lookup = static function (array $payload, array $candidates): ?int {
+            foreach ($candidates as $key) {
+                if (array_key_exists($key, $payload)) {
+                    return (int) $payload[$key];
+                }
+            }
+
+            return null;
+        };
+
+        foreach (['prev', 'curr'] as $period) {
+            $after3Short = $lookup($previewPayload, [sprintf('after_3jitsusan_joto_tanki_%s', $period)]);
+            if ($after3Short !== null) {
+                $inputsForView[sprintf('tsusango_joto_tanki_%s', $period)] = $after3Short;
+            }
+
+            $after3Long = $lookup($previewPayload, [
+                sprintf('after_3jitsusan_joto_choki_%s', $period),
+                sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+            ]);
+            if ($after3Long !== null) {
+                $inputsForView[sprintf('tsusango_joto_choki_%s', $period)] = $after3Long;
+            }
+
+            $after3Ichiji = $lookup($previewPayload, [sprintf('after_3jitsusan_ichiji_%s', $period)]);
+            if ($after3Ichiji !== null) {
+                $inputsForView[sprintf('tsusango_ichiji_%s', $period)] = $after3Ichiji;
+            }
+
+            $firstStageMap = [
+                [sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period)],
+                [
+                    sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
+                ],
+                [sprintf('after_joto_ichiji_tousan_ichiji_%s', $period)],
+            ];
+            $firstStageDest = [
+                sprintf('tsusanmae_joto_tanki_%s', $period),
+                sprintf('tsusanmae_joto_choki_%s', $period),
+                sprintf('tsusanmae_joto_ichiji_%s', $period),
+            ];
+            foreach ($firstStageMap as $index => $candidates) {
+                $value = $lookup($previewPayload, $candidates);
+                if ($value !== null) {
+                    $inputsForView[$firstStageDest[$index]] = $value;
+                }
+            }
+
+            $syunyuSanrinKey = sprintf('syunyu_sanrin_%s', $period);
+            $inputsForView[sprintf('bunri_syunyu_sanrin_shotoku_%s', $period)] = $this->valueOrZero(
+                $this->toNullableInt($savedInputs[$syunyuSanrinKey] ?? null)
+            );
+
+            foreach ([
+                sprintf('after_1jitsusan_sanrin_%s', $period),
+                sprintf('after_3jitsusan_sanrin_%s', $period),
+                sprintf('shotoku_sanrin_%s', $period),
+            ] as $key) {
+                $value = $lookup($previewPayload, [$key]);
+                if ($value !== null) {
+                    $inputsForView[$key] = $value;
+                }
+            }
+
+            foreach ([
+                'shotoku_keijo',
+                'shotoku_joto_tanki',
+                'shotoku_joto_choki',
+                'shotoku_ichiji',
+                'shotoku_taishoku',
+            ] as $prefix) {
+                $value = $lookup($previewPayload, [sprintf('%s_%s', $prefix, $period)]);
+                if ($value !== null) {
+                    $inputsForView[sprintf('%s_%s', $prefix, $period)] = $value;
+                }
+            }
+
+            $taishoku = $lookup($previewPayload, [sprintf('shotoku_taishoku_%s', $period)]) ?? 0;
+            $inputsForView[sprintf('bunri_shotoku_taishoku_shotoku_%s', $period)] = $taishoku;
+            $inputsForView[sprintf('bunri_shotoku_taishoku_jumin_%s', $period)] = $taishoku;
+
+            $sumJotoIchiji = 0;
+            foreach (['shotoku_joto_tanki_', 'shotoku_joto_choki_', 'shotoku_ichiji_'] as $prefix) {
+                $sumJotoIchiji += (int) ($inputsForView[$prefix . $period] ?? 0);
+            }
+            $inputsForView[sprintf('shotoku_joto_ichiji_shotoku_%s', $period)] = $sumJotoIchiji;
+            $inputsForView[sprintf('shotoku_joto_ichiji_jumin_%s', $period)] = $sumJotoIchiji;
+
+            $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? ($syoriSettings['bunri_flag'] ?? 0)) === 1;
+            $shotokuKeijo = (int) ($inputsForView[sprintf('shotoku_keijo_%s', $period)] ?? 0);
+            $shotokuJotoTanki = (int) ($inputsForView[sprintf('shotoku_joto_tanki_%s', $period)] ?? 0);
+            $shotokuJotoChoki = (int) ($inputsForView[sprintf('shotoku_joto_choki_%s', $period)] ?? 0);
+            $shotokuIchiji = (int) ($inputsForView[sprintf('shotoku_ichiji_%s', $period)] ?? 0);
+            $kojoShotoku = (int) ($inputsForView[sprintf('kojo_gokei_shotoku_%s', $period)] ?? 0);
+
+            if ($isSeparated) {
+                $separatedSum = (
+                    $lookup($previewPayload, [sprintf('after_3jitsusan_joto_tanki_%s', $period)]) ?? 0
+                ) + (
+                    $lookup($previewPayload, [
+                        sprintf('after_3jitsusan_joto_choki_%s', $period),
+                        sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                    ]) ?? 0
+                ) + (
+                    $lookup($previewPayload, [sprintf('after_3jitsusan_ichiji_%s', $period)]) ?? 0
+                ) + (
+                    $lookup($previewPayload, [sprintf('after_3jitsusan_sanrin_%s', $period)]) ?? 0
+                ) + (
+                    $lookup($previewPayload, [sprintf('after_3jitsusan_taishoku_%s', $period)]) ?? 0
+                );
+
+                $inputsForView[sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period)] = $separatedSum;
+                $inputsForView[sprintf('bunri_sogo_gokeigaku_jumin_%s', $period)] = $separatedSum;
+            } else {
+                $inputsForView[sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period)] = 0;
+                $inputsForView[sprintf('bunri_sogo_gokeigaku_jumin_%s', $period)] = 0;
+            }
+
+            $generalSum = $shotokuKeijo + $shotokuJotoTanki + $shotokuJotoChoki + $shotokuIchiji;
+            $taxBase = max(0, $generalSum - $kojoShotoku);
+            $taxBaseRounded = $this->floorToThousands($taxBase);
+
+            $inputsForView[sprintf('tax_kazeishotoku_shotoku_%s', $period)] = $taxBaseRounded;
+            $inputsForView[sprintf('tax_kazeishotoku_jumin_%s', $period)] = $taxBaseRounded;
+        }
+
+        foreach (['prev', 'curr'] as $period) {
+            $value = $lookup($previewPayload, [sprintf('shotoku_gokei_%s', $period)]);
+            if ($value !== null) {
+                $inputsForView[sprintf('shotoku_gokei_%s', $period)] = $value;
+            }
+        }
+
+        return $inputsForView;
     }
 
     private function computeJintekiDiff(array $payload): array
@@ -703,17 +855,15 @@ final class FurusatoController extends Controller
     public function jotoIchijiDetails(Request $req)
     {
         $data = $this->resolveAuthorizedDataOrFail($req);
-        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
-        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
-        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
-        $payload = $this->getFurusatoInputPayload($data);
+        $context = $this->makeInputContext($req, $data->id);
+        $inputsForView = $context['outInputs'] ?? $context['savedInputs'] ?? [];
 
         return view('tax.furusato.details.joto_ichiji_details', [
             'dataId' => $data->id,
-            'kihuYear' => $kihuYear,
-            'warekiPrev' => $warekiPrev,
-            'warekiCurr' => $warekiCurr,
-            'out' => ['inputs' => $payload],
+            'kihuYear' => $context['kihuYear'] ?? ($data->kihu_year ? (int) $data->kihu_year : null),
+            'warekiPrev' => $context['warekiPrev'] ?? ($data->kihu_year ? $this->toWarekiYear((int) $data->kihu_year - 1) : '前年'),
+            'warekiCurr' => $context['warekiCurr'] ?? ($data->kihu_year ? $this->toWarekiYear((int) $data->kihu_year) : '当年'),
+            'out' => ['inputs' => $inputsForView],
         ]);
     }
 
@@ -993,17 +1143,15 @@ final class FurusatoController extends Controller
     public function bunriSanrinDetails(Request $req)
     {
         $data = $this->resolveAuthorizedDataOrFail($req);
-        $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
-        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
-        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
-        $payload = $this->getFurusatoInputPayload($data);
+        $context = $this->makeInputContext($req, $data->id);
+        $inputsForView = $context['outInputs'] ?? $context['savedInputs'] ?? [];
 
         return view('tax.furusato.details.bunri_sanrin_details', [
             'dataId' => $data->id,
-            'kihuYear' => $kihuYear,
-            'warekiPrev' => $warekiPrev,
-            'warekiCurr' => $warekiCurr,
-            'out' => ['inputs' => $payload],
+            'kihuYear' => $context['kihuYear'] ?? ($data->kihu_year ? (int) $data->kihu_year : null),
+            'warekiPrev' => $context['warekiPrev'] ?? ($data->kihu_year ? $this->toWarekiYear((int) $data->kihu_year - 1) : '前年'),
+            'warekiCurr' => $context['warekiCurr'] ?? ($data->kihu_year ? $this->toWarekiYear((int) $data->kihu_year) : '当年'),
+            'out' => ['inputs' => $inputsForView],
             'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
         ]);
     }

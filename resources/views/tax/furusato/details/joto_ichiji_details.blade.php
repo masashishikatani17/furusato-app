@@ -204,9 +204,14 @@
         const base = `${row.key}_${period}`;
         const syunyu = getValue(`syunyu_${base}`);
         const keihi = getValue(`keihi_${base}`);
-        setValue(`sashihiki_${base}`, syunyu - keihi);
+        const sashihiki = syunyu - keihi;
+        setValue(`sashihiki_${base}`, sashihiki);
 
-        const tsusango = getValue(`tsusango_${base}`);
+        let tsusango = getValue(`tsusango_${base}`);
+        if (row.key === 'ichiji') {
+          tsusango = Math.max(0, sashihiki);
+          setValue(`tsusango_${base}`, tsusango);
+        }
         if (row.hasHalf) {
           const half = Math.floor(tsusango / 2);
           setValue(`half_${base}`, half);

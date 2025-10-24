@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Http\Controllers\Tax\FurusatoController;
 use App\Models\Data;
 use App\Models\FurusatoInput;
@@ -106,10 +107,30 @@ final class FurusatoAdjustedTaxableTest extends TestCase
         $context = $method->invoke($controller, $request, $data->id);
 
         $this->assertSame(4_800_000, $context['jintekiDiff']['adjusted_taxable']['prev']);
-        $this->assertSame(-300_000, $context['jintekiDiff']['adjusted_taxable']['curr']);
+        $this->assertSame(0, $context['jintekiDiff']['adjusted_taxable']['curr']);
         $this->assertArrayHasKey('tokureiStandardRate', $context);
         $this->assertEqualsWithDelta(69.58,  $context['tokureiStandardRate']['prev'], 0.0001); // 4,800,000 → 69.580
         $this->assertEqualsWithDelta(84.895, $context['tokureiStandardRate']['curr'], 0.0001); // 0 → 84.895
+
+        /** @var FurusatoResultCalculator $calculator */
+        $calculator = app(FurusatoResultCalculator::class);
+        $calculatorPayload = [
+            'tax_kazeishotoku_shotoku_prev' => 5_000_000,
+            'tax_kazeishotoku_shotoku_curr' => 1_200_000,
+            'kojo_kafu_shotoku_prev' => 200_000,
+            'kojo_kafu_jumin_prev' => 0,
+            'kojo_kafu_shotoku_curr' => 2_000_000,
+            'kojo_kafu_jumin_curr' => 500_000,
+        ];
+        $calculatorCtx = [
+            'syori_settings' => [],
+            'master_kihu_year' => 0,
+            'kihu_year' => 0,
+        ];
+
+        $result = $calculator->compute($calculatorPayload, $calculatorCtx);
+        $this->assertSame(4_800_000, $result['human_adjusted_taxable_prev']);
+        $this->assertSame(-300_000, $result['human_adjusted_taxable_curr']);
     }
 
     #[Test]

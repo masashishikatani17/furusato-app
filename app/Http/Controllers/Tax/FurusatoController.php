@@ -235,14 +235,18 @@ final class FurusatoController extends Controller
 
         $periods = ['prev', 'curr'];
         $humanAdjusted = [];
+        $humanAdjustedDisplay = [];
         foreach ($periods as $period) {
             $taxableBase  = $this->resolveTaxableBase($savedInputs, $syoriSettings, $period);
             $humanDiffSum = (int) ($jintekiDiff['sum'][$period] ?? 0);
-            $humanAdjusted[$period] = $taxableBase - $humanDiffSum;
+
+            $raw = $taxableBase - $humanDiffSum;
+            $humanAdjusted[$period] = $raw;
+            $humanAdjustedDisplay[$period] = $this->floorToThousands(max(0, $raw));
         }
         $jintekiDiff['adjusted_taxable'] = [
-            'prev' => $humanAdjusted['prev'],
-            'curr' => $humanAdjusted['curr'],
+            'prev' => $humanAdjustedDisplay['prev'],
+            'curr' => $humanAdjustedDisplay['curr'],
         ];
 
         $calculatorYear = (int) ($kihuYear ?? self::MASTER_KIHU_YEAR);
@@ -2313,7 +2317,7 @@ final class FurusatoController extends Controller
             return 0;
         }
 
-        return $this->floorToThousands(max(0, $raw));
+        return $raw;
     }
 
     private function floorToThousands(int $value): int

@@ -93,7 +93,7 @@ class FurusatoResultCalculator implements ProvidesKeys
     /**
      * @param  array<string, mixed>  $payload
      * @param  array<string, mixed>  $ctx
-     * @param  array<string, array{display:int|null, raw:int|null}>  $humanAdjustedPairs
+     * @param  array<string, array{value:int|null}>  $humanAdjustedPairs
      * @return array{prev: array<string, float|null>, curr: array<string, float|null>}
      */
     private function buildDetailsFromPairs(array $payload, array $ctx, array $humanAdjustedPairs): array
@@ -123,10 +123,10 @@ class FurusatoResultCalculator implements ProvidesKeys
      */
     private function buildPeriodDetails(array $payload, array $rows, string $period, array $pair): array
     {
-        $adjustedTaxable = $pair['value'] ?? null;
-        $aa50 = $adjustedTaxable !== null
-            // AA50 の“表当て”直前でだけ千円未満切り捨て
-            ? $this->lowerBoundRate($this->floorToThousands($adjustedTaxable), $rows)
+        $raw = $pair['value'] ?? null;
+        $aa50Base = $raw !== null ? $this->floorToThousands(max(0, $raw)) : null;
+        $aa50 = $aa50Base !== null
+            ? $this->lowerBoundRate($aa50Base, $rows)
             : null;
 
         $aa51 = self::FIXED_NINETY_RATE;
@@ -162,7 +162,7 @@ class FurusatoResultCalculator implements ProvidesKeys
     }
 
     /**
-     * @return array<string, array{display:int|null, raw:int|null}>
+     * @return array<string, array{value:int|null}>
      */
     private function buildHumanAdjustedPairs(array $payload, array $ctx): array
     {
@@ -175,7 +175,7 @@ class FurusatoResultCalculator implements ProvidesKeys
     }
 
     /**
-     * @return array{display:int|null, raw:int|null}
+     * @return array{value:int|null}
      */
     private function humanAdjustedPair(array $payload, array $ctx, string $period): array
     {
@@ -238,8 +238,7 @@ class FurusatoResultCalculator implements ProvidesKeys
             return null;
         }
 
-        $base = $raw < 0 ? 0 : $raw;
-        return $this->floorToThousands($base);
+        return $this->floorToThousands($raw);
     }
 
     /**

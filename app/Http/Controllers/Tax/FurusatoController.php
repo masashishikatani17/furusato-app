@@ -404,7 +404,17 @@ final class FurusatoController extends Controller
             $context['results'] = $previewResults;
         }
 
-        $context['outInputs'] = $this->buildInputsForView($savedInputs, $previewPayload, $syoriSettings);
+        $resultsUpper = [];
+        if (isset($context['results']['upper']) && is_array($context['results']['upper'])) {
+            $resultsUpper = $context['results']['upper'];
+        }
+
+        $context['outInputs'] = $this->buildInputsForView(
+            $savedInputs,
+            $previewPayload,
+            $syoriSettings,
+            $resultsUpper,
+        );
 
         return $context;
     }
@@ -415,95 +425,255 @@ final class FurusatoController extends Controller
      * @param  array<string, mixed>  $syoriSettings
      * @return array<string, mixed>
      */
-    private function buildInputsForView(array $savedInputs, array $previewPayload, array $syoriSettings): array
+    private function buildInputsForView(
+        array $savedInputs,
+        array $previewPayload,
+        array $syoriSettings,
+        array $resultsUpper = [],
+    ): array
     {
         $inputsForView = $savedInputs;
-        $lookup = static function (array $payload, array $candidates): ?int {
+        $resultUpper = $resultsUpper;
+
+        $lookup = function (array $candidates) use ($resultUpper, $previewPayload, $savedInputs): ?int {
             foreach ($candidates as $key) {
-                if (array_key_exists($key, $payload)) {
-                    return (int) $payload[$key];
+                if (array_key_exists($key, $resultUpper) && $resultUpper[$key] !== null) {
+                    $value = $this->toNullableInt($resultUpper[$key]);
+                    if ($value !== null) {
+                        return $value;
+                    }
+                }
+
+                if (array_key_exists($key, $previewPayload) && $previewPayload[$key] !== null) {
+                    $value = $this->toNullableInt($previewPayload[$key]);
+                    if ($value !== null) {
+                        return $value;
+                    }
+                }
+
+                if (array_key_exists($key, $savedInputs) && $savedInputs[$key] !== null && $savedInputs[$key] !== '') {
+                    $value = $this->toNullableInt($savedInputs[$key]);
+                    if ($value !== null) {
+                        return $value;
+                    }
                 }
             }
 
             return null;
         };
 
+        $assign = function (string $destination, array $candidates, ?callable $transform = null) use (&$inputsForView, $lookup): void {
+            $value = $lookup($candidates);
+            if ($value === null) {
+                return;
+            }
+
+            $inputsForView[$destination] = $transform ? $transform($value) : $value;
+        };
+
+        $mirrorMany = function (array $destinations, array $candidates, ?callable $transform = null) use (&$inputsForView, $lookup): void {
+            $value = $lookup($candidates);
+            if ($value === null) {
+                return;
+            }
+
+            $value = $transform ? $transform($value) : $value;
+
+            foreach ($destinations as $destination) {
+                $inputsForView[$destination] = $value;
+            }
+        };
+
         foreach (['prev', 'curr'] as $period) {
-            $after3Short = $lookup($previewPayload, [sprintf('after_3jitsusan_joto_tanki_%s', $period)]);
-            if ($after3Short !== null) {
-                $inputsForView[sprintf('tsusango_joto_tanki_%s', $period)] = $after3Short;
+            if ($period === 'prev') {
+                $mirrorMany(
+                    [
+                        sprintf('syunyu_joto_tanki_shotoku_%s', $period),
+                        sprintf('syunyu_joto_tanki_jumin_%s', $period),
+                    ],
+                    [sprintf('syunyu_joto_tanki_%s', $period)],
+                );
+                $mirrorMany(
+                    [
+                        sprintf('syunyu_joto_choki_shotoku_%s', $period),
+                        sprintf('syunyu_joto_choki_jumin_%s', $period),
+                    ],
+                    [sprintf('syunyu_joto_choki_%s', $period)],
+                );
+                $mirrorMany(
+                    [
+                        sprintf('syunyu_ichiji_shotoku_%s', $period),
+                        sprintf('syunyu_ichiji_jumin_%s', $period),
+                    ],
+                    [sprintf('syunyu_ichiji_%s', $period)],
+                );
             }
 
-            $after3Long = $lookup($previewPayload, [
-                sprintf('after_3jitsusan_joto_choki_%s', $period),
-                sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
-            ]);
-            if ($after3Long !== null) {
-                $inputsForView[sprintf('tsusango_joto_choki_%s', $period)] = $after3Long;
-            }
+            $assign(
+                sprintf('sashihiki_joto_tanki_sogo_%s', $period),
+                [sprintf('sashihiki_joto_tanki_%s', $period)],
+            );
+            $assign(
+                sprintf('sashihiki_joto_choki_sogo_%s', $period),
+                [sprintf('sashihiki_joto_choki_%s', $period)],
+            );
 
-            $after3Ichiji = $lookup($previewPayload, [sprintf('after_3jitsusan_ichiji_%s', $period)]);
-            if ($after3Ichiji !== null) {
-                $inputsForView[sprintf('tsusango_ichiji_%s', $period)] = $after3Ichiji;
-            }
+            $assign(
+                sprintf('tsusango_joto_tanki_%s', $period),
+                [
+                    sprintf('tsusango_joto_tanki_%s', $period),
+                    sprintf('after_3jitsusan_joto_tanki_%s', $period),
+                ],
+            );
+            $assign(
+                sprintf('tsusango_joto_choki_sogo_%s', $period),
+                [
+                    sprintf('tsusango_joto_choki_sogo_%s', $period),
+                    sprintf('tsusango_joto_choki_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_%s', $period),
+                ],
+            );
+            $assign(
+                sprintf('tsusango_joto_choki_%s', $period),
+                [
+                    sprintf('tsusango_joto_choki_%s', $period),
+                    sprintf('tsusango_joto_choki_sogo_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                ],
+            );
+            $assign(
+                sprintf('tsusango_ichiji_%s', $period),
+                [
+                    sprintf('sashihiki_ichiji_%s', $period),
+                    sprintf('tsusango_ichiji_%s', $period),
+                    sprintf('after_3jitsusan_ichiji_%s', $period),
+                ],
+                $period === 'prev'
+                    ? static fn (int $value): int => max(0, $value)
+                    : null,
+            );
 
-            $firstStageMap = [
+            $assign(
+                sprintf('tokubetsukojo_joto_tanki_%s', $period),
+                [sprintf('tokubetsukojo_joto_tanki_%s', $period)],
+            );
+            $assign(
+                sprintf('tokubetsukojo_joto_choki_%s', $period),
+                [sprintf('tokubetsukojo_joto_choki_%s', $period)],
+            );
+            $assign(
+                sprintf('tokubetsukojo_ichiji_%s', $period),
+                [sprintf('tokubetsukojo_ichiji_%s', $period)],
+            );
+
+            $assign(
+                sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
                 [sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period)],
+            );
+            $assign(
+                sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
                 [
                     sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
                     sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
                 ],
+            );
+            $assign(
+                sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
+                [
+                    sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
+                ],
+            );
+            $assign(
+                sprintf('after_joto_ichiji_tousan_ichiji_%s', $period),
                 [sprintf('after_joto_ichiji_tousan_ichiji_%s', $period)],
-            ];
-            $firstStageDest = [
-                sprintf('tsusanmae_joto_tanki_%s', $period),
-                sprintf('tsusanmae_joto_choki_%s', $period),
-                sprintf('tsusanmae_joto_ichiji_%s', $period),
-            ];
-            foreach ($firstStageMap as $index => $candidates) {
-                $value = $lookup($previewPayload, $candidates);
-                if ($value !== null) {
-                    $inputsForView[$firstStageDest[$index]] = $value;
-                }
-            }
-
-            $syunyuSanrinKey = sprintf('syunyu_sanrin_%s', $period);
-            $inputsForView[sprintf('bunri_syunyu_sanrin_shotoku_%s', $period)] = $this->valueOrZero(
-                $this->toNullableInt($savedInputs[$syunyuSanrinKey] ?? null)
             );
 
-            foreach ([
-                sprintf('after_1jitsusan_sanrin_%s', $period),
-                sprintf('after_3jitsusan_sanrin_%s', $period),
-                sprintf('shotoku_sanrin_%s', $period),
-            ] as $key) {
-                $value = $lookup($previewPayload, [$key]);
-                if ($value !== null) {
-                    $inputsForView[$key] = $value;
-                }
-            }
+            $assign(
+                sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
+                [
+                    sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
+                ],
+            );
+            $assign(
+                sprintf('tsusanmae_joto_choki_sogo_%s', $period),
+                [
+                    sprintf('tsusanmae_joto_choki_sogo_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
+                ],
+            );
+            $assign(
+                sprintf('tsusanmae_ichiji_%s', $period),
+                [
+                    sprintf('tsusanmae_ichiji_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_ichiji_%s', $period),
+                ],
+            );
+            $assign(
+                sprintf('tsusanmae_joto_tanki_%s', $period),
+                [
+                    sprintf('tsusanmae_joto_tanki_%s', $period),
+                    sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
+                ],
+            );
+            $assign(
+                sprintf('tsusanmae_joto_choki_%s', $period),
+                [
+                    sprintf('tsusanmae_joto_choki_%s', $period),
+                    sprintf('tsusanmae_joto_choki_sogo_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
+                ],
+            );
 
-            foreach ([
-                'shotoku_keijo',
-                'shotoku_joto_tanki',
-                'shotoku_joto_choki',
-                'shotoku_ichiji',
-                'shotoku_taishoku',
-            ] as $prefix) {
-                $value = $lookup($previewPayload, [sprintf('%s_%s', $prefix, $period)]);
-                if ($value !== null) {
-                    $inputsForView[sprintf('%s_%s', $prefix, $period)] = $value;
-                }
-            }
+            $syunyuSanrinValue = $lookup([sprintf('syunyu_sanrin_%s', $period)]);
+            $syunyuSanrinValue = $syunyuSanrinValue !== null ? $this->valueOrZero($syunyuSanrinValue) : 0;
+            $inputsForView[sprintf('bunri_syunyu_sanrin_shotoku_%s', $period)] = $syunyuSanrinValue;
+            $inputsForView[sprintf('bunri_syunyu_sanrin_jumin_%s', $period)] = $syunyuSanrinValue;
 
-            $taishoku = $lookup($previewPayload, [sprintf('shotoku_taishoku_%s', $period)]) ?? 0;
+            $assign(sprintf('after_1jitsusan_sanrin_%s', $period), [sprintf('after_1jitsusan_sanrin_%s', $period)]);
+            $assign(sprintf('after_3jitsusan_sanrin_%s', $period), [sprintf('after_3jitsusan_sanrin_%s', $period)]);
+            $assign(sprintf('shotoku_sanrin_%s', $period), [sprintf('shotoku_sanrin_%s', $period)]);
+
+            $assign(sprintf('shotoku_keijo_%s', $period), [sprintf('shotoku_keijo_%s', $period)]);
+            $assign(sprintf('shotoku_joto_tanki_%s', $period), [sprintf('shotoku_joto_tanki_%s', $period)]);
+            $assign(
+                sprintf('shotoku_joto_choki_%s', $period),
+                [
+                    sprintf('shotoku_joto_choki_%s', $period),
+                    sprintf('shotoku_joto_choki_sogo_%s', $period),
+                ],
+            );
+            $assign(
+                sprintf('shotoku_joto_choki_sogo_%s', $period),
+                [
+                    sprintf('shotoku_joto_choki_sogo_%s', $period),
+                    sprintf('shotoku_joto_choki_%s', $period),
+                ],
+            );
+            $assign(sprintf('shotoku_ichiji_%s', $period), [sprintf('shotoku_ichiji_%s', $period)]);
+            $assign(sprintf('shotoku_taishoku_%s', $period), [sprintf('shotoku_taishoku_%s', $period)]);
+
+            $taishoku = $lookup([sprintf('shotoku_taishoku_%s', $period)]) ?? 0;
             $inputsForView[sprintf('bunri_shotoku_taishoku_shotoku_%s', $period)] = $taishoku;
             $inputsForView[sprintf('bunri_shotoku_taishoku_jumin_%s', $period)] = $taishoku;
+            $assign(
+                sprintf('after_2jitsusan_taishoku_%s', $period),
+                [
+                    sprintf('after_2jitsusan_taishoku_%s', $period),
+                    sprintf('bunri_shotoku_taishoku_shotoku_%s', $period),
+                ],
+            );
 
             $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
-            $sumShotokuPayload = $lookup($previewPayload, [$sumShotokuKey]);
+            $sumShotokuPayload = $lookup([$sumShotokuKey]);
             if ($sumShotokuPayload !== null) {
-                $sumJotoIchiji = $this->valueOrZero($this->toNullableInt($sumShotokuPayload));
+                $sumJotoIchiji = $this->valueOrZero($sumShotokuPayload);
             } else {
                 $sumJotoIchiji = 0;
                 foreach (['shotoku_joto_tanki_', 'shotoku_joto_choki_', 'shotoku_ichiji_'] as $prefix) {
@@ -513,9 +683,9 @@ final class FurusatoController extends Controller
             $inputsForView[$sumShotokuKey] = $sumJotoIchiji;
 
             $sumJuminKey = sprintf('shotoku_joto_ichiji_jumin_%s', $period);
-            $sumJuminPayload = $lookup($previewPayload, [$sumJuminKey]);
+            $sumJuminPayload = $lookup([$sumJuminKey]);
             $inputsForView[$sumJuminKey] = $sumJuminPayload !== null
-                ? $this->valueOrZero($this->toNullableInt($sumJuminPayload))
+                ? $this->valueOrZero($sumJuminPayload)
                 : $sumJotoIchiji;
 
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? ($syoriSettings['bunri_flag'] ?? 0)) === 1;
@@ -527,18 +697,25 @@ final class FurusatoController extends Controller
 
             if ($isSeparated) {
                 $separatedSum = (
-                    $lookup($previewPayload, [sprintf('after_3jitsusan_joto_tanki_%s', $period)]) ?? 0
-                ) + (
-                    $lookup($previewPayload, [
-                        sprintf('after_3jitsusan_joto_choki_%s', $period),
-                        sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                    $lookup([
+                        sprintf('after_3jitsusan_joto_tanki_%s', $period),
+                        sprintf('tsusango_joto_tanki_%s', $period),
                     ]) ?? 0
                 ) + (
-                    $lookup($previewPayload, [sprintf('after_3jitsusan_ichiji_%s', $period)]) ?? 0
+                    $lookup([
+                        sprintf('after_3jitsusan_joto_choki_%s', $period),
+                        sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                        sprintf('tsusango_joto_choki_sogo_%s', $period),
+                    ]) ?? 0
                 ) + (
-                    $lookup($previewPayload, [sprintf('after_3jitsusan_sanrin_%s', $period)]) ?? 0
+                    $lookup([
+                        sprintf('after_3jitsusan_ichiji_%s', $period),
+                        sprintf('tsusango_ichiji_%s', $period),
+                    ]) ?? 0
                 ) + (
-                    $lookup($previewPayload, [sprintf('after_3jitsusan_taishoku_%s', $period)]) ?? 0
+                    $lookup([sprintf('after_3jitsusan_sanrin_%s', $period)]) ?? 0
+                ) + (
+                    $lookup([sprintf('after_3jitsusan_taishoku_%s', $period)]) ?? 0
                 );
 
                 $inputsForView[sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period)] = $separatedSum;
@@ -553,25 +730,79 @@ final class FurusatoController extends Controller
             $taxBaseRounded = $this->floorToThousands($taxBase);
 
             $taxShotokuKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
-            $taxShotokuPayload = $lookup($previewPayload, [$taxShotokuKey]);
+            $taxShotokuPayload = $lookup([$taxShotokuKey]);
             $taxShotoku = $taxShotokuPayload !== null
-                ? $this->valueOrZero($this->toNullableInt($taxShotokuPayload))
+                ? $this->valueOrZero($taxShotokuPayload)
                 : $taxBaseRounded;
             $inputsForView[$taxShotokuKey] = $taxShotoku;
 
             $taxJuminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
-            $taxJuminPayload = $lookup($previewPayload, [$taxJuminKey]);
+            $taxJuminPayload = $lookup([$taxJuminKey]);
             $taxJumin = $taxJuminPayload !== null
-                ? $this->valueOrZero($this->toNullableInt($taxJuminPayload))
+                ? $this->valueOrZero($taxJuminPayload)
                 : $taxShotoku;
             $inputsForView[$taxJuminKey] = $taxJumin;
         }
 
         foreach (['prev', 'curr'] as $period) {
-            $value = $lookup($previewPayload, [sprintf('shotoku_gokei_%s', $period)]);
+            $afterThreeMap = [
+                sprintf('after_3jitsusan_keijo_%s', $period) => [sprintf('after_3jitsusan_keijo_%s', $period)],
+                sprintf('after_3jitsusan_joto_tanki_%s', $period) => [sprintf('after_3jitsusan_joto_tanki_%s', $period)],
+                sprintf('after_3jitsusan_joto_choki_sogo_%s', $period) => [
+                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_%s', $period),
+                ],
+                sprintf('after_3jitsusan_joto_choki_%s', $period) => [
+                    sprintf('after_3jitsusan_joto_choki_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                ],
+                sprintf('after_3jitsusan_ichiji_%s', $period) => [sprintf('after_3jitsusan_ichiji_%s', $period)],
+                sprintf('after_3jitsusan_sanrin_%s', $period) => [sprintf('after_3jitsusan_sanrin_%s', $period)],
+                sprintf('after_3jitsusan_taishoku_%s', $period) => [sprintf('after_3jitsusan_taishoku_%s', $period)],
+            ];
+
+            foreach ($afterThreeMap as $destination => $candidates) {
+                $assign($destination, $candidates);
+            }
+
+            $value = $lookup([sprintf('shotoku_gokei_%s', $period)]);
             if ($value !== null) {
                 $inputsForView[sprintf('shotoku_gokei_%s', $period)] = $value;
             }
+        }
+
+        $tsusanmaeKeijoPrev = $lookup(['tsusanmae_keijo_prev']);
+        if ($tsusanmaeKeijoPrev === null) {
+            $tsusanmaeKeijoPrev = 0;
+            $keijoSources = [
+                'shotoku_jigyo_eigyo_shotoku_prev' => false,
+                'shotoku_jigyo_nogyo_shotoku_prev' => false,
+                'shotoku_fudosan_shotoku_prev' => false,
+                'shotoku_haito_shotoku_prev' => true,
+                'shotoku_rishi_shotoku_prev' => true,
+                'shotoku_kyuyo_shotoku_prev' => true,
+                'shotoku_zatsu_nenkin_shotoku_prev' => true,
+                'shotoku_zatsu_gyomu_shotoku_prev' => true,
+                'shotoku_zatsu_sonota_shotoku_prev' => true,
+            ];
+
+            foreach ($keijoSources as $key => $nonNegative) {
+                $value = $lookup([$key]);
+                if ($value === null) {
+                    continue;
+                }
+
+                $amount = $value;
+                if ($nonNegative) {
+                    $amount = max(0, $amount);
+                }
+
+                $tsusanmaeKeijoPrev += $amount;
+            }
+        }
+
+        if ($tsusanmaeKeijoPrev !== null) {
+            $inputsForView['tsusanmae_keijo_prev'] = $tsusanmaeKeijoPrev;
         }
 
         return $inputsForView;

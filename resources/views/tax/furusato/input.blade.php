@@ -136,6 +136,7 @@
                 'bunri_shotoku_jojo_kabuteki_haito',
                 'bunri_shotoku_sakimono',
                 'bunri_shotoku_sanrin',
+                'bunri_shotoku_taishoku',
                 'bunri_kazeishotoku_tanki',
                 'bunri_kazeishotoku_choki',
                 'syunyu_ichiji',
@@ -143,6 +144,7 @@
                 'shotoku_fudosan',
                 'shotoku_joto_ichiji',
                 'shotoku_gokei',
+                'bunri_sogo_gokeigaku',
                 'kojo_seimei',
                 'kojo_jishin',
                 'kojo_shokei',
@@ -164,6 +166,7 @@
                 'tax_kijun',
                 'tax_fukkou',
                 'tax_gokei',
+                'tax_kazeishotoku',
             ], true);
             $kojoFieldOverrides = [
                 'kojo_kiso' => [

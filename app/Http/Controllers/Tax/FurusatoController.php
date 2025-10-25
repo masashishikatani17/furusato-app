@@ -484,6 +484,14 @@ final class FurusatoController extends Controller
             }
         };
 
+        $hasResult = function (string $key) use ($resultUpper): bool {
+            if (! array_key_exists($key, $resultUpper)) {
+                return false;
+            }
+
+            return $this->toNullableInt($resultUpper[$key]) !== null;
+        };
+
         foreach (['prev', 'curr'] as $period) {
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
@@ -686,32 +694,107 @@ final class FurusatoController extends Controller
                 sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period),
             ];
 
+            $bunriResultsAvailable = true;
             foreach ($bunriKeys as $key) {
-                $inputsForView[$key] = 0;
                 $assign($key, [$key]);
+
+                if (! $hasResult($key) && ! array_key_exists($key, $inputsForView)) {
+                    $bunriResultsAvailable = false;
+                }
             }
 
             $shotokuKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
             $juminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
 
+            $assign($shotokuKey, [$shotokuKey]);
+            $assign($juminKey, [$juminKey]);
+
+            $hasShotokuResult = $hasResult($shotokuKey);
+            $hasJuminResult = $hasResult($juminKey);
+
             if ($isSeparated) {
-                $separatedSum =
-                    $this->valueOrZero($lookup([sprintf('after_3jitsusan_joto_tanki_%s', $period)])) +
-                    $this->valueOrZero($lookup([
+                if (! $bunriResultsAvailable) {
+                    $after3Short = $this->valueOrZero($lookup([
+                        sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period),
+                        sprintf('after_3jitsusan_joto_tanki_%s', $period),
+                    ]));
+                    $after3Long = $this->valueOrZero($lookup([
                         sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
                         sprintf('after_3jitsusan_joto_choki_%s', $period),
-                    ])) +
-                    $this->valueOrZero($lookup([sprintf('after_3jitsusan_ichiji_%s', $period)])) +
-                    $this->valueOrZero($lookup([sprintf('after_3jitsusan_sanrin_%s', $period)])) +
-                    $this->valueOrZero($lookup([sprintf('after_3jitsusan_taishoku_%s', $period)]));
+                    ]));
+                    $after3Ichiji = $this->valueOrZero($lookup([sprintf('after_3jitsusan_ichiji_%s', $period)]));
+                    $after3Sanrin = $this->valueOrZero($lookup([sprintf('after_3jitsusan_sanrin_%s', $period)]));
+                    $after3Taishoku = $this->valueOrZero($lookup([sprintf('after_3jitsusan_taishoku_%s', $period)]));
 
-                $inputsForView[sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period)] = $separatedSum;
-                $inputsForView[sprintf('bunri_sogo_gokeigaku_jumin_%s', $period)] = $separatedSum;
+                    $separatedSum = $after3Short + $after3Long + $after3Ichiji + $after3Sanrin + $after3Taishoku;
 
-                foreach (['shotoku', 'jumin'] as $kind) {
-                    $key = sprintf('tax_kazeishotoku_%s_%s', $kind, $period);
-                    $inputsForView[$key] = 0;
-                    $assign($key, [$key]);
+                    $bunriShotokuKey = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
+                    $bunriJuminKey = sprintf('bunri_sogo_gokeigaku_jumin_%s', $period);
+
+                    if (! array_key_exists($bunriShotokuKey, $inputsForView)) {
+                        $inputsForView[$bunriShotokuKey] = $separatedSum;
+                    }
+
+                    if (! array_key_exists($bunriJuminKey, $inputsForView)) {
+                        $inputsForView[$bunriJuminKey] = $separatedSum;
+                    }
+
+                    $kojoShotoku = $this->valueOrZero($lookup([
+                        sprintf('kojo_gokei_shotoku_%s', $period),
+                    ]));
+                    $kojoJumin = $this->valueOrZero($lookup([
+                        sprintf('kojo_gokei_jumin_%s', $period),
+                    ]));
+
+                    $bunriSashihikiShotoku = min($kojoShotoku, $separatedSum);
+                    $bunriSashihikiJumin = min($kojoJumin, $separatedSum);
+                    $bunriKazeishotokuShotoku = $this->floorToThousands(max(0, $separatedSum - $bunriSashihikiShotoku));
+                    $bunriKazeishotokuJumin = $this->floorToThousands(max(0, $separatedSum - $bunriSashihikiJumin));
+
+                    $bunriSashihikiShotokuKey = sprintf('bunri_sashihiki_gokei_shotoku_%s', $period);
+                    $bunriSashihikiJuminKey = sprintf('bunri_sashihiki_gokei_jumin_%s', $period);
+                    $bunriKazeiShotokuKey = sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period);
+                    $bunriKazeiJuminKey = sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period);
+
+                    foreach ([
+                        $bunriSashihikiShotokuKey => $bunriSashihikiShotoku,
+                        $bunriSashihikiJuminKey => $bunriSashihikiJumin,
+                        $bunriKazeiShotokuKey => $bunriKazeishotokuShotoku,
+                        $bunriKazeiJuminKey => $bunriKazeishotokuJumin,
+                    ] as $key => $value) {
+                        if (! array_key_exists($key, $inputsForView)) {
+                            $inputsForView[$key] = $value;
+                        }
+                    }
+
+                    if (! $hasJuminResult && ! array_key_exists($juminKey, $inputsForView)) {
+                        $inputsForView[$juminKey] = $bunriKazeishotokuJumin;
+                    }
+                }
+
+                if (! $hasShotokuResult && ! array_key_exists($shotokuKey, $inputsForView)) {
+                    $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
+                    $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
+                    $shotokuJotoChoki = $this->valueOrZero($lookup([
+                        sprintf('shotoku_joto_choki_sogo_%s', $period),
+                        sprintf('shotoku_joto_choki_%s', $period),
+                    ]));
+                    $shotokuIchiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)]));
+                    $kojoShotoku = $this->valueOrZero($lookup([
+                        sprintf('kojo_gokei_shotoku_%s', $period),
+                    ]));
+
+                    $sumShotoku = $shotokuKeijo + $shotokuJotoTanki + $shotokuJotoChoki + $shotokuIchiji;
+                    $roundedShotoku = $this->floorToThousands(max(0, $sumShotoku - $kojoShotoku));
+
+                    $inputsForView[$shotokuKey] = $roundedShotoku;
+                }
+
+                if (! $hasJuminResult && ! array_key_exists($juminKey, $inputsForView)) {
+                    $bunriKazeiJuminKey = sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period);
+                    if (array_key_exists($bunriKazeiJuminKey, $inputsForView)) {
+                        $inputsForView[$juminKey] = $this->valueOrZero($inputsForView[$bunriKazeiJuminKey]);
+                    }
                 }
 
                 continue;
@@ -739,8 +822,13 @@ final class FurusatoController extends Controller
             $roundedShotoku = $this->floorToThousands(max(0, $sumShotoku - $shotokuKojo));
             $roundedJumin = $this->floorToThousands(max(0, $sumShotoku - $juminKojo));
 
-            $inputsForView[$shotokuKey] = $lookup([$shotokuKey]) ?? $roundedShotoku;
-            $inputsForView[$juminKey] = $lookup([$juminKey]) ?? $roundedJumin;
+            if (! $hasShotokuResult && ! array_key_exists($shotokuKey, $inputsForView)) {
+                $inputsForView[$shotokuKey] = $roundedShotoku;
+            }
+
+            if (! $hasJuminResult && ! array_key_exists($juminKey, $inputsForView)) {
+                $inputsForView[$juminKey] = $roundedJumin;
+            }
         }
 
         foreach (['prev', 'curr'] as $period) {

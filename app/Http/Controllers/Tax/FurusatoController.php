@@ -493,6 +493,15 @@ final class FurusatoController extends Controller
         };
 
         foreach (['prev', 'curr'] as $period) {
+            foreach ([
+                sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period),
+                sprintf('bunri_sogo_gokeigaku_jumin_%s', $period),
+            ] as $key) {
+                if (! array_key_exists($key, $inputsForView)) {
+                    $inputsForView[$key] = 0;
+                }
+            }
+
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
             $mirrorMany(
@@ -698,7 +707,7 @@ final class FurusatoController extends Controller
             foreach ($bunriKeys as $key) {
                 $assign($key, [$key]);
 
-                if (! $hasResult($key) && ! array_key_exists($key, $inputsForView)) {
+                if (! $hasResult($key) && $lookup([$key]) === null) {
                     $bunriResultsAvailable = false;
                 }
             }
@@ -731,13 +740,9 @@ final class FurusatoController extends Controller
                     $bunriShotokuKey = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
                     $bunriJuminKey = sprintf('bunri_sogo_gokeigaku_jumin_%s', $period);
 
-                    if (! array_key_exists($bunriShotokuKey, $inputsForView)) {
-                        $inputsForView[$bunriShotokuKey] = $separatedSum;
-                    }
+                    $inputsForView[$bunriShotokuKey] = $separatedSum;
 
-                    if (! array_key_exists($bunriJuminKey, $inputsForView)) {
-                        $inputsForView[$bunriJuminKey] = $separatedSum;
-                    }
+                    $inputsForView[$bunriJuminKey] = $separatedSum;
 
                     $kojoShotoku = $this->valueOrZero($lookup([
                         sprintf('kojo_gokei_shotoku_%s', $period),

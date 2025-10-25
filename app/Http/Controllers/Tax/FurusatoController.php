@@ -504,6 +504,32 @@ final class FurusatoController extends Controller
                 }
             }
 
+            $assign(
+                sprintf('tsusango_joto_tanki_%s', $period),
+                [
+                    sprintf('tsusango_joto_tanki_%s', $period),
+                    sprintf('after_3jitsusan_joto_tanki_%s', $period),
+                ],
+            );
+
+            $assign(
+                sprintf('tsusango_joto_choki_%s', $period),
+                [
+                    sprintf('tsusango_joto_choki_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_%s', $period),
+                ],
+            );
+
+            $assign(
+                sprintf('tsusango_ichiji_%s', $period),
+                [
+                    sprintf('tsusango_ichiji_%s', $period),
+                    sprintf('after_3jitsusan_ichiji_%s', $period),
+                ],
+                static fn ($v) => max(0, (int) $v),
+            );
+
             $bunriShotokuKey = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
             $bunriJuminKey = sprintf('bunri_sogo_gokeigaku_jumin_%s', $period);
 
@@ -528,16 +554,7 @@ final class FurusatoController extends Controller
 
                 continue;
             }
-
-            $assign(
-                sprintf('tsusango_ichiji_%s', $period),
-                [
-                    sprintf('tsusango_ichiji_%s', $period),
-                    sprintf('after_3jitsusan_ichiji_%s', $period),
-                ],
-                static fn ($v) => max(0, (int) $v),
-            );
-
+            
             $mirrorMany(
                 [
                     sprintf('syunyu_joto_tanki_shotoku_%s', $period),
@@ -570,25 +587,10 @@ final class FurusatoController extends Controller
             );
 
             $assign(
-                sprintf('tsusango_joto_tanki_%s', $period),
-                [
-                    sprintf('after_3jitsusan_joto_tanki_%s', $period),
-                    sprintf('tsusango_joto_tanki_%s', $period),
-                ],
-            );
-            $assign(
                 sprintf('tsusango_joto_choki_sogo_%s', $period),
                 [
                     sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
                     sprintf('tsusango_joto_choki_sogo_%s', $period),
-                ],
-            );
-            $assign(
-                sprintf('tsusango_joto_choki_%s', $period),
-                [
-                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
-                    sprintf('after_3jitsusan_joto_choki_%s', $period),
-                    sprintf('tsusango_joto_choki_%s', $period),
                 ],
             );
             $assign(

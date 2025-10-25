@@ -502,6 +502,9 @@ final class FurusatoController extends Controller
                 }
             }
 
+            $bunriShotokuKey = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
+            $bunriJuminKey = sprintf('bunri_sogo_gokeigaku_jumin_%s', $period);
+
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
             if (! $isSeparated) {
@@ -533,6 +536,33 @@ final class FurusatoController extends Controller
                 $keyJumin = sprintf('tax_kazeishotoku_jumin_%s', $period);
                 if (! array_key_exists($keyJumin, $inputsForView)) {
                     $inputsForView[$keyJumin] = $lookup([$keyJumin]) ?? $roundedJumin;
+                }
+            }
+
+            if ($isSeparated) {
+                $hasServer = $lookup([$bunriShotokuKey]) !== null
+                    || $lookup([$bunriJuminKey]) !== null;
+
+                if (! $hasServer) {
+                    $V = function (string $name) use ($lookup): int {
+                        $value = $lookup([$name]);
+
+                        return $this->valueOrZero($value);
+                    };
+
+                    $long = $this->valueOrZero($lookup([
+                        sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                        sprintf('after_3jitsusan_joto_choki_%s', $period),
+                    ]));
+
+                    $sum = $V(sprintf('after_3jitsusan_joto_tanki_%s', $period))
+                        + $long
+                        + $V(sprintf('after_3jitsusan_ichiji_%s', $period))
+                        + $V(sprintf('after_3jitsusan_sanrin_%s', $period))
+                        + $V(sprintf('after_3jitsusan_taishoku_%s', $period));
+
+                    $inputsForView[$bunriShotokuKey] = $sum;
+                    $inputsForView[$bunriJuminKey] = $sum;
                 }
             }
 

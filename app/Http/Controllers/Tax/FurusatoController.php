@@ -504,6 +504,38 @@ final class FurusatoController extends Controller
 
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
+            if (! $isSeparated) {
+                $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
+                $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
+                $shotokuJotoChoki = $this->valueOrZero($lookup([
+                    sprintf('shotoku_joto_choki_sogo_%s', $period),
+                    sprintf('shotoku_joto_choki_%s', $period),
+                ]));
+                $shotokuIchiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)]));
+
+                $ichijiNonNeg = max(0, $shotokuIchiji);
+                $sumS = $shotokuKeijo + $shotokuJotoTanki + $shotokuJotoChoki + $ichijiNonNeg;
+
+                $kojoShotoku = $this->valueOrZero($lookup([sprintf('kojo_gokei_shotoku_%s', $period)]));
+                $kojoJumin = $this->valueOrZero($lookup([
+                    sprintf('kojo_gokei_jumin_%s', $period),
+                    sprintf('kojo_gokei_shotoku_%s', $period),
+                ]));
+
+                $roundedShotoku = $this->floorToThousands(max(0, $sumS - $kojoShotoku));
+                $roundedJumin = $this->floorToThousands(max(0, $sumS - $kojoJumin));
+
+                $keyShotoku = sprintf('tax_kazeishotoku_shotoku_%s', $period);
+                if (! array_key_exists($keyShotoku, $inputsForView)) {
+                    $inputsForView[$keyShotoku] = $lookup([$keyShotoku]) ?? $roundedShotoku;
+                }
+
+                $keyJumin = sprintf('tax_kazeishotoku_jumin_%s', $period);
+                if (! array_key_exists($keyJumin, $inputsForView)) {
+                    $inputsForView[$keyJumin] = $lookup([$keyJumin]) ?? $roundedJumin;
+                }
+            }
+
             $mirrorMany(
                 [
                     sprintf('syunyu_joto_tanki_shotoku_%s', $period),

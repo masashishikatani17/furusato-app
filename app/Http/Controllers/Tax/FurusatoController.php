@@ -560,9 +560,10 @@ final class FurusatoController extends Controller
             $assign(
                 sprintf('tsusango_ichiji_%s', $period),
                 [
-                    sprintf('after_3jitsusan_ichiji_%s', $period),
                     sprintf('tsusango_ichiji_%s', $period),
+                    sprintf('after_3jitsusan_ichiji_%s', $period),
                 ],
+                static fn ($v) => max(0, (int) $v),
             );
 
             $assign(

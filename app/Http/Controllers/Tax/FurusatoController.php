@@ -509,7 +509,7 @@ final class FurusatoController extends Controller
 
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
-            if (! $isSeparated && $mirrorFallbackEnabled) {
+            if (! $isSeparated) {
                 $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
                 $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
                 $shotokuJotoChoki = $this->valueOrZero($lookup([
@@ -527,17 +527,17 @@ final class FurusatoController extends Controller
                     sprintf('kojo_gokei_shotoku_%s', $period),
                 ]));
 
-                $roundedShotoku = $this->floorToThousands(max(0, $sumS - $kojoShotoku));
-                $roundedJumin = $this->floorToThousands(max(0, $sumS - $kojoJumin));
+                $taxShotoku = $this->floorToThousands(max(0, $sumS - $kojoShotoku));
+                $taxJumin = $this->floorToThousands(max(0, $sumS - $kojoJumin));
 
                 $keyShotoku = sprintf('tax_kazeishotoku_shotoku_%s', $period);
                 if (! array_key_exists($keyShotoku, $inputsForView)) {
-                    $inputsForView[$keyShotoku] = $lookup([$keyShotoku]) ?? $roundedShotoku;
+                    $inputsForView[$keyShotoku] = $lookup([$keyShotoku]) ?? $taxShotoku;
                 }
 
                 $keyJumin = sprintf('tax_kazeishotoku_jumin_%s', $period);
                 if (! array_key_exists($keyJumin, $inputsForView)) {
-                    $inputsForView[$keyJumin] = $lookup([$keyJumin]) ?? $roundedJumin;
+                    $inputsForView[$keyJumin] = $lookup([$keyJumin]) ?? $taxJumin;
                 }
             }
 

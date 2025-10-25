@@ -41,6 +41,11 @@ return [
 
     'debug' => (bool) env('APP_DEBUG', false),
 
+    'furusato_mirror_fallback' => filter_var(
+        env('FURUSATO_MIRROR_FALLBACK', false),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
     /*
     |--------------------------------------------------------------------------
     | Application URL

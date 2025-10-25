@@ -11,6 +11,7 @@ use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\DetailsSourceAliasCalculator;
 use App\Domain\Tax\Calculators\ResultToDetailsAliasCalculator;
+use App\Domain\Tax\Calculators\TaxBaseMirrorCalculator;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\Kojo\HaigushaKojoService;
 use App\Services\Tax\Kojo\JintekiKojoService;
@@ -55,6 +56,7 @@ final class ServicesProvideKeysTest extends TestCase
             app(BunriNettingCalculator::class),
             app(BunriKabutekiNettingCalculator::class),
             app(ResultToDetailsAliasCalculator::class),
+            app(TaxBaseMirrorCalculator::class),
         ];
 
         foreach ($services as $service) {
@@ -62,6 +64,45 @@ final class ServicesProvideKeysTest extends TestCase
             foreach ($service::provides() as $key) {
                 $this->assertArrayHasKey($key, $payload, sprintf('Failed asserting that %s populates %s', $service::class, $key));
             }
+        }
+    }
+
+    #[Test]
+    public function tax_base_mirror_calculator_provides_all_expected_keys(): void
+    {
+        $provided = TaxBaseMirrorCalculator::provides();
+
+        $expected = [];
+        foreach (['prev', 'curr'] as $period) {
+            foreach ([
+                'tsusanmae_joto_tanki_sogo_%s',
+                'tsusanmae_joto_choki_sogo_%s',
+                'tsusanmae_ichiji_%s',
+                'shotoku_keijo_%s',
+                'shotoku_joto_tanki_%s',
+                'shotoku_joto_choki_sogo_%s',
+                'shotoku_ichiji_%s',
+                'shotoku_sanrin_%s',
+                'shotoku_taishoku_%s',
+                'shotoku_joto_ichiji_shotoku_%s',
+                'shotoku_joto_ichiji_jumin_%s',
+                'tax_kazeishotoku_shotoku_%s',
+                'tax_kazeishotoku_jumin_%s',
+                'bunri_sogo_gokeigaku_shotoku_%s',
+                'bunri_sogo_gokeigaku_jumin_%s',
+                'bunri_sashihiki_gokei_shotoku_%s',
+                'bunri_sashihiki_gokei_jumin_%s',
+                'bunri_kazeishotoku_sogo_shotoku_%s',
+                'bunri_kazeishotoku_sogo_jumin_%s',
+                'tokurei_kojo_sanrin_%s',
+                'after_2jitsusan_taishoku_%s',
+            ] as $format) {
+                $expected[] = sprintf($format, $period);
+            }
+        }
+
+        foreach ($expected as $key) {
+            $this->assertContains($key, $provided, sprintf('TaxBaseMirrorCalculator::provides is missing %s', $key));
         }
     }
 }

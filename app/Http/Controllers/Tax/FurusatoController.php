@@ -761,6 +761,28 @@ final class FurusatoController extends Controller
 
             if ($resultUpper === []) {
                 if ($isSeparated) {
+                    $bunriShotokuKey = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
+                    $bunriJuminKey = sprintf('bunri_sogo_gokeigaku_jumin_%s', $period);
+
+                    $hasBunriSum = $lookup([$bunriShotokuKey]) !== null
+                        || $lookup([$bunriJuminKey]) !== null;
+
+                    if (! $hasBunriSum) {
+                        $valueOrZero = fn (string $name): int => $this->valueOrZero($lookup([$name]));
+
+                        $sum = $valueOrZero(sprintf('after_3jitsusan_joto_tanki_%s', $period))
+                            + $this->valueOrZero($lookup([
+                                sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                                sprintf('after_3jitsusan_joto_choki_%s', $period),
+                            ]))
+                            + $valueOrZero(sprintf('after_3jitsusan_ichiji_%s', $period))
+                            + $valueOrZero(sprintf('after_3jitsusan_sanrin_%s', $period))
+                            + $valueOrZero(sprintf('after_3jitsusan_taishoku_%s', $period));
+
+                        $inputsForView[$bunriShotokuKey] = $sum;
+                        $inputsForView[$bunriJuminKey] = $sum;
+                    }
+
                     if (! $bunriResultsAvailable) {
                         $after3Short = $this->valueOrZero($lookup([
                             sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period),

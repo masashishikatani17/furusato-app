@@ -504,6 +504,29 @@ final class FurusatoController extends Controller
                 }
             }
 
+            $kShot = sprintf('bunri_shotoku_taishoku_shotoku_%s', $period);
+            $kJmn = sprintf('bunri_shotoku_taishoku_jumin_%s', $period);
+
+            $srcServerShot = $lookup([$kShot]);
+            $srcServerJmn = $lookup([$kJmn]);
+
+            $srcTaishoku = $lookup([sprintf('shotoku_taishoku_%s', $period)])
+                ?? $lookup([sprintf('after_2jitsusan_taishoku_%s', $period)])
+                ?? 0;
+            $srcTaishoku = $this->valueOrZero($srcTaishoku);
+
+            if (! array_key_exists($kShot, $inputsForView)) {
+                $inputsForView[$kShot] = $srcServerShot !== null
+                    ? $this->valueOrZero($srcServerShot)
+                    : $srcTaishoku;
+            }
+
+            if (! array_key_exists($kJmn, $inputsForView)) {
+                $inputsForView[$kJmn] = $srcServerJmn !== null
+                    ? $this->valueOrZero($srcServerJmn)
+                    : $srcTaishoku;
+            }
+
             $shotokuTanki = $this->valueOrZero($lookup([
                 sprintf('shotoku_joto_tanki_%s', $period),
                 sprintf('after_3jitsusan_joto_tanki_%s', $period),
@@ -757,9 +780,6 @@ final class FurusatoController extends Controller
             $assign(sprintf('shotoku_ichiji_%s', $period), [sprintf('shotoku_ichiji_%s', $period)]);
             $assign(sprintf('shotoku_taishoku_%s', $period), [sprintf('shotoku_taishoku_%s', $period)]);
 
-            $taishoku = $lookup([sprintf('shotoku_taishoku_%s', $period)]) ?? 0;
-            $inputsForView[sprintf('bunri_shotoku_taishoku_shotoku_%s', $period)] = $taishoku;
-            $inputsForView[sprintf('bunri_shotoku_taishoku_jumin_%s', $period)] = $taishoku;
             $assign(
                 sprintf('after_2jitsusan_taishoku_%s', $period),
                 [

@@ -509,37 +509,14 @@ final class FurusatoController extends Controller
 
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
-            if (! $isSeparated) {
-                $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
-                $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
-                $shotokuJotoChoki = $this->valueOrZero($lookup([
-                    sprintf('shotoku_joto_choki_sogo_%s', $period),
-                    sprintf('shotoku_joto_choki_%s', $period),
-                ]));
-                $shotokuIchiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)]));
-
-                $ichijiNonNeg = max(0, $shotokuIchiji);
-                $sumS = $shotokuKeijo + $shotokuJotoTanki + $shotokuJotoChoki + $ichijiNonNeg;
-
-                $kojoShotoku = $this->valueOrZero($lookup([sprintf('kojo_gokei_shotoku_%s', $period)]));
-                $kojoJumin = $this->valueOrZero($lookup([
-                    sprintf('kojo_gokei_jumin_%s', $period),
-                    sprintf('kojo_gokei_shotoku_%s', $period),
-                ]));
-
-                $taxShotoku = $this->floorToThousands(max(0, $sumS - $kojoShotoku));
-                $taxJumin = $this->floorToThousands(max(0, $sumS - $kojoJumin));
-
-                $keyShotoku = sprintf('tax_kazeishotoku_shotoku_%s', $period);
-                if (! array_key_exists($keyShotoku, $inputsForView)) {
-                    $inputsForView[$keyShotoku] = $lookup([$keyShotoku]) ?? $taxShotoku;
-                }
-
-                $keyJumin = sprintf('tax_kazeishotoku_jumin_%s', $period);
-                if (! array_key_exists($keyJumin, $inputsForView)) {
-                    $inputsForView[$keyJumin] = $lookup([$keyJumin]) ?? $taxJumin;
-                }
-            }
+            $assign(
+                sprintf('tsusango_ichiji_%s', $period),
+                [
+                    sprintf('tsusango_ichiji_%s', $period),
+                    sprintf('after_3jitsusan_ichiji_%s', $period),
+                ],
+                static fn ($v) => max(0, (int) $v),
+            );
 
             if ($isSeparated && $mirrorFallbackEnabled) {
                 $hasServer = $lookup([$bunriShotokuKey]) !== null
@@ -621,15 +598,6 @@ final class FurusatoController extends Controller
                     sprintf('tsusango_joto_choki_%s', $period),
                 ],
             );
-            $assign(
-                sprintf('tsusango_ichiji_%s', $period),
-                [
-                    sprintf('tsusango_ichiji_%s', $period),
-                    sprintf('after_3jitsusan_ichiji_%s', $period),
-                ],
-                static fn ($v) => max(0, (int) $v),
-            );
-
             $assign(
                 sprintf('tokubetsukojo_joto_tanki_%s', $period),
                 [sprintf('tokubetsukojo_joto_tanki_%s', $period)],
@@ -779,8 +747,13 @@ final class FurusatoController extends Controller
             $shotokuKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
             $juminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
 
-            $assign($shotokuKey, [$shotokuKey]);
-            $assign($juminKey, [$juminKey]);
+            if (! array_key_exists($shotokuKey, $inputsForView)) {
+                $assign($shotokuKey, [$shotokuKey]);
+            }
+
+            if (! array_key_exists($juminKey, $inputsForView)) {
+                $assign($juminKey, [$juminKey]);
+            }
 
             $hasShotokuResult = $hasResult($shotokuKey);
             $hasJuminResult = $hasResult($juminKey);
@@ -949,6 +922,40 @@ final class FurusatoController extends Controller
                 if (! array_key_exists($sumJuminKey, $inputsForView)) {
                     $inputsForView[$sumJuminKey] = $sumShotoku;
                 }
+            }
+
+            if ($isSeparated) {
+                continue;
+            }
+
+            $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
+            $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
+            $shotokuJotoChoki = $this->valueOrZero($lookup([
+                sprintf('shotoku_joto_choki_sogo_%s', $period),
+                sprintf('shotoku_joto_choki_%s', $period),
+            ]));
+            $shotokuIchiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)]));
+
+            $ichijiNonNeg = max(0, $shotokuIchiji);
+            $sumS = $shotokuKeijo + $shotokuJotoTanki + $shotokuJotoChoki + $ichijiNonNeg;
+
+            $kojoShotoku = $this->valueOrZero($lookup([sprintf('kojo_gokei_shotoku_%s', $period)]));
+            $kojoJumin = $this->valueOrZero($lookup([
+                sprintf('kojo_gokei_jumin_%s', $period),
+                sprintf('kojo_gokei_shotoku_%s', $period),
+            ]));
+
+            $taxShotoku = $this->floorToThousands(max(0, $sumS - $kojoShotoku));
+            $taxJumin = $this->floorToThousands(max(0, $sumS - $kojoJumin));
+
+            $keyShotoku = sprintf('tax_kazeishotoku_shotoku_%s', $period);
+            if (! array_key_exists($keyShotoku, $inputsForView)) {
+                $inputsForView[$keyShotoku] = $lookup([$keyShotoku]) ?? $taxShotoku;
+            }
+
+            $keyJumin = sprintf('tax_kazeishotoku_jumin_%s', $period);
+            if (! array_key_exists($keyJumin, $inputsForView)) {
+                $inputsForView[$keyJumin] = $lookup([$keyJumin]) ?? $taxJumin;
             }
         }
 

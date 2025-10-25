@@ -492,6 +492,8 @@ final class FurusatoController extends Controller
             return $this->toNullableInt($resultUpper[$key]) !== null;
         };
 
+        $mirrorFallbackEnabled = (bool) config('app.furusato_mirror_fallback');
+
         foreach (['prev', 'curr'] as $period) {
             foreach ([
                 sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period),
@@ -507,7 +509,7 @@ final class FurusatoController extends Controller
 
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
-            if (! $isSeparated) {
+            if (! $isSeparated && $mirrorFallbackEnabled) {
                 $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
                 $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
                 $shotokuJotoChoki = $this->valueOrZero($lookup([
@@ -539,7 +541,7 @@ final class FurusatoController extends Controller
                 }
             }
 
-            if ($isSeparated) {
+            if ($isSeparated && $mirrorFallbackEnabled) {
                 $hasServer = $lookup([$bunriShotokuKey]) !== null
                     || $lookup([$bunriJuminKey]) !== null;
 
@@ -789,7 +791,7 @@ final class FurusatoController extends Controller
             $assign($sumShotokuKey, [$sumShotokuKey]);
             $assign($sumJuminKey, [$sumJuminKey]);
 
-            if ($resultUpper === []) {
+            if ($mirrorFallbackEnabled && $resultUpper === []) {
                 if ($isSeparated) {
                     $bunriShotokuKey = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
                     $bunriJuminKey = sprintf('bunri_sogo_gokeigaku_jumin_%s', $period);

@@ -695,6 +695,19 @@ final class FurusatoController extends Controller
             $juminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
 
             if ($isSeparated) {
+                $separatedSum =
+                    $this->valueOrZero($lookup([sprintf('after_3jitsusan_joto_tanki_%s', $period)])) +
+                    $this->valueOrZero($lookup([
+                        sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                        sprintf('after_3jitsusan_joto_choki_%s', $period),
+                    ])) +
+                    $this->valueOrZero($lookup([sprintf('after_3jitsusan_ichiji_%s', $period)])) +
+                    $this->valueOrZero($lookup([sprintf('after_3jitsusan_sanrin_%s', $period)])) +
+                    $this->valueOrZero($lookup([sprintf('after_3jitsusan_taishoku_%s', $period)]));
+
+                $inputsForView[sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period)] = $separatedSum;
+                $inputsForView[sprintf('bunri_sogo_gokeigaku_jumin_%s', $period)] = $separatedSum;
+
                 foreach (['shotoku', 'jumin'] as $kind) {
                     $key = sprintf('tax_kazeishotoku_%s_%s', $kind, $period);
                     $inputsForView[$key] = 0;

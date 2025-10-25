@@ -596,6 +596,27 @@ final class FurusatoController extends Controller
                 $inputsForView[$bunriShotokuKey] = $separatedSum;
                 $inputsForView[$bunriJuminKey] = $separatedSum;
 
+                $shotokuTaxKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
+                if (! array_key_exists($shotokuTaxKey, $inputsForView)) {
+                    $source = $lookup([$shotokuTaxKey])
+                        ?? $lookup([sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)]);
+
+                    if ($source !== null) {
+                        $inputsForView[$shotokuTaxKey] = $this->floorToThousands((int) $source);
+                    }
+                }
+
+                $juminTaxKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
+                if (! array_key_exists($juminTaxKey, $inputsForView)) {
+                    $source = $lookup([$juminTaxKey])
+                        ?? $lookup([sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period)])
+                        ?? $lookup([sprintf('kazeisoushotoku_%s', $period)]);
+
+                    if ($source !== null) {
+                        $inputsForView[$juminTaxKey] = $this->floorToThousands((int) $source);
+                    }
+                }
+
                 continue;
             }
             

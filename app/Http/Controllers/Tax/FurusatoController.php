@@ -504,6 +504,50 @@ final class FurusatoController extends Controller
                 }
             }
 
+            $shotokuTanki = $this->valueOrZero($lookup([
+                sprintf('shotoku_joto_tanki_%s', $period),
+                sprintf('after_3jitsusan_joto_tanki_%s', $period),
+            ]));
+
+            $shotokuChoki = $lookup([
+                sprintf('shotoku_joto_choki_sogo_%s', $period),
+                sprintf('shotoku_joto_choki_%s', $period),
+            ]);
+
+            if ($shotokuChoki === null) {
+                $after3Long = $lookup([sprintf('after_3jitsusan_joto_choki_%s', $period)]);
+                if ($after3Long !== null) {
+                    $shotokuChoki = intdiv($this->valueOrZero($after3Long), 2);
+                }
+            }
+
+            $shotokuChoki = $this->valueOrZero($shotokuChoki);
+
+            $shotokuIchiji = $lookup([sprintf('shotoku_ichiji_%s', $period)]);
+
+            if ($shotokuIchiji === null) {
+                $after3Ichiji = $lookup([sprintf('after_3jitsusan_ichiji_%s', $period)]);
+                if ($after3Ichiji !== null) {
+                    $shotokuIchiji = intdiv($this->valueOrZero($after3Ichiji), 2);
+                }
+            }
+
+            $shotokuIchiji = $this->valueOrZero($shotokuIchiji);
+
+            $sumShotoku = (int) $shotokuTanki + (int) $shotokuChoki + (int) $shotokuIchiji;
+
+            $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
+            if (! array_key_exists($sumShotokuKey, $inputsForView) || $inputsForView[$sumShotokuKey] === null || $inputsForView[$sumShotokuKey] === '') {
+                $sumShotokuValue = $lookup([$sumShotokuKey]);
+                $inputsForView[$sumShotokuKey] = $sumShotokuValue !== null ? (int) $sumShotokuValue : (int) $sumShotoku;
+            }
+
+            $sumJuminKey = sprintf('shotoku_joto_ichiji_jumin_%s', $period);
+            if (! array_key_exists($sumJuminKey, $inputsForView) || $inputsForView[$sumJuminKey] === null || $inputsForView[$sumJuminKey] === '') {
+                $sumJuminValue = $lookup([$sumJuminKey]);
+                $inputsForView[$sumJuminKey] = $sumJuminValue !== null ? (int) $sumJuminValue : (int) $sumShotoku;
+            }
+
             $assign(
                 sprintf('tsusango_joto_tanki_%s', $period),
                 [
@@ -702,24 +746,6 @@ final class FurusatoController extends Controller
                     sprintf('bunri_shotoku_taishoku_shotoku_%s', $period),
                 ],
             );
-
-            $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
-            $sumShotokuPayload = $lookup([$sumShotokuKey]);
-            if ($sumShotokuPayload !== null) {
-                $sumJotoIchiji = $this->valueOrZero($sumShotokuPayload);
-            } else {
-                $sumJotoIchiji = 0;
-                foreach (['shotoku_joto_tanki_', 'shotoku_joto_choki_', 'shotoku_ichiji_'] as $prefix) {
-                    $sumJotoIchiji += (int) ($inputsForView[$prefix . $period] ?? 0);
-                }
-            }
-            $inputsForView[$sumShotokuKey] = $sumJotoIchiji;
-
-            $sumJuminKey = sprintf('shotoku_joto_ichiji_jumin_%s', $period);
-            $sumJuminPayload = $lookup([$sumJuminKey]);
-            $inputsForView[$sumJuminKey] = $sumJuminPayload !== null
-                ? $this->valueOrZero($sumJuminPayload)
-                : $sumJotoIchiji;
 
             $bunriKeys = [
                 sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period),

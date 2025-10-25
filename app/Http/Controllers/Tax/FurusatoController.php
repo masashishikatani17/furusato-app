@@ -509,6 +509,26 @@ final class FurusatoController extends Controller
 
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
+            if ($isSeparated) {
+                $V = fn (string $name): int => $this->valueOrZero($lookup([$name]));
+                $long = $this->valueOrZero($lookup([
+                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_%s', $period),
+                ]));
+
+                $separatedSum =
+                    $V(sprintf('after_3jitsusan_joto_tanki_%s', $period)) +
+                    $long +
+                    $V(sprintf('after_3jitsusan_ichiji_%s', $period)) +
+                    $V(sprintf('after_3jitsusan_sanrin_%s', $period)) +
+                    $V(sprintf('after_3jitsusan_taishoku_%s', $period));
+
+                $inputsForView[$bunriShotokuKey] = $separatedSum;
+                $inputsForView[$bunriJuminKey] = $separatedSum;
+
+                continue;
+            }
+
             $assign(
                 sprintf('tsusango_ichiji_%s', $period),
                 [
@@ -517,33 +537,6 @@ final class FurusatoController extends Controller
                 ],
                 static fn ($v) => max(0, (int) $v),
             );
-
-            if ($isSeparated && $mirrorFallbackEnabled) {
-                $hasServer = $lookup([$bunriShotokuKey]) !== null
-                    || $lookup([$bunriJuminKey]) !== null;
-
-                if (! $hasServer) {
-                    $V = function (string $name) use ($lookup): int {
-                        $value = $lookup([$name]);
-
-                        return $this->valueOrZero($value);
-                    };
-
-                    $long = $this->valueOrZero($lookup([
-                        sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
-                        sprintf('after_3jitsusan_joto_choki_%s', $period),
-                    ]));
-
-                    $sum = $V(sprintf('after_3jitsusan_joto_tanki_%s', $period))
-                        + $long
-                        + $V(sprintf('after_3jitsusan_ichiji_%s', $period))
-                        + $V(sprintf('after_3jitsusan_sanrin_%s', $period))
-                        + $V(sprintf('after_3jitsusan_taishoku_%s', $period));
-
-                    $inputsForView[$bunriShotokuKey] = $sum;
-                    $inputsForView[$bunriJuminKey] = $sum;
-                }
-            }
 
             $mirrorMany(
                 [

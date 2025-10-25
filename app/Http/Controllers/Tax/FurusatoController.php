@@ -714,8 +714,14 @@ final class FurusatoController extends Controller
 
             $sumShotoku = $shotokuKeijo + $shotokuJotoTanki + $shotokuJotoChoki + $shotokuIchiji;
 
-            $shotokuKojo = $this->valueOrZero($lookup([sprintf('kojo_gokei_shotoku_%s', $period)]));
-            $juminKojo = $this->valueOrZero($lookup([sprintf('kojo_gokei_jumin_%s', $period)]));
+            $shotokuKojo = $this->valueOrZero($lookup([
+                sprintf('kojo_gokei_shotoku_%s', $period),
+                sprintf('kojo_gokei_jumin_%s', $period),
+            ]));
+            $juminKojo = $this->valueOrZero($lookup([
+                sprintf('kojo_gokei_jumin_%s', $period),
+                sprintf('kojo_gokei_shotoku_%s', $period),
+            ]));
 
             $roundedShotoku = $this->floorToThousands(max(0, $sumShotoku - $shotokuKojo));
             $roundedJumin = $this->floorToThousands(max(0, $sumShotoku - $juminKojo));

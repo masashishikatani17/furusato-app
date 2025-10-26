@@ -495,14 +495,7 @@ final class FurusatoController extends Controller
         $mirrorFallbackEnabled = (bool) config('app.furusato_mirror_fallback');
 
         foreach (['prev', 'curr'] as $period) {
-            foreach ([
-                sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period),
-                sprintf('bunri_sogo_gokeigaku_jumin_%s', $period),
-            ] as $key) {
-                if (! array_key_exists($key, $inputsForView)) {
-                    $inputsForView[$key] = 0;
-                }
-            }
+            $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
             $kShot = sprintf('bunri_shotoku_taishoku_shotoku_%s', $period);
             $kJmn = sprintf('bunri_shotoku_taishoku_jumin_%s', $period);

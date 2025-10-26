@@ -640,6 +640,26 @@ final class FurusatoController extends Controller
                     }
                 }
 
+                if (! array_key_exists($shotokuTaxKey, $inputsForView)) {
+                    $base = $lookup([sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)]);
+                    $base = $base !== null ? (int) $base : 0;
+
+                    $add = $lookup([sprintf('shotoku_joto_ichiji_shotoku_%s', $period)]);
+                    if ($add === null) {
+                        $tanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
+                        $choki = $this->valueOrZero($lookup([
+                            sprintf('shotoku_joto_choki_sogo_%s', $period),
+                            sprintf('shotoku_joto_choki_%s', $period),
+                        ]));
+                        $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)]));
+                        $add = (int) ($tanki + $choki + $ichiji);
+                    } else {
+                        $add = (int) $add;
+                    }
+
+                    $inputsForView[$shotokuTaxKey] = $this->floorToThousands($base + $add);
+                }
+
                 continue;
             }
             

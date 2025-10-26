@@ -595,8 +595,6 @@ final class FurusatoController extends Controller
             $shotokuKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
             $juminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
 
-            $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
-
             if ($isSeparated) {
                 $V = fn (string $name): int => $this->valueOrZero($lookup([$name]));
                 $long = $this->valueOrZero($lookup([
@@ -1140,6 +1138,7 @@ final class FurusatoController extends Controller
             ] as $key) {
                 if (! array_key_exists($key, $inputsForView)) {
                     $inputsForView[$key] = 0;
+                    $assign($key, [$key]);
                 }
             }
         }

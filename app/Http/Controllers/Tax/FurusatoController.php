@@ -614,26 +614,26 @@ final class FurusatoController extends Controller
                 $inputsForView[$bunriShotokuKey] = $separatedSum;
                 $inputsForView[$bunriJuminKey] = $separatedSum;
 
+                if (! array_key_exists($shotokuKey, $inputsForView)) {
+                    $source = $lookup([$shotokuKey])
+                        ?? $lookup([sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)]);
+
+                    if ($source !== null) {
+                        $inputsForView[$shotokuKey] = $this->floorToThousands((int) $source);
+                    }
+                }
+
+                if (! array_key_exists($juminKey, $inputsForView)) {
+                    $source = $lookup([$juminKey])
+                        ?? $lookup([sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period)])
+                        ?? $lookup([sprintf('kazeisoushotoku_%s', $period)]);
+
+                    if ($source !== null) {
+                        $inputsForView[$juminKey] = $this->floorToThousands((int) $source);
+                    }
+                }
+
                 if ($mirrorFallbackEnabled) {
-                    if (! array_key_exists($shotokuKey, $inputsForView)) {
-                        $source = $lookup([$shotokuKey])
-                            ?? $lookup([sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)]);
-
-                        if ($source !== null) {
-                            $inputsForView[$shotokuKey] = $this->floorToThousands((int) $source);
-                        }
-                    }
-
-                    if (! array_key_exists($juminKey, $inputsForView)) {
-                        $source = $lookup([$juminKey])
-                            ?? $lookup([sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period)])
-                            ?? $lookup([sprintf('kazeisoushotoku_%s', $period)]);
-
-                        if ($source !== null) {
-                            $inputsForView[$juminKey] = $this->floorToThousands((int) $source);
-                        }
-                    }
-
                     if ($period === 'curr' && ! array_key_exists($shotokuKey, $inputsForView)) {
                         $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
                         $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));

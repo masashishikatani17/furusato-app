@@ -47,6 +47,43 @@ final class SeparatedModeMirrorTest extends TestCase
     }
 
     #[Test]
+    public function it_computes_separated_mode_long_term_only_totals_for_previous_period(): void
+    {
+        $calculator = new TaxBaseMirrorCalculator();
+
+        $payload = [
+            'shotoku_keijo_prev' => 0,
+            'shotoku_joto_tanki_prev' => 0,
+            'shotoku_joto_choki_sogo_prev' => 500_123,
+            'shotoku_ichiji_prev' => 0,
+            'shotoku_sanrin_prev' => 0,
+            'shotoku_taishoku_prev' => 0,
+            'after_3jitsusan_joto_tanki_sogo_prev' => 0,
+            'after_3jitsusan_joto_choki_sogo_prev' => 500_123,
+            'after_3jitsusan_ichiji_prev' => 0,
+            'after_3jitsusan_sanrin_prev' => 0,
+            'after_3jitsusan_taishoku_prev' => 0,
+            'kojo_gokei_shotoku_prev' => 100_000,
+            'kojo_gokei_jumin_prev' => 200_000,
+        ];
+
+        $context = [
+            'syori_settings' => ['bunri_flag_prev' => 1],
+        ];
+
+        $result = $calculator->compute($payload, $context);
+
+        $this->assertSame(500_123, $result['bunri_sogo_gokeigaku_shotoku_prev']);
+        $this->assertSame(500_123, $result['bunri_sogo_gokeigaku_jumin_prev']);
+        $this->assertSame(100_000, $result['bunri_sashihiki_gokei_shotoku_prev']);
+        $this->assertSame(200_000, $result['bunri_sashihiki_gokei_jumin_prev']);
+        $this->assertSame(400_000, $result['bunri_kazeishotoku_sogo_shotoku_prev']);
+        $this->assertSame(300_000, $result['bunri_kazeishotoku_sogo_jumin_prev']);
+        $this->assertSame(400_000, $result['tax_kazeishotoku_shotoku_prev']);
+        $this->assertSame(300_000, $result['tax_kazeishotoku_jumin_prev']);
+    }
+
+    #[Test]
     public function it_applies_comprehensive_mode_flooring_and_zero_floor(): void
     {
         $calculator = new TaxBaseMirrorCalculator();

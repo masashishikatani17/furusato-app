@@ -206,8 +206,7 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
                 $updates[sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period)] = $bunriKazeishotokuJumin;
 
                 $sumShotokuSogo = $shotokuKeijo + $shotokuShort + $shotokuLong + $shotokuIchiji;
-                $taxShotokuBase = max(0, $sumShotokuSogo - $kojoShotoku);
-                $taxShotoku = $this->floorToThousands($taxShotokuBase);
+                $taxShotoku = $this->floorToThousands(max(0, $sumShotokuSogo - $kojoShotoku));
             }
 
             $updates[sprintf('tax_kazeishotoku_shotoku_%s', $period)] = $taxShotoku;

@@ -198,20 +198,23 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
 
                 $taxJumin = $bunriKazeishotokuJumin;
 
-                $base = $bunriKazeishotokuShotoku;
-                $add = $sumJotoIchiji;
+                $updates[sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period)] = $bunriSogoShotoku;
+                $updates[sprintf('bunri_sogo_gokeigaku_jumin_%s', $period)] = $bunriSogoJumin;
+                $updates[sprintf('bunri_sashihiki_gokei_shotoku_%s', $period)] = $bunriSashihikiShotoku;
+                $updates[sprintf('bunri_sashihiki_gokei_jumin_%s', $period)] = $bunriSashihikiJumin;
+                $updates[sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)] = $bunriKazeishotokuShotoku;
+                $updates[sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period)] = $bunriKazeishotokuJumin;
+
+                $out = array_replace($payload, $updates);
+                $baseKey = sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period);
+                $addKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
+                $base = (int) ($out[$baseKey] ?? 0);
+                $add = (int) ($out[$addKey] ?? 0);
                 $taxShotoku = $this->floorToThousands(max(0, $base + $add));
             }
 
             $updates[sprintf('tax_kazeishotoku_shotoku_%s', $period)] = $taxShotoku;
             $updates[sprintf('tax_kazeishotoku_jumin_%s', $period)] = $taxJumin;
-
-            $updates[sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period)] = $bunriSogoShotoku;
-            $updates[sprintf('bunri_sogo_gokeigaku_jumin_%s', $period)] = $bunriSogoJumin;
-            $updates[sprintf('bunri_sashihiki_gokei_shotoku_%s', $period)] = $bunriSashihikiShotoku;
-            $updates[sprintf('bunri_sashihiki_gokei_jumin_%s', $period)] = $bunriSashihikiJumin;
-            $updates[sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)] = $bunriKazeishotokuShotoku;
-            $updates[sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period)] = $bunriKazeishotokuJumin;
 
             $after3Sanrin = $this->n($this->value(
                 $payload,

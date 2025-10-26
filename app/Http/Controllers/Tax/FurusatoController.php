@@ -1025,8 +1025,8 @@ final class FurusatoController extends Controller
                 sprintf('kojo_gokei_shotoku_%s', $period),
             ]));
 
-            $taxShotoku = $this->floorToThousands(max(0, $sumS - $kojoShotoku));
-            $taxJumin = $this->floorToThousands(max(0, $sumS - $kojoJumin));
+            $roundedShotoku = $this->floorToThousands(max(0, $sumS - $kojoShotoku));
+            $roundedJumin = $this->floorToThousands(max(0, $sumS - $kojoJumin));
 
             $keyShotoku = sprintf('tax_kazeishotoku_shotoku_%s', $period);
             if (! array_key_exists($keyShotoku, $inputsForView)) {
@@ -1035,7 +1035,7 @@ final class FurusatoController extends Controller
                 if ($source !== null) {
                     $inputsForView[$keyShotoku] = $this->floorToThousands((int) $source);
                 } elseif ($mirrorFallbackEnabled) {
-                    $inputsForView[$keyShotoku] = $taxShotoku;
+                    $inputsForView[$keyShotoku] = $roundedShotoku;
                 }
             }
 
@@ -1046,7 +1046,7 @@ final class FurusatoController extends Controller
                 if ($source !== null) {
                     $inputsForView[$keyJumin] = $this->floorToThousands((int) $source);
                 } elseif ($mirrorFallbackEnabled) {
-                    $inputsForView[$keyJumin] = $taxJumin;
+                    $inputsForView[$keyJumin] = $roundedJumin;
                 }
             }
 
@@ -1062,6 +1062,18 @@ final class FurusatoController extends Controller
 
                 $sumShotokuSogo = $shotokuKeijo + $shotokuJotoTanki + $shotokuJotoChoki + $shotokuIchiji;
                 $inputsForView[$keyShotoku] = $this->floorToThousands(max(0, $sumShotokuSogo - $kojoShotoku));
+            }
+
+            if (! $isSeparated) {
+                $keyShotoku = sprintf('tax_kazeishotoku_shotoku_%s', $period);
+                if (! array_key_exists($keyShotoku, $inputsForView)) {
+                    $inputsForView[$keyShotoku] = $lookup([$keyShotoku]) ?? $roundedShotoku;
+                }
+
+                $keyJumin = sprintf('tax_kazeishotoku_jumin_%s', $period);
+                if (! array_key_exists($keyJumin, $inputsForView)) {
+                    $inputsForView[$keyJumin] = $lookup([$keyJumin]) ?? $roundedJumin;
+                }
             }
         }
 

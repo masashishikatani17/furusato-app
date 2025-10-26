@@ -603,10 +603,6 @@ final class FurusatoController extends Controller
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
             if ($isSeparated) {
-                if (! $mirrorFallbackEnabled) {
-                    continue;
-                }
-
                 $V = fn (string $name): int => $this->valueOrZero($lookup([$name]));
                 $long = $this->valueOrZero($lookup([
                     sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
@@ -622,6 +618,10 @@ final class FurusatoController extends Controller
 
                 $inputsForView[$bunriShotokuKey] = $separatedSum;
                 $inputsForView[$bunriJuminKey] = $separatedSum;
+
+                if (! $mirrorFallbackEnabled) {
+                    continue;
+                }
 
                 $shotokuTaxKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
                 if (! array_key_exists($shotokuTaxKey, $inputsForView)) {

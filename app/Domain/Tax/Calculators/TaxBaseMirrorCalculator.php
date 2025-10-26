@@ -37,6 +37,7 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $keys[] = sprintf('shotoku_ichiji_%s', $period);
             $keys[] = sprintf('shotoku_sanrin_%s', $period);
             $keys[] = sprintf('shotoku_taishoku_%s', $period);
+            $keys[] = sprintf('shotoku_gokei_%s', $period);
 
             $keys[] = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
             $keys[] = sprintf('shotoku_joto_ichiji_jumin_%s', $period);
@@ -143,14 +144,14 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $updates[sprintf('shotoku_joto_ichiji_shotoku_%s', $period)] = $sumJotoIchiji;
             $updates[sprintf('shotoku_joto_ichiji_jumin_%s', $period)] = $sumJotoIchiji;
 
-            $ichijiForSum = $isSeparated ? $shotokuIchiji : max(0, $shotokuIchiji);
-            $sumComprehensive = $shotokuKeijo + $shotokuShort + $shotokuLong + $ichijiForSum;
+            $shotokuGokei = $shotokuKeijo + $shotokuShort + $shotokuLong + $shotokuIchiji + $shotokuSanrin + $shotokuTaishoku;
+            $updates[sprintf('shotoku_gokei_%s', $period)] = $shotokuGokei;
+
             $kojoShotoku = $this->n($payload[sprintf('kojo_gokei_shotoku_%s', $period)] ?? null);
             $kojoJumin = $this->n($payload[sprintf('kojo_gokei_jumin_%s', $period)] ?? null);
 
-            $taxShotoku = $this->floorToThousands(max(0, $sumComprehensive - $kojoShotoku));
-            $taxJumin = $this->floorToThousands(max(0, $sumComprehensive - $kojoJumin));
-
+            $taxShotoku = 0;
+            $taxJumin = 0;
             $bunriSogoShotoku = 0;
             $bunriSogoJumin = 0;
             $bunriSashihikiShotoku = 0;
@@ -158,7 +159,13 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $bunriKazeishotokuShotoku = 0;
             $bunriKazeishotokuJumin = 0;
 
-            if ($isSeparated) {
+            if (! $isSeparated) {
+                $ichijiNonNeg = max(0, $shotokuIchiji);
+                $sumComprehensive = $shotokuKeijo + $shotokuShort + $shotokuLong + $ichijiNonNeg;
+
+                $taxShotoku = $this->floorToThousands(max(0, $sumComprehensive - $kojoShotoku));
+                $taxJumin = $this->floorToThousands(max(0, $sumComprehensive - $kojoJumin));
+            } else {
                 $after3Short = $this->n($this->value(
                     $payload,
                     sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period),
@@ -189,6 +196,7 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
                 $bunriKazeishotokuShotoku = $this->floorToThousands(max(0, $bunriSogoShotoku - $bunriSashihikiShotoku));
                 $bunriKazeishotokuJumin = $this->floorToThousands(max(0, $bunriSogoJumin - $bunriSashihikiJumin));
 
+                $taxShotoku = $bunriKazeishotokuShotoku;
                 $taxJumin = $bunriKazeishotokuJumin;
             }
 

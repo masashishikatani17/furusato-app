@@ -208,8 +208,10 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
                 $out = array_replace($payload, $updates);
                 $baseKey = sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period);
                 $addKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
+                
                 $base = (int) ($out[$baseKey] ?? 0);
                 $add = (int) ($out[$addKey] ?? 0);
+                
                 $taxShotoku = $this->floorToThousands(max(0, $base + $add));
             }
 

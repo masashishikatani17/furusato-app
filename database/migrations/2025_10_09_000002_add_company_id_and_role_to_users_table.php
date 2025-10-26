@@ -11,13 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->unsignedBigInteger('company_id')->nullable()->after('id');
-            $table->string('role', 32)->nullable()->after('email');
+        if (! Schema::hasColumn('users', 'company_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->unsignedBigInteger('company_id')->nullable()->after('id');
+                $table->index('company_id');
+            });
+        }
 
-            $table->index('company_id');
-            $table->index('role');
-        });
+        if (! Schema::hasColumn('users', 'role')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->string('role', 32)->nullable()->after('email');
+                $table->index('role');
+            });
+        }
     }
 
     /**

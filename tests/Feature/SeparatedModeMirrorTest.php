@@ -84,6 +84,76 @@ final class SeparatedModeMirrorTest extends TestCase
     }
 
     #[Test]
+    public function it_keeps_jumin_tax_in_sync_when_one_time_income_is_zero(): void
+    {
+        $calculator = new TaxBaseMirrorCalculator();
+
+        $payload = [
+            'shotoku_keijo_curr' => 0,
+            'shotoku_joto_tanki_curr' => 0,
+            'shotoku_joto_choki_sogo_curr' => 321_111,
+            'shotoku_ichiji_curr' => 0,
+            'shotoku_sanrin_curr' => 0,
+            'shotoku_taishoku_curr' => 0,
+            'after_3jitsusan_joto_tanki_sogo_curr' => 0,
+            'after_3jitsusan_joto_choki_sogo_curr' => 321_111,
+            'after_3jitsusan_ichiji_curr' => 0,
+            'after_3jitsusan_sanrin_curr' => 0,
+            'after_3jitsusan_taishoku_curr' => 0,
+            'kojo_gokei_shotoku_curr' => 21_000,
+            'kojo_gokei_jumin_curr' => 11_000,
+        ];
+
+        $context = [
+            'syori_settings' => ['bunri_flag_curr' => 1],
+        ];
+
+        $result = $calculator->compute($payload, $context);
+
+        $this->assertSame(321_111, $result['bunri_sogo_gokeigaku_shotoku_curr']);
+        $this->assertSame(321_111, $result['bunri_sogo_gokeigaku_jumin_curr']);
+        $this->assertSame(300_000, $result['bunri_kazeishotoku_sogo_shotoku_curr']);
+        $this->assertSame(310_000, $result['bunri_kazeishotoku_sogo_jumin_curr']);
+        $this->assertSame(300_000, $result['tax_kazeishotoku_shotoku_curr']);
+        $this->assertSame(310_000, $result['tax_kazeishotoku_jumin_curr']);
+    }
+
+    #[Test]
+    public function it_zeros_out_taxable_amounts_when_deductions_cover_separated_income(): void
+    {
+        $calculator = new TaxBaseMirrorCalculator();
+
+        $payload = [
+            'shotoku_keijo_curr' => 50_000,
+            'shotoku_joto_tanki_curr' => 10_000,
+            'shotoku_joto_choki_sogo_curr' => 20_000,
+            'shotoku_ichiji_curr' => 10_000,
+            'shotoku_sanrin_curr' => 0,
+            'shotoku_taishoku_curr' => 0,
+            'after_3jitsusan_joto_tanki_sogo_curr' => 10_000,
+            'after_3jitsusan_joto_choki_sogo_curr' => 20_000,
+            'after_3jitsusan_ichiji_curr' => 10_000,
+            'after_3jitsusan_sanrin_curr' => 0,
+            'after_3jitsusan_taishoku_curr' => 0,
+            'kojo_gokei_shotoku_curr' => 100_000,
+            'kojo_gokei_jumin_curr' => 120_000,
+        ];
+
+        $context = [
+            'syori_settings' => ['bunri_flag_curr' => 1],
+        ];
+
+        $result = $calculator->compute($payload, $context);
+
+        $this->assertSame(40_000, $result['bunri_sogo_gokeigaku_shotoku_curr']);
+        $this->assertSame(40_000, $result['bunri_sogo_gokeigaku_jumin_curr']);
+        $this->assertSame(0, $result['bunri_kazeishotoku_sogo_shotoku_curr']);
+        $this->assertSame(0, $result['bunri_kazeishotoku_sogo_jumin_curr']);
+        $this->assertSame(0, $result['tax_kazeishotoku_shotoku_curr']);
+        $this->assertSame(0, $result['tax_kazeishotoku_jumin_curr']);
+    }
+
+    #[Test]
     public function it_applies_comprehensive_mode_flooring_and_zero_floor(): void
     {
         $calculator = new TaxBaseMirrorCalculator();

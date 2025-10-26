@@ -17,12 +17,26 @@ return new class extends Migration
     public function up(): void
     {
         foreach (self::TABLES as $table => $index) {
-            Schema::table($table, function (Blueprint $table) use ($index): void {
-                $table->unsignedInteger('kifu_year')->nullable()->after('year');
-                $table->index('kifu_year', $index);
-            });
+            if (! Schema::hasTable($table)) {
+                continue;
+            }
 
-            if (DB::getDriverName() !== 'sqlite') {
+            if (! Schema::hasColumn($table, 'kifu_year')) {
+                Schema::table($table, function (Blueprint $table) use ($index): void {
+                    $table->unsignedInteger('kifu_year')->nullable()->after('year');
+                    $table->index('kifu_year', $index);
+                });
+            } else {
+                Schema::table($table, function (Blueprint $table) use ($index): void {
+                    try {
+                        $table->index('kifu_year', $index);
+                    } catch (\Throwable $e) {
+                        // index already exists
+                    }
+                });
+            }
+
+            if (DB::getDriverName() !== 'sqlite' && Schema::hasColumn($table, 'year')) {
                 DB::statement(sprintf('ALTER TABLE `%s` MODIFY `year` INT UNSIGNED NULL', $table));
             }
         }

@@ -492,8 +492,6 @@ final class FurusatoController extends Controller
             return $this->toNullableInt($resultUpper[$key]) !== null;
         };
 
-        $mirrorFallbackEnabled = (bool) config('app.furusato_mirror_fallback');
-
         foreach (['prev', 'curr'] as $period) {
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
@@ -628,7 +626,7 @@ final class FurusatoController extends Controller
                     }
                 }
 
-                if ($mirrorFallbackEnabled) {
+                if (config('app.furusato_mirror_fallback')) {
                     $bunriKazeiShotokuKey = sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period);
                     $bunriKazeiJuminKey = sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period);
 
@@ -842,7 +840,7 @@ final class FurusatoController extends Controller
             $assign($sumShotokuKey, [$sumShotokuKey]);
             $assign($sumJuminKey, [$sumJuminKey]);
 
-            if ($mirrorFallbackEnabled && $resultUpper === []) {
+            if (config('app.furusato_mirror_fallback') && $resultUpper === []) {
                 if ($isSeparated) {
                     $bunriShotokuKey = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
                     $bunriJuminKey = sprintf('bunri_sogo_gokeigaku_jumin_%s', $period);
@@ -1032,7 +1030,7 @@ final class FurusatoController extends Controller
 
                 if ($source !== null) {
                     $inputsForView[$keyShotoku] = $this->floorToThousands((int) $source);
-                } elseif ($mirrorFallbackEnabled) {
+                } elseif (config('app.furusato_mirror_fallback')) {
                     $inputsForView[$keyShotoku] = $roundedShotoku;
                 }
             }
@@ -1043,12 +1041,12 @@ final class FurusatoController extends Controller
 
                 if ($source !== null) {
                     $inputsForView[$keyJumin] = $this->floorToThousands((int) $source);
-                } elseif ($mirrorFallbackEnabled) {
+                } elseif (config('app.furusato_mirror_fallback')) {
                     $inputsForView[$keyJumin] = $roundedJumin;
                 }
             }
 
-            if ($mirrorFallbackEnabled && $period === 'curr' && ! array_key_exists($keyShotoku, $inputsForView)) {
+            if (config('app.furusato_mirror_fallback') && $period === 'curr' && ! array_key_exists($keyShotoku, $inputsForView)) {
                 $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
                 $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
                 $shotokuJotoChoki = $this->valueOrZero($lookup([
@@ -1062,16 +1060,14 @@ final class FurusatoController extends Controller
                 $inputsForView[$keyShotoku] = $this->floorToThousands(max(0, $sumShotokuSogo - $kojoShotoku));
             }
 
-            if (! $isSeparated) {
-                $keyShotoku = sprintf('tax_kazeishotoku_shotoku_%s', $period);
-                if (! array_key_exists($keyShotoku, $inputsForView)) {
-                    $inputsForView[$keyShotoku] = $lookup([$keyShotoku]) ?? $roundedShotoku;
-                }
+            $keyShotoku = sprintf('tax_kazeishotoku_shotoku_%s', $period);
+            if (! array_key_exists($keyShotoku, $inputsForView)) {
+                $inputsForView[$keyShotoku] = $lookup([$keyShotoku]) ?? $roundedShotoku;
+            }
 
-                $keyJumin = sprintf('tax_kazeishotoku_jumin_%s', $period);
-                if (! array_key_exists($keyJumin, $inputsForView)) {
-                    $inputsForView[$keyJumin] = $lookup([$keyJumin]) ?? $roundedJumin;
-                }
+            $keyJumin = sprintf('tax_kazeishotoku_jumin_%s', $period);
+            if (! array_key_exists($keyJumin, $inputsForView)) {
+                $inputsForView[$keyJumin] = $lookup([$keyJumin]) ?? $roundedJumin;
             }
         }
 

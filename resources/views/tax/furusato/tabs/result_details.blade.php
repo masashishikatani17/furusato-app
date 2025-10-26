@@ -120,11 +120,23 @@
 
       return null;
   };
-  $readonlyValue = static function (string $key, $fallback = null) use ($inputs): string {
+  $readonlyValue = static function (string $key, $fallback = null) use ($inputs, $syoriSettings): string {
       $value = old($key, $inputs[$key] ?? $fallback);
 
       if ($value === null || $value === '') {
           return '';
+      }
+
+      if (str_starts_with($key, 'tax_kazeishotoku_shotoku_')) {
+          $parts = explode('_', $key);
+          $period = end($parts);
+
+          if (in_array($period, ['prev', 'curr'], true)) {
+              $flag = $syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? null;
+              if ((int) $flag === 1) {
+                  return '－';
+              }
+          }
       }
 
       $stringValue = (string) $value;

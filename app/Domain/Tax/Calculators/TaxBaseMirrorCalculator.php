@@ -198,6 +198,18 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
 
                 $taxShotoku = $bunriKazeishotokuShotoku;
                 $taxJumin = $bunriKazeishotokuJumin;
+
+                $shotokuJotoIchijiKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
+                $shotokuJotoIchiji = $updates[$shotokuJotoIchijiKey] ?? $payload[$shotokuJotoIchijiKey] ?? null;
+
+                if ($shotokuJotoIchiji === null || $shotokuJotoIchiji === '') {
+                    $shotokuJotoIchiji = $shotokuShort + $shotokuLong + $shotokuIchiji;
+                } else {
+                    $shotokuJotoIchiji = $this->n($shotokuJotoIchiji);
+                }
+
+                $base = $bunriKazeishotokuShotoku;
+                $taxShotoku = $this->floorToThousands(max(0, $base + (int) $shotokuJotoIchiji));
             }
 
             $updates[sprintf('tax_kazeishotoku_shotoku_%s', $period)] = $taxShotoku;

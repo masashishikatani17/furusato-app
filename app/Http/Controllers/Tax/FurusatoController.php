@@ -903,7 +903,7 @@ final class FurusatoController extends Controller
             $assign($sumJuminKey,   [$sumJuminKey],   null, true);
 
             // 2) プレビューに無い場合のみ、preview限定で足し直す（保存値は使わない）
-            if (!array_key_exists($sumShotokuKey, $inputsForView)) {
+            if (! array_key_exists($sumShotokuKey, $inputsForView)) {
                 $tanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)], true));
                 $choki = $this->valueOrZero($lookup([
                     sprintf('shotoku_joto_choki_sogo_%s', $period),
@@ -915,7 +915,7 @@ final class FurusatoController extends Controller
             }
 
             // 3) 住民側：未セットなら shotoku 側と同値で可
-            if (!array_key_exists($sumJuminKey, $inputsForView)) {
+            if (! array_key_exists($sumJuminKey, $inputsForView)) {
                 $inputsForView[$sumJuminKey] = $inputsForView[$sumShotokuKey] ?? 0;
             }
 

@@ -28,12 +28,14 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
 
             $keys[] = sprintf('after_1jitsusan_keijo_%s', $period);
             $keys[] = sprintf('after_1jitsusan_joto_tanki_sogo_%s', $period);
+            $keys[] = sprintf('after_1jitsusan_joto_tanki_%s', $period);
             $keys[] = sprintf('after_1jitsusan_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('after_1jitsusan_ichiji_%s', $period);
             $keys[] = sprintf('after_1jitsusan_sanrin_%s', $period);
 
             $keys[] = sprintf('after_2jitsusan_keijo_%s', $period);
             $keys[] = sprintf('after_2jitsusan_joto_tanki_sogo_%s', $period);
+            $keys[] = sprintf('after_2jitsusan_joto_tanki_%s', $period);
             $keys[] = sprintf('after_2jitsusan_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('after_2jitsusan_ichiji_%s', $period);
             $keys[] = sprintf('after_2jitsusan_sanrin_%s', $period);
@@ -41,6 +43,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
 
             $keys[] = sprintf('after_3jitsusan_keijo_%s', $period);
             $keys[] = sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period);
+            $keys[] = sprintf('after_3jitsusan_joto_tanki_%s', $period);
             $keys[] = sprintf('after_3jitsusan_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('after_3jitsusan_ichiji_%s', $period);
             $keys[] = sprintf('after_3jitsusan_sanrin_%s', $period);
@@ -156,11 +159,13 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('tsusanmae_ichiji_%s', $period) => $tsusanmaeIchiji,
             sprintf('after_1jitsusan_keijo_%s', $period) => $after1Econ,
             sprintf('after_1jitsusan_joto_tanki_sogo_%s', $period) => $after1Short,
+            sprintf('after_1jitsusan_joto_tanki_%s', $period) => $after1Short,
             sprintf('after_1jitsusan_joto_choki_sogo_%s', $period) => $after1Long,
             sprintf('after_1jitsusan_ichiji_%s', $period) => $after1Ichiji,
             sprintf('after_1jitsusan_sanrin_%s', $period) => $after1Forest,
             sprintf('after_2jitsusan_keijo_%s', $period) => $after2Econ,
             sprintf('after_2jitsusan_joto_tanki_sogo_%s', $period) => $after2Short,
+            sprintf('after_2jitsusan_joto_tanki_%s', $period) => $after2Short,
             sprintf('after_2jitsusan_joto_choki_sogo_%s', $period) => $after2Long,
             sprintf('after_2jitsusan_ichiji_%s', $period) => $after2Ichiji,
             sprintf('after_2jitsusan_sanrin_%s', $period) => $after2Forest,
@@ -209,6 +214,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         $outputs = array_replace($outputs, [
             sprintf('after_3jitsusan_keijo_%s', $period) => $after3Econ,
             sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period) => $after3Short,
+            sprintf('after_3jitsusan_joto_tanki_%s', $period) => $after3Short,
             sprintf('after_3jitsusan_joto_choki_sogo_%s', $period) => $after3Long,
             sprintf('after_3jitsusan_ichiji_%s', $period) => $after3Ichiji,
             sprintf('after_3jitsusan_sanrin_%s', $period) => $after3Forest,

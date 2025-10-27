@@ -566,11 +566,7 @@ final class FurusatoController extends Controller
 
             $assign(
                 sprintf('tsusango_ichiji_%s', $period),
-                [
-                    sprintf('tsusango_ichiji_%s', $period),
-                    sprintf('after_3jitsusan_ichiji_%s', $period),
-                ],
-                static fn ($v) => max(0, (int) $v),
+                [sprintf('tsusango_ichiji_%s', $period)],
             );
 
             $bunriShotokuKey = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
@@ -700,13 +696,6 @@ final class FurusatoController extends Controller
             );
 
             $assign(
-                sprintf('tsusango_joto_choki_sogo_%s', $period),
-                [
-                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
-                    sprintf('tsusango_joto_choki_sogo_%s', $period),
-                ],
-            );
-            $assign(
                 sprintf('tokubetsukojo_joto_tanki_%s', $period),
                 [sprintf('tokubetsukojo_joto_tanki_%s', $period)],
             );
@@ -731,15 +720,10 @@ final class FurusatoController extends Controller
                 sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
                 [sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period)],
             );
-            $keyAfterOne = sprintf('after_joto_ichiji_tousan_ichiji_%s', $period);
-            $valueAfterOne = $lookup([$keyAfterOne]);
-            if ($valueAfterOne !== null) {
-                $inputsForView[$keyAfterOne] = $valueAfterOne;
-            } else {
-                $tsusangoOne = $this->valueOrZero($lookup([sprintf('tsusango_ichiji_%s', $period)]));
-                $tokubetsuOne = $this->valueOrZero($lookup([sprintf('tokubetsukojo_ichiji_%s', $period)]));
-                $inputsForView[$keyAfterOne] = max(0, $tsusangoOne - $tokubetsuOne);
-            }
+            $assign(
+                sprintf('after_joto_ichiji_tousan_ichiji_%s', $period),
+                [sprintf('after_joto_ichiji_tousan_ichiji_%s', $period)],
+            );
 
             $mirrorMany(
                 [

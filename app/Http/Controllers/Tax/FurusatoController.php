@@ -286,6 +286,21 @@ final class FurusatoController extends Controller
             'human_adjusted_taxable_curr' => $humanAdjusted['curr'],
         ]);
 
+        foreach (['prev', 'curr'] as $periodKey) {
+            $tsusanmaeKeijo =
+                (int) ($savedInputs[sprintf('shotoku_jigyo_eigyo_shotoku_%s', $periodKey)] ?? 0)
+                + (int) ($savedInputs[sprintf('shotoku_jigyo_nogyo_shotoku_%s', $periodKey)] ?? 0)
+                + (int) ($savedInputs[sprintf('shotoku_fudosan_shotoku_%s', $periodKey)] ?? 0)
+                + max(0, (int) ($savedInputs[sprintf('shotoku_rishi_shotoku_%s', $periodKey)] ?? 0))
+                + max(0, (int) ($savedInputs[sprintf('shotoku_haito_shotoku_%s', $periodKey)] ?? 0))
+                + max(0, (int) ($savedInputs[sprintf('shotoku_kyuyo_shotoku_%s', $periodKey)] ?? 0))
+                + max(0, (int) ($savedInputs[sprintf('shotoku_zatsu_nenkin_shotoku_%s', $periodKey)] ?? 0))
+                + max(0, (int) ($savedInputs[sprintf('shotoku_zatsu_gyomu_shotoku_%s', $periodKey)] ?? 0))
+                + max(0, (int) ($savedInputs[sprintf('shotoku_zatsu_sonota_shotoku_%s', $periodKey)] ?? 0));
+
+            $previewPayload[sprintf('tsusanmae_keijo_%s', $periodKey)] = (int) $tsusanmaeKeijo;
+        }
+
         /** @var SogoShotokuNettingCalculator $netCalc */
         $netCalc = app(SogoShotokuNettingCalculator::class);
 
@@ -574,7 +589,10 @@ final class FurusatoController extends Controller
 
             $assign(
                 sprintf('tsusango_joto_choki_%s', $period),
-                [sprintf('tsusango_joto_choki_%s', $period)],
+                [
+                    sprintf('tsusango_joto_choki_%s', $period),
+                    sprintf('tsusango_joto_choki_sogo_%s', $period),
+                ],
                 null,
                 true,
             );
@@ -745,7 +763,10 @@ final class FurusatoController extends Controller
             );
             $assign(
                 sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
-                [sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period)],
+                [
+                    sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
+                    sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
+                ],
                 null,
                 true,
             );
@@ -755,6 +776,83 @@ final class FurusatoController extends Controller
                 null,
                 true,
             );
+
+            $assign(
+                sprintf('after_1jitsusan_joto_tanki_%s', $period),
+                [sprintf('after_1jitsusan_joto_tanki_%s', $period)],
+                null,
+                true,
+            );
+            $assign(
+                sprintf('after_2jitsusan_joto_tanki_%s', $period),
+                [sprintf('after_2jitsusan_joto_tanki_%s', $period)],
+                null,
+                true,
+            );
+            $assign(
+                sprintf('after_3jitsusan_joto_tanki_%s', $period),
+                [sprintf('after_3jitsusan_joto_tanki_%s', $period)],
+                null,
+                true,
+            );
+
+            $assign(
+                sprintf('after_1jitsusan_joto_choki_sogo_%s', $period),
+                [
+                    sprintf('after_1jitsusan_joto_choki_sogo_%s', $period),
+                    sprintf('after_1jitsusan_joto_choki_%s', $period),
+                ],
+                null,
+                true,
+            );
+            $assign(
+                sprintf('after_2jitsusan_joto_choki_sogo_%s', $period),
+                [
+                    sprintf('after_2jitsusan_joto_choki_sogo_%s', $period),
+                    sprintf('after_2jitsusan_joto_choki_%s', $period),
+                ],
+                null,
+                true,
+            );
+            $assign(
+                sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                [
+                    sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_%s', $period),
+                ],
+                null,
+                true,
+            );
+
+            foreach ([1, 2, 3] as $stage) {
+                $assign(
+                    sprintf('after_%djitsusan_keijo_%s', $stage, $period),
+                    [sprintf('after_%djitsusan_keijo_%s', $stage, $period)],
+                    null,
+                    true,
+                );
+                $assign(
+                    sprintf('after_%djitsusan_ichiji_%s', $stage, $period),
+                    [sprintf('after_%djitsusan_ichiji_%s', $stage, $period)],
+                    null,
+                    true,
+                );
+                $assign(
+                    sprintf('after_%djitsusan_sanrin_%s', $stage, $period),
+                    [sprintf('after_%djitsusan_sanrin_%s', $stage, $period)],
+                    null,
+                    true,
+                );
+            }
+
+            foreach ([2, 3] as $stage) {
+                $assign(
+                    sprintf('after_%djitsusan_taishoku_%s', $stage, $period),
+                    [sprintf('after_%djitsusan_taishoku_%s', $stage, $period)],
+                    null,
+                    true,
+                );
+            }
 
             $mirrorMany(
                 [
@@ -802,14 +900,6 @@ final class FurusatoController extends Controller
             $inputsForView[sprintf('bunri_syunyu_sanrin_shotoku_%s', $period)] = $syunyuSanrinValue;
             $inputsForView[sprintf('bunri_syunyu_sanrin_jumin_%s', $period)] = $syunyuSanrinValue;
 
-            $assign(
-                sprintf('after_1jitsusan_sanrin_%s', $period),
-                [
-                    sprintf('after_1jitsusan_sanrin_%s', $period),
-                    sprintf('sashihiki_sanrin_%s', $period),
-                ],
-            );
-            $assign(sprintf('after_3jitsusan_sanrin_%s', $period), [sprintf('after_3jitsusan_sanrin_%s', $period)]);
             $assign(sprintf('shotoku_sanrin_%s', $period), [sprintf('shotoku_sanrin_%s', $period)]);
 
             $assign(sprintf('shotoku_keijo_%s', $period), [sprintf('shotoku_keijo_%s', $period)]);
@@ -830,14 +920,6 @@ final class FurusatoController extends Controller
             );
             $assign(sprintf('shotoku_ichiji_%s', $period), [sprintf('shotoku_ichiji_%s', $period)]);
             $assign(sprintf('shotoku_taishoku_%s', $period), [sprintf('shotoku_taishoku_%s', $period)]);
-
-            $assign(
-                sprintf('after_2jitsusan_taishoku_%s', $period),
-                [
-                    sprintf('after_2jitsusan_taishoku_%s', $period),
-                    sprintf('bunri_shotoku_taishoku_shotoku_%s', $period),
-                ],
-            );
 
             foreach ([
                 sprintf('bunri_sashihiki_gokei_shotoku_%s', $period),
@@ -903,7 +985,7 @@ final class FurusatoController extends Controller
             ];
 
             foreach ($afterThreeMap as $destination => $candidates) {
-                $assign($destination, $candidates);
+                $assign($destination, $candidates, null, true);
             }
 
             $value = $lookup([sprintf('shotoku_gokei_%s', $period)]);
@@ -911,40 +993,12 @@ final class FurusatoController extends Controller
                 $inputsForView[sprintf('shotoku_gokei_%s', $period)] = $value;
             }
 
-            $tsusanmaeKeijoKey = sprintf('tsusanmae_keijo_%s', $period);
-            $tsusanmaeKeijo = $lookup([$tsusanmaeKeijoKey]);
-            if ($tsusanmaeKeijo === null) {
-                $tsusanmaeKeijo = 0;
-                $keijoSources = [
-                    'shotoku_jigyo_eigyo_shotoku' => false,
-                    'shotoku_jigyo_nogyo_shotoku' => false,
-                    'shotoku_fudosan_shotoku' => false,
-                    'shotoku_haito_shotoku' => true,
-                    'shotoku_rishi_shotoku' => true,
-                    'shotoku_kyuyo_shotoku' => true,
-                    'shotoku_zatsu_nenkin_shotoku' => true,
-                    'shotoku_zatsu_gyomu_shotoku' => true,
-                    'shotoku_zatsu_sonota_shotoku' => true,
-                ];
-
-                foreach ($keijoSources as $prefix => $nonNegative) {
-                    $value = $lookup([sprintf('%s_%s', $prefix, $period)]);
-                    if ($value === null) {
-                        continue;
-                    }
-
-                    $amount = $value;
-                    if ($nonNegative) {
-                        $amount = max(0, $amount);
-                    }
-
-                    $tsusanmaeKeijo += $amount;
-                }
-            }
-
-            if ($tsusanmaeKeijo !== null) {
-                $inputsForView[$tsusanmaeKeijoKey] = $tsusanmaeKeijo;
-            }
+            $assign(
+                sprintf('tsusanmae_keijo_%s', $period),
+                [sprintf('tsusanmae_keijo_%s', $period)],
+                null,
+                true,
+            );
         }
 
         foreach (['prev', 'curr'] as $period) {

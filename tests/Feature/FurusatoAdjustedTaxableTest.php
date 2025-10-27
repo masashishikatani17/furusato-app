@@ -47,10 +47,23 @@ final class FurusatoAdjustedTaxableTest extends TestCase
         $input->payload = [
             'tax_kazeishotoku_shotoku_prev' => 5_000_000,
             'tax_kazeishotoku_shotoku_curr' => 1_200_000,
+            'syunyu_sanrin_prev' => 300_000,
+            'syunyu_sanrin_curr' => 0,
+            'kojo_gokei_shotoku_prev' => 150_000,
+            'kojo_gokei_shotoku_curr' => 120_000,
+            
             'kojo_kafu_shotoku_prev' => 200_000,
-            'kojo_kafu_jumin_prev' => 0,
+            'kojo_kafu_jumin_prev'   => 0,
             'kojo_kafu_shotoku_curr' => 2_000_000,
-            'kojo_kafu_jumin_curr' => 500_000,
+            'kojo_kafu_jumin_curr'   => 500_000,
+
+            // 内部通算の「差引」入力は保存済み入力に置く（ここ重要）
+            'sashihiki_joto_tanki_sogo_prev' => 120_000,
+            'sashihiki_joto_choki_sogo_prev' => 340_000,
+            'sashihiki_ichiji_prev'          => -50_000,
+            'sashihiki_joto_tanki_sogo_curr' => 100_000,
+            'sashihiki_joto_choki_sogo_curr' => 200_000,
+            'sashihiki_ichiji_curr'          => 50_000,
         ];
         $input->save();
 
@@ -163,6 +176,13 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             'syunyu_sanrin_curr' => 0,
             'kojo_gokei_shotoku_prev' => 150_000,
             'kojo_gokei_shotoku_curr' => 120_000,
+            'kojo_gokei_jumin_prev'   => 150_000,
+            'sashihiki_joto_tanki_sogo_prev' => 120_000,
+            'sashihiki_joto_choki_sogo_prev' => 340_000,
+            'sashihiki_ichiji_prev'          => -50_000,
+            'sashihiki_joto_tanki_sogo_curr' => 100_000,
+            'sashihiki_joto_choki_sogo_curr' => 200_000,
+            'sashihiki_ichiji_curr'          => 50_000,
         ];
         $input->save();
 
@@ -177,6 +197,12 @@ final class FurusatoAdjustedTaxableTest extends TestCase
         ]);
 
         $previewPayload = [
+            'sashihiki_joto_tanki_sogo_prev' => 120_000,
+            'sashihiki_joto_choki_sogo_prev' => 340_000,
+            'sashihiki_ichiji_prev'         => -50_000,
+            'sashihiki_joto_tanki_sogo_curr' => 100_000,
+            'sashihiki_joto_choki_sogo_curr' => 200_000,
+            'sashihiki_ichiji_curr'          => 50_000,
             'after_3jitsusan_joto_tanki_prev' => 120_000,
             'after_3jitsusan_joto_choki_sogo_prev' => 340_000,
             'after_3jitsusan_ichiji_prev' => -50_000,

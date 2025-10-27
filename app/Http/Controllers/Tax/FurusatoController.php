@@ -560,8 +560,8 @@ final class FurusatoController extends Controller
             );
 
             $assign(
-                sprintf('tsusango_joto_choki_sogo_%s', $period),
-                [sprintf('tsusango_joto_choki_sogo_%s', $period)],
+                sprintf('tsusango_joto_choki_%s', $period),
+                [sprintf('tsusango_joto_choki_%s', $period)],
             );
 
             $assign(
@@ -715,10 +715,6 @@ final class FurusatoController extends Controller
             $assign(
                 sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
                 [sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period)],
-            );
-            $assign(
-                sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
-                [sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period)],
             );
             $assign(
                 sprintf('after_joto_ichiji_tousan_ichiji_%s', $period),

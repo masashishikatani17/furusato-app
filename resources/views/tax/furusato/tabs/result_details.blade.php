@@ -836,9 +836,9 @@
                 <td class="text-end">
                   <input type="text"
                          readonly
-                         name="tsusango_joto_choki_sogo_{{ $suffix }}"
+                         name="tsusango_joto_choki_{{ $suffix }}"
                          class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('tsusango_joto_choki_sogo_' . $suffix) }}">
+                         value="{{ $readonlyValue('tsusango_joto_choki_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
@@ -850,9 +850,9 @@
                 <td class="text-end">
                   <input type="text"
                          readonly
-                         name="after_joto_ichiji_tousan_joto_choki_sogo_{{ $suffix }}"
+                         name="after_joto_ichiji_tousan_joto_choki_{{ $suffix }}"
                          class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('after_joto_ichiji_tousan_joto_choki_sogo_' . $suffix) }}">
+                         value="{{ $readonlyValue('after_joto_ichiji_tousan_joto_choki_' . $suffix) }}">
                 </td>
               </tr>
               <tr>

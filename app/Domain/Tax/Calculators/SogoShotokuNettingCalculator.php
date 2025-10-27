@@ -25,12 +25,14 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
             $keys[] = sprintf('sashihiki_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('sashihiki_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('tsusango_joto_tanki_%s', $period);
+            $keys[] = sprintf('tsusango_joto_choki_%s', $period);
             $keys[] = sprintf('tsusango_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('tsusango_ichiji_%s', $period);
             $keys[] = sprintf('tokubetsukojo_joto_tanki_%s', $period);
             $keys[] = sprintf('tokubetsukojo_joto_choki_%s', $period);
             $keys[] = sprintf('tokubetsukojo_ichiji_%s', $period);
             $keys[] = sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period);
+            $keys[] = sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period);
             $keys[] = sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('after_joto_ichiji_tousan_ichiji_%s', $period);
         }
@@ -75,6 +77,24 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
             sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period) => $jotoIchiji['after_joto_ichiji_tousan_joto_choki_sogo'],
             sprintf('after_joto_ichiji_tousan_ichiji_%s', $period) => $jotoIchiji['after_joto_ichiji_tousan_ichiji'],
         ];
+
+        // --- Add aliases for UI (result_details.blade.php) ---
+        $tsusangoChokiKeySogo = sprintf('tsusango_joto_choki_sogo_%s', $period);
+        $tsusangoChokiKey = sprintf('tsusango_joto_choki_%s', $period);
+        if (array_key_exists($tsusangoChokiKeySogo, $outputs)) {
+            $outputs[$tsusangoChokiKey] = $outputs[$tsusangoChokiKeySogo];
+        }
+
+        $afterChokiSogoKey = sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period);
+        $afterChokiKey = sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period);
+        if (array_key_exists($afterChokiSogoKey, $outputs)) {
+            $outputs[$afterChokiKey] = $outputs[$afterChokiSogoKey];
+        }
+
+        $tsusangoIchijiKey = sprintf('tsusango_ichiji_%s', $period);
+        if (array_key_exists($tsusangoIchijiKey, $outputs)) {
+            $outputs[$tsusangoIchijiKey] = max(0, (int) $outputs[$tsusangoIchijiKey]);
+        }
 
         return $outputs;
     }

@@ -536,50 +536,6 @@ final class FurusatoController extends Controller
                     : $srcTaishoku;
             }
 
-            $shotokuTanki = $this->valueOrZero($lookup([
-                sprintf('shotoku_joto_tanki_%s', $period),
-                sprintf('after_3jitsusan_joto_tanki_%s', $period),
-            ]));
-
-            $shotokuChoki = $lookup([
-                sprintf('shotoku_joto_choki_sogo_%s', $period),
-                sprintf('shotoku_joto_choki_%s', $period),
-            ]);
-
-            if ($shotokuChoki === null) {
-                $after3Long = $lookup([sprintf('after_3jitsusan_joto_choki_%s', $period)]);
-                if ($after3Long !== null) {
-                    $shotokuChoki = intdiv($this->valueOrZero($after3Long), 2);
-                }
-            }
-
-            $shotokuChoki = $this->valueOrZero($shotokuChoki);
-
-            $shotokuIchiji = $lookup([sprintf('shotoku_ichiji_%s', $period)]);
-
-            if ($shotokuIchiji === null) {
-                $after3Ichiji = $lookup([sprintf('after_3jitsusan_ichiji_%s', $period)]);
-                if ($after3Ichiji !== null) {
-                    $shotokuIchiji = intdiv($this->valueOrZero($after3Ichiji), 2);
-                }
-            }
-
-            $shotokuIchiji = $this->valueOrZero($shotokuIchiji);
-
-            $sumShotoku = (int) $shotokuTanki + (int) $shotokuChoki + (int) $shotokuIchiji;
-
-            $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
-            if (! array_key_exists($sumShotokuKey, $inputsForView) || $inputsForView[$sumShotokuKey] === null || $inputsForView[$sumShotokuKey] === '') {
-                $sumShotokuValue = $lookup([$sumShotokuKey]);
-                $inputsForView[$sumShotokuKey] = $sumShotokuValue !== null ? (int) $sumShotokuValue : (int) $sumShotoku;
-            }
-
-            $sumJuminKey = sprintf('shotoku_joto_ichiji_jumin_%s', $period);
-            if (! array_key_exists($sumJuminKey, $inputsForView) || $inputsForView[$sumJuminKey] === null || $inputsForView[$sumJuminKey] === '') {
-                $sumJuminValue = $lookup([$sumJuminKey]);
-                $inputsForView[$sumJuminKey] = $sumJuminValue !== null ? (int) $sumJuminValue : (int) $sumShotoku;
-            }
-
             $assign(
                 sprintf('tsusango_joto_tanki_%s', $period),
                 [sprintf('tsusango_joto_tanki_%s', $period)],
@@ -854,6 +810,23 @@ final class FurusatoController extends Controller
                 );
             }
 
+            foreach ([1, 2] as $stage) {
+                foreach ([
+                    'tanki_ippan',
+                    'tanki_keigen',
+                    'choki_ippan',
+                    'choki_tokutei',
+                    'choki_keika',
+                ] as $suffix) {
+                    $assign(
+                        sprintf('after_%djitsusan_%s_%s', $stage, $suffix, $period),
+                        [sprintf('after_%djitsusan_%s_%s', $stage, $suffix, $period)],
+                        null,
+                        true,
+                    );
+                }
+            }
+
             $mirrorMany(
                 [
                     sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
@@ -921,6 +894,31 @@ final class FurusatoController extends Controller
             $assign(sprintf('shotoku_ichiji_%s', $period), [sprintf('shotoku_ichiji_%s', $period)]);
             $assign(sprintf('shotoku_taishoku_%s', $period), [sprintf('shotoku_taishoku_%s', $period)]);
 
+            // ▼ 譲渡＋一時（所得金額）を preview 限定で再計算して埋める
+            $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
+            $sumJuminKey   = sprintf('shotoku_joto_ichiji_jumin_%s',  $period);
+
+            // 1) まずプレビューに既に計算済みがあれば、そのまま採用（previewOnly=true）
+            $assign($sumShotokuKey, [$sumShotokuKey], null, true);
+            $assign($sumJuminKey,   [$sumJuminKey],   null, true);
+
+            // 2) プレビューに無い場合のみ、preview限定で足し直す（保存値は使わない）
+            if (!array_key_exists($sumShotokuKey, $inputsForView)) {
+                $tanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)], true));
+                $choki = $this->valueOrZero($lookup([
+                    sprintf('shotoku_joto_choki_sogo_%s', $period),
+                    sprintf('shotoku_joto_choki_%s',      $period),
+                ], true));
+                $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)], true));
+
+                $inputsForView[$sumShotokuKey] = (int) ($tanki + $choki + max(0, $ichiji));
+            }
+
+            // 3) 住民側：未セットなら shotoku 側と同値で可
+            if (!array_key_exists($sumJuminKey, $inputsForView)) {
+                $inputsForView[$sumJuminKey] = $inputsForView[$sumShotokuKey] ?? 0;
+            }
+
             foreach ([
                 sprintf('bunri_sashihiki_gokei_shotoku_%s', $period),
                 sprintf('bunri_sashihiki_gokei_jumin_%s', $period),
@@ -929,12 +927,6 @@ final class FurusatoController extends Controller
             ] as $bunriKey) {
                 $assign($bunriKey, [$bunriKey]);
             }
-            
-            $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
-            $sumJuminKey = sprintf('shotoku_joto_ichiji_jumin_%s', $period);
-
-            $assign($sumShotokuKey, [$sumShotokuKey]);
-            $assign($sumJuminKey, [$sumJuminKey]);
 
             $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
             $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
@@ -942,19 +934,7 @@ final class FurusatoController extends Controller
                 sprintf('shotoku_joto_choki_sogo_%s', $period),
                 sprintf('shotoku_joto_choki_%s', $period),
             ]));
-
-            $sumJotoIchiji = (int) $shotokuJotoTanki + (int) $shotokuJotoChoki + (int) $shotokuIchiji;
-
-            if (! array_key_exists($sumShotokuKey, $inputsForView)) {
-                $inputsForView[$sumShotokuKey] = $sumJotoIchiji;
-            }
-
-            if (! array_key_exists($sumJuminKey, $inputsForView)) {
-                $sumJuminPayload = $lookup([$sumJuminKey]);
-                $inputsForView[$sumJuminKey] = $sumJuminPayload !== null
-                    ? $this->valueOrZero($sumJuminPayload)
-                    : $sumJotoIchiji;
-            }
+            $shotokuIchiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)]));
 
             $sumS = $shotokuKeijo + $shotokuJotoTanki + $shotokuJotoChoki + max(0, $shotokuIchiji);
 

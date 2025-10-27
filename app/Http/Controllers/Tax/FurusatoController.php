@@ -6,6 +6,7 @@ use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
+use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Domain\Tax\Support\PayloadNormalizer;
@@ -285,6 +286,14 @@ final class FurusatoController extends Controller
             'human_adjusted_taxable_curr' => $humanAdjusted['curr'],
         ]);
 
+        /** @var SogoShotokuNettingCalculator $netCalc */
+        $netCalc = app(SogoShotokuNettingCalculator::class);
+
+        foreach (['prev', 'curr'] as $period) {
+            $netOut = $netCalc->compute($previewPayload, $period);
+            $previewPayload = array_replace($previewPayload, $netOut);
+        }
+
         /** @var TokureiRateCalculator $tokureiCalculator */
         $tokureiCalculator = app(TokureiRateCalculator::class);
         $previewPayload = $tokureiCalculator->compute($previewPayload, $calculatorCtx);
@@ -433,17 +442,9 @@ final class FurusatoController extends Controller
     ): array
     {
         $inputsForView = $savedInputs;
-        $resultUpper = $resultsUpper;
 
-        $lookup = function (array $candidates) use ($resultUpper, $previewPayload, $savedInputs): ?int {
+        $lookup = function (array $candidates, bool $previewOnly = false) use ($previewPayload, $savedInputs): ?int {
             foreach ($candidates as $key) {
-                if (array_key_exists($key, $resultUpper) && $resultUpper[$key] !== null) {
-                    $value = $this->toNullableInt($resultUpper[$key]);
-                    if ($value !== null) {
-                        return $value;
-                    }
-                }
-
                 if (array_key_exists($key, $previewPayload) && $previewPayload[$key] !== null) {
                     $value = $this->toNullableInt($previewPayload[$key]);
                     if ($value !== null) {
@@ -451,7 +452,7 @@ final class FurusatoController extends Controller
                     }
                 }
 
-                if (array_key_exists($key, $savedInputs) && $savedInputs[$key] !== null && $savedInputs[$key] !== '') {
+                if (! $previewOnly && array_key_exists($key, $savedInputs) && $savedInputs[$key] !== null && $savedInputs[$key] !== '') {
                     $value = $this->toNullableInt($savedInputs[$key]);
                     if ($value !== null) {
                         return $value;
@@ -462,8 +463,13 @@ final class FurusatoController extends Controller
             return null;
         };
 
-        $assign = function (string $destination, array $candidates, ?callable $transform = null) use (&$inputsForView, $lookup): void {
-            $value = $lookup($candidates);
+        $assign = function (
+            string $destination,
+            array $candidates,
+            ?callable $transform = null,
+            bool $previewOnly = false
+        ) use (&$inputsForView, $lookup): void {
+            $value = $lookup($candidates, $previewOnly);
             if ($value === null) {
                 return;
             }
@@ -471,8 +477,13 @@ final class FurusatoController extends Controller
             $inputsForView[$destination] = $transform ? $transform($value) : $value;
         };
 
-        $mirrorMany = function (array $destinations, array $candidates, ?callable $transform = null) use (&$inputsForView, $lookup): void {
-            $value = $lookup($candidates);
+        $mirrorMany = function (
+            array $destinations,
+            array $candidates,
+            ?callable $transform = null,
+            bool $previewOnly = false
+        ) use (&$inputsForView, $lookup): void {
+            $value = $lookup($candidates, $previewOnly);
             if ($value === null) {
                 return;
             }
@@ -557,16 +568,22 @@ final class FurusatoController extends Controller
             $assign(
                 sprintf('tsusango_joto_tanki_%s', $period),
                 [sprintf('tsusango_joto_tanki_%s', $period)],
+                null,
+                true,
             );
 
             $assign(
                 sprintf('tsusango_joto_choki_%s', $period),
                 [sprintf('tsusango_joto_choki_%s', $period)],
+                null,
+                true,
             );
 
             $assign(
                 sprintf('tsusango_ichiji_%s', $period),
                 [sprintf('tsusango_ichiji_%s', $period)],
+                null,
+                true,
             );
 
             $bunriShotokuKey = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
@@ -688,37 +705,55 @@ final class FurusatoController extends Controller
             
             $assign(
                 sprintf('sashihiki_joto_tanki_sogo_%s', $period),
-                [sprintf('sashihiki_joto_tanki_%s', $period)],
+                [
+                    sprintf('sashihiki_joto_tanki_sogo_%s', $period),
+                    sprintf('sashihiki_joto_tanki_%s', $period),
+                ],
             );
             $assign(
                 sprintf('sashihiki_joto_choki_sogo_%s', $period),
-                [sprintf('sashihiki_joto_choki_%s', $period)],
+                [
+                    sprintf('sashihiki_joto_choki_sogo_%s', $period),
+                    sprintf('sashihiki_joto_choki_%s', $period),
+                ],
             );
 
             $assign(
                 sprintf('tokubetsukojo_joto_tanki_%s', $period),
                 [sprintf('tokubetsukojo_joto_tanki_%s', $period)],
+                null,
+                true,
             );
             $assign(
                 sprintf('tokubetsukojo_joto_choki_%s', $period),
                 [sprintf('tokubetsukojo_joto_choki_%s', $period)],
+                null,
+                true,
             );
             $assign(
                 sprintf('tokubetsukojo_ichiji_%s', $period),
                 [sprintf('tokubetsukojo_ichiji_%s', $period)],
+                null,
+                true,
             );
 
             $assign(
                 sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
                 [sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period)],
+                null,
+                true,
             );
             $assign(
                 sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
-                [sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period)],
+                [sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period)],
+                null,
+                true,
             );
             $assign(
                 sprintf('after_joto_ichiji_tousan_ichiji_%s', $period),
                 [sprintf('after_joto_ichiji_tousan_ichiji_%s', $period)],
+                null,
+                true,
             );
 
             $mirrorMany(
@@ -731,6 +766,8 @@ final class FurusatoController extends Controller
                     sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
                     sprintf('tsusanmae_joto_tanki_%s', $period),
                 ],
+                null,
+                true,
             );
             $mirrorMany(
                 [
@@ -743,6 +780,8 @@ final class FurusatoController extends Controller
                     sprintf('tsusanmae_joto_choki_sogo_%s', $period),
                     sprintf('tsusanmae_joto_choki_%s', $period),
                 ],
+                null,
+                true,
             );
             $mirrorMany(
                 [
@@ -754,6 +793,8 @@ final class FurusatoController extends Controller
                     sprintf('tsusanmae_ichiji_%s', $period),
                     sprintf('tsusanmae_joto_ichiji_%s', $period),
                 ],
+                null,
+                true,
             );
 
             $syunyuSanrinValue = $lookup([sprintf('syunyu_sanrin_%s', $period)]);

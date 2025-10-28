@@ -56,27 +56,27 @@
                 <tr>
                   @php($name = 'syunyu_sanrin_' . $period)
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
                   </td>
                   @php($name = 'keihi_sanrin_' . $period)
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
                   </td>
                   @php($name = 'sashihiki_sanrin_' . $period)
                   <td>
-                    <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
-                  @php($name = 'tsusango_sanrin_' . $period)
+                  @php($name = 'after_3jitsusan_sanrin_' . $period)
                   <td>
-                    <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   @php($name = 'tokubetsukojo_sanrin_' . $period)
                   <td>
-                    <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   @php($name = 'shotoku_sanrin_' . $period)
                   <td>
-                    <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
               </tbody>
@@ -103,48 +103,105 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const Q = (name) => document.querySelector(`[name="${name}"]`);
-  const V = (name) => {
-    const el = Q(name);
-    if (!el) { return 0; }
-    const raw = (el.value ?? '').toString().trim();
-    if (raw === '') { return 0; }
-    const num = Number(raw.replace(/[^\-0-9.]/g, ''));
-    return Number.isFinite(num) ? Math.trunc(num) : 0;
-  };
-  const S = (name, value) => {
-    const el = Q(name);
-    if (el) {
-      el.value = value ?? 0;
+
+  const toRawInt = (value) => {
+    if (typeof value !== 'string') {
+      return '';
     }
+    const stripped = value.replace(/,/g, '').trim();
+    if (stripped === '' || stripped === '-') {
+      return '';
+    }
+    if (!/^(-)?\d+$/.test(stripped)) {
+      return '';
+    }
+    const parsed = parseInt(stripped, 10);
+    return Number.isNaN(parsed) ? '' : parsed.toString();
+  };
+
+  const formatWithComma = (raw) => {
+    if (raw === '') {
+      return '';
+    }
+    const parsed = parseInt(raw, 10);
+    return Number.isNaN(parsed) ? '' : parsed.toLocaleString('ja-JP');
+  };
+
+  const getIntValue = (name) => {
+    const el = Q(name);
+    if (!el) {
+      return 0;
+    }
+    const raw = toRawInt(el.value ?? '');
+    if (raw === '') {
+      return 0;
+    }
+    const parsed = parseInt(raw, 10);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const setIntValue = (name, value) => {
+    const el = Q(name);
+    if (!el) {
+      return;
+    }
+    if (value === '' || value === null || typeof value === 'undefined' || Number.isNaN(value)) {
+      el.value = '';
+      return;
+    }
+    const raw = Math.trunc(Number(value)).toString();
+    el.value = formatWithComma(raw);
   };
 
   const recalc = (period) => {
-    const syunyu = V(`syunyu_sanrin_${period}`);
-    const keihi = V(`keihi_sanrin_${period}`);
-    const sashihiki = syunyu - keihi;
-    S(`sashihiki_sanrin_${period}`, sashihiki);
+    const syunyu = getIntValue(`syunyu_sanrin_${period}`);
+    const keihi = getIntValue(`keihi_sanrin_${period}`);
+    setIntValue(`sashihiki_sanrin_${period}`, syunyu - keihi);
 
-    const tsusango = V(`tsusango_sanrin_${period}`);
-    const tokubetsu = V(`tokubetsukojo_sanrin_${period}`);
-    S(`shotoku_sanrin_${period}`, tsusango - tokubetsu);
+    const tsusanAfter = getIntValue(`after_3jitsusan_sanrin_${period}`);
+    const tokubetsu = getIntValue(`tokubetsukojo_sanrin_${period}`);
+    setIntValue(`shotoku_sanrin_${period}`, tsusanAfter - tokubetsu);
   };
 
-  const bindBlur = () => {
-    document.querySelectorAll('input[type="number"]').forEach((el) => {
-      if (el.readOnly) {
-        return;
-      }
-      const match = el.name.match(/_(prev|curr)$/);
-      if (!match) {
-        return;
-      }
-      el.addEventListener('blur', () => recalc(match[1]));
+  const inputs = document.querySelectorAll('[data-format="comma-int"]');
+
+  inputs.forEach((input) => {
+    const applyFormat = () => {
+      const raw = toRawInt(input.value ?? '');
+      input.value = raw === '' ? '' : formatWithComma(raw);
+    };
+
+    applyFormat();
+
+    if (input.readOnly) {
+      return;
+    }
+
+    input.addEventListener('focus', () => {
+      input.value = toRawInt(input.value ?? '');
+      input.select();
     });
-  };
 
-  bindBlur();
-  recalc('prev');
-  recalc('curr');
+    input.addEventListener('blur', () => {
+      const raw = toRawInt(input.value ?? '');
+      input.value = raw === '' ? '' : formatWithComma(raw);
+      const match = input.name.match(/_(prev|curr)$/);
+      if (match) {
+        recalc(match[1]);
+      }
+    });
+  });
+
+  ['prev', 'curr'].forEach(recalc);
+
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', () => {
+      inputs.forEach((input) => {
+        input.value = toRawInt(input.value ?? '');
+      });
+    });
+  }
 });
 </script>
 @endpush

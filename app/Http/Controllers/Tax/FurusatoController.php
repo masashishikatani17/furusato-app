@@ -389,6 +389,7 @@ final class FurusatoController extends Controller
 
         $previewResults = [
             'details' => $previewDetails,
+            'payload' => $previewPayload,
             'upper' => $previewPayload,
         ];
         
@@ -428,15 +429,25 @@ final class FurusatoController extends Controller
             $context['results'] = $previewResults;
         }
 
+        $resultsPayload = [];
+        if (isset($context['results']['payload']) && is_array($context['results']['payload'])) {
+            $resultsPayload = $context['results']['payload'];
+        }
+
         $resultsUpper = [];
         if (isset($context['results']['upper']) && is_array($context['results']['upper'])) {
             $resultsUpper = $context['results']['upper'];
+        }
+
+        if ($resultsPayload === [] && $resultsUpper === [] && $context['results'] !== []) {
+            $resultsPayload = is_array($context['results']) ? $context['results'] : [];
         }
 
         $context['outInputs'] = $this->buildInputsForView(
             $savedInputs,
             $previewPayload,
             $syoriSettings,
+            $resultsPayload,
             $resultsUpper,
         );
 
@@ -447,23 +458,35 @@ final class FurusatoController extends Controller
      * @param  array<string, mixed>  $savedInputs
      * @param  array<string, mixed>  $previewPayload
      * @param  array<string, mixed>  $syoriSettings
+     * @param  array<string, mixed>  $resultsPayload
+     * @param  array<string, mixed>  $resultsUpper
      * @return array<string, mixed>
      */
     private function buildInputsForView(
         array $savedInputs,
         array $previewPayload,
         array $syoriSettings,
+        array $resultsPayload = [],
         array $resultsUpper = [],
     ): array
     {
         $inputsForView = $savedInputs;
 
-        $lookup = function (array $candidates, bool $previewOnly = false) use ($resultsUpper, $previewPayload, $savedInputs): ?int {
+        $lookup = function (array $candidates, bool $previewOnly = false) use ($resultsPayload, $resultsUpper, $previewPayload, $savedInputs): ?int {
             foreach ($candidates as $key) {
-                if (array_key_exists($key, $resultsUpper) && $resultsUpper[$key] !== null) {
-                    $value = $this->toNullableInt($resultsUpper[$key]);
-                    if ($value !== null) {
-                        return $value;
+                if (! $previewOnly) {
+                    if (array_key_exists($key, $resultsPayload) && $resultsPayload[$key] !== null) {
+                        $value = $this->toNullableInt($resultsPayload[$key]);
+                        if ($value !== null) {
+                            return $value;
+                        }
+                    }
+
+                    if (array_key_exists($key, $resultsUpper) && $resultsUpper[$key] !== null) {
+                        $value = $this->toNullableInt($resultsUpper[$key]);
+                        if ($value !== null) {
+                            return $value;
+                        }
                     }
                 }
 
@@ -2189,7 +2212,7 @@ final class FurusatoController extends Controller
 
         $sessionResults = session('furusato_results');
         if (is_array($sessionResults)) {
-            $candidate = $sessionResults['upper'] ?? $sessionResults;
+            $candidate = $sessionResults['payload'] ?? $sessionResults['upper'] ?? $sessionResults;
             if (is_array($candidate)) {
                 $payload = $candidate;
             }
@@ -2197,7 +2220,7 @@ final class FurusatoController extends Controller
 
         if ($payload === []) {
             $storedResults = $this->getStoredFurusatoResults($dataId);
-            $candidate = $storedResults['upper'] ?? $storedResults;
+            $candidate = $storedResults['payload'] ?? $storedResults['upper'] ?? $storedResults;
             if (is_array($candidate)) {
                 $payload = $candidate;
             }

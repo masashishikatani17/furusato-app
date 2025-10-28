@@ -852,6 +852,44 @@ final class FurusatoController extends Controller
                 }
             }
 
+            foreach ([
+                'tanki_ippan',
+                'tanki_keigen',
+                'choki_ippan',
+                'choki_tokutei',
+                'choki_keika',
+            ] as $suffix) {
+                $mirrorMany(
+                    [
+                        sprintf('bunri_shotoku_%s_shotoku_%s', $suffix, $period),
+                        sprintf('bunri_shotoku_%s_jumin_%s', $suffix, $period),
+                    ],
+                    [sprintf('joto_shotoku_%s_%s', $suffix, $period)],
+                    null,
+                    true,
+                );
+            }
+
+            $mirrorMany(
+                [
+                    sprintf('bunri_kazeishotoku_tanki_shotoku_%s', $period),
+                    sprintf('bunri_kazeishotoku_tanki_jumin_%s', $period),
+                ],
+                [sprintf('joto_shotoku_tanki_gokei_%s', $period)],
+                null,
+                true,
+            );
+
+            $mirrorMany(
+                [
+                    sprintf('bunri_kazeishotoku_choki_shotoku_%s', $period),
+                    sprintf('bunri_kazeishotoku_choki_jumin_%s', $period),
+                ],
+                [sprintf('joto_shotoku_choki_gokei_%s', $period)],
+                null,
+                true,
+            );
+
             $mirrorMany(
                 [sprintf('tsusanmae_joto_tanki_sogo_%s', $period)],
                 [

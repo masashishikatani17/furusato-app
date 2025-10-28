@@ -33,6 +33,7 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
 
             $keys[] = sprintf('shotoku_keijo_%s', $period);
             $keys[] = sprintf('shotoku_joto_tanki_%s', $period);
+            $keys[] = sprintf('shotoku_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('shotoku_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('shotoku_ichiji_%s', $period);
             $keys[] = sprintf('shotoku_sanrin_%s', $period);
@@ -76,11 +77,13 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $tsusanmaeShortValue = $this->value(
                 $payload,
                 sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
+                sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $period),
                 sprintf('tsusanmae_joto_tanki_sogo_%s', $period)
             );
             $tsusanmaeLongValue = $this->value(
                 $payload,
                 sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
+                sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
                 sprintf('tsusanmae_joto_choki_sogo_%s', $period)
             );
             $tsusanmaeIchijiValue = $this->value(
@@ -100,15 +103,21 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             );
             $shotokuShortValue = $this->value(
                 $payload,
+                sprintf('shotoku_joto_tanki_sogo_%s', $period),
                 sprintf('shotoku_joto_tanki_%s', $period),
-                sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period)
+                sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period),
+                sprintf('after_3jitsusan_tanki_sogo_%s', $period),
+                sprintf('after_3jitsusan_joto_tanki_%s', $period),
+                sprintf('after_3jitsusan_tanki_%s', $period)
             );
             $shotokuLongValue = $this->value(
                 $payload,
                 sprintf('shotoku_joto_choki_sogo_%s', $period),
                 sprintf('shotoku_joto_choki_%s', $period),
                 sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
-                sprintf('after_3jitsusan_joto_choki_%s', $period)
+                sprintf('after_3jitsusan_choki_sogo_%s', $period),
+                sprintf('after_3jitsusan_joto_choki_%s', $period),
+                sprintf('after_3jitsusan_choki_%s', $period)
             );
             $shotokuIchijiValue = $this->value(
                 $payload,
@@ -127,6 +136,7 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             );
 
             $updates[sprintf('shotoku_keijo_%s', $period)] = $shotokuKeijoValue;
+            $updates[sprintf('shotoku_joto_tanki_sogo_%s', $period)] = $shotokuShortValue;
             $updates[sprintf('shotoku_joto_tanki_%s', $period)] = $shotokuShortValue;
             $updates[sprintf('shotoku_joto_choki_sogo_%s', $period)] = $shotokuLongValue;
             $updates[sprintf('shotoku_ichiji_%s', $period)] = $shotokuIchijiValue;
@@ -159,24 +169,25 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $bunriKazeishotokuShotoku = 0;
             $bunriKazeishotokuJumin = 0;
 
-            $sumShotokuSogo = $shotokuKeijo + $shotokuShort + $shotokuLong + $shotokuIchiji;
+            $sumComprehensive = $shotokuKeijo + $shotokuShort + $shotokuLong + max(0, $shotokuIchiji);
 
             if (! $isSeparated) {
-                $ichijiNonNeg = max(0, $shotokuIchiji);
-                $sumComprehensive = $shotokuKeijo + $shotokuShort + $shotokuLong + $ichijiNonNeg;
-
                 $taxShotoku = $this->floorToThousands(max(0, $sumComprehensive - $kojoShotoku));
                 $taxJumin = $this->floorToThousands(max(0, $sumComprehensive - $kojoJumin));
             } else {
                 $after3Short = $this->n($this->value(
                     $payload,
                     sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period),
-                    sprintf('after_3jitsusan_joto_tanki_%s', $period)
+                    sprintf('after_3jitsusan_tanki_sogo_%s', $period),
+                    sprintf('after_3jitsusan_joto_tanki_%s', $period),
+                    sprintf('after_3jitsusan_tanki_%s', $period)
                 ));
                 $after3Long = $this->n($this->value(
                     $payload,
                     sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
-                    sprintf('after_3jitsusan_joto_choki_%s', $period)
+                    sprintf('after_3jitsusan_choki_sogo_%s', $period),
+                    sprintf('after_3jitsusan_joto_choki_%s', $period),
+                    sprintf('after_3jitsusan_choki_%s', $period)
                 ));
                 $after3Ichiji = $this->n($this->value(
                     $payload,
@@ -200,7 +211,7 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
 
                 $taxJumin = $bunriKazeishotokuJumin;
 
-                $taxShotoku = $this->floorToThousands(max(0, $sumShotokuSogo - $kojoShotoku));
+                $taxShotoku = $this->floorToThousands(max(0, $sumComprehensive - $kojoShotoku));
 
                 $updates[sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period)] = $bunriSogoShotoku;
                 $updates[sprintf('bunri_sogo_gokeigaku_jumin_%s', $period)] = $bunriSogoJumin;

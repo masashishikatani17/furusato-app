@@ -13,6 +13,7 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
     public const AFTER = [];
 
     private const PERIODS = ['prev', 'curr'];
+    private const TOKUBETSU_KOJO_LIMIT = 500_000;
 
     /**
      * @return array<int, string>
@@ -24,13 +25,13 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
         foreach (self::PERIODS as $period) {
             $keys[] = sprintf('sashihiki_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('sashihiki_joto_choki_sogo_%s', $period);
-            $keys[] = sprintf('tsusango_joto_tanki_%s', $period);
+            $keys[] = sprintf('tsusango_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('tsusango_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('tsusango_ichiji_%s', $period);
-            $keys[] = sprintf('tokubetsukojo_joto_tanki_%s', $period);
-            $keys[] = sprintf('tokubetsukojo_joto_choki_%s', $period);
+            $keys[] = sprintf('tokubetsukojo_joto_tanki_sogo_%s', $period);
+            $keys[] = sprintf('tokubetsukojo_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('tokubetsukojo_ichiji_%s', $period);
-            $keys[] = sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period);
+            $keys[] = sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('after_joto_ichiji_tousan_ichiji_%s', $period);
         }
@@ -60,24 +61,37 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
 
         $jotoIchiji = JotoIchijiNetting::compute($short, $long, $ichiji);
 
+        $tsusangoShortKey = sprintf('tsusango_joto_tanki_sogo_%s', $period);
+        $tsusangoLongKey = sprintf('tsusango_joto_choki_sogo_%s', $period);
+        $tokubetsuShortKey = sprintf('tokubetsukojo_joto_tanki_sogo_%s', $period);
+        $tokubetsuLongKey = sprintf('tokubetsukojo_joto_choki_sogo_%s', $period);
+        $afterShortKey = sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $period);
+
         $outputs = [
             $shortKey => $jotoIchiji['sashihiki_joto_tanki_sogo'],
             $longKey => $jotoIchiji['sashihiki_joto_choki_sogo'],
-            sprintf('tsusango_joto_tanki_%s', $period) => $jotoIchiji['tsusango_joto_tanki'],
-            sprintf('tsusango_joto_choki_sogo_%s', $period) => $jotoIchiji['tsusango_joto_choki_sogo'],
+            $tsusangoShortKey => $jotoIchiji['tsusango_joto_tanki'],
+            $tsusangoLongKey => $jotoIchiji['tsusango_joto_choki_sogo'],
             sprintf('tsusango_ichiji_%s', $period) => $jotoIchiji['tsusango_ichiji'],
-            sprintf('tokubetsukojo_joto_tanki_%s', $period) => $jotoIchiji['tokubetsukojo_joto_tanki'],
-            sprintf('tokubetsukojo_joto_choki_%s', $period) => $jotoIchiji['tokubetsukojo_joto_choki'],
+            $tokubetsuShortKey => $jotoIchiji['tokubetsukojo_joto_tanki'],
+            $tokubetsuLongKey => $jotoIchiji['tokubetsukojo_joto_choki'],
             sprintf('tokubetsukojo_ichiji_%s', $period) => $jotoIchiji['tokubetsukojo_ichiji'],
-            sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period) => $jotoIchiji['after_joto_ichiji_tousan_joto_tanki'],
+            $afterShortKey => $jotoIchiji['after_joto_ichiji_tousan_joto_tanki'],
             sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period) => $jotoIchiji['after_joto_ichiji_tousan_joto_choki_sogo'],
             sprintf('after_joto_ichiji_tousan_ichiji_%s', $period) => $jotoIchiji['after_joto_ichiji_tousan_ichiji'],
         ];
+
+        $tsusangoShort = (int) ($outputs[$tsusangoShortKey] ?? 0);
+        $tsusangoLong = (int) ($outputs[$tsusangoLongKey] ?? 0);
+        $outputs[$tokubetsuShortKey] = min(self::TOKUBETSU_KOJO_LIMIT, max(0, $tsusangoShort));
+        $outputs[$tokubetsuLongKey] = min(self::TOKUBETSU_KOJO_LIMIT, max(0, $tsusangoLong));
 
         $tsusangoIchijiKey = sprintf('tsusango_ichiji_%s', $period);
         if (array_key_exists($tsusangoIchijiKey, $outputs)) {
             $outputs[$tsusangoIchijiKey] = max(0, (int) $outputs[$tsusangoIchijiKey]);
         }
+
+        $outputs[$afterShortKey] = (int) $outputs[$afterShortKey];
 
         return $outputs;
     }

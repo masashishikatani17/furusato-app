@@ -145,9 +145,9 @@ class SogoShotokuNettingCalculatorTest extends TestCase
     public static function provideTokubetsuBoundaryCases(): array
     {
         return [
-            'below_cap' => [49_999, 49_999],
-            'at_cap' => [50_000, 50_000],
-            'above_cap' => [50_001, 50_000],
+            'below_cap' => [499_999, 499_999],
+            'at_cap' => [500_000, 500_000],
+            'above_cap' => [500_001, 500_000],
         ];
     }
 

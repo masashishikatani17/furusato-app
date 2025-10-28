@@ -958,6 +958,18 @@ final class FurusatoController extends Controller
             $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
             $sumJuminKey   = sprintf('shotoku_joto_ichiji_jumin_%s',  $period);
 
+            $serverSumShotoku = $lookup([$sumShotokuKey], false, false);
+            $hasServerSumShotoku = $serverSumShotoku !== null;
+            if ($hasServerSumShotoku) {
+                $inputsForView[$sumShotokuKey] = $this->valueOrZero($serverSumShotoku);
+            }
+
+            $serverSumJumin = $lookup([$sumJuminKey], false, false);
+            $hasServerSumJumin = $serverSumJumin !== null;
+            if ($hasServerSumJumin) {
+                $inputsForView[$sumJuminKey] = $this->valueOrZero($serverSumJumin);
+            }
+
             $tanki = $this->valueOrZero($lookup([
                 sprintf('shotoku_joto_tanki_sogo_%s', $period),
                 sprintf('shotoku_joto_tanki_%s', $period),
@@ -968,10 +980,15 @@ final class FurusatoController extends Controller
             ], false, false));
             $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)], false, false));
 
-            $sumShotoku = (int) ($tanki + $choki + max(0, $ichiji));
+            $fallbackSum = $tanki + $choki + max(0, $ichiji);
 
-            $inputsForView[$sumShotokuKey] = $sumShotoku;
-            $inputsForView[$sumJuminKey] = $sumShotoku;
+            if (! $hasServerSumShotoku) {
+                $inputsForView[$sumShotokuKey] = $fallbackSum;
+            }
+
+            if (! $hasServerSumJumin) {
+                $inputsForView[$sumJuminKey] = $fallbackSum;
+            }
 
             foreach ([
                 sprintf('bunri_sashihiki_gokei_shotoku_%s', $period),

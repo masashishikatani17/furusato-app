@@ -543,31 +543,6 @@ final class FurusatoController extends Controller
         };
 
         foreach (['prev', 'curr'] as $period) {
-            $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
-            $sumJuminKey   = sprintf('shotoku_joto_ichiji_jumin_%s',  $period);
-
-            // 1) サーバー決定値（payload → upper）を優先し、最後にプレビューを参照（保存値へはフォールバックしない）
-            $assign($sumShotokuKey, [$sumShotokuKey], null, false, false);
-            $assign($sumJuminKey,   [$sumShotokuKey, $sumJuminKey], null, false, false);
-
-            // 2) 候補が存在しない場合は shotoku_joto_tanki_{|_sogo}_%, shotoku_joto_choki_{|_sogo}_%, shotoku_ichiji_% を合成
-            if (! array_key_exists($sumShotokuKey, $inputsForView)) {
-                $tanki = $this->valueOrZero($lookup([
-                    sprintf('shotoku_joto_tanki_sogo_%s', $period),
-                    sprintf('shotoku_joto_tanki_%s', $period),
-                ], false, false));
-                $choki = $this->valueOrZero($lookup([
-                    sprintf('shotoku_joto_choki_sogo_%s', $period),
-                    sprintf('shotoku_joto_choki_%s', $period),
-                ], false, false));
-                $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)], false, false));
-                $inputsForView[$sumShotokuKey] = (int) ($tanki + $choki + max(0, $ichiji));
-            }
-            // 住民側が未設定なら shotoku 側をコピー
-            if (! array_key_exists($sumJuminKey, $inputsForView)) {
-                $inputsForView[$sumJuminKey] = (int) ($inputsForView[$sumShotokuKey] ?? 0);
-            }
-
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
             $kShot = sprintf('bunri_shotoku_taishoku_shotoku_%s', $period);
@@ -979,33 +954,24 @@ final class FurusatoController extends Controller
             $assign(sprintf('shotoku_ichiji_%s', $period), [sprintf('shotoku_ichiji_%s', $period)]);
             $assign(sprintf('shotoku_taishoku_%s', $period), [sprintf('shotoku_taishoku_%s', $period)]);
 
-            // ▼ 譲渡＋一時（所得金額）を payload → upper → preview の順で再計算して埋める
+            // ▼ 譲渡＋一時（所得金額）を payload → upper → preview の順で再計算して埋める（savedInputs にはフォールバックしない）
             $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
             $sumJuminKey   = sprintf('shotoku_joto_ichiji_jumin_%s',  $period);
 
-            // 1) サーバー決定値（payload → upper）を優先し、最後にプレビューを参照（保存値へはフォールバックしない）
-            $assign($sumShotokuKey, [$sumShotokuKey], null, false, false);
-            $assign($sumJuminKey,   [$sumJuminKey],   null, false, false);
+            $tanki = $this->valueOrZero($lookup([
+                sprintf('shotoku_joto_tanki_sogo_%s', $period),
+                sprintf('shotoku_joto_tanki_%s', $period),
+            ], false, false));
+            $choki = $this->valueOrZero($lookup([
+                sprintf('shotoku_joto_choki_sogo_%s', $period),
+                sprintf('shotoku_joto_choki_%s',      $period),
+            ], false, false));
+            $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)], false, false));
 
-            // 2) 候補が存在しない場合は shotoku_joto_tanki_{|_sogo}_%, shotoku_joto_choki_{|_sogo}_%, shotoku_ichiji_% を合成
-            if (! array_key_exists($sumShotokuKey, $inputsForView)) {
-                $tanki = $this->valueOrZero($lookup([
-                    sprintf('shotoku_joto_tanki_sogo_%s', $period),
-                    sprintf('shotoku_joto_tanki_%s', $period),
-                ], false, false));
-                $choki = $this->valueOrZero($lookup([
-                    sprintf('shotoku_joto_choki_sogo_%s', $period),
-                    sprintf('shotoku_joto_choki_%s',      $period),
-                ], false, false));
-                $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)], false, false));
+            $sumShotoku = (int) ($tanki + $choki + max(0, $ichiji));
 
-                $inputsForView[$sumShotokuKey] = (int) ($tanki + $choki + max(0, $ichiji));
-            }
-
-            // 3) 住民側：未セットなら shotoku 側と同値で可
-            if (! array_key_exists($sumJuminKey, $inputsForView)) {
-                $inputsForView[$sumJuminKey] = $inputsForView[$sumShotokuKey] ?? 0;
-            }
+            $inputsForView[$sumShotokuKey] = $sumShotoku;
+            $inputsForView[$sumJuminKey] = $sumShotoku;
 
             foreach ([
                 sprintf('bunri_sashihiki_gokei_shotoku_%s', $period),

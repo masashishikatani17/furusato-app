@@ -56,27 +56,27 @@
                 <tr>
                   @php($name = 'syunyu_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end" value="{{ old($name, $inputs[$name] ?? null) }}">
                   </td>
                   @php($name = 'keihi_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end" value="{{ old($name, $inputs[$name] ?? null) }}">
                   </td>
                   @php($name = 'sashihiki_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   @php($name = 'after_3jitsusan_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   @php($name = 'tokubetsukojo_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   @php($name = 'shotoku_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
               </tbody>
@@ -102,8 +102,6 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const Q = (name) => document.querySelector(`[name="${name}"]`);
-
   const toRawInt = (value) => {
     if (typeof value !== 'string') {
       return '';
@@ -127,12 +125,58 @@ document.addEventListener('DOMContentLoaded', function () {
     return Number.isNaN(parsed) ? '' : parsed.toLocaleString('ja-JP');
   };
 
+  const hiddenCache = new Map();
+
+  const getHidden = (name) => {
+    if (hiddenCache.has(name)) {
+      return hiddenCache.get(name);
+    }
+    const hidden = document.querySelector(`input[type="hidden"][name="${name}"]`);
+    if (hidden) {
+      hiddenCache.set(name, hidden);
+    }
+    return hidden || null;
+  };
+
+  const getDisplay = (name) => document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+
+  const ensureHidden = (input) => {
+    const name = input.dataset.name;
+    if (!name) {
+      return null;
+    }
+
+    let hidden = getHidden(name);
+    if (!hidden) {
+      hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = name;
+      hidden.dataset.commaMirror = '1';
+      const parent = input.parentElement;
+      if (parent) {
+        parent.appendChild(hidden);
+      } else {
+        const form = input.closest('form');
+        (form || document.body).appendChild(hidden);
+      }
+      hiddenCache.set(name, hidden);
+    }
+
+    const hiddenRaw = toRawInt(hidden.value ?? '');
+    const inputRaw = toRawInt(input.value ?? '');
+    const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+    hidden.value = raw;
+    input.value = raw === '' ? '' : formatWithComma(raw);
+
+    return hidden;
+  };
+
   const getIntValue = (name) => {
-    const el = Q(name);
-    if (!el) {
+    const hidden = getHidden(name);
+    if (!hidden) {
       return 0;
     }
-    const raw = toRawInt(el.value ?? '');
+    const raw = toRawInt(hidden.value ?? '');
     if (raw === '') {
       return 0;
     }
@@ -140,65 +184,90 @@ document.addEventListener('DOMContentLoaded', function () {
     return Number.isNaN(parsed) ? 0 : parsed;
   };
 
-  const setIntValue = (name, value) => {
-    const el = Q(name);
-    if (!el) {
-      return;
-    }
+  const setValue = (name, value) => {
+    const hidden = getHidden(name);
+    const display = getDisplay(name);
     if (value === '' || value === null || typeof value === 'undefined' || Number.isNaN(value)) {
-      el.value = '';
+      if (hidden) {
+        hidden.value = '';
+      }
+      if (display) {
+        display.value = '';
+      }
       return;
     }
+    
     const raw = Math.trunc(Number(value)).toString();
-    el.value = formatWithComma(raw);
+    if (hidden) {
+      hidden.value = raw;
+    }
+    if (display) {
+      display.value = formatWithComma(raw);
+    }
   };
+
+  const periods = ['prev', 'curr'];
 
   const recalc = (period) => {
     const syunyu = getIntValue(`syunyu_sanrin_${period}`);
     const keihi = getIntValue(`keihi_sanrin_${period}`);
-    setIntValue(`sashihiki_sanrin_${period}`, syunyu - keihi);
+    setValue(`sashihiki_sanrin_${period}`, syunyu - keihi);
 
     const tsusanAfter = getIntValue(`after_3jitsusan_sanrin_${period}`);
     const tokubetsu = getIntValue(`tokubetsukojo_sanrin_${period}`);
-    setIntValue(`shotoku_sanrin_${period}`, tsusanAfter - tokubetsu);
+    setValue(`shotoku_sanrin_${period}`, tsusanAfter - tokubetsu);
   };
 
   const inputs = document.querySelectorAll('[data-format="comma-int"]');
 
   inputs.forEach((input) => {
-    const applyFormat = () => {
-      const raw = toRawInt(input.value ?? '');
-      input.value = raw === '' ? '' : formatWithComma(raw);
-    };
+    const name = input.dataset.name;
+    if (!name) {
+      return;
+    }
 
-    applyFormat();
+    ensureHidden(input);
 
     if (input.readOnly) {
       return;
     }
 
     input.addEventListener('focus', () => {
-      input.value = toRawInt(input.value ?? '');
+      const hidden = getHidden(name);
+      input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
       input.select();
     });
 
     input.addEventListener('blur', () => {
       const raw = toRawInt(input.value ?? '');
+      const hidden = getHidden(name);
+      if (hidden) {
+        hidden.value = raw;
+      }
       input.value = raw === '' ? '' : formatWithComma(raw);
-      const match = input.name.match(/_(prev|curr)$/);
+      const match = name.match(/_(prev|curr)$/);
       if (match) {
         recalc(match[1]);
       }
     });
   });
 
-  ['prev', 'curr'].forEach(recalc);
+  periods.forEach(recalc);
 
   const form = document.querySelector('form');
   if (form) {
     form.addEventListener('submit', () => {
       inputs.forEach((input) => {
-        input.value = toRawInt(input.value ?? '');
+        const name = input.dataset.name;
+        if (!name) {
+          return;
+        }
+        const hidden = getHidden(name) || ensureHidden(input);
+        if (!hidden) {
+          return;
+        }
+        const raw = toRawInt(input.value ?? hidden.value ?? '');
+        hidden.value = raw;
       });
     });
   }

@@ -66,10 +66,10 @@
                     <th rowspan="2" class="th-cream">総合譲渡</th>
                     <th class="th-cream" nowrap="nowrap">短期</th>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="syunyu_joto_tanki_{{ $period }}" value="{{ old('syunyu_joto_tanki_' . $period, $inputs['syunyu_joto_tanki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="syunyu_joto_tanki_{{ $period }}" class="form-control suji11" value="{{ old('syunyu_joto_tanki_' . $period, $inputs['syunyu_joto_tanki_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="keihi_joto_tanki_{{ $period }}" value="{{ old('keihi_joto_tanki_' . $period, $inputs['keihi_joto_tanki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="keihi_joto_tanki_{{ $period }}" class="form-control suji11" value="{{ old('keihi_joto_tanki_' . $period, $inputs['keihi_joto_tanki_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji11" name="sashihiki_joto_tanki_{{ $period }}" value="{{ old('sashihiki_joto_tanki_' . $period, $inputs['sashihiki_joto_tanki_' . $period] ?? null) }}" readonly>
@@ -94,10 +94,10 @@
                   <tr>
                     <th class="th-cream">長期</th>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="syunyu_joto_choki_{{ $period }}" value="{{ old('syunyu_joto_choki_' . $period, $inputs['syunyu_joto_choki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="syunyu_joto_choki_{{ $period }}" class="form-control suji11" value="{{ old('syunyu_joto_choki_' . $period, $inputs['syunyu_joto_choki_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="keihi_joto_choki_{{ $period }}" value="{{ old('keihi_joto_choki_' . $period, $inputs['keihi_joto_choki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="keihi_joto_choki_{{ $period }}" class="form-control suji11" value="{{ old('keihi_joto_choki_' . $period, $inputs['keihi_joto_choki_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji11" name="sashihiki_joto_choki_{{ $period }}" value="{{ old('sashihiki_joto_choki_' . $period, $inputs['sashihiki_joto_choki_' . $period] ?? null) }}" readonly>
@@ -124,10 +124,10 @@
                   <tr>
                     <th colspan="2" class="th-cream">一時</th>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="syunyu_ichiji_{{ $period }}" value="{{ old('syunyu_ichiji_' . $period, $inputs['syunyu_ichiji_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="syunyu_ichiji_{{ $period }}" class="form-control suji11" value="{{ old('syunyu_ichiji_' . $period, $inputs['syunyu_ichiji_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="keihi_ichiji_{{ $period }}" value="{{ old('keihi_ichiji_' . $period, $inputs['keihi_ichiji_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="keihi_ichiji_{{ $period }}" class="form-control suji11" value="{{ old('keihi_ichiji_' . $period, $inputs['keihi_ichiji_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji11" name="sashihiki_ichiji_{{ $period }}" value="{{ old('sashihiki_ichiji_' . $period, $inputs['sashihiki_ichiji_' . $period] ?? null) }}" readonly>
@@ -199,29 +199,90 @@
       return Number.isNaN(parsed) ? '' : parsed.toLocaleString('ja-JP');
     };
 
+    const hiddenCache = new Map();
+
+    const getHidden = (name) => {
+      if (hiddenCache.has(name)) {
+        return hiddenCache.get(name);
+      }
+      const hidden = document.querySelector(`input[type="hidden"][name="${name}"]`);
+      if (hidden) {
+        hiddenCache.set(name, hidden);
+      }
+      return hidden || null;
+    };
+
+    const ensureHidden = (input) => {
+      const name = input.dataset.name;
+      if (!name) {
+        return null;
+      }
+
+      let hidden = getHidden(name);
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = name;
+        hidden.dataset.commaMirror = '1';
+        const parent = input.parentElement;
+        if (parent) {
+          parent.appendChild(hidden);
+        } else {
+          const form = input.closest('form');
+          (form || document.body).appendChild(hidden);
+        }
+        hiddenCache.set(name, hidden);
+      }
+
+      const hiddenRaw = toRawInt(hidden.value ?? '');
+      const inputRaw = toRawInt(input.value ?? '');
+      const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+      hidden.value = raw;
+      input.value = raw === '' ? '' : formatWithComma(raw);
+
+      return hidden;
+    };
+
     const inputs = document.querySelectorAll('[data-format="comma-int"]');
 
     inputs.forEach((input) => {
-      const applyFormat = () => {
-        const raw = toRawInt(input.value);
-        input.value = raw === '' ? '' : formatWithComma(raw);
-      };
+      const name = input.dataset.name;
+      if (!name) {
+        return;
+      }
 
-      applyFormat();
+      ensureHidden(input);
 
       input.addEventListener('focus', () => {
-        input.value = toRawInt(input.value);
+        const hidden = getHidden(name);
+        input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
         input.select();
       });
 
-      input.addEventListener('blur', applyFormat);
+      input.addEventListener('blur', () => {
+        const raw = toRawInt(input.value ?? '');
+        const hidden = getHidden(name);
+        if (hidden) {
+          hidden.value = raw;
+        }
+        input.value = raw === '' ? '' : formatWithComma(raw);
+      });
     });
 
     const form = document.querySelector('form');
     if (form) {
       form.addEventListener('submit', () => {
         inputs.forEach((input) => {
-          input.value = toRawInt(input.value);
+          const name = input.dataset.name;
+          if (!name) {
+            return;
+          }
+          const hidden = getHidden(name) || ensureHidden(input);
+          if (!hidden) {
+            return;
+          }
+          const raw = toRawInt(input.value ?? hidden.value ?? '');
+          hidden.value = raw;
         });
       });
     }

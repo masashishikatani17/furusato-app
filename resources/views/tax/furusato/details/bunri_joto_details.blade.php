@@ -84,32 +84,32 @@
                       @php($base = $row['key'] . '_' . $period)
                       @php($name = 'syunyu_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                        <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end" value="{{ old($name, $inputs[$name] ?? null) }}">
                       </td>
                       @php($name = 'keihi_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                        <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end" value="{{ old($name, $inputs[$name] ?? null) }}">
                       </td>
                       @php($name = 'before_tsusan_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       </td>
                       @php($name = 'tsusango_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       </td>
                       @php($name = 'tokubetsukojo_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji8 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                        <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji8 text-end" value="{{ old($name, $inputs[$name] ?? null) }}">
                       </td>
                       @php($name = 'joto_shotoku_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       </td>
                       @if ($index === 0)
                         @php($gokeiName = sprintf('joto_shotoku_%s_gokei_%s', $group['key'], $period))
                         <td rowspan="{{ $rowspan }}">
-                          <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $gokeiName }}" value="{{ old($gokeiName, $inputs[$gokeiName] ?? null) }}" readonly>
+                          <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $gokeiName }}" class="form-control suji11 text-end bg-light" value="{{ old($gokeiName, $inputs[$gokeiName] ?? null) }}" readonly>
                         </td>
                       @endif
                     </tr>
@@ -138,8 +138,6 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const Q = (name) => document.querySelector(`[name="${name}"]`);
-
   const toRawInt = (value) => {
     if (typeof value !== 'string') {
       return '';
@@ -163,12 +161,58 @@ document.addEventListener('DOMContentLoaded', function () {
     return Number.isNaN(parsed) ? '' : parsed.toLocaleString('ja-JP');
   };
 
+  const hiddenCache = new Map();
+
+  const getHidden = (name) => {
+    if (hiddenCache.has(name)) {
+      return hiddenCache.get(name);
+    }
+    const hidden = document.querySelector(`input[type="hidden"][name="${name}"]`);
+    if (hidden) {
+      hiddenCache.set(name, hidden);
+    }
+    return hidden || null;
+  };
+
+  const getDisplay = (name) => document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+
+  const ensureHidden = (input) => {
+    const name = input.dataset.name;
+    if (!name) {
+      return null;
+    }
+
+    let hidden = getHidden(name);
+    if (!hidden) {
+      hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = name;
+      hidden.dataset.commaMirror = '1';
+      const parent = input.parentElement;
+      if (parent) {
+        parent.appendChild(hidden);
+      } else {
+        const form = input.closest('form');
+        (form || document.body).appendChild(hidden);
+      }
+      hiddenCache.set(name, hidden);
+    }
+
+    const hiddenRaw = toRawInt(hidden.value ?? '');
+    const inputRaw = toRawInt(input.value ?? '');
+    const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+    hidden.value = raw;
+    input.value = raw === '' ? '' : formatWithComma(raw);
+
+    return hidden;
+  };
+
   const getIntValue = (name) => {
-    const el = Q(name);
-    if (!el) {
+    const hidden = getHidden(name);
+    if (!hidden) {
       return 0;
     }
-    const raw = toRawInt(el.value ?? '');
+    const raw = toRawInt(hidden.value ?? '');
     if (raw === '') {
       return 0;
     }
@@ -177,16 +221,24 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   const setIntValue = (name, value) => {
-    const el = Q(name);
-    if (!el) {
-      return;
-    }
+    const hidden = getHidden(name);
+    const display = getDisplay(name);
     if (value === '' || value === null || typeof value === 'undefined' || Number.isNaN(value)) {
-      el.value = '';
+      if (hidden) {
+        hidden.value = '';
+      }
+      if (display) {
+        display.value = '';
+      }
       return;
     }
     const raw = Math.trunc(Number(value)).toString();
-    el.value = formatWithComma(raw);
+    if (hidden) {
+      hidden.value = raw;
+    }
+    if (display) {
+      display.value = formatWithComma(raw);
+    }
   };
 
   const rows = [
@@ -220,8 +272,16 @@ document.addEventListener('DOMContentLoaded', function () {
   const inputs = document.querySelectorAll('[data-format="comma-int"]');
 
   inputs.forEach((input) => {
+    const name = input.dataset.name;
+    if (!name) {
+      return;
+    }
+
+    ensureHidden(input);
+
     const applyFormat = () => {
-      const raw = toRawInt(input.value ?? '');
+      const hidden = getHidden(name);
+      const raw = hidden ? toRawInt(hidden.value ?? '') : toRawInt(input.value ?? '');
       input.value = raw === '' ? '' : formatWithComma(raw);
     };
 
@@ -232,14 +292,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     input.addEventListener('focus', () => {
-      input.value = toRawInt(input.value ?? '');
+      const hidden = getHidden(name);
+      input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
       input.select();
     });
 
     input.addEventListener('blur', () => {
       const raw = toRawInt(input.value ?? '');
+      const hidden = getHidden(name);
+      if (hidden) {
+        hidden.value = raw;
+      }
       input.value = raw === '' ? '' : formatWithComma(raw);
-      const match = input.name.match(/_(prev|curr)$/);
+      const match = name.match(/_(prev|curr)$/);
       if (match) {
         recalc(match[1]);
       }
@@ -252,7 +317,16 @@ document.addEventListener('DOMContentLoaded', function () {
   if (form) {
     form.addEventListener('submit', () => {
       inputs.forEach((input) => {
-        input.value = toRawInt(input.value ?? '');
+        const name = input.dataset.name;
+        if (!name) {
+          return;
+        }
+        const hidden = getHidden(name) || ensureHidden(input);
+        if (!hidden) {
+          return;
+        }
+        const raw = toRawInt(input.value ?? hidden.value ?? '');
+        hidden.value = raw;
       });
     });
   }

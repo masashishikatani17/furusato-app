@@ -13,7 +13,7 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
     public const AFTER = [];
 
     private const PERIODS = ['prev', 'curr'];
-    private const TOKUBETSU_KOJO_LIMIT = 50_000;
+    private const TOKUBETSU_KOJO_LIMIT = 500_000;
 
     /**
      * @return array<int, string>
@@ -83,8 +83,13 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
 
         $tsusangoShort = (int) ($outputs[$tsusangoShortKey] ?? 0);
         $tsusangoLong = (int) ($outputs[$tsusangoLongKey] ?? 0);
-        $outputs[$tokubetsuShortKey] = min(self::TOKUBETSU_KOJO_LIMIT, max(0, $tsusangoShort));
-        $outputs[$tokubetsuLongKey] = min(self::TOKUBETSU_KOJO_LIMIT, max(0, $tsusangoLong));
+        $pool = self::TOKUBETSU_KOJO_LIMIT;
+        $tokubetsuShort = min($pool, max(0, $tsusangoShort));
+        $pool -= $tokubetsuShort;
+        $tokubetsuLong = min($pool, max(0, $tsusangoLong));
+
+        $outputs[$tokubetsuShortKey] = $tokubetsuShort;
+        $outputs[$tokubetsuLongKey] = $tokubetsuLong;
 
         $tsusangoIchijiKey = sprintf('tsusango_ichiji_%s', $period);
         if (array_key_exists($tsusangoIchijiKey, $outputs)) {

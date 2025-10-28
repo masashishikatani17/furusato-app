@@ -43,7 +43,7 @@ class SogoShotokuNettingCalculatorTest extends TestCase
 
         $result = $calculator->compute($payload, 'prev');
 
-        $short  = (int)($result['tsusango_joto_tanki_prev'] ?? 0);
+        $short  = (int)($result['tsusango_joto_tanki_sogo_prev'] ?? 0);
         $long   = (int)($result['tsusango_joto_choki_sogo_prev'] ?? 0);
         $ichiji = (int)($result['tsusango_ichiji_prev'] ?? 0);
         // ドメイン制約：同一テーブル内で「プラスとマイナスが混在」しない
@@ -69,14 +69,14 @@ class SogoShotokuNettingCalculatorTest extends TestCase
 
         $result = $calculator->compute($payload, 'curr');
 
-        $short = (int)($result['tsusango_joto_tanki_curr'] ?? 0);
+        $short = (int)($result['tsusango_joto_tanki_sogo_curr'] ?? 0);
         $long  = (int)($result['tsusango_joto_choki_sogo_curr'] ?? 0);
         $ichiji = (int)($result['tsusango_ichiji_curr'] ?? 0);
         $this->assertNotBothPositive($short, $long, 'Short and Long cannot both be positive at tsusanmae(curr)');
         $this->assertGreaterThanOrEqual(0, $ichiji, 'Ichiji must be non-negative at tsusanmae(curr)');
 
         // 内部通算後（after_…）も同様の性質を満たす
-        $afterShort = (int)($result['after_joto_ichiji_tousan_joto_tanki_curr'] ?? 0);
+        $afterShort = (int)($result['after_joto_ichiji_tousan_joto_tanki_sogo_curr'] ?? 0);
         $afterLong  = (int)($result['after_joto_ichiji_tousan_joto_choki_sogo_curr'] ?? 0);
         $afterIchiji = (int)($result['after_joto_ichiji_tousan_ichiji_curr'] ?? 0);
         $this->assertNotBothPositive($afterShort, $afterLong, 'Short and Long cannot both be positive after netting(curr)');
@@ -97,7 +97,7 @@ class SogoShotokuNettingCalculatorTest extends TestCase
 
         $this->assertSame(123, $result['sashihiki_joto_tanki_sogo_prev']);
         $this->assertSame(-23, $result['sashihiki_joto_choki_sogo_prev']);
-        $short = (int)($result['tsusango_joto_tanki_prev'] ?? 0);
+        $short = (int)($result['tsusango_joto_tanki_sogo_prev'] ?? 0);
         $long  = (int)($result['tsusango_joto_choki_sogo_prev'] ?? 0);
         $ichiji = (int)($result['tsusango_ichiji_prev'] ?? 0);
         $this->assertNotBothPositive($short, $long, 'Short and Long cannot both be positive at tsusanmae(prev)');
@@ -119,5 +119,67 @@ class SogoShotokuNettingCalculatorTest extends TestCase
         $this->assertSame(0, $result['tsusango_ichiji_prev']);
         $this->assertSame(0, $result['tokubetsukojo_ichiji_prev']);
         $this->assertSame(0, $result['after_joto_ichiji_tousan_ichiji_prev']);
+    }
+
+    /**
+     * @dataProvider provideTokubetsuBoundaryCases
+     */
+    public function test_tokubetsu_deduction_caps_at_five_hundred_thousand(int $short, int $expected): void
+    {
+        $calculator = new SogoShotokuNettingCalculator();
+
+        $payload = [
+            'sashihiki_joto_tanki_sogo_prev' => $short,
+            'sashihiki_joto_choki_sogo_prev' => 0,
+            'sashihiki_ichiji_prev' => 0,
+        ];
+
+        $result = $calculator->compute($payload, 'prev');
+
+        $this->assertSame($expected, $result['tokubetsukojo_joto_tanki_sogo_prev']);
+    }
+
+    /**
+     * @return array<string, array{int, int}>
+     */
+    public static function provideTokubetsuBoundaryCases(): array
+    {
+        return [
+            'below_cap' => [49_999, 49_999],
+            'at_cap' => [50_000, 50_000],
+            'above_cap' => [50_001, 50_000],
+        ];
+    }
+
+    public function test_short_and_long_losses_preserve_signs_when_both_negative(): void
+    {
+        $calculator = new SogoShotokuNettingCalculator();
+
+        $payload = [
+            'sashihiki_joto_tanki_sogo_prev' => -300_000,
+            'sashihiki_joto_choki_sogo_prev' => -120_000,
+            'sashihiki_ichiji_prev' => 0,
+        ];
+
+        $result = $calculator->compute($payload, 'prev');
+
+        $this->assertSame(-300_000, $result['tsusango_joto_tanki_sogo_prev']);
+        $this->assertSame(-120_000, $result['tsusango_joto_choki_sogo_prev']);
+    }
+
+    public function test_short_loss_offsets_long_gain_before_residual_long_is_kept(): void
+    {
+        $calculator = new SogoShotokuNettingCalculator();
+
+        $payload = [
+            'sashihiki_joto_tanki_sogo_prev' => -300_000,
+            'sashihiki_joto_choki_sogo_prev' => 200_000,
+            'sashihiki_ichiji_prev' => 0,
+        ];
+
+        $result = $calculator->compute($payload, 'prev');
+
+        $this->assertSame(-100_000, $result['tsusango_joto_tanki_sogo_prev']);
+        $this->assertSame(0, $result['tsusango_joto_choki_sogo_prev']);
     }
 }

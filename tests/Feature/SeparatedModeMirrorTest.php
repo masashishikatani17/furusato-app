@@ -16,7 +16,7 @@ final class SeparatedModeMirrorTest extends TestCase
 
         $payload = [
             'shotoku_keijo_curr' => 100_000,
-            'shotoku_joto_tanki_curr' => 200_000,
+            'shotoku_joto_tanki_sogo_curr' => 200_000,
             'shotoku_joto_choki_sogo_curr' => 300_000,
             'shotoku_ichiji_curr' => 400_000,
             'shotoku_sanrin_curr' => 50_000,
@@ -53,7 +53,7 @@ final class SeparatedModeMirrorTest extends TestCase
 
         $payload = [
             'shotoku_keijo_prev' => 0,
-            'shotoku_joto_tanki_prev' => 0,
+            'shotoku_joto_tanki_sogo_prev' => 0,
             'shotoku_joto_choki_sogo_prev' => 500_123,
             'shotoku_ichiji_prev' => 0,
             'shotoku_sanrin_prev' => 0,
@@ -90,7 +90,7 @@ final class SeparatedModeMirrorTest extends TestCase
 
         $payload = [
             'shotoku_keijo_curr' => 0,
-            'shotoku_joto_tanki_curr' => 0,
+            'shotoku_joto_tanki_sogo_curr' => 0,
             'shotoku_joto_choki_sogo_curr' => 321_111,
             'shotoku_ichiji_curr' => 0,
             'shotoku_sanrin_curr' => 0,
@@ -125,7 +125,7 @@ final class SeparatedModeMirrorTest extends TestCase
 
         $payload = [
             'shotoku_keijo_curr' => 50_000,
-            'shotoku_joto_tanki_curr' => 10_000,
+            'shotoku_joto_tanki_sogo_curr' => 10_000,
             'shotoku_joto_choki_sogo_curr' => 20_000,
             'shotoku_ichiji_curr' => 10_000,
             'shotoku_sanrin_curr' => 0,
@@ -160,7 +160,7 @@ final class SeparatedModeMirrorTest extends TestCase
 
         $payload = [
             'shotoku_keijo_prev' => 120_000,
-            'shotoku_joto_tanki_prev' => 50_000,
+            'shotoku_joto_tanki_sogo_prev' => 50_000,
             'shotoku_joto_choki_sogo_prev' => 40_000,
             'shotoku_ichiji_prev' => -20_000,
             'kojo_gokei_shotoku_prev' => 33_333,

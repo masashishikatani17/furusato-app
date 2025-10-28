@@ -79,7 +79,7 @@ final class ServicesProvideKeysTest extends TestCase
                 'tsusanmae_joto_choki_sogo_%s',
                 'tsusanmae_ichiji_%s',
                 'shotoku_keijo_%s',
-                'shotoku_joto_tanki_%s',
+                'shotoku_joto_tanki_sogo_%s',
                 'shotoku_joto_choki_sogo_%s',
                 'shotoku_ichiji_%s',
                 'shotoku_sanrin_%s',

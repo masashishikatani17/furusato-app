@@ -31,7 +31,7 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
             'sashihiki_ichiji_prev' => 100,
             'bunri_shotoku_sanrin_shotoku_prev' => -30,
             'bunri_shotoku_taishoku_shotoku_prev' => 50,
-            'after_joto_ichiji_tousan_joto_tanki_prev' => -70,
+            'after_joto_ichiji_tousan_joto_tanki_sogo_prev' => -70,
             'after_joto_ichiji_tousan_joto_choki_sogo_prev' => -55,
             'after_joto_ichiji_tousan_ichiji_prev' => 90,
         ];
@@ -65,7 +65,7 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
             'sashihiki_ichiji_curr' => -60,
             'bunri_shotoku_sanrin_shotoku_curr' => 80,
             'bunri_shotoku_taishoku_shotoku_curr' => -150,
-            'after_joto_ichiji_tousan_joto_tanki_curr' => 25,
+            'after_joto_ichiji_tousan_joto_tanki_sogo_curr' => 25,
             'after_joto_ichiji_tousan_joto_choki_sogo_curr' => -90,
             'after_joto_ichiji_tousan_ichiji_curr' => 15,
         ];

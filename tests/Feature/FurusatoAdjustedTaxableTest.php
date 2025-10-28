@@ -203,31 +203,31 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             'sashihiki_joto_tanki_sogo_curr' => 100_000,
             'sashihiki_joto_choki_sogo_curr' => 200_000,
             'sashihiki_ichiji_curr'          => 50_000,
-            'after_3jitsusan_joto_tanki_prev' => 120_000,
+            'after_3jitsusan_joto_tanki_sogo_prev' => 120_000,
             'after_3jitsusan_joto_choki_sogo_prev' => 340_000,
             'after_3jitsusan_ichiji_prev' => -50_000,
             'after_3jitsusan_sanrin_prev' => 60_000,
             'after_3jitsusan_taishoku_prev' => 70_000,
-            'after_joto_ichiji_tousan_joto_tanki_prev' => 50_000,
+            'after_joto_ichiji_tousan_joto_tanki_sogo_prev' => 50_000,
             'after_joto_ichiji_tousan_joto_choki_sogo_prev' => 25_000,
             'after_joto_ichiji_tousan_ichiji_prev' => 10_000,
             'after_1jitsusan_sanrin_prev' => 45_000,
             'shotoku_keijo_prev' => 200_000,
-            'shotoku_joto_tanki_prev' => 120_000,
-            'shotoku_joto_choki_prev' => 340_000,
+            'shotoku_joto_tanki_sogo_prev' => 120_000,
+            'shotoku_joto_choki_sogo_prev' => 340_000,
             'shotoku_ichiji_prev' => -50_000,
             'shotoku_sanrin_prev' => 80_000,
             'shotoku_taishoku_prev' => 90_000,
             'shotoku_gokei_prev' => 710_000,
-            'after_3jitsusan_joto_tanki_curr' => 100_000,
+            'after_3jitsusan_joto_tanki_sogo_curr' => 100_000,
             'after_3jitsusan_joto_choki_sogo_curr' => 200_000,
             'after_3jitsusan_ichiji_curr' => 50_000,
             'after_3jitsusan_sanrin_curr' => 60_000,
             'after_3jitsusan_taishoku_curr' => 70_000,
             'after_1jitsusan_sanrin_curr' => 55_000,
             'shotoku_keijo_curr' => 500_000,
-            'shotoku_joto_tanki_curr' => 100_000,
-            'shotoku_joto_choki_curr' => 200_000,
+            'shotoku_joto_tanki_sogo_curr' => 100_000,
+            'shotoku_joto_choki_sogo_curr' => 200_000,
             'shotoku_ichiji_curr' => 50_000,
             'shotoku_sanrin_curr' => 40_000,
             'shotoku_taishoku_curr' => 30_000,
@@ -298,12 +298,12 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             $this->assertArrayHasKey('outInputs', $context);
             $inputs = $context['outInputs'];
 
-            $this->assertSame(120_000, $inputs['tsusango_joto_tanki_prev']);
-            $this->assertSame(340_000, $inputs['tsusango_joto_choki_prev']);
+            $this->assertSame(120_000, $inputs['tsusango_joto_tanki_sogo_prev']);
+            $this->assertSame(340_000, $inputs['tsusango_joto_choki_sogo_prev']);
             $this->assertSame(0, $inputs['tsusango_ichiji_prev']);
-            $this->assertSame(50_000, $inputs['tsusanmae_joto_tanki_prev']);
-            $this->assertSame(25_000, $inputs['tsusanmae_joto_choki_prev']);
-            $this->assertSame(10_000, $inputs['tsusanmae_joto_ichiji_prev']);
+            $this->assertSame(50_000, $inputs['tsusanmae_joto_tanki_sogo_prev']);
+            $this->assertSame(25_000, $inputs['tsusanmae_joto_choki_sogo_prev']);
+            $this->assertSame(10_000, $inputs['tsusanmae_ichiji_prev']);
             $this->assertSame(45_000, $inputs['after_1jitsusan_sanrin_prev']);
             $this->assertSame(300_000, $inputs['bunri_syunyu_sanrin_shotoku_prev']);
             $this->assertSame(460_000, $inputs['shotoku_joto_ichiji_shotoku_prev']);
@@ -313,8 +313,8 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             $this->assertSame(0, $inputs['bunri_sogo_gokeigaku_shotoku_prev']);
             $this->assertSame(0, $inputs['bunri_sogo_gokeigaku_jumin_prev']);
 
-            $this->assertSame(100_000, $inputs['tsusango_joto_tanki_curr']);
-            $this->assertSame(200_000, $inputs['tsusango_joto_choki_curr']);
+            $this->assertSame(100_000, $inputs['tsusango_joto_tanki_sogo_curr']);
+            $this->assertSame(200_000, $inputs['tsusango_joto_choki_sogo_curr']);
             $this->assertSame(50_000, $inputs['tsusango_ichiji_curr']);
             $this->assertSame(350_000, $inputs['shotoku_joto_ichiji_shotoku_curr']);
             $this->assertSame(350_000, $inputs['shotoku_joto_ichiji_jumin_curr']);

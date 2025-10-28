@@ -651,6 +651,34 @@ final class FurusatoController extends Controller
                 [sprintf('fudosan_shotoku_%s', $period)],
             );
 
+            // ▼ 譲渡＋一時（所得金額）を payload → upper → preview の順で再計算して埋める（savedInputs にはフォールバックしない）
+            $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
+            $sumJuminKey   = sprintf('shotoku_joto_ichiji_jumin_%s',  $period);
+
+            $sourceSnapshot = [];
+            if (! empty($resultsPayload)) {
+                $sourceSnapshot = array_replace($sourceSnapshot, $resultsPayload);
+            }
+            if (! empty($resultsUpper)) {
+                $sourceSnapshot = array_replace($sourceSnapshot, $resultsUpper);
+            }
+            $sourceSnapshot = array_replace($sourceSnapshot, $previewPayload);
+
+            $tankiKey = sprintf('shotoku_joto_tanki_sogo_%s', $period);
+            $fallbackTankiKey = sprintf('shotoku_joto_tanki_%s', $period);
+            $chokiKey = sprintf('shotoku_joto_choki_sogo_%s', $period);
+            $fallbackChokiKey = sprintf('shotoku_joto_choki_%s', $period);
+            $ichijiKey = sprintf('shotoku_ichiji_%s', $period);
+
+            $tanki = (int) ($sourceSnapshot[$tankiKey] ?? $sourceSnapshot[$fallbackTankiKey] ?? 0);
+            $choki = (int) ($sourceSnapshot[$chokiKey] ?? $sourceSnapshot[$fallbackChokiKey] ?? 0);
+            $ichiji = (int) ($sourceSnapshot[$ichijiKey] ?? 0);
+
+            $sum = $tanki + $choki + max(0, $ichiji);
+
+            $inputsForView[$sumShotokuKey] = $sum;
+            $inputsForView[$sumJuminKey] = $sum;
+
             if ($isSeparated) {
                 $valueOrZero = fn (array $candidates): int => $this->valueOrZero($lookup($candidates));
 
@@ -953,34 +981,6 @@ final class FurusatoController extends Controller
             );
             $assign(sprintf('shotoku_ichiji_%s', $period), [sprintf('shotoku_ichiji_%s', $period)]);
             $assign(sprintf('shotoku_taishoku_%s', $period), [sprintf('shotoku_taishoku_%s', $period)]);
-
-            // ▼ 譲渡＋一時（所得金額）を payload → upper → preview の順で再計算して埋める（savedInputs にはフォールバックしない）
-            $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
-            $sumJuminKey   = sprintf('shotoku_joto_ichiji_jumin_%s',  $period);
-
-            $sourceSnapshot = [];
-            if (! empty($resultsPayload)) {
-                $sourceSnapshot = array_replace($sourceSnapshot, $resultsPayload);
-            }
-            if (! empty($resultsUpper)) {
-                $sourceSnapshot = array_replace($sourceSnapshot, $resultsUpper);
-            }
-            $sourceSnapshot = array_replace($sourceSnapshot, $previewPayload);
-
-            $tankiKey = sprintf('shotoku_joto_tanki_sogo_%s', $period);
-            $fallbackTankiKey = sprintf('shotoku_joto_tanki_%s', $period);
-            $chokiKey = sprintf('shotoku_joto_choki_sogo_%s', $period);
-            $fallbackChokiKey = sprintf('shotoku_joto_choki_%s', $period);
-            $ichijiKey = sprintf('shotoku_ichiji_%s', $period);
-
-            $tanki = (int) ($sourceSnapshot[$tankiKey] ?? $sourceSnapshot[$fallbackTankiKey] ?? 0);
-            $choki = (int) ($sourceSnapshot[$chokiKey] ?? $sourceSnapshot[$fallbackChokiKey] ?? 0);
-            $ichiji = (int) ($sourceSnapshot[$ichijiKey] ?? 0);
-
-            $sum = $tanki + $choki + max(0, $ichiji);
-
-            $inputsForView[$sumShotokuKey] = $sum;
-            $inputsForView[$sumJuminKey] = $sum;
 
             foreach ([
                 sprintf('bunri_sashihiki_gokei_shotoku_%s', $period),

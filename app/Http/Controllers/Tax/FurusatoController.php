@@ -546,21 +546,21 @@ final class FurusatoController extends Controller
             $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
             $sumJuminKey   = sprintf('shotoku_joto_ichiji_jumin_%s',  $period);
 
-            // 1) まずプレビューに用意済みならそれをそのまま採用（保存値へはフォールバックしない）
-            $assign($sumShotokuKey, [$sumShotokuKey], null, true);
-            $assign($sumJuminKey,   [$sumShotokuKey, $sumJuminKey], null, true);
+            // 1) サーバー決定値（payload → upper）を優先し、最後にプレビューを参照（保存値へはフォールバックしない）
+            $assign($sumShotokuKey, [$sumShotokuKey], null, false, false);
+            $assign($sumJuminKey,   [$sumShotokuKey, $sumJuminKey], null, false, false);
 
-            // 2) もしプレビューに無ければ、プレビューの shotoku_joto_tanki_%, shotoku_joto_choki_{|_sogo}_%, shotoku_ichiji_% だけを使って合成
+            // 2) 候補が存在しない場合は shotoku_joto_tanki_{|_sogo}_%, shotoku_joto_choki_{|_sogo}_%, shotoku_ichiji_% を合成
             if (! array_key_exists($sumShotokuKey, $inputsForView)) {
                 $tanki = $this->valueOrZero($lookup([
                     sprintf('shotoku_joto_tanki_sogo_%s', $period),
                     sprintf('shotoku_joto_tanki_%s', $period),
-                ], true));
+                ], false, false));
                 $choki = $this->valueOrZero($lookup([
                     sprintf('shotoku_joto_choki_sogo_%s', $period),
                     sprintf('shotoku_joto_choki_%s', $period),
-                ], true));
-                $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)], true));
+                ], false, false));
+                $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)], false, false));
                 $inputsForView[$sumShotokuKey] = (int) ($tanki + $choki + max(0, $ichiji));
             }
             // 住民側が未設定なら shotoku 側をコピー
@@ -979,25 +979,25 @@ final class FurusatoController extends Controller
             $assign(sprintf('shotoku_ichiji_%s', $period), [sprintf('shotoku_ichiji_%s', $period)]);
             $assign(sprintf('shotoku_taishoku_%s', $period), [sprintf('shotoku_taishoku_%s', $period)]);
 
-            // ▼ 譲渡＋一時（所得金額）を preview 限定で再計算して埋める
+            // ▼ 譲渡＋一時（所得金額）を payload → upper → preview の順で再計算して埋める
             $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
             $sumJuminKey   = sprintf('shotoku_joto_ichiji_jumin_%s',  $period);
 
-            // 1) まずプレビューに既に計算済みがあれば、そのまま採用（previewOnly=true）
-            $assign($sumShotokuKey, [$sumShotokuKey], null, true);
-            $assign($sumJuminKey,   [$sumJuminKey],   null, true);
+            // 1) サーバー決定値（payload → upper）を優先し、最後にプレビューを参照（保存値へはフォールバックしない）
+            $assign($sumShotokuKey, [$sumShotokuKey], null, false, false);
+            $assign($sumJuminKey,   [$sumJuminKey],   null, false, false);
 
-            // 2) プレビューに無い場合のみ、preview限定で足し直す（保存値は使わない）
+            // 2) 候補が存在しない場合は shotoku_joto_tanki_{|_sogo}_%, shotoku_joto_choki_{|_sogo}_%, shotoku_ichiji_% を合成
             if (! array_key_exists($sumShotokuKey, $inputsForView)) {
                 $tanki = $this->valueOrZero($lookup([
                     sprintf('shotoku_joto_tanki_sogo_%s', $period),
                     sprintf('shotoku_joto_tanki_%s', $period),
-                ], true));
+                ], false, false));
                 $choki = $this->valueOrZero($lookup([
                     sprintf('shotoku_joto_choki_sogo_%s', $period),
                     sprintf('shotoku_joto_choki_%s',      $period),
-                ], true));
-                $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)], true));
+                ], false, false));
+                $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)], false, false));
 
                 $inputsForView[$sumShotokuKey] = (int) ($tanki + $choki + max(0, $ichiji));
             }

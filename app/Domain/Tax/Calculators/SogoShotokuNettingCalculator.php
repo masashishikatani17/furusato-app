@@ -13,7 +13,7 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
     public const AFTER = [];
 
     private const PERIODS = ['prev', 'curr'];
-    private const TOKUBETSU_KOJO_LIMIT = 500_000;
+    private const TOKUBETSU_KOJO_LIMIT = 50_000;
 
     /**
      * @return array<int, string>

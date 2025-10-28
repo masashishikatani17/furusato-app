@@ -200,13 +200,46 @@
 
                 return false;
             };
-            $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides, $kihuYear, $forceDash) {
+            $bunriShotokuMirrorMap = [
+                'bunri_shotoku_tanki_ippan' => 'joto_shotoku_tanki_ippan',
+                'bunri_shotoku_tanki_keigen' => 'joto_shotoku_tanki_keigen',
+                'bunri_shotoku_choki_ippan' => 'joto_shotoku_choki_ippan',
+                'bunri_shotoku_choki_tokutei' => 'joto_shotoku_choki_tokutei',
+                'bunri_shotoku_choki_keika' => 'joto_shotoku_choki_keika',
+            ];
+            $bunriKazeishotokuMirrorMap = [
+                'bunri_kazeishotoku_tanki' => 'joto_shotoku_tanki_gokei',
+                'bunri_kazeishotoku_choki' => 'joto_shotoku_choki_gokei',
+            ];
+
+            $renderInputs = static function (string $base) use (
+                $inputs,
+                $readonlyBases,
+                $kojoFieldOverrides,
+                $kihuYear,
+                $forceDash,
+                $bunriShotokuMirrorMap
+            ) {
                 $html = '';
                 foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                     foreach ($periods as $period) {
                         $format = $kojoFieldOverrides[$base][$tax] ?? null;
                         $name = $format ? sprintf($format, $period) : sprintf('%s_%s_%s', $base, $tax, $period);
-                        $value = old($name, $inputs[$name] ?? null);
+                        $sourceKey = $name;
+
+                        if (isset($bunriShotokuMirrorMap[$base])) {
+                            $sourceKey = sprintf('%s_%s_%s', $bunriShotokuMirrorMap[$base], $tax, $period);
+                        }
+
+                        if (array_key_exists($sourceKey, $inputs)) {
+                            $sourceValue = $inputs[$sourceKey];
+                        } elseif ($sourceKey !== $name && array_key_exists($name, $inputs)) {
+                            $sourceValue = $inputs[$name];
+                        } else {
+                            $sourceValue = null;
+                        }
+
+                        $value = old($name, $sourceValue);
                         $kihuYearInt = isset($kihuYear) ? (int) $kihuYear : null;
                         $isForceDash = $forceDash($base, $tax, $period, $kihuYearInt);
                         $isReadonly = false;
@@ -249,12 +282,26 @@
 
                 return $html;
             };
-            $renderReadonlyBunriKazeishotoku = static function (string $base) use ($inputs) {
+            $renderReadonlyBunriKazeishotoku = static function (string $base) use ($inputs, $bunriKazeishotokuMirrorMap) {
                 $html = '';
                 foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                     foreach ($periods as $period) {
                         $name = sprintf('%s_%s_%s', $base, $tax, $period);
-                        $value = old($name, $inputs[$name] ?? 0);
+                        $sourceKey = $name;
+
+                        if (isset($bunriKazeishotokuMirrorMap[$base])) {
+                            $sourceKey = sprintf('%s_%s_%s', $bunriKazeishotokuMirrorMap[$base], $tax, $period);
+                        }
+
+                        if (array_key_exists($sourceKey, $inputs)) {
+                            $sourceValue = $inputs[$sourceKey];
+                        } elseif ($sourceKey !== $name && array_key_exists($name, $inputs)) {
+                            $sourceValue = $inputs[$name];
+                        } else {
+                            $sourceValue = 0;
+                        }
+
+                        $value = old($name, $sourceValue);
                         $html .= '<td><input type="number" class="form-control form-control-sm text-end bg-light" name="' . e($name) . '" value="' . e($value) . '" readonly></td>';
                     }
                 }

@@ -24,19 +24,19 @@ final class ResultToDetailsAliasCalculator implements ProvidesKeys
             $keys[] = sprintf('tokubetsukojo_sanrin_%s', $period);
             $keys[] = sprintf('shotoku_sanrin_%s', $period);
 
-            $keys[] = sprintf('after_naibutsusan_joto_tanki_%s', $period);
-            $keys[] = sprintf('after_naibutsusan_joto_choki_%s', $period);
+            $keys[] = sprintf('after_naibutsusan_joto_tanki_sogo_%s', $period);
+            $keys[] = sprintf('after_naibutsusan_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('after_naibutsusan_ichiji_%s', $period);
-            $keys[] = sprintf('tokubetsukojo_joto_tanki_%s', $period);
-            $keys[] = sprintf('tokubetsukojo_joto_choki_%s', $period);
+            $keys[] = sprintf('tokubetsukojo_joto_tanki_sogo_%s', $period);
+            $keys[] = sprintf('tokubetsukojo_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('tokubetsukojo_ichiji_%s', $period);
-            $keys[] = sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period);
+            $keys[] = sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('after_joto_ichiji_tousan_ichiji_%s', $period);
-            $keys[] = sprintf('tsusango_joto_tanki_%s', $period);
-            $keys[] = sprintf('tsusango_joto_choki_%s', $period);
+            $keys[] = sprintf('tsusango_joto_tanki_sogo_%s', $period);
+            $keys[] = sprintf('tsusango_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('tsusango_ichiji_%s', $period);
-            $keys[] = sprintf('shotoku_joto_tanki_%s', $period);
+            $keys[] = sprintf('shotoku_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('shotoku_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('shotoku_ichiji_%s', $period);
 
@@ -118,40 +118,87 @@ final class ResultToDetailsAliasCalculator implements ProvidesKeys
      */
     private function computeJotoIchiji(array $payload, string $period): array
     {
-        $afterNaibutsuShort = $this->toInt($payload[sprintf('after_naibutsusan_joto_tanki_%s', $period)] ?? null);
-        $afterNaibutsuLong = $this->toInt($payload[sprintf('after_naibutsusan_joto_choki_%s', $period)] ?? null);
+        $tsusangoShortKey = sprintf('tsusango_joto_tanki_sogo_%s', $period);
+        $tsusangoLongKey = sprintf('tsusango_joto_choki_sogo_%s', $period);
+
+        $afterNaibutsuShortRaw = $this->normalizeNullable($payload[sprintf('after_naibutsusan_joto_tanki_sogo_%s', $period)] ?? null);
+        $afterNaibutsuLongRaw = $this->normalizeNullable($payload[sprintf('after_naibutsusan_joto_choki_sogo_%s', $period)] ?? null);
         $afterNaibutsuOne = $this->toInt($payload[sprintf('after_naibutsusan_ichiji_%s', $period)] ?? null);
 
-        $tokubetsuShort = $this->toInt($payload[sprintf('tokubetsukojo_joto_tanki_%s', $period)] ?? null);
-        $tokubetsuLong = $this->toInt($payload[sprintf('tokubetsukojo_joto_choki_%s', $period)] ?? null);
+        $tsusangoShortRaw = $this->normalizeNullable($payload[$tsusangoShortKey] ?? null);
+        $tsusangoLongRaw = $this->normalizeNullable($payload[$tsusangoLongKey] ?? null);
+
+        if ($tsusangoShortRaw === null) {
+            foreach ([
+                'after_3jitsusan_joto_tanki_sogo_%s',
+                'after_3jitsusan_tanki_sogo_%s',
+                'after_3jitsusan_joto_tanki_%s',
+                'after_3jitsusan_tanki_%s',
+            ] as $format) {
+                $candidate = $this->normalizeNullable($payload[sprintf($format, $period)] ?? null);
+                if ($candidate !== null) {
+                    $tsusangoShortRaw = $candidate;
+                    break;
+                }
+            }
+        }
+
+        if ($tsusangoLongRaw === null) {
+            foreach ([
+                'after_3jitsusan_joto_choki_sogo_%s',
+                'after_3jitsusan_choki_sogo_%s',
+                'after_3jitsusan_joto_choki_%s',
+                'after_3jitsusan_choki_%s',
+            ] as $format) {
+                $candidate = $this->normalizeNullable($payload[sprintf($format, $period)] ?? null);
+                if ($candidate !== null) {
+                    $tsusangoLongRaw = $candidate;
+                    break;
+                }
+            }
+        }
+
+        if (($afterNaibutsuShortRaw === null || $afterNaibutsuShortRaw === 0) && $tsusangoShortRaw !== null) {
+            $afterNaibutsuShortRaw = $tsusangoShortRaw;
+        }
+
+        if (($afterNaibutsuLongRaw === null || $afterNaibutsuLongRaw === 0) && $tsusangoLongRaw !== null) {
+            $afterNaibutsuLongRaw = $tsusangoLongRaw;
+        }
+
+        $afterNaibutsuShort = $afterNaibutsuShortRaw ?? 0;
+        $afterNaibutsuLong = $afterNaibutsuLongRaw ?? 0;
+
+        $tokubetsuShort = $this->toInt($payload[sprintf('tokubetsukojo_joto_tanki_sogo_%s', $period)] ?? null);
+        $tokubetsuLong = $this->toInt($payload[sprintf('tokubetsukojo_joto_choki_sogo_%s', $period)] ?? null);
         $tokubetsuOne = $this->toInt($payload[sprintf('tokubetsukojo_ichiji_%s', $period)] ?? null);
 
-        $afterTousanShort = $this->toInt($payload[sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period)] ?? null);
+        $afterTousanShort = $this->toInt($payload[sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $period)] ?? null);
         $afterTousanLong = $this->toInt($payload[sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period)] ?? null);
         $afterTousanOne = $this->toInt($payload[sprintf('after_joto_ichiji_tousan_ichiji_%s', $period)] ?? null);
 
-        $tsusangoShort = $this->toInt($payload[sprintf('after_3jitsusan_tanki_sogo_%s', $period)] ?? null);
-        $tsusangoLong = $this->toInt($payload[sprintf('after_3jitsusan_choki_sogo_%s', $period)] ?? null);
+        $tsusangoShort = $tsusangoShortRaw ?? 0;
+        $tsusangoLong = $tsusangoLongRaw ?? 0;
         $tsusangoOne = $this->toInt($payload[sprintf('after_3jitsusan_ichiji_%s', $period)] ?? null);
 
-        $shotokuShort = $this->toInt($payload[sprintf('shotoku_joto_tanki_%s', $period)] ?? null);
-        $shotokuLong = $this->toInt($payload[sprintf('shotoku_joto_choki_sogo_%s', $period)] ?? null);
+        $shotokuShort = $this->toInt($payload[sprintf('shotoku_joto_tanki_sogo_%s', $period)] ?? ($payload[sprintf('shotoku_joto_tanki_%s', $period)] ?? null));
+        $shotokuLong = $this->toInt($payload[sprintf('shotoku_joto_choki_sogo_%s', $period)] ?? ($payload[sprintf('shotoku_joto_choki_%s', $period)] ?? null));
         $shotokuOne = $this->toInt($payload[sprintf('shotoku_ichiji_%s', $period)] ?? null);
 
         return [
-            sprintf('after_naibutsusan_joto_tanki_%s', $period) => $afterNaibutsuShort,
-            sprintf('after_naibutsusan_joto_choki_%s', $period) => $afterNaibutsuLong,
+            sprintf('after_naibutsusan_joto_tanki_sogo_%s', $period) => $afterNaibutsuShort,
+            sprintf('after_naibutsusan_joto_choki_sogo_%s', $period) => $afterNaibutsuLong,
             sprintf('after_naibutsusan_ichiji_%s', $period) => $afterNaibutsuOne,
-            sprintf('tokubetsukojo_joto_tanki_%s', $period) => $tokubetsuShort,
-            sprintf('tokubetsukojo_joto_choki_%s', $period) => $tokubetsuLong,
+            sprintf('tokubetsukojo_joto_tanki_sogo_%s', $period) => $tokubetsuShort,
+            sprintf('tokubetsukojo_joto_choki_sogo_%s', $period) => $tokubetsuLong,
             sprintf('tokubetsukojo_ichiji_%s', $period) => $tokubetsuOne,
-            sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period) => $afterTousanShort,
+            sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $period) => $afterTousanShort,
             sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period) => $afterTousanLong,
             sprintf('after_joto_ichiji_tousan_ichiji_%s', $period) => $afterTousanOne,
-            sprintf('tsusango_joto_tanki_%s', $period) => $tsusangoShort,
-            sprintf('tsusango_joto_choki_%s', $period) => $tsusangoLong,
+            $tsusangoShortKey => $tsusangoShort,
+            $tsusangoLongKey => $tsusangoLong,
             sprintf('tsusango_ichiji_%s', $period) => $tsusangoOne,
-            sprintf('shotoku_joto_tanki_%s', $period) => $shotokuShort,
+            sprintf('shotoku_joto_tanki_sogo_%s', $period) => $shotokuShort,
             sprintf('shotoku_joto_choki_sogo_%s', $period) => $shotokuLong,
             sprintf('shotoku_ichiji_%s', $period) => $shotokuOne,
         ];

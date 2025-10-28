@@ -472,7 +472,7 @@ final class FurusatoController extends Controller
     {
         $inputsForView = $savedInputs;
 
-        $lookup = function (array $candidates, bool $previewOnly = false) use ($resultsPayload, $resultsUpper, $previewPayload, $savedInputs): ?int {
+        $lookup = function (array $candidates, bool $previewOnly = false, bool $allowSaved = true) use ($resultsPayload, $resultsUpper, $previewPayload, $savedInputs): ?int {
             foreach ($candidates as $key) {
                 if (! $previewOnly) {
                     if (array_key_exists($key, $resultsPayload) && $resultsPayload[$key] !== null) {
@@ -497,7 +497,7 @@ final class FurusatoController extends Controller
                     }
                 }
 
-                if (! $previewOnly && array_key_exists($key, $savedInputs) && $savedInputs[$key] !== null && $savedInputs[$key] !== '') {
+                if (! $previewOnly && $allowSaved && array_key_exists($key, $savedInputs) && $savedInputs[$key] !== null && $savedInputs[$key] !== '') {
                     $value = $this->toNullableInt($savedInputs[$key]);
                     if ($value !== null) {
                         return $value;
@@ -512,9 +512,10 @@ final class FurusatoController extends Controller
             string $destination,
             array $candidates,
             ?callable $transform = null,
-            bool $previewOnly = false
+            bool $previewOnly = false,
+            bool $allowSaved = true
         ) use (&$inputsForView, $lookup): void {
-            $value = $lookup($candidates, $previewOnly);
+            $value = $lookup($candidates, $previewOnly, $allowSaved);
             if ($value === null) {
                 return;
             }
@@ -526,9 +527,10 @@ final class FurusatoController extends Controller
             array $destinations,
             array $candidates,
             ?callable $transform = null,
-            bool $previewOnly = false
+            bool $previewOnly = false,
+            bool $allowSaved = true
         ) use (&$inputsForView, $lookup): void {
-            $value = $lookup($candidates, $previewOnly);
+            $value = $lookup($candidates, $previewOnly, $allowSaved);
             if ($value === null) {
                 return;
             }
@@ -550,7 +552,10 @@ final class FurusatoController extends Controller
 
             // 2) もしプレビューに無ければ、プレビューの shotoku_joto_tanki_%, shotoku_joto_choki_{|_sogo}_%, shotoku_ichiji_% だけを使って合成
             if (! array_key_exists($sumShotokuKey, $inputsForView)) {
-                $tanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)], true));
+                $tanki = $this->valueOrZero($lookup([
+                    sprintf('shotoku_joto_tanki_sogo_%s', $period),
+                    sprintf('shotoku_joto_tanki_%s', $period),
+                ], true));
                 $choki = $this->valueOrZero($lookup([
                     sprintf('shotoku_joto_choki_sogo_%s', $period),
                     sprintf('shotoku_joto_choki_%s', $period),
@@ -588,21 +593,32 @@ final class FurusatoController extends Controller
                     : $srcTaishoku;
             }
 
-            $assign(
-                sprintf('tsusango_joto_tanki_%s', $period),
-                [sprintf('tsusango_joto_tanki_%s', $period)],
-                null,
-                true,
-            );
-
-            $assign(
-                sprintf('tsusango_joto_choki_%s', $period),
+            $mirrorMany(
                 [
-                    sprintf('tsusango_joto_choki_%s', $period),
-                    sprintf('tsusango_joto_choki_sogo_%s', $period),
+                    sprintf('tsusango_joto_tanki_sogo_%s', $period),
+                    sprintf('tsusango_joto_tanki_%s', $period),
+                ],
+                [
+                    sprintf('tsusango_joto_tanki_sogo_%s', $period),
+                    sprintf('tsusango_joto_tanki_%s', $period),
                 ],
                 null,
-                true,
+                false,
+                false,
+            );
+
+            $mirrorMany(
+                [
+                    sprintf('tsusango_joto_choki_sogo_%s', $period),
+                    sprintf('tsusango_joto_choki_%s', $period),
+                ],
+                [
+                    sprintf('tsusango_joto_choki_sogo_%s', $period),
+                    sprintf('tsusango_joto_choki_%s', $period),
+                ],
+                null,
+                false,
+                false,
             );
 
             $assign(
@@ -885,12 +901,14 @@ final class FurusatoController extends Controller
                     sprintf('tsusanmae_joto_tanki_%s', $period),
                 ],
                 [
+                    sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $period),
                     sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
                     sprintf('tsusanmae_joto_tanki_sogo_%s', $period),
                     sprintf('tsusanmae_joto_tanki_%s', $period),
                 ],
                 null,
-                true,
+                false,
+                false,
             );
             $mirrorMany(
                 [
@@ -904,7 +922,8 @@ final class FurusatoController extends Controller
                     sprintf('tsusanmae_joto_choki_%s', $period),
                 ],
                 null,
-                true,
+                false,
+                false,
             );
             $mirrorMany(
                 [
@@ -917,7 +936,8 @@ final class FurusatoController extends Controller
                     sprintf('tsusanmae_joto_ichiji_%s', $period),
                 ],
                 null,
-                true,
+                false,
+                false,
             );
 
             $syunyuSanrinValue = $lookup([sprintf('syunyu_sanrin_%s', $period)]);
@@ -928,7 +948,20 @@ final class FurusatoController extends Controller
             $assign(sprintf('shotoku_sanrin_%s', $period), [sprintf('shotoku_sanrin_%s', $period)]);
 
             $assign(sprintf('shotoku_keijo_%s', $period), [sprintf('shotoku_keijo_%s', $period)]);
-            $assign(sprintf('shotoku_joto_tanki_%s', $period), [sprintf('shotoku_joto_tanki_%s', $period)]);
+            $assign(
+                sprintf('shotoku_joto_tanki_sogo_%s', $period),
+                [
+                    sprintf('shotoku_joto_tanki_sogo_%s', $period),
+                    sprintf('shotoku_joto_tanki_%s', $period),
+                ],
+            );
+            $assign(
+                sprintf('shotoku_joto_tanki_%s', $period),
+                [
+                    sprintf('shotoku_joto_tanki_%s', $period),
+                    sprintf('shotoku_joto_tanki_sogo_%s', $period),
+                ],
+            );
             $assign(
                 sprintf('shotoku_joto_choki_%s', $period),
                 [
@@ -956,7 +989,10 @@ final class FurusatoController extends Controller
 
             // 2) プレビューに無い場合のみ、preview限定で足し直す（保存値は使わない）
             if (! array_key_exists($sumShotokuKey, $inputsForView)) {
-                $tanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)], true));
+                $tanki = $this->valueOrZero($lookup([
+                    sprintf('shotoku_joto_tanki_sogo_%s', $period),
+                    sprintf('shotoku_joto_tanki_%s', $period),
+                ], true));
                 $choki = $this->valueOrZero($lookup([
                     sprintf('shotoku_joto_choki_sogo_%s', $period),
                     sprintf('shotoku_joto_choki_%s',      $period),
@@ -981,7 +1017,10 @@ final class FurusatoController extends Controller
             }
 
             $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
-            $shotokuJotoTanki = $this->valueOrZero($lookup([sprintf('shotoku_joto_tanki_%s', $period)]));
+            $shotokuJotoTanki = $this->valueOrZero($lookup([
+                sprintf('shotoku_joto_tanki_sogo_%s', $period),
+                sprintf('shotoku_joto_tanki_%s', $period),
+            ]));
             $shotokuJotoChoki = $this->valueOrZero($lookup([
                 sprintf('shotoku_joto_choki_sogo_%s', $period),
                 sprintf('shotoku_joto_choki_%s', $period),

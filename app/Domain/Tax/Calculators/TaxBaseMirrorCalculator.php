@@ -32,7 +32,6 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $keys[] = sprintf('tsusanmae_ichiji_%s', $period);
 
             $keys[] = sprintf('shotoku_keijo_%s', $period);
-            $keys[] = sprintf('shotoku_joto_tanki_%s', $period);
             $keys[] = sprintf('shotoku_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('shotoku_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('shotoku_ichiji_%s', $period);
@@ -76,14 +75,12 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
 
             $tsusanmaeShortValue = $this->value(
                 $payload,
-                sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period),
                 sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $period),
                 sprintf('tsusanmae_joto_tanki_sogo_%s', $period)
             );
             $tsusanmaeLongValue = $this->value(
                 $payload,
                 sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period),
-                sprintf('after_joto_ichiji_tousan_joto_choki_%s', $period),
                 sprintf('tsusanmae_joto_choki_sogo_%s', $period)
             );
             $tsusanmaeIchijiValue = $this->value(
@@ -104,20 +101,14 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $shotokuShortValue = $this->value(
                 $payload,
                 sprintf('shotoku_joto_tanki_sogo_%s', $period),
-                sprintf('shotoku_joto_tanki_%s', $period),
                 sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period),
-                sprintf('after_3jitsusan_tanki_sogo_%s', $period),
-                sprintf('after_3jitsusan_joto_tanki_%s', $period),
-                sprintf('after_3jitsusan_tanki_%s', $period)
+                sprintf('after_3jitsusan_tanki_sogo_%s', $period)
             );
             $shotokuLongValue = $this->value(
                 $payload,
                 sprintf('shotoku_joto_choki_sogo_%s', $period),
-                sprintf('shotoku_joto_choki_%s', $period),
                 sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
-                sprintf('after_3jitsusan_choki_sogo_%s', $period),
-                sprintf('after_3jitsusan_joto_choki_%s', $period),
-                sprintf('after_3jitsusan_choki_%s', $period)
+                sprintf('after_3jitsusan_choki_sogo_%s', $period)
             );
             $shotokuIchijiValue = $this->value(
                 $payload,
@@ -137,7 +128,6 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
 
             $updates[sprintf('shotoku_keijo_%s', $period)] = $shotokuKeijoValue;
             $updates[sprintf('shotoku_joto_tanki_sogo_%s', $period)] = $shotokuShortValue;
-            $updates[sprintf('shotoku_joto_tanki_%s', $period)] = $shotokuShortValue;
             $updates[sprintf('shotoku_joto_choki_sogo_%s', $period)] = $shotokuLongValue;
             $updates[sprintf('shotoku_ichiji_%s', $period)] = $shotokuIchijiValue;
             $updates[sprintf('shotoku_sanrin_%s', $period)] = $shotokuSanrinValue;
@@ -178,16 +168,12 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
                 $after3Short = $this->n($this->value(
                     $payload,
                     sprintf('after_3jitsusan_joto_tanki_sogo_%s', $period),
-                    sprintf('after_3jitsusan_tanki_sogo_%s', $period),
-                    sprintf('after_3jitsusan_joto_tanki_%s', $period),
-                    sprintf('after_3jitsusan_tanki_%s', $period)
+                    sprintf('after_3jitsusan_tanki_sogo_%s', $period)
                 ));
                 $after3Long = $this->n($this->value(
                     $payload,
                     sprintf('after_3jitsusan_joto_choki_sogo_%s', $period),
-                    sprintf('after_3jitsusan_choki_sogo_%s', $period),
-                    sprintf('after_3jitsusan_joto_choki_%s', $period),
-                    sprintf('after_3jitsusan_choki_%s', $period)
+                    sprintf('after_3jitsusan_choki_sogo_%s', $period)
                 ));
                 $after3Ichiji = $this->n($this->value(
                     $payload,

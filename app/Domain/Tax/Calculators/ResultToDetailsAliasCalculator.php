@@ -132,8 +132,6 @@ final class ResultToDetailsAliasCalculator implements ProvidesKeys
             foreach ([
                 'after_3jitsusan_joto_tanki_sogo_%s',
                 'after_3jitsusan_tanki_sogo_%s',
-                'after_3jitsusan_joto_tanki_%s',
-                'after_3jitsusan_tanki_%s',
             ] as $format) {
                 $candidate = $this->normalizeNullable($payload[sprintf($format, $period)] ?? null);
                 if ($candidate !== null) {
@@ -147,8 +145,6 @@ final class ResultToDetailsAliasCalculator implements ProvidesKeys
             foreach ([
                 'after_3jitsusan_joto_choki_sogo_%s',
                 'after_3jitsusan_choki_sogo_%s',
-                'after_3jitsusan_joto_choki_%s',
-                'after_3jitsusan_choki_%s',
             ] as $format) {
                 $candidate = $this->normalizeNullable($payload[sprintf($format, $period)] ?? null);
                 if ($candidate !== null) {
@@ -181,8 +177,8 @@ final class ResultToDetailsAliasCalculator implements ProvidesKeys
         $tsusangoLong = $tsusangoLongRaw ?? 0;
         $tsusangoOne = $this->toInt($payload[sprintf('after_3jitsusan_ichiji_%s', $period)] ?? null);
 
-        $shotokuShort = $this->toInt($payload[sprintf('shotoku_joto_tanki_sogo_%s', $period)] ?? ($payload[sprintf('shotoku_joto_tanki_%s', $period)] ?? null));
-        $shotokuLong = $this->toInt($payload[sprintf('shotoku_joto_choki_sogo_%s', $period)] ?? ($payload[sprintf('shotoku_joto_choki_%s', $period)] ?? null));
+        $shotokuShort = $this->toInt($payload[sprintf('shotoku_joto_tanki_sogo_%s', $period)] ?? null);
+        $shotokuLong = $this->toInt($payload[sprintf('shotoku_joto_choki_sogo_%s', $period)] ?? null);
         $shotokuOne = $this->toInt($payload[sprintf('shotoku_ichiji_%s', $period)] ?? null);
 
         return [

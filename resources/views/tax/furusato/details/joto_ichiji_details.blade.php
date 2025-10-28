@@ -66,74 +66,74 @@
                     <th rowspan="2" class="th-cream">総合譲渡</th>
                     <th class="th-cream" nowrap="nowrap">短期</th>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="syunyu_joto_tanki_{{ $period }}" value="{{ old('syunyu_joto_tanki_' . $period, $inputs['syunyu_joto_tanki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="syunyu_joto_tanki_{{ $period }}" value="{{ old('syunyu_joto_tanki_' . $period, $inputs['syunyu_joto_tanki_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="keihi_joto_tanki_{{ $period }}" value="{{ old('keihi_joto_tanki_' . $period, $inputs['keihi_joto_tanki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="keihi_joto_tanki_{{ $period }}" value="{{ old('keihi_joto_tanki_' . $period, $inputs['keihi_joto_tanki_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji11" name="sashihiki_joto_tanki_{{ $period }}" value="{{ old('sashihiki_joto_tanki_' . $period, $inputs['sashihiki_joto_tanki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_naibutsusan_joto_tanki_{{ $period }}" value="{{ old('after_naibutsusan_joto_tanki_' . $period, $inputs['after_naibutsusan_joto_tanki_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_naibutsusan_joto_tanki_sogo_{{ $period }}" value="{{ old('after_naibutsusan_joto_tanki_sogo_' . $period, $inputs['tsusango_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji8 text-end bg-light" name="tokubetsukojo_joto_tanki_{{ $period }}" value="{{ old('tokubetsukojo_joto_tanki_' . $period, $inputs['tokubetsukojo_joto_tanki_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji8 text-end bg-light" name="tokubetsukojo_joto_tanki_{{ $period }}" value="{{ old('tokubetsukojo_joto_tanki_' . $period, $inputs['tokubetsukojo_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_joto_ichiji_tousan_joto_tanki_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_joto_tanki_' . $period, $inputs['after_joto_ichiji_tousan_joto_tanki_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_joto_ichiji_tousan_joto_tanki_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_joto_tanki_' . $period, $inputs['after_joto_ichiji_tousan_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="tsusango_joto_tanki_{{ $period }}" value="{{ old('tsusango_joto_tanki_' . $period, $inputs['tsusango_joto_tanki_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="tsusango_joto_tanki_{{ $period }}" value="{{ old('tsusango_joto_tanki_' . $period, $inputs['after_3jitsusan_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td class="text-center align-middle">－</td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="shotoku_joto_tanki_{{ $period }}" value="{{ old('shotoku_joto_tanki_' . $period, $inputs['shotoku_joto_tanki_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji11" name="shotoku_joto_tanki_{{ $period }}" value="{{ old('shotoku_joto_tanki_' . $period, $inputs['shotoku_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                   </tr>
                   <tr>
                     <th class="th-cream">長期</th>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="syunyu_joto_choki_{{ $period }}" value="{{ old('syunyu_joto_choki_' . $period, $inputs['syunyu_joto_choki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="syunyu_joto_choki_{{ $period }}" value="{{ old('syunyu_joto_choki_' . $period, $inputs['syunyu_joto_choki_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="keihi_joto_choki_{{ $period }}" value="{{ old('keihi_joto_choki_' . $period, $inputs['keihi_joto_choki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="keihi_joto_choki_{{ $period }}" value="{{ old('keihi_joto_choki_' . $period, $inputs['keihi_joto_choki_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji11" name="sashihiki_joto_choki_{{ $period }}" value="{{ old('sashihiki_joto_choki_' . $period, $inputs['sashihiki_joto_choki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_naibutsusan_joto_choki_{{ $period }}" value="{{ old('after_naibutsusan_joto_choki_' . $period, $inputs['after_naibutsusan_joto_choki_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_naibutsusan_joto_choki_sogo_{{ $period }}" value="{{ old('after_naibutsusan_joto_choki_sogo_' . $period, $inputs['tsusango_joto_choki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji8 text-end bg-light" name="tokubetsukojo_joto_choki_{{ $period }}" value="{{ old('tokubetsukojo_joto_choki_' . $period, $inputs['tokubetsukojo_joto_choki_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji8 text-end bg-light" name="tokubetsukojo_joto_choki_{{ $period }}" value="{{ old('tokubetsukojo_joto_choki_' . $period, $inputs['tokubetsukojo_joto_choki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_joto_ichiji_tousan_joto_choki_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_joto_choki_' . $period, $inputs['after_joto_ichiji_tousan_joto_choki_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_joto_ichiji_tousan_joto_choki_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_joto_choki_' . $period, $inputs['after_joto_ichiji_tousan_joto_choki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="tsusango_joto_choki_{{ $period }}" value="{{ old('tsusango_joto_choki_' . $period, $inputs['tsusango_joto_choki_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="tsusango_joto_choki_{{ $period }}" value="{{ old('tsusango_joto_choki_' . $period, $inputs['after_3jitsusan_joto_choki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji8" name="half_joto_choki_{{ $period }}" value="{{ old('half_joto_choki_' . $period, $inputs['half_joto_choki_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="shotoku_joto_choki_{{ $period }}" value="{{ old('shotoku_joto_choki_' . $period, $inputs['shotoku_joto_choki_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji11" name="shotoku_joto_choki_{{ $period }}" value="{{ old('shotoku_joto_choki_' . $period, $inputs['shotoku_joto_choki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                   </tr>
                   <tr>
                     <th colspan="2" class="th-cream">一時</th>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="syunyu_ichiji_{{ $period }}" value="{{ old('syunyu_ichiji_' . $period, $inputs['syunyu_ichiji_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="syunyu_ichiji_{{ $period }}" value="{{ old('syunyu_ichiji_' . $period, $inputs['syunyu_ichiji_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11" name="keihi_ichiji_{{ $period }}" value="{{ old('keihi_ichiji_' . $period, $inputs['keihi_ichiji_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11" name="keihi_ichiji_{{ $period }}" value="{{ old('keihi_ichiji_' . $period, $inputs['keihi_ichiji_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji11" name="sashihiki_ichiji_{{ $period }}" value="{{ old('sashihiki_ichiji_' . $period, $inputs['sashihiki_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_naibutsusan_ichiji_{{ $period }}" value="{{ old('after_naibutsusan_ichiji_' . $period, $inputs['after_naibutsusan_ichiji_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_naibutsusan_ichiji_{{ $period }}" value="{{ old('after_naibutsusan_ichiji_' . $period, $inputs['tsusango_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji8 text-end bg-light" name="tokubetsukojo_ichiji_{{ $period }}" value="{{ old('tokubetsukojo_ichiji_' . $period, $inputs['tokubetsukojo_ichiji_' . $period] ?? null) }}" readonly>
@@ -142,7 +142,7 @@
                       <input type="number" step="1" class="form-control suji11 text-end bg-light" name="after_joto_ichiji_tousan_ichiji_{{ $period }}" value="{{ old('after_joto_ichiji_tousan_ichiji_' . $period, $inputs['after_joto_ichiji_tousan_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
-                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="tsusango_ichiji_{{ $period }}" value="{{ old('tsusango_ichiji_' . $period, $inputs['tsusango_ichiji_' . $period] ?? null) }}" readonly>
+                      <input type="number" step="1" class="form-control suji11 text-end bg-light" name="tsusango_ichiji_{{ $period }}" value="{{ old('tsusango_ichiji_' . $period, $inputs['after_3jitsusan_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="number" step="1" class="form-control suji8" name="half_ichiji_{{ $period }}" value="{{ old('half_ichiji_' . $period, $inputs['half_ichiji_' . $period] ?? null) }}" readonly>
@@ -176,69 +176,55 @@
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const Q = (name) => document.querySelector(`[name="${name}"]`);
-    const sanitize = (value) => {
-      const parsed = parseInt(value, 10);
-      return Number.isNaN(parsed) ? 0 : parsed;
-    };
-    const setValue = (name, value) => {
-      const el = Q(name);
-      if (el) {
-        el.value = String(value ?? 0);
+    const toRawInt = (value) => {
+      if (typeof value !== 'string') {
+        return '';
       }
-    };
-    const getValue = (name) => {
-      const el = Q(name);
-      if (!el) {
-        return 0;
+      const stripped = value.replace(/,/g, '').trim();
+      if (stripped === '' || stripped === '-') {
+        return '';
       }
-      return sanitize(el.value);
-    };
-    const recalc = (period) => {
-      const rows = [
-        { key: 'joto_tanki', hasHalf: false },
-        { key: 'joto_choki', hasHalf: true },
-        { key: 'ichiji', hasHalf: true },
-      ];
-      rows.forEach((row) => {
-        const base = `${row.key}_${period}`;
-        const syunyu = getValue(`syunyu_${base}`);
-        const keihi = getValue(`keihi_${base}`);
-        const sashihiki = syunyu - keihi;
-        setValue(`sashihiki_${base}`, sashihiki);
-
-        let tsusango;
-        if (row.key === 'ichiji') {
-          tsusango = Math.max(0, sashihiki);
-          setValue(`tsusango_${base}`, tsusango);
-        } else {
-          tsusango = getValue(`tsusango_${base}`);
-        }
-        if (row.hasHalf) {
-          const half = Math.floor(tsusango / 2);
-          setValue(`half_${base}`, half);
-          setValue(`shotoku_${base}`, tsusango - half);
-        } else {
-          setValue(`shotoku_${base}`, tsusango);
-        }
-      });
+      if (!/^(-)?\d+$/.test(stripped)) {
+        return '';
+      }
+      const parsed = parseInt(stripped, 10);
+      return Number.isNaN(parsed) ? '' : parsed.toString();
     };
 
-    document.querySelectorAll('input[type="number"]').forEach((el) => {
-      if (el.readOnly) {
-        return;
+    const formatWithComma = (raw) => {
+      if (raw === '') {
+        return '';
       }
-      el.addEventListener('blur', () => {
-        el.value = String(sanitize(el.value));
-        const match = el.name.match(/_(prev|curr)$/);
-        if (match) {
-          recalc(match[1]);
-        }
+      const parsed = parseInt(raw, 10);
+      return Number.isNaN(parsed) ? '' : parsed.toLocaleString('ja-JP');
+    };
+
+    const inputs = document.querySelectorAll('[data-format="comma-int"]');
+
+    inputs.forEach((input) => {
+      const applyFormat = () => {
+        const raw = toRawInt(input.value);
+        input.value = raw === '' ? '' : formatWithComma(raw);
+      };
+
+      applyFormat();
+
+      input.addEventListener('focus', () => {
+        input.value = toRawInt(input.value);
+        input.select();
       });
+
+      input.addEventListener('blur', applyFormat);
     });
 
-    recalc('prev');
-    recalc('curr');
+    const form = document.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', () => {
+        inputs.forEach((input) => {
+          input.value = toRawInt(input.value);
+        });
+      });
+    }
   });
 </script>
 @endpush

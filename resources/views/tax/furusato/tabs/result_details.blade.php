@@ -127,15 +127,34 @@
           return '';
       }
 
+      $isSeparated = static function (string $key, array $syoriSettings): bool {
+          $parts = explode('_', $key);
+          $period = end($parts);
+
+          if (! in_array($period, ['prev', 'curr'], true)) {
+              return false;
+          }
+
+          $flagKey = sprintf('bunri_flag_%s', $period);
+          $flag = $syoriSettings[$flagKey] ?? $syoriSettings['bunri_flag'] ?? null;
+
+          return (int) $flag === 1;
+      };
+
       if (str_starts_with($key, 'tax_kazeishotoku_shotoku_')) {
           $parts = explode('_', $key);
           $period = end($parts);
 
           if (in_array($period, ['prev', 'curr'], true)) {
-              $flag = $syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? null;
-              if ((int) $flag === 1) {
+              if ($isSeparated($key, $syoriSettings)) {
                   return '－';
               }
+          }
+      }
+
+      if (str_starts_with($key, 'tax_kazeishotoku_jumin_')) {
+          if ($isSeparated($key, $syoriSettings)) {
+              return '－';
           }
       }
 

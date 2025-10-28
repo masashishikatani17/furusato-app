@@ -15,35 +15,35 @@ final class ResultToDetailsAliasCalculatorTest extends TestCase
             'after_1jitsusan_sanrin_prev' => '800,000',
             'after_1jitsusan_sanrin_curr' => -200000,
 
-            'after_naibutsusan_joto_tanki_prev' => 100,
-            'after_naibutsusan_joto_choki_prev' => 200,
+            'after_naibutsusan_joto_tanki_sogo_prev' => 100,
+            'after_naibutsusan_joto_choki_sogo_prev' => 200,
             'after_naibutsusan_ichiji_prev' => 300,
-            'tokubetsukojo_joto_tanki_prev' => 50,
-            'tokubetsukojo_joto_choki_prev' => 60,
+            'tokubetsukojo_joto_tanki_sogo_prev' => 50,
+            'tokubetsukojo_joto_choki_sogo_prev' => 60,
             'tokubetsukojo_ichiji_prev' => 70,
-            'after_joto_ichiji_tousan_joto_tanki_prev' => -10,
+            'after_joto_ichiji_tousan_joto_tanki_sogo_prev' => -10,
             'after_joto_ichiji_tousan_joto_choki_sogo_prev' => -20,
             'after_joto_ichiji_tousan_ichiji_prev' => 30,
             'after_3jitsusan_tanki_sogo_prev' => 111,
             'after_3jitsusan_choki_sogo_prev' => 222,
             'after_3jitsusan_ichiji_prev' => 333,
-            'shotoku_joto_tanki_prev' => 444,
+            'shotoku_joto_tanki_sogo_prev' => 444,
             'shotoku_joto_choki_sogo_prev' => 555,
             'shotoku_ichiji_prev' => 666,
 
-            'after_naibutsusan_joto_tanki_curr' => -100,
-            'after_naibutsusan_joto_choki_curr' => -200,
+            'after_naibutsusan_joto_tanki_sogo_curr' => -100,
+            'after_naibutsusan_joto_choki_sogo_curr' => -200,
             'after_naibutsusan_ichiji_curr' => -300,
-            'tokubetsukojo_joto_tanki_curr' => 500,
-            'tokubetsukojo_joto_choki_curr' => 600,
+            'tokubetsukojo_joto_tanki_sogo_curr' => 500,
+            'tokubetsukojo_joto_choki_sogo_curr' => 600,
             'tokubetsukojo_ichiji_curr' => 700,
-            'after_joto_ichiji_tousan_joto_tanki_curr' => 10,
+            'after_joto_ichiji_tousan_joto_tanki_sogo_curr' => 10,
             'after_joto_ichiji_tousan_joto_choki_sogo_curr' => 20,
             'after_joto_ichiji_tousan_ichiji_curr' => 30,
             'after_3jitsusan_tanki_sogo_curr' => -111,
             'after_3jitsusan_choki_sogo_curr' => -222,
             'after_3jitsusan_ichiji_curr' => -333,
-            'shotoku_joto_tanki_curr' => -444,
+            'shotoku_joto_tanki_sogo_curr' => -444,
             'shotoku_joto_choki_sogo_curr' => -555,
             'shotoku_ichiji_curr' => -666,
 
@@ -94,11 +94,11 @@ final class ResultToDetailsAliasCalculatorTest extends TestCase
         $this->assertSame(0, $result['tokubetsukojo_sanrin_curr']);
         $this->assertSame(-200000, $result['shotoku_sanrin_curr']);
 
-        $this->assertSame(111, $result['tsusango_joto_tanki_prev']);
-        $this->assertSame(222, $result['tsusango_joto_choki_prev']);
+        $this->assertSame(111, $result['tsusango_joto_tanki_sogo_prev']);
+        $this->assertSame(222, $result['tsusango_joto_choki_sogo_prev']);
         $this->assertSame(333, $result['tsusango_ichiji_prev']);
-        $this->assertSame(-111, $result['tsusango_joto_tanki_curr']);
-        $this->assertSame(-222, $result['tsusango_joto_choki_curr']);
+        $this->assertSame(-111, $result['tsusango_joto_tanki_sogo_curr']);
+        $this->assertSame(-222, $result['tsusango_joto_choki_sogo_curr']);
         $this->assertSame(-333, $result['tsusango_ichiji_curr']);
 
         $this->assertSame(600000, $result['tsusango_tanki_ippan_prev']);

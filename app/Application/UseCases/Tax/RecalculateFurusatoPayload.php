@@ -89,6 +89,8 @@ class RecalculateFurusatoPayload
         $details = $this->resultCalculator->buildDetails($payload, $ctx);
         $results = [
             'details' => $details,
+            'payload' => $payload,
+            // TODO: Remove the legacy key once all consumers migrate to `payload`.
             'upper' => $payload,
         ];
 

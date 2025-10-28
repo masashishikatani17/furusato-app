@@ -958,37 +958,29 @@ final class FurusatoController extends Controller
             $sumShotokuKey = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
             $sumJuminKey   = sprintf('shotoku_joto_ichiji_jumin_%s',  $period);
 
-            $serverSumShotoku = $lookup([$sumShotokuKey], false, false);
-            $hasServerSumShotoku = $serverSumShotoku !== null;
-            if ($hasServerSumShotoku) {
-                $inputsForView[$sumShotokuKey] = $this->valueOrZero($serverSumShotoku);
+            $sourceSnapshot = [];
+            if (! empty($resultsPayload)) {
+                $sourceSnapshot = array_replace($sourceSnapshot, $resultsPayload);
             }
-
-            $serverSumJumin = $lookup([$sumJuminKey], false, false);
-            $hasServerSumJumin = $serverSumJumin !== null;
-            if ($hasServerSumJumin) {
-                $inputsForView[$sumJuminKey] = $this->valueOrZero($serverSumJumin);
+            if (! empty($resultsUpper)) {
+                $sourceSnapshot = array_replace($sourceSnapshot, $resultsUpper);
             }
+            $sourceSnapshot = array_replace($sourceSnapshot, $previewPayload);
 
-            $tanki = $this->valueOrZero($lookup([
-                sprintf('shotoku_joto_tanki_sogo_%s', $period),
-                sprintf('shotoku_joto_tanki_%s', $period),
-            ], false, false));
-            $choki = $this->valueOrZero($lookup([
-                sprintf('shotoku_joto_choki_sogo_%s', $period),
-                sprintf('shotoku_joto_choki_%s',      $period),
-            ], false, false));
-            $ichiji = $this->valueOrZero($lookup([sprintf('shotoku_ichiji_%s', $period)], false, false));
+            $tankiKey = sprintf('shotoku_joto_tanki_sogo_%s', $period);
+            $fallbackTankiKey = sprintf('shotoku_joto_tanki_%s', $period);
+            $chokiKey = sprintf('shotoku_joto_choki_sogo_%s', $period);
+            $fallbackChokiKey = sprintf('shotoku_joto_choki_%s', $period);
+            $ichijiKey = sprintf('shotoku_ichiji_%s', $period);
 
-            $fallbackSum = $tanki + $choki + max(0, $ichiji);
+            $tanki = (int) ($sourceSnapshot[$tankiKey] ?? $sourceSnapshot[$fallbackTankiKey] ?? 0);
+            $choki = (int) ($sourceSnapshot[$chokiKey] ?? $sourceSnapshot[$fallbackChokiKey] ?? 0);
+            $ichiji = (int) ($sourceSnapshot[$ichijiKey] ?? 0);
 
-            if (! $hasServerSumShotoku) {
-                $inputsForView[$sumShotokuKey] = $fallbackSum;
-            }
+            $sum = $tanki + $choki + max(0, $ichiji);
 
-            if (! $hasServerSumJumin) {
-                $inputsForView[$sumJuminKey] = $fallbackSum;
-            }
+            $inputsForView[$sumShotokuKey] = $sum;
+            $inputsForView[$sumJuminKey] = $sum;
 
             foreach ([
                 sprintf('bunri_sashihiki_gokei_shotoku_%s', $period),

@@ -84,32 +84,32 @@
                       @php($base = $row['key'] . '_' . $period)
                       @php($name = 'syunyu_' . $base)
                       <td>
-                        <input type="number" min="0" step="1" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
                       </td>
                       @php($name = 'keihi_' . $base)
                       <td>
-                        <input type="number" min="0" step="1" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
                       </td>
-                      @php($name = 'sashihiki_' . $base)
+                      @php($name = 'before_tsusan_' . $base)
                       <td>
-                        <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       </td>
                       @php($name = 'tsusango_' . $base)
                       <td>
-                        <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       </td>
                       @php($name = 'tokubetsukojo_' . $base)
                       <td>
-                        <input type="number" min="0" step="1" class="form-control suji8 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji8 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
                       </td>
                       @php($name = 'joto_shotoku_' . $base)
                       <td>
-                        <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       </td>
                       @if ($index === 0)
                         @php($gokeiName = sprintf('joto_shotoku_%s_gokei_%s', $group['key'], $period))
                         <td rowspan="{{ $rowspan }}">
-                          <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $gokeiName }}" value="{{ old($gokeiName, $inputs[$gokeiName] ?? null) }}" readonly>
+                          <input type="text" inputmode="numeric" data-format="comma-int" class="form-control suji11 text-end bg-light" name="{{ $gokeiName }}" value="{{ old($gokeiName, $inputs[$gokeiName] ?? null) }}" readonly>
                         </td>
                       @endif
                     </tr>
@@ -139,19 +139,54 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   const Q = (name) => document.querySelector(`[name="${name}"]`);
-  const V = (name) => {
-    const el = Q(name);
-    if (!el) { return 0; }
-    const raw = (el.value ?? '').toString().trim();
-    if (raw === '') { return 0; }
-    const num = Number(raw.replace(/[^\-0-9.]/g, ''));
-    return Number.isFinite(num) ? Math.trunc(num) : 0;
-  };
-  const S = (name, value) => {
-    const el = Q(name);
-    if (el) {
-      el.value = value ?? 0;
+
+  const toRawInt = (value) => {
+    if (typeof value !== 'string') {
+      return '';
     }
+    const stripped = value.replace(/,/g, '').trim();
+    if (stripped === '' || stripped === '-') {
+      return '';
+    }
+    if (!/^(-)?\d+$/.test(stripped)) {
+      return '';
+    }
+    const parsed = parseInt(stripped, 10);
+    return Number.isNaN(parsed) ? '' : parsed.toString();
+  };
+
+  const formatWithComma = (raw) => {
+    if (raw === '') {
+      return '';
+    }
+    const parsed = parseInt(raw, 10);
+    return Number.isNaN(parsed) ? '' : parsed.toLocaleString('ja-JP');
+  };
+
+  const getIntValue = (name) => {
+    const el = Q(name);
+    if (!el) {
+      return 0;
+    }
+    const raw = toRawInt(el.value ?? '');
+    if (raw === '') {
+      return 0;
+    }
+    const parsed = parseInt(raw, 10);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const setIntValue = (name, value) => {
+    const el = Q(name);
+    if (!el) {
+      return;
+    }
+    if (value === '' || value === null || typeof value === 'undefined' || Number.isNaN(value)) {
+      el.value = '';
+      return;
+    }
+    const raw = Math.trunc(Number(value)).toString();
+    el.value = formatWithComma(raw);
   };
 
   const rows = [
@@ -166,38 +201,61 @@ document.addEventListener('DOMContentLoaded', function () {
     const sums = { tanki: 0, choki: 0 };
     rows.forEach((row) => {
       const base = `${row.key}_${period}`;
-      const syunyu = V(`syunyu_${base}`);
-      const keihi = V(`keihi_${base}`);
-      const sashihiki = syunyu - keihi;
-      S(`sashihiki_${base}`, sashihiki);
+      const syunyu = getIntValue(`syunyu_${base}`);
+      const keihi = getIntValue(`keihi_${base}`);
+      const beforeTsusan = syunyu - keihi;
+      setIntValue(`before_tsusan_${base}`, beforeTsusan);
 
-      const tsusango = V(`tsusango_${base}`);
-      const tokubetsu = V(`tokubetsukojo_${base}`);
+      const tsusango = getIntValue(`tsusango_${base}`);
+      const tokubetsu = getIntValue(`tokubetsukojo_${base}`);
       const joto = tsusango - tokubetsu;
-      S(`joto_shotoku_${base}`, joto);
+      setIntValue(`joto_shotoku_${base}`, joto);
       sums[row.group] += joto;
     });
 
-    S(`joto_shotoku_tanki_gokei_${period}`, sums.tanki);
-    S(`joto_shotoku_choki_gokei_${period}`, sums.choki);
+    setIntValue(`joto_shotoku_tanki_gokei_${period}`, sums.tanki);
+    setIntValue(`joto_shotoku_choki_gokei_${period}`, sums.choki);
   };
 
-  const bindBlur = () => {
-    document.querySelectorAll('input[type="number"]').forEach((el) => {
-      if (el.readOnly) {
-        return;
-      }
-      const match = el.name.match(/_(prev|curr)$/);
-      if (!match) {
-        return;
-      }
-      el.addEventListener('blur', () => recalc(match[1]));
+  const inputs = document.querySelectorAll('[data-format="comma-int"]');
+
+  inputs.forEach((input) => {
+    const applyFormat = () => {
+      const raw = toRawInt(input.value ?? '');
+      input.value = raw === '' ? '' : formatWithComma(raw);
+    };
+
+    applyFormat();
+
+    if (input.readOnly) {
+      return;
+    }
+
+    input.addEventListener('focus', () => {
+      input.value = toRawInt(input.value ?? '');
+      input.select();
     });
-  };
 
-  bindBlur();
-  recalc('prev');
-  recalc('curr');
+    input.addEventListener('blur', () => {
+      const raw = toRawInt(input.value ?? '');
+      input.value = raw === '' ? '' : formatWithComma(raw);
+      const match = input.name.match(/_(prev|curr)$/);
+      if (match) {
+        recalc(match[1]);
+      }
+    });
+  });
+
+  ['prev', 'curr'].forEach(recalc);
+
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', () => {
+      inputs.forEach((input) => {
+        input.value = toRawInt(input.value ?? '');
+      });
+    });
+  }
 });
 </script>
 @endpush

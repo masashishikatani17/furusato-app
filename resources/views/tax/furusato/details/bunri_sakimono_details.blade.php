@@ -1,3 +1,4 @@
+<!-- views/tax/furusato/details/bunri_sakimono_details.blade.php -->
 @extends('layouts.min')
 
 @section('title', '先物取引 内訳')

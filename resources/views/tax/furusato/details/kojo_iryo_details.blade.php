@@ -1,3 +1,4 @@
+<!-- views/tax/furusato/details/kojo_iryo_details.blade.php -->
 @extends('layouts.min')
 
 @section('title', '内訳－医療費控除')
@@ -46,70 +47,112 @@
               <tr>
                 <th scope="row" class="text-start">支払った医療費</th>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-iryo" name="kojo_iryo_shiharai_prev" value="{{ old('kojo_iryo_shiharai_prev', $inputs['kojo_iryo_shiharai_prev'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_shiharai_prev"
+                         class="form-control suji11 js-iryo text-end"
+                         value="{{ old('kojo_iryo_shiharai_prev', $inputs['kojo_iryo_shiharai_prev'] ?? null) }}">
                 </td>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-iryo" name="kojo_iryo_shiharai_curr" value="{{ old('kojo_iryo_shiharai_curr', $inputs['kojo_iryo_shiharai_curr'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_shiharai_curr"
+                         class="form-control suji11 js-iryo text-end"
+                         value="{{ old('kojo_iryo_shiharai_curr', $inputs['kojo_iryo_shiharai_curr'] ?? null) }}">
                 </td>
                 <td class="bg-light">Ⓐ</td>
               </tr>
               <tr>
                 <th scope="row" class="text-start">保険金などで補填される金額</th>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-iryo" name="kojo_iryo_hotengaku_prev" value="{{ old('kojo_iryo_hotengaku_prev', $inputs['kojo_iryo_hotengaku_prev'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_hotengaku_prev"
+                         class="form-control suji11 js-iryo text-end"
+                         value="{{ old('kojo_iryo_hotengaku_prev', $inputs['kojo_iryo_hotengaku_prev'] ?? null) }}">
                 </td>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-iryo" name="kojo_iryo_hotengaku_curr" value="{{ old('kojo_iryo_hotengaku_curr', $inputs['kojo_iryo_hotengaku_curr'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_hotengaku_curr"
+                         class="form-control suji11 js-iryo text-end"
+                         value="{{ old('kojo_iryo_hotengaku_curr', $inputs['kojo_iryo_hotengaku_curr'] ?? null) }}">
                 </td>
                 <td class="bg-light">Ⓑ</td>
               </tr>
               <tr>
                 <th scope="row" class="text-start">差引金額（Ⓐ－Ⓑ）</th>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_sashihiki_prev" value="{{ $inputs['kojo_iryo_sashihiki_prev'] ?? 0 }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_sashihiki_prev"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ $inputs['kojo_iryo_sashihiki_prev'] ?? 0 }}" readonly>
                 </td>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_sashihiki_curr" value="{{ $inputs['kojo_iryo_sashihiki_curr'] ?? 0 }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_sashihiki_curr"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ $inputs['kojo_iryo_sashihiki_curr'] ?? 0 }}" readonly>
                 </td>
                 <td class="bg-light">Ⓒ</td>
               </tr>
               <tr>
                 <th scope="row" class="text-start">所得金額の合計額</th>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_shotoku_gokei_prev" value="{{ $inputs['kojo_iryo_shotoku_gokei_prev'] ?? 0 }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_shotoku_gokei_prev"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ $inputs['kojo_iryo_shotoku_gokei_prev'] ?? 0 }}" readonly>
                 </td>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_shotoku_gokei_curr" value="{{ $inputs['kojo_iryo_shotoku_gokei_curr'] ?? 0 }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_shotoku_gokei_curr"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ $inputs['kojo_iryo_shotoku_gokei_curr'] ?? 0 }}" readonly>
                 </td>
                 <td class="bg-light">Ⓓ</td>
               </tr>
               <tr>
                 <th scope="row" class="text-start">Ⓓ×0.05</th>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_shotoku_5pct_prev" value="{{ $inputs['kojo_iryo_shotoku_5pct_prev'] ?? 0 }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_shotoku_5pct_prev"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ $inputs['kojo_iryo_shotoku_5pct_prev'] ?? 0 }}" readonly>
                 </td>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_shotoku_5pct_curr" value="{{ $inputs['kojo_iryo_shotoku_5pct_curr'] ?? 0 }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_shotoku_5pct_curr"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ $inputs['kojo_iryo_shotoku_5pct_curr'] ?? 0 }}" readonly>
                 </td>
                 <td class="bg-light">Ⓔ</td>
               </tr>
               <tr>
                 <th scope="row" class="text-start">Ⓔと10万円のいずれか少ない方の金額</th>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_min_threshold_prev" value="{{ $inputs['kojo_iryo_min_threshold_prev'] ?? 0 }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_min_threshold_prev"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ $inputs['kojo_iryo_min_threshold_prev'] ?? 0 }}" readonly>
                 </td>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_min_threshold_curr" value="{{ $inputs['kojo_iryo_min_threshold_curr'] ?? 0 }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_min_threshold_curr"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ $inputs['kojo_iryo_min_threshold_curr'] ?? 0 }}" readonly>
                 </td>
                 <td class="bg-light">Ⓕ</td>
               </tr>
               <tr>
                 <th scope="row" class="text-center th-cream">医療費控除額（Ⓒ－Ⓕ）</th>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_kojogaku_prev" value="{{ $inputs['kojo_iryo_kojogaku_prev'] ?? 0 }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_kojogaku_prev"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ $inputs['kojo_iryo_kojogaku_prev'] ?? 0 }}" readonly>
                 </td>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_iryo_kojogaku_curr" value="{{ $inputs['kojo_iryo_kojogaku_curr'] ?? 0 }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_iryo_kojogaku_curr"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ $inputs['kojo_iryo_kojogaku_curr'] ?? 0 }}" readonly>
                 </td>
                 <td class="bg-light">Ⓖ</td>
               </tr>
@@ -135,59 +178,127 @@
 @push('scripts')
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      const getInt = (value) => {
-        if (value === null || value === undefined || value === '') {
-          return 0;
+      // ===== 3桁カンマ表示 + hidden数値POST 共通ユーティリティ =====
+      const toRawInt = (value) => {
+        if (typeof value !== 'string') return '';
+        const stripped = value.replace(/,/g, '').trim();
+        if (stripped === '' || stripped === '-') return '';
+        if (!/^(-)?\d+$/.test(stripped)) return '';
+        const n = parseInt(stripped, 10);
+        return Number.isNaN(n) ? '' : String(n);
+      };
+      const fmt = (raw) => {
+        if (raw === '') return '';
+        const n = parseInt(raw, 10);
+        return Number.isNaN(n) ? '' : n.toLocaleString('ja-JP');
+      };
+      const hiddenCache = new Map();
+      const getHidden = (name) => {
+        if (hiddenCache.has(name)) return hiddenCache.get(name);
+        const h = document.querySelector(`input[type="hidden"][name="${name}"]`);
+        if (h) hiddenCache.set(name, h);
+        return h || null;
+      };
+      const getDisplay = (name) => document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+      const ensureHidden = (displayInput) => {
+        const name = displayInput?.dataset?.name;
+        if (!name) return null;
+        let h = getHidden(name);
+        if (!h) {
+          h = document.createElement('input');
+          h.type = 'hidden';
+          h.name = name;
+          h.dataset.commaMirror = '1';
+          (displayInput.parentElement || displayInput.closest('form') || document.body).appendChild(h);
+          hiddenCache.set(name, h);
         }
-        const parsed = parseInt(value, 10);
-        return Number.isNaN(parsed) ? 0 : parsed;
+        const hiddenRaw = toRawInt(h.value ?? '');
+        const inputRaw  = toRawInt(displayInput.value ?? '');
+        const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+        h.value = raw;
+        displayInput.value = raw === '' ? '' : fmt(raw);
+        return h;
+      };
+      const V = (name) => {
+        const h = getHidden(name);
+        if (!h) return 0;
+        const raw = toRawInt(h.value ?? '');
+        if (raw === '') return 0;
+        const n = parseInt(raw, 10);
+        return Number.isNaN(n) ? 0 : n;
+      };
+      const S = (name, val) => {
+        const h = getHidden(name);
+        const d = getDisplay(name);
+        if (val === '' || val === null || typeof val === 'undefined' || Number.isNaN(val)) {
+          if (h) h.value = '';
+          if (d) d.value = '';
+          return;
+        }
+        const raw = String(Math.trunc(Number(val) || 0));
+        if (h) h.value = raw;
+        if (d) d.value = fmt(raw);
       };
 
+      // ===== 再計算 =====
       const recalcCol = (period) => {
-        const shiharai = document.querySelector(`[name="kojo_iryo_shiharai_${period}"]`);
-        const hoten = document.querySelector(`[name="kojo_iryo_hotengaku_${period}"]`);
-        const sashihiki = document.querySelector(`[name="kojo_iryo_sashihiki_${period}"]`);
-        const shotokuGokei = document.querySelector(`[name="kojo_iryo_shotoku_gokei_${period}"]`);
-        const shotoku5pct = document.querySelector(`[name="kojo_iryo_shotoku_5pct_${period}"]`);
-        const minThreshold = document.querySelector(`[name="kojo_iryo_min_threshold_${period}"]`);
-        const kojogaku = document.querySelector(`[name="kojo_iryo_kojogaku_${period}"]`);
-
-        const a = shiharai ? getInt(shiharai.value) : 0;
-        const b = hoten ? getInt(hoten.value) : 0;
-        const d = shotokuGokei ? getInt(shotokuGokei.value) : 0;
+        const a = V(`kojo_iryo_shiharai_${period}`);
+        const b = V(`kojo_iryo_hotengaku_${period}`);
+        const d = V(`kojo_iryo_shotoku_gokei_${period}`); // サーバ渡しの読み取り専用
 
         const c = a - b;
         const e = Math.floor(d * 0.05);
         const f = Math.min(e, 100000);
         const g = Math.max(c - f, 0);
 
-        if (sashihiki) {
-          sashihiki.value = c;
-        }
-        if (shotoku5pct) {
-          shotoku5pct.value = e;
-        }
-        if (minThreshold) {
-          minThreshold.value = f;
-        }
-        if (kojogaku) {
-          kojogaku.value = g;
-        }
+        S(`kojo_iryo_sashihiki_${period}`, c);
+        S(`kojo_iryo_shotoku_5pct_${period}`, e);
+        S(`kojo_iryo_min_threshold_${period}`, f);
+        S(`kojo_iryo_kojogaku_${period}`, g);
       };
 
-      document.querySelectorAll('.js-iryo').forEach((input) => {
+      // 表示input初期化（hidden生成＋初期カンマ整形）＆blurで再計算
+      const displays = Array.from(document.querySelectorAll('[data-format="comma-int"][data-name]'));
+      displays.forEach((input) => {
+        const name = input.dataset.name;
+        if (!name) return;
+        ensureHidden(input);
+        const h = getHidden(name);
+        const raw = toRawInt(h?.value ?? input.value ?? '');
+        input.value = raw === '' ? '' : fmt(raw);
+        if (input.readOnly) return;
+        input.addEventListener('focus', () => {
+          const hidden = getHidden(name);
+          input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
+          input.select();
+        });
         input.addEventListener('blur', () => {
-          const name = input.getAttribute('name') || '';
-          if (name.endsWith('_prev')) {
-            recalcCol('prev');
-          } else if (name.endsWith('_curr')) {
-            recalcCol('curr');
-          }
+          const hidden = getHidden(name) || ensureHidden(input);
+          const raw2 = toRawInt(input.value ?? hidden?.value ?? '');
+          if (hidden) hidden.value = raw2;
+          input.value = raw2 === '' ? '' : fmt(raw2);
+          if (name.endsWith('_prev')) recalcCol('prev');
+          if (name.endsWith('_curr')) recalcCol('curr');
         });
       });
 
+      // 初期計算
       recalcCol('prev');
       recalcCol('curr');
+
+      // 送信直前：hiddenへ数値を確実に格納（表示側はname無しでチラつき無し）
+      const form = document.querySelector('form');
+      if (form) {
+        form.addEventListener('submit', () => {
+          displays.forEach((input) => {
+            const name = input.dataset.name;
+            if (!name) return;
+            const hidden = getHidden(name) || ensureHidden(input);
+            const raw = toRawInt(input.value ?? hidden?.value ?? '');
+            if (hidden) hidden.value = raw;
+          });
+        });
+      }
     });
   </script>
 @endpush

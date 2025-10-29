@@ -146,7 +146,10 @@
                         <td class="text-center align-middle">－</td>
                       @else
                         <td>
-                          <input type="number" min="0" step="1" class="form-control suji8" name="{{ $field }}" value="{{ old($field, $inputs[$field] ?? '') }}">
+                          <input type="text" inputmode="numeric" autocomplete="off"
+                                 data-format="comma-int" data-name="{{ $field }}"
+                                 class="form-control suji8 text-end"
+                                 value="{{ old($field, $inputs[$field] ?? '') }}">
                         </td>
                       @endif
                     @endforeach
@@ -215,3 +218,89 @@
   </div>      
 </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // ===== 3桁カンマ表示 + hidden数値POST =====
+  const toRawInt = (value) => {
+    if (typeof value !== 'string') return '';
+    const stripped = value.replace(/,/g, '').trim();
+    if (stripped === '' || stripped === '-') return '';
+    if (!/^(-)?\d+$/.test(stripped)) return '';
+    const n = parseInt(stripped, 10);
+    return Number.isNaN(n) ? '' : String(n);
+  };
+  const fmt = (raw) => {
+    if (raw === '') return '';
+    const n = parseInt(raw, 10);
+    return Number.isNaN(n) ? '' : n.toLocaleString('ja-JP');
+  };
+
+  const hiddenCache = new Map();
+  const getHidden = (name) => {
+    if (hiddenCache.has(name)) return hiddenCache.get(name);
+    const h = document.querySelector(`input[type="hidden"][name="${name}"]`);
+    if (h) hiddenCache.set(name, h);
+    return h || null;
+  };
+  const ensureHidden = (displayInput) => {
+    const name = displayInput?.dataset?.name;
+    if (!name) return null;
+    let h = getHidden(name);
+    if (!h) {
+      h = document.createElement('input');
+      h.type = 'hidden';
+      h.name = name;
+      h.dataset.commaMirror = '1';
+      (displayInput.parentElement || displayInput.closest('form') || document.body).appendChild(h);
+      hiddenCache.set(name, h);
+    }
+    // 初回同期：hidden優先、なければdisplayを採用
+    const hiddenRaw = toRawInt(h.value ?? '');
+    const inputRaw  = toRawInt(displayInput.value ?? '');
+    const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+    h.value = raw;
+    displayInput.value = raw === '' ? '' : fmt(raw);
+    return h;
+  };
+
+  const displays = Array.from(document.querySelectorAll('[data-format="comma-int"][data-name]'));
+  displays.forEach((input) => {
+    const name = input.dataset.name;
+    if (!name) return;
+    ensureHidden(input);
+    // 初期表示は常にカンマ整形
+    const h = getHidden(name);
+    const raw = toRawInt(h?.value ?? input.value ?? '');
+    input.value = raw === '' ? '' : fmt(raw);
+    if (input.readOnly) return;
+    input.addEventListener('focus', () => {
+      const hidden = getHidden(name);
+      input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
+      input.select();
+    });
+    input.addEventListener('blur', () => {
+      const hidden = getHidden(name) || ensureHidden(input);
+      const raw2 = toRawInt(input.value ?? hidden?.value ?? '');
+      if (hidden) hidden.value = raw2;
+      input.value = raw2 === '' ? '' : fmt(raw2);
+    });
+  });
+
+  // 送信直前：hiddenへ数値を確実に格納（表示側はnameを持たないのでチラつきなし）
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', () => {
+      displays.forEach((input) => {
+        const name = input.dataset.name;
+        if (!name) return;
+        const hidden = getHidden(name) || ensureHidden(input);
+        const raw = toRawInt(input.value ?? hidden?.value ?? '');
+        if (hidden) hidden.value = raw;
+      });
+    });
+  }
+});
+</script>
+@endpush

@@ -1102,6 +1102,7 @@ final class FurusatoController extends Controller
                 'recalc_all',
             ]);
 
+            $this->normalizeIntegerFieldsFromRequest($request, self::BUNRI_CHOKI_SHOTOKU_FIELDS);
             $this->validateBunriChokiShotokuInputs($request);
 
             $this->performFullRecalculation($request, $data, $updates, $recalculateUseCase);
@@ -1124,6 +1125,7 @@ final class FurusatoController extends Controller
             'origin_anchor',
             'recalc_all',
         ]);
+        $this->normalizeIntegerFieldsFromRequest($request, self::BUNRI_CHOKI_SHOTOKU_FIELDS);
         $this->validateBunriChokiShotokuInputs($request);
         $goto = (string) $request->input('redirect_to', '');
         $shouldShowResult = $request->boolean('show_result') || $goto === '' || $goto === 'input';
@@ -2176,6 +2178,46 @@ final class FurusatoController extends Controller
         Validator::make($request->only(self::BUNRI_CHOKI_SHOTOKU_FIELDS), $rules)->validate();
     }
 
+    /**
+     * 指定キーについて、文字列を「整数 or null」に正規化して $request に上書きする。
+     * - カンマ・空白・全角数字 → 半角数字に寄せる
+     * - 空/「－」等は null
+     */
+    private function normalizeIntegerFieldsFromRequest(Request $request, array $keys): void
+    {
+        if ($keys === []) return;
+
+        $replacements = [];
+        foreach ($keys as $key) {
+            $raw = $request->input($key);
+            if ($raw === null) {
+                $replacements[$key] = null;
+                continue;
+            }
+            // 文字列化
+            $s = is_string($raw) ? $raw : (string) $raw;
+            $s = trim($s);
+            if ($s === '' || $s === '－' || $s === '-') {
+                $replacements[$key] = null;
+                continue;
+            }
+            // 全角→半角、カンマ除去
+            $s = preg_replace('/,/', '', $s ?? '') ?? '';
+            // 全角数字→半角数字
+            $s = mb_convert_kana($s, 'n', 'UTF-8');
+            // 数値判定
+            if ($s !== '' && preg_match('/^-?\d+$/', $s) === 1) {
+                $replacements[$key] = (int) $s;
+            } else {
+                // 変換不能ならそのまま（後続のバリデーションで弾かれる）
+                $replacements[$key] = $raw;
+            }
+        }
+
+        if ($replacements !== []) {
+            $request->merge($replacements);
+        }
+    }
     /**
      * @return array{int, int}
      */

@@ -2537,6 +2537,7 @@
 
     // 収入（金額等）系：所得税→住民税（prev）
     mirrorOnBlur('syunyu_jigyo_nogyo_shotoku_prev',  'syunyu_jigyo_nogyo_jumin_prev');
+    mirrorOnBlur('shotoku_rishi_shotoku_prev',       'shotoku_rishi_jumin_prev');
     mirrorOnBlur('syunyu_haito_shotoku_prev',        'syunyu_haito_jumin_prev');
     mirrorOnBlur('syunyu_kyuyo_shotoku_prev',        'syunyu_kyuyo_jumin_prev');           // 給与
     mirrorOnBlur('syunyu_zatsu_nenkin_shotoku_prev', 'syunyu_zatsu_nenkin_jumin_prev');    // 公的年金等
@@ -2552,6 +2553,7 @@
 
     // 収入（金額等）系：所得税→住民税（curr）
     mirrorOnBlur('syunyu_jigyo_nogyo_shotoku_curr',  'syunyu_jigyo_nogyo_jumin_curr');
+    mirrorOnBlur('shotoku_rishi_shotoku_curr',       'shotoku_rishi_jumin_curr');
     mirrorOnBlur('syunyu_haito_shotoku_curr',        'syunyu_haito_jumin_curr');
     mirrorOnBlur('syunyu_kyuyo_shotoku_curr',        'syunyu_kyuyo_jumin_curr');           // 給与
     mirrorOnBlur('syunyu_zatsu_nenkin_shotoku_curr', 'syunyu_zatsu_nenkin_jumin_curr');    // 公的年金等

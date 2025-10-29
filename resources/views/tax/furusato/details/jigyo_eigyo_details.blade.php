@@ -1,3 +1,4 @@
+<!-- views/tax/furusato/details/jigyo_eigyo_details.blade.php -->
 @extends('layouts.min')
 
 @section('title', '事業・営業等（内訳）')
@@ -46,30 +47,48 @@
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">売上(収入)金額</th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_uriage_prev" value="{{ old('jigyo_eigyo_uriage_prev', $inputs['jigyo_eigyo_uriage_prev'] ?? null) }}">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="jigyo_eigyo_uriage_prev"
+                           class="form-control suji11 text-end"
+                           value="{{ old('jigyo_eigyo_uriage_prev', $inputs['jigyo_eigyo_uriage_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_uriage_curr" value="{{ old('jigyo_eigyo_uriage_curr', $inputs['jigyo_eigyo_uriage_curr'] ?? null) }}">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="jigyo_eigyo_uriage_curr"
+                           class="form-control suji11 text-end"
+                           value="{{ old('jigyo_eigyo_uriage_curr', $inputs['jigyo_eigyo_uriage_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">売上原価</th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_urigenka_prev" value="{{ old('jigyo_eigyo_urigenka_prev', $inputs['jigyo_eigyo_urigenka_prev'] ?? null) }}">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="jigyo_eigyo_urigenka_prev"
+                           class="form-control suji11 text-end"
+                           value="{{ old('jigyo_eigyo_urigenka_prev', $inputs['jigyo_eigyo_urigenka_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_urigenka_curr" value="{{ old('jigyo_eigyo_urigenka_curr', $inputs['jigyo_eigyo_urigenka_curr'] ?? null) }}">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="jigyo_eigyo_urigenka_curr"
+                           class="form-control suji11 text-end"
+                           value="{{ old('jigyo_eigyo_urigenka_curr', $inputs['jigyo_eigyo_urigenka_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">差引金額</th>
                   <td>
                     @php($name = 'jigyo_eigyo_sashihiki_1_prev')
-                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   <td>
                     @php($name = 'jigyo_eigyo_sashihiki_1_curr')
-                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
                 @php($expenseFields = [
@@ -105,11 +124,17 @@
                   <td>
                     @php($name = $field['name'] . '_prev')
                     @php($readonly = $field['readonly'] ?? false)
-                    <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                   </td>
                   <td>
                     @php($name = $field['name'] . '_curr')
-                    <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                   </td>
                 </tr>
                 @foreach ($expenseFields as $field)
@@ -132,11 +157,17 @@
                     <td>
                       @php($name = $field['name'] . '_prev')
                       @php($readonly = $field['readonly'] ?? false)
-                      <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
+                      <input type="text" inputmode="numeric" autocomplete="off"
+                             data-format="comma-int" data-name="{{ $name }}"
+                             class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
+                             value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                     </td>
                     <td>
                       @php($name = $field['name'] . '_curr')
-                      <input type="number" min="0" step="1" class="form-control suji11{{ $readonly ? ' bg-light' : '' }}" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
+                      <input type="text" inputmode="numeric" autocomplete="off"
+                             data-format="comma-int" data-name="{{ $name }}"
+                             class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
+                             value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                     </td>
                   </tr>
                 @endforeach
@@ -144,51 +175,81 @@
                   <th colspan="2" class="text-start align-middle ps-1">差引金額</th>
                   <td>
                     @php($name = 'jigyo_eigyo_sashihiki_2_prev')
-                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   <td>
                     @php($name = 'jigyo_eigyo_sashihiki_2_curr')
-                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">専従者給与</th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_senjuusha_kyuyo_prev" value="{{ old('jigyo_eigyo_senjuusha_kyuyo_prev', $inputs['jigyo_eigyo_senjuusha_kyuyo_prev'] ?? null) }}">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="jigyo_eigyo_senjuusha_kyuyo_prev"
+                           class="form-control suji11 text-end"
+                           value="{{ old('jigyo_eigyo_senjuusha_kyuyo_prev', $inputs['jigyo_eigyo_senjuusha_kyuyo_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_senjuusha_kyuyo_curr" value="{{ old('jigyo_eigyo_senjuusha_kyuyo_curr', $inputs['jigyo_eigyo_senjuusha_kyuyo_curr'] ?? null) }}">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="jigyo_eigyo_senjuusha_kyuyo_curr"
+                           class="form-control suji11 text-end"
+                           value="{{ old('jigyo_eigyo_senjuusha_kyuyo_curr', $inputs['jigyo_eigyo_senjuusha_kyuyo_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1 pe-1">青色申告特別控除前の所得金額</th>
                   <td>
                     @php($name = 'jigyo_eigyo_aoi_tokubetsu_kojo_mae_prev')
-                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   <td>
                     @php($name = 'jigyo_eigyo_aoi_tokubetsu_kojo_mae_curr')
-                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">青色申告特別控除額</th>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev" value="{{ old('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev', $inputs['jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev'] ?? null) }}">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev"
+                           class="form-control suji11 text-end"
+                           value="{{ old('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev', $inputs['jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev'] ?? null) }}">
                   </td>
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11" name="jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr" value="{{ old('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr', $inputs['jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr'] ?? null) }}">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr"
+                           class="form-control suji11 text-end"
+                           value="{{ old('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr', $inputs['jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr'] ?? null) }}">
                   </td>
                 </tr>
                 <tr>
                   <th colspan="2" class="text-center align-middle ps-1 th-cream">所得金額</th>
                   <td>
                     @php($name = 'jigyo_eigyo_shotoku_prev')
-                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   <td>
                     @php($name = 'jigyo_eigyo_shotoku_curr')
-                    <input type="number" min="0" step="1" class="form-control suji11" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
               </tbody>
@@ -212,13 +273,67 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const Q = (name) => document.querySelector(`[name="${name}"]`);
-  const V = (name) => {
-    const el = Q(name); if (!el) return 0;
-    const v = (el.value ?? '').toString().trim();
-    return v === '' ? 0 : parseInt(v, 10);
+  // ===== 3桁カンマ表示 + hidden数値POST 共通ユーティリティ =====
+  const toRawInt = (value) => {
+    if (typeof value !== 'string') return '';
+    const stripped = value.replace(/,/g, '').trim();
+    if (stripped === '' || stripped === '-') return '';
+    if (!/^(-)?\d+$/.test(stripped)) return '';
+    const n = parseInt(stripped, 10);
+    return Number.isNaN(n) ? '' : String(n);
   };
-  const S = (name, val) => { const el = Q(name); if (el) el.value = (val ?? 0); };
+  const fmt = (raw) => {
+    if (raw === '') return '';
+    const n = parseInt(raw, 10);
+    return Number.isNaN(n) ? '' : n.toLocaleString('ja-JP');
+  };
+  const hiddenCache = new Map();
+  const getHidden = (name) => {
+    if (hiddenCache.has(name)) return hiddenCache.get(name);
+    const h = document.querySelector(`input[type="hidden"][name="${name}"]`);
+    if (h) hiddenCache.set(name, h);
+    return h || null;
+  };
+  const getDisplay = (name) => document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+  const ensureHidden = (displayInput) => {
+    const name = displayInput?.dataset?.name;
+    if (!name) return null;
+    let h = getHidden(name);
+    if (!h) {
+      h = document.createElement('input');
+      h.type = 'hidden';
+      h.name = name;
+      h.dataset.commaMirror = '1';
+      (displayInput.parentElement || displayInput.closest('form') || document.body).appendChild(h);
+      hiddenCache.set(name, h);
+    }
+    const hiddenRaw = toRawInt(h.value ?? '');
+    const inputRaw  = toRawInt(displayInput.value ?? '');
+    const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+    h.value = raw;
+    displayInput.value = raw === '' ? '' : fmt(raw);
+    return h;
+  };
+  const V = (name) => {
+    const h = getHidden(name);
+    if (!h) return 0;
+    const raw = toRawInt(h.value ?? '');
+    if (raw === '') return 0;
+    const n = parseInt(raw, 10);
+    return Number.isNaN(n) ? 0 : n;
+  };
+  const S = (name, val) => {
+    const h = getHidden(name);
+    const d = getDisplay(name);
+    if (val === '' || val === null || typeof val === 'undefined' || Number.isNaN(val)) {
+      if (h) h.value = '';
+      if (d) d.value = '';
+      return;
+    }
+    const raw = String(Math.trunc(Number(val) || 0));
+    if (h) h.value = raw;
+    if (d) d.value = fmt(raw);
+  };
 
   const recalc = (suffix) => {
     const uriage   = V(`jigyo_eigyo_uriage_${suffix}`);
@@ -242,18 +357,46 @@ document.addEventListener('DOMContentLoaded', function () {
     S(`jigyo_eigyo_shotoku_${suffix}`, mae - tokugaku);
   };
 
-  const bindBlur = (names) => names.forEach(n => { const el = Q(n); if (el) el.addEventListener('blur', () => { recalc('prev'); recalc('curr'); }); });
-
-  bindBlur([
-    'jigyo_eigyo_uriage_prev','jigyo_eigyo_urigenka_prev',
-    'jigyo_eigyo_senjuusha_kyuyo_prev','jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev',
-    'jigyo_eigyo_uriage_curr','jigyo_eigyo_urigenka_curr',
-    'jigyo_eigyo_senjuusha_kyuyo_curr','jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr',
-    'jigyo_eigyo_keihi_1_prev','jigyo_eigyo_keihi_2_prev','jigyo_eigyo_keihi_3_prev','jigyo_eigyo_keihi_4_prev','jigyo_eigyo_keihi_5_prev','jigyo_eigyo_keihi_6_prev','jigyo_eigyo_keihi_7_prev','jigyo_eigyo_keihi_sonota_prev',
-    'jigyo_eigyo_keihi_1_curr','jigyo_eigyo_keihi_2_curr','jigyo_eigyo_keihi_3_curr','jigyo_eigyo_keihi_4_curr','jigyo_eigyo_keihi_5_curr','jigyo_eigyo_keihi_6_curr','jigyo_eigyo_keihi_7_curr','jigyo_eigyo_keihi_sonota_curr'
-  ]);
+  // 表示 input の初期化（hidden生成＋初期カンマ整形）＆ blur で再計算
+  const displays = Array.from(document.querySelectorAll('[data-format="comma-int"][data-name]'));
+  displays.forEach((input) => {
+    const name = input.dataset.name;
+    if (!name) return;
+    ensureHidden(input);
+    const h = getHidden(name);
+    const raw = toRawInt(h?.value ?? input.value ?? '');
+    input.value = raw === '' ? '' : fmt(raw);
+    if (input.readOnly) return;
+    input.addEventListener('focus', () => {
+      const hidden = getHidden(name);
+      input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
+      input.select();
+    });
+    input.addEventListener('blur', () => {
+      const hidden = getHidden(name) || ensureHidden(input);
+      const raw2 = toRawInt(input.value ?? hidden?.value ?? '');
+      if (hidden) hidden.value = raw2;
+      input.value = raw2 === '' ? '' : fmt(raw2);
+      // 依存があるため両期再計算（安全側）
+      recalc('prev'); recalc('curr');
+    });
+  });
 
   recalc('prev'); recalc('curr');
+
+  // 送信直前：hiddenへ数値を確実に反映（表示nameは無いのでチラつき無し）
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', () => {
+      displays.forEach((input) => {
+        const name = input.dataset.name;
+        if (!name) return;
+        const hidden = getHidden(name) || ensureHidden(input);
+        const raw = toRawInt(input.value ?? hidden?.value ?? '');
+        if (hidden) hidden.value = raw;
+      });
+    });
+  }
 });
 </script>
 @endpush

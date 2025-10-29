@@ -56,27 +56,45 @@
                 <tr>
                   @php($name = 'syunyu_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end"
+                           value="{{ old($name, $inputs[$name] ?? null) }}">
                   </td>
                   @php($name = 'keihi_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end"
+                           value="{{ old($name, $inputs[$name] ?? null) }}">
                   </td>
                   @php($name = 'sashihiki_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   @php($name = 'after_3jitsusan_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   @php($name = 'tokubetsukojo_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                   @php($name = 'shotoku_sanrin_' . $period)
                   <td>
-                    <input type="text" inputmode="numeric" data-format="comma-int" data-name="{{ $name }}" class="form-control suji11 text-end bg-light" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="{{ $name }}"
+                           class="form-control suji11 text-end bg-light"
+                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
                 </tr>
               </tbody>

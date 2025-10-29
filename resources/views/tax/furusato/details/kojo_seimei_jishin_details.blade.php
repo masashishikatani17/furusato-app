@@ -1,3 +1,4 @@
+<!-- views/tax/furusato/details/kojo_seimei_jishin_details.blade.php -->
 @extends('layouts.min')
 
 @section('title', '内訳－生命・地震')
@@ -45,55 +46,91 @@
               <tr>
                 <th scope="row" class="text-start">新生命保険料</th>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-seimei" name="kojo_seimei_shin_prev" value="{{ old('kojo_seimei_shin_prev', $inputs['kojo_seimei_shin_prev'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_shin_prev"
+                         class="form-control suji11 js-seimei text-end"
+                         value="{{ old('kojo_seimei_shin_prev', $inputs['kojo_seimei_shin_prev'] ?? null) }}">
                 </td>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-seimei" name="kojo_seimei_shin_curr" value="{{ old('kojo_seimei_shin_curr', $inputs['kojo_seimei_shin_curr'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_shin_curr"
+                         class="form-control suji11 js-seimei text-end"
+                         value="{{ old('kojo_seimei_shin_curr', $inputs['kojo_seimei_shin_curr'] ?? null) }}">
                 </td>
               </tr>
               <tr>
                 <th scope="row" class="text-start">旧生命保険料</th>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-seimei" name="kojo_seimei_kyu_prev" value="{{ old('kojo_seimei_kyu_prev', $inputs['kojo_seimei_kyu_prev'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_kyu_prev"
+                         class="form-control suji11 js-seimei text-end"
+                         value="{{ old('kojo_seimei_kyu_prev', $inputs['kojo_seimei_kyu_prev'] ?? null) }}">
                 </td>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-seimei" name="kojo_seimei_kyu_curr" value="{{ old('kojo_seimei_kyu_curr', $inputs['kojo_seimei_kyu_curr'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_kyu_curr"
+                         class="form-control suji11 js-seimei text-end"
+                         value="{{ old('kojo_seimei_kyu_curr', $inputs['kojo_seimei_kyu_curr'] ?? null) }}">
                 </td>
               </tr>
               <tr>
                 <th scope="row" class="text-start">新個人年金保険料</th>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-seimei" name="kojo_seimei_nenkin_shin_prev" value="{{ old('kojo_seimei_nenkin_shin_prev', $inputs['kojo_seimei_nenkin_shin_prev'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_nenkin_shin_prev"
+                         class="form-control suji11 js-seimei text-end"
+                         value="{{ old('kojo_seimei_nenkin_shin_prev', $inputs['kojo_seimei_nenkin_shin_prev'] ?? null) }}">
                 </td>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-seimei" name="kojo_seimei_nenkin_shin_curr" value="{{ old('kojo_seimei_nenkin_shin_curr', $inputs['kojo_seimei_nenkin_shin_curr'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_nenkin_shin_curr"
+                         class="form-control suji11 js-seimei text-end"
+                         value="{{ old('kojo_seimei_nenkin_shin_curr', $inputs['kojo_seimei_nenkin_shin_curr'] ?? null) }}">
                 </td>
               </tr>
               <tr>
                 <th scope="row" class="text-start">旧個人年金保険料</th>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-seimei" name="kojo_seimei_nenkin_kyu_prev" value="{{ old('kojo_seimei_nenkin_kyu_prev', $inputs['kojo_seimei_nenkin_kyu_prev'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_nenkin_kyu_prev"
+                         class="form-control suji11 js-seimei text-end"
+                         value="{{ old('kojo_seimei_nenkin_kyu_prev', $inputs['kojo_seimei_nenkin_kyu_prev'] ?? null) }}">
                 </td>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-seimei" name="kojo_seimei_nenkin_kyu_curr" value="{{ old('kojo_seimei_nenkin_kyu_curr', $inputs['kojo_seimei_nenkin_kyu_curr'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_nenkin_kyu_curr"
+                         class="form-control suji11 js-seimei text-end"
+                         value="{{ old('kojo_seimei_nenkin_kyu_curr', $inputs['kojo_seimei_nenkin_kyu_curr'] ?? null) }}">
                 </td>
               </tr>
               <tr>
                 <th scope="row" class="text-start">介護医療保険料</th>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-seimei" name="kojo_seimei_kaigo_iryo_prev" value="{{ old('kojo_seimei_kaigo_iryo_prev', $inputs['kojo_seimei_kaigo_iryo_prev'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_kaigo_iryo_prev"
+                         class="form-control suji11 js-seimei text-end"
+                         value="{{ old('kojo_seimei_kaigo_iryo_prev', $inputs['kojo_seimei_kaigo_iryo_prev'] ?? null) }}">
                 </td>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-seimei" name="kojo_seimei_kaigo_iryo_curr" value="{{ old('kojo_seimei_kaigo_iryo_curr', $inputs['kojo_seimei_kaigo_iryo_curr'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_kaigo_iryo_curr"
+                         class="form-control suji11 js-seimei text-end"
+                         value="{{ old('kojo_seimei_kaigo_iryo_curr', $inputs['kojo_seimei_kaigo_iryo_curr'] ?? null) }}">
                 </td>
               </tr>
               <tr>
                 <th scope="row" class="text-center th-cream">合  計</th>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_seimei_gokei_prev" value="{{ old('kojo_seimei_gokei_prev', $inputs['kojo_seimei_gokei_prev'] ?? null) }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_gokei_prev"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ old('kojo_seimei_gokei_prev', $inputs['kojo_seimei_gokei_prev'] ?? null) }}" readonly>
                 </td>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_seimei_gokei_curr" value="{{ old('kojo_seimei_gokei_curr', $inputs['kojo_seimei_gokei_curr'] ?? null) }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_seimei_gokei_curr"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ old('kojo_seimei_gokei_curr', $inputs['kojo_seimei_gokei_curr'] ?? null) }}" readonly>
                 </td>
               </tr>
             </tbody>
@@ -111,28 +148,46 @@
               <tr>
                 <th scope="row" class="text-start">地震保険料</th>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-jishin" name="kojo_jishin_prev" value="{{ old('kojo_jishin_prev', $inputs['kojo_jishin_prev'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_jishin_prev"
+                         class="form-control suji11 js-jishin text-end"
+                         value="{{ old('kojo_jishin_prev', $inputs['kojo_jishin_prev'] ?? null) }}">
                 </td>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-jishin" name="kojo_jishin_curr" value="{{ old('kojo_jishin_curr', $inputs['kojo_jishin_curr'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_jishin_curr"
+                         class="form-control suji11 js-jishin text-end"
+                         value="{{ old('kojo_jishin_curr', $inputs['kojo_jishin_curr'] ?? null) }}">
                 </td>
               </tr>
               <tr>
                 <th scope="row" class="text-start">旧長期損害保険料</th>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-jishin" name="kojo_kyuchoki_songai_prev" value="{{ old('kojo_kyuchoki_songai_prev', $inputs['kojo_kyuchoki_songai_prev'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_kyuchoki_songai_prev"
+                         class="form-control suji11 js-jishin text-end"
+                         value="{{ old('kojo_kyuchoki_songai_prev', $inputs['kojo_kyuchoki_songai_prev'] ?? null) }}">
                 </td>
                 <td>
-                  <input type="number" min="0" step="1" class="form-control suji11 js-jishin" name="kojo_kyuchoki_songai_curr" value="{{ old('kojo_kyuchoki_songai_curr', $inputs['kojo_kyuchoki_songai_curr'] ?? null) }}">
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_kyuchoki_songai_curr"
+                         class="form-control suji11 js-jishin text-end"
+                         value="{{ old('kojo_kyuchoki_songai_curr', $inputs['kojo_kyuchoki_songai_curr'] ?? null) }}">
                 </td>
               </tr>
               <tr>
                 <th scope="row" class="text-center th-cream">合  計</th>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_jishin_gokei_prev" value="{{ old('kojo_jishin_gokei_prev', $inputs['kojo_jishin_gokei_prev'] ?? null) }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_jishin_gokei_prev"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ old('kojo_jishin_gokei_prev', $inputs['kojo_jishin_gokei_prev'] ?? null) }}" readonly>
                 </td>
                 <td>
-                  <input type="number" class="form-control suji11 bg-light" name="kojo_jishin_gokei_curr" value="{{ old('kojo_jishin_gokei_curr', $inputs['kojo_jishin_gokei_curr'] ?? null) }}" readonly>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         data-format="comma-int" data-name="kojo_jishin_gokei_curr"
+                         class="form-control suji11 text-end bg-light"
+                         value="{{ old('kojo_jishin_gokei_curr', $inputs['kojo_jishin_gokei_curr'] ?? null) }}" readonly>
                 </td>
               </tr>
             </tbody>
@@ -157,6 +212,67 @@
 @push('scripts')
   <script>
     document.addEventListener('DOMContentLoaded', function () {
+      // ===== 3桁カンマ表示 + hidden数値POST 共通ユーティリティ =====
+      const toRawInt = (value) => {
+        if (typeof value !== 'string') return '';
+        const stripped = value.replace(/,/g, '').trim();
+        if (stripped === '' || stripped === '-') return '';
+        if (!/^(-)?\d+$/.test(stripped)) return '';
+        const n = parseInt(stripped, 10);
+        return Number.isNaN(n) ? '' : String(n);
+      };
+      const fmt = (raw) => {
+        if (raw === '') return '';
+        const n = parseInt(raw, 10);
+        return Number.isNaN(n) ? '' : n.toLocaleString('ja-JP');
+      };
+      const hiddenCache = new Map();
+      const getHidden = (name) => {
+        if (hiddenCache.has(name)) return hiddenCache.get(name);
+        const h = document.querySelector(`input[type="hidden"][name="${name}"]`);
+        if (h) hiddenCache.set(name, h);
+        return h || null;
+      };
+      const ensureHidden = (displayInput) => {
+        const name = displayInput?.dataset?.name;
+        if (!name) return null;
+        let h = getHidden(name);
+        if (!h) {
+          h = document.createElement('input');
+          h.type = 'hidden';
+          h.name = name;
+          h.dataset.commaMirror = '1';
+          (displayInput.parentElement || displayInput.closest('form') || document.body).appendChild(h);
+          hiddenCache.set(name, h);
+        }
+        const hiddenRaw = toRawInt(h.value ?? '');
+        const inputRaw  = toRawInt(displayInput.value ?? '');
+        const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+        h.value = raw;
+        displayInput.value = raw === '' ? '' : fmt(raw);
+        return h;
+      };
+      const V = (name) => {
+        const h = getHidden(name);
+        if (!h) return 0;
+        const raw = toRawInt(h.value ?? '');
+        if (raw === '') return 0;
+        const n = parseInt(raw, 10);
+        return Number.isNaN(n) ? 0 : n;
+      };
+      const S = (name, val) => {
+        const h = getHidden(name);
+        const d = document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+        if (val === '' || val === null || typeof val === 'undefined' || Number.isNaN(val)) {
+          if (h) h.value = '';
+          if (d) d.value = '';
+          return;
+        }
+        const raw = String(Math.trunc(Number(val) || 0));
+        if (h) h.value = raw;
+        if (d) d.value = fmt(raw);
+      };
+
       const seimeiKeysPrev = [
         'kojo_seimei_shin_prev',
         'kojo_seimei_kyu_prev',
@@ -180,56 +296,63 @@
         'kojo_kyuchoki_songai_curr',
       ];
 
-      const parseValue = (input) => {
-        if (!input) {
-          return 0;
-        }
-        const value = parseInt(input.value, 10);
-        return Number.isNaN(value) ? 0 : value;
-      };
-
-      const sumByKeys = (keys) => {
-        return keys.reduce((total, key) => {
-          const input = document.querySelector(`[name="${key}"]`);
-          return total + parseValue(input);
-        }, 0);
-      };
+      const sumByKeys = (keys) => keys.reduce((acc, k) => acc + V(k), 0);
 
       const updateSeimeiTotals = () => {
         const prevTotal = sumByKeys(seimeiKeysPrev);
         const currTotal = sumByKeys(seimeiKeysCurr);
-        const prevTarget = document.querySelector('[name="kojo_seimei_gokei_prev"]');
-        const currTarget = document.querySelector('[name="kojo_seimei_gokei_curr"]');
-        if (prevTarget) {
-          prevTarget.value = prevTotal;
-        }
-        if (currTarget) {
-          currTarget.value = currTotal;
-        }
+        S('kojo_seimei_gokei_prev', prevTotal);
+        S('kojo_seimei_gokei_curr', currTotal);
       };
 
       const updateJishinTotals = () => {
         const prevTotal = sumByKeys(jishinKeysPrev);
         const currTotal = sumByKeys(jishinKeysCurr);
-        const prevTarget = document.querySelector('[name="kojo_jishin_gokei_prev"]');
-        const currTarget = document.querySelector('[name="kojo_jishin_gokei_curr"]');
-        if (prevTarget) {
-          prevTarget.value = prevTotal;
-        }
-        if (currTarget) {
-          currTarget.value = currTotal;
-        }
+        S('kojo_jishin_gokei_prev', prevTotal);
+        S('kojo_jishin_gokei_curr', currTotal);
       };
 
-      document.querySelectorAll('.js-seimei').forEach((el) => {
-        el.addEventListener('blur', updateSeimeiTotals);
-      });
-      document.querySelectorAll('.js-jishin').forEach((el) => {
-        el.addEventListener('blur', updateJishinTotals);
+      // 表示input初期化（hidden生成＋初期カンマ整形）＆ blurで合計再計算
+      const displays = Array.from(document.querySelectorAll('[data-format="comma-int"][data-name]'));
+      displays.forEach((input) => {
+        const name = input.dataset.name;
+        if (!name) return;
+        ensureHidden(input);
+        const h = getHidden(name);
+        const raw = toRawInt(h?.value ?? input.value ?? '');
+        input.value = raw === '' ? '' : fmt(raw);
+        if (input.readOnly) return;
+        input.addEventListener('focus', () => {
+          const hidden = getHidden(name);
+          input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
+          input.select();
+        });
+        input.addEventListener('blur', () => {
+          const hidden = getHidden(name) || ensureHidden(input);
+          const raw2 = toRawInt(input.value ?? hidden?.value ?? '');
+          if (hidden) hidden.value = raw2;
+          input.value = raw2 === '' ? '' : fmt(raw2);
+          if (name.startsWith('kojo_seimei_')) updateSeimeiTotals();
+          if (name.startsWith('kojo_jishin') || name.startsWith('kojo_kyuchoki_songai')) updateJishinTotals();
+        });
       });
 
       updateSeimeiTotals();
       updateJishinTotals();
+
+      // 送信直前：hiddenへ数値を確実に格納（表示側はname無しでチラつき無し）
+      const form = document.querySelector('form');
+      if (form) {
+        form.addEventListener('submit', () => {
+          displays.forEach((input) => {
+            const name = input.dataset.name;
+            if (!name) return;
+            const hidden = getHidden(name) || ensureHidden(input);
+            const raw = toRawInt(input.value ?? hidden?.value ?? '');
+            if (hidden) hidden.value = raw;
+          });
+        });
+      }
     });
   </script>
 @endpush

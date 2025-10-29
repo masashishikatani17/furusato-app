@@ -1,3 +1,4 @@
+<!-- views/tax/furusato/details/kojo_jinteki_details.blade.php -->
 @extends('layouts.min')
 
 @section('title', '生命・地震保険料控除（内訳）')
@@ -200,12 +201,18 @@
                 </td>
                 <td nowrap="nowrap">
                   @php($haigushaTokubetsuPrev = old('kojo_haigusha_tokubetsu_gokeishotoku_prev', $inputs['kojo_haigusha_tokubetsu_gokeishotoku_prev'] ?? null))
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_haigusha_tokubetsu_gokeishotoku_prev" value="{{ $haigushaTokubetsuPrev }}" aria-label="{{ $warekiPrevLabel }}の配偶者合計所得金額">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="kojo_haigusha_tokubetsu_gokeishotoku_prev"
+                           class="form-control suji11 text-end me-1"
+                           value="{{ $haigushaTokubetsuPrev }}" aria-label="{{ $warekiPrevLabel }}の配偶者合計所得金額">
                     円
                 </td>
                 <td nowrap="nowrap">
                   @php($haigushaTokubetsuCurr = old('kojo_haigusha_tokubetsu_gokeishotoku_curr', $inputs['kojo_haigusha_tokubetsu_gokeishotoku_curr'] ?? null))
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_haigusha_tokubetsu_gokeishotoku_curr" value="{{ $haigushaTokubetsuCurr }}" aria-label="{{ $warekiCurrLabel }}の配偶者合計所得金額">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="kojo_haigusha_tokubetsu_gokeishotoku_curr"
+                           class="form-control suji11 text-end me-1"
+                           value="{{ $haigushaTokubetsuCurr }}" aria-label="{{ $warekiCurrLabel }}の配偶者合計所得金額">
                     円
                 </td>
                 <td class="remarks-col text-start ps-1">配偶者の合計所得金額を入力</td>
@@ -283,12 +290,18 @@
                 </td>
                 <td nowrap="nowrap">
                   @php($tokutei1Prev = old('kojo_tokutei_shinzoku_1_shotoku_prev', $inputs['kojo_tokutei_shinzoku_1_shotoku_prev'] ?? null))
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_1_shotoku_prev" value="{{ $tokutei1Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（1人目）の合計所得金額">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="kojo_tokutei_shinzoku_1_shotoku_prev"
+                           class="form-control suji11 text-end me-1"
+                           value="{{ $tokutei1Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（1人目）の合計所得金額">
                     円
                 </td>
                 <td nowrap="nowrap">
                   @php($tokutei1Curr = old('kojo_tokutei_shinzoku_1_shotoku_curr', $inputs['kojo_tokutei_shinzoku_1_shotoku_curr'] ?? null))
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_1_shotoku_curr" value="{{ $tokutei1Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（1人目）の合計所得金額">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="kojo_tokutei_shinzoku_1_shotoku_curr"
+                           class="form-control suji11 text-end me-1"
+                           value="{{ $tokutei1Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（1人目）の合計所得金額">
                     円
                 </td>
                 <td class="remarks-col text-start ps-1">特定親族の合計所得金額を入力</td>
@@ -297,12 +310,18 @@
                 <th class="text-start ps-1 th-ddd">2人目</th>
                 <td nowrap="nowrap">
                   @php($tokutei2Prev = old('kojo_tokutei_shinzoku_2_shotoku_prev', $inputs['kojo_tokutei_shinzoku_2_shotoku_prev'] ?? null))
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_2_shotoku_prev" value="{{ $tokutei2Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（2人目）の合計所得金額">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="kojo_tokutei_shinzoku_2_shotoku_prev"
+                           class="form-control suji11 text-end me-1"
+                           value="{{ $tokutei2Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（2人目）の合計所得金額">
                     円
                 </td>
                 <td nowrap="nowrap">
                   @php($tokutei2Curr = old('kojo_tokutei_shinzoku_2_shotoku_curr', $inputs['kojo_tokutei_shinzoku_2_shotoku_curr'] ?? null))
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_2_shotoku_curr" value="{{ $tokutei2Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（2人目）の合計所得金額">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="kojo_tokutei_shinzoku_2_shotoku_curr"
+                           class="form-control suji11 text-end me-1"
+                           value="{{ $tokutei2Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（2人目）の合計所得金額">
                     円
                 </td>
                 <td class="remarks-col">　〃　〃　</td>
@@ -311,12 +330,18 @@
                 <th class="text-start ps-1 th-ddd">3人目</th>
                 <td nowrap="nowrap">
                   @php($tokutei3Prev = old('kojo_tokutei_shinzoku_3_shotoku_prev', $inputs['kojo_tokutei_shinzoku_3_shotoku_prev'] ?? null))
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_3_shotoku_prev" value="{{ $tokutei3Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（3人目）の合計所得金額">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="kojo_tokutei_shinzoku_3_shotoku_prev"
+                           class="form-control suji11 text-end me-1"
+                           value="{{ $tokutei3Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（3人目）の合計所得金額">
                     円
                 </td>
                 <td nowrap="nowrap">
                   @php($tokutei3Curr = old('kojo_tokutei_shinzoku_3_shotoku_curr', $inputs['kojo_tokutei_shinzoku_3_shotoku_curr'] ?? null))
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end me-1" name="kojo_tokutei_shinzoku_3_shotoku_curr" value="{{ $tokutei3Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（3人目）の合計所得金額">
+                    <input type="text" inputmode="numeric" autocomplete="off"
+                           data-format="comma-int" data-name="kojo_tokutei_shinzoku_3_shotoku_curr"
+                           class="form-control suji11 text-end me-1"
+                           value="{{ $tokutei3Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（3人目）の合計所得金額">
                     円
                 </td>
                 <td class="remarks-col">　〃　〃　</td>
@@ -350,4 +375,89 @@
       font-size: 0.9rem;
     }
   </style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  // ===== 3桁カンマ表示 + hidden数値POST（通貨系フィールドのみ）=====
+  const toRawInt = (value) => {
+    if (typeof value !== 'string') return '';
+    const stripped = value.replace(/,/g, '').trim();
+    if (stripped === '' || stripped === '-') return '';
+    if (!/^(-)?\d+$/.test(stripped)) return '';
+    const n = parseInt(stripped, 10);
+    return Number.isNaN(n) ? '' : String(n);
+  };
+  const fmt = (raw) => {
+    if (raw === '') return '';
+    const n = parseInt(raw, 10);
+    return Number.isNaN(n) ? '' : n.toLocaleString('ja-JP');
+  };
+
+  const hiddenCache = new Map();
+  const getHidden = (name) => {
+    if (hiddenCache.has(name)) return hiddenCache.get(name);
+    const h = document.querySelector(`input[type="hidden"][name="${name}"]`);
+    if (h) hiddenCache.set(name, h);
+    return h || null;
+  };
+  const ensureHidden = (displayInput) => {
+    const name = displayInput?.dataset?.name;
+    if (!name) return null;
+    let h = getHidden(name);
+    if (!h) {
+      h = document.createElement('input');
+      h.type = 'hidden';
+      h.name = name;
+      h.dataset.commaMirror = '1';
+      (displayInput.parentElement || displayInput.closest('form') || document.body).appendChild(h);
+      hiddenCache.set(name, h);
+    }
+    const hiddenRaw = toRawInt(h.value ?? '');
+    const inputRaw  = toRawInt(displayInput.value ?? '');
+    const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+    h.value = raw;
+    displayInput.value = raw === '' ? '' : fmt(raw);
+    return h;
+  };
+
+  const displays = Array.from(document.querySelectorAll('[data-format="comma-int"][data-name]'));
+  displays.forEach((input) => {
+    const name = input.dataset.name;
+    if (!name) return;
+    ensureHidden(input);
+    // 初期は常にカンマ整形
+    const h = getHidden(name);
+    const raw = toRawInt(h?.value ?? input.value ?? '');
+    input.value = raw === '' ? '' : fmt(raw);
+    if (input.readOnly) return;
+    input.addEventListener('focus', () => {
+      const hidden = getHidden(name);
+      input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
+      input.select();
+    });
+    input.addEventListener('blur', () => {
+      const hidden = getHidden(name) || ensureHidden(input);
+      const raw2 = toRawInt(input.value ?? hidden?.value ?? '');
+      if (hidden) hidden.value = raw2;
+      input.value = raw2 === '' ? '' : fmt(raw2);
+    });
+  });
+
+  // 送信直前：hiddenへ数値を確実に格納（表示側はnameを持たないのでチラつき無し）
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', () => {
+      displays.forEach((input) => {
+        const name = input.dataset.name;
+        if (!name) return;
+        const hidden = getHidden(name) || ensureHidden(input);
+        const raw = toRawInt(input.value ?? hidden?.value ?? '');
+        if (hidden) hidden.value = raw;
+      });
+    });
+  }
+});
+</script>
 @endpush

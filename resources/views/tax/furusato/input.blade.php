@@ -200,46 +200,13 @@
 
                 return false;
             };
-            $bunriShotokuMirrorMap = [
-                'bunri_shotoku_tanki_ippan' => 'joto_shotoku_tanki_ippan',
-                'bunri_shotoku_tanki_keigen' => 'joto_shotoku_tanki_keigen',
-                'bunri_shotoku_choki_ippan' => 'joto_shotoku_choki_ippan',
-                'bunri_shotoku_choki_tokutei' => 'joto_shotoku_choki_tokutei',
-                'bunri_shotoku_choki_keika' => 'joto_shotoku_choki_keika',
-            ];
-            $bunriKazeishotokuMirrorMap = [
-                'bunri_kazeishotoku_tanki' => 'joto_shotoku_tanki_gokei',
-                'bunri_kazeishotoku_choki' => 'joto_shotoku_choki_gokei',
-            ];
-
-            $renderInputs = static function (string $base) use (
-                $inputs,
-                $readonlyBases,
-                $kojoFieldOverrides,
-                $kihuYear,
-                $forceDash,
-                $bunriShotokuMirrorMap
-            ) {
+            $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides, $kihuYear, $forceDash) {
                 $html = '';
                 foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                     foreach ($periods as $period) {
                         $format = $kojoFieldOverrides[$base][$tax] ?? null;
                         $name = $format ? sprintf($format, $period) : sprintf('%s_%s_%s', $base, $tax, $period);
-                        $sourceKey = $name;
-
-                        if (isset($bunriShotokuMirrorMap[$base])) {
-                            $sourceKey = sprintf('%s_%s_%s', $bunriShotokuMirrorMap[$base], $tax, $period);
-                        }
-
-                        if (array_key_exists($sourceKey, $inputs)) {
-                            $sourceValue = $inputs[$sourceKey];
-                        } elseif ($sourceKey !== $name && array_key_exists($name, $inputs)) {
-                            $sourceValue = $inputs[$name];
-                        } else {
-                            $sourceValue = null;
-                        }
-
-                        $value = old($name, $sourceValue);
+                        $value = old($name, $inputs[$name] ?? null);
                         $kihuYearInt = isset($kihuYear) ? (int) $kihuYear : null;
                         $isForceDash = $forceDash($base, $tax, $period, $kihuYearInt);
                         $isReadonly = false;
@@ -271,38 +238,25 @@
                             $html .= '<td><input type="text" class="form-control form-control-compact-05-compact-05 text-center bg-light" value="－" readonly><input type="hidden" name="' . e($name) . '" value=""></td>';
                         } else {
                             $readonlyAttr = $isReadonly ? ' readonly' : '';
-                            $class = 'form-control form-control-compact-05-compact-05 text-end';
+                            $class = 'form-control form-control-compact-05-compact-05 text-end js-comma';
                             if ($isReadonly) {
                                 $class .= ' bg-light';
                             }
-                            $html .= '<td><input type="number" min="0" step="1" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . '></td>';
+                            // type="text" に統一し、カンマ表示と送信時のhidden数値化をJSで行う
+                            $html .= '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . '></td>';
                         }
                     }
                 }
 
                 return $html;
             };
-            $renderReadonlyBunriKazeishotoku = static function (string $base) use ($inputs, $bunriKazeishotokuMirrorMap) {
+            $renderReadonlyBunriKazeishotoku = static function (string $base) use ($inputs) {
                 $html = '';
                 foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                     foreach ($periods as $period) {
                         $name = sprintf('%s_%s_%s', $base, $tax, $period);
-                        $sourceKey = $name;
-
-                        if (isset($bunriKazeishotokuMirrorMap[$base])) {
-                            $sourceKey = sprintf('%s_%s_%s', $bunriKazeishotokuMirrorMap[$base], $tax, $period);
-                        }
-
-                        if (array_key_exists($sourceKey, $inputs)) {
-                            $sourceValue = $inputs[$sourceKey];
-                        } elseif ($sourceKey !== $name && array_key_exists($name, $inputs)) {
-                            $sourceValue = $inputs[$name];
-                        } else {
-                            $sourceValue = 0;
-                        }
-
-                        $value = old($name, $sourceValue);
-                        $html .= '<td><input type="number" class="form-control form-control-sm text-end bg-light" name="' . e($name) . '" value="' . e($value) . '" readonly></td>';
+                        $value = old($name, $inputs[$name] ?? 0);
+                        $html .= '<td><input type="text" inputmode="numeric" class="form-control form-control-sm text-end bg-light js-comma" name="' . e($name) . '" value="' . e($value) . '" readonly></td>';
                     }
                 }
 
@@ -1680,28 +1634,33 @@
     };
 
     const getInput = (name) => document.querySelector('[name="' + name + '"]');
+    // カンマあり文字列を安全に整数へ
+    const toInt = (val) => {
+      if (val === null || val === undefined) return 0;
+      const s = String(val).replace(/,/g, '').trim();
+      if (s === '' || s === '-') return 0;
+      const n = Number(s);
+      return Number.isFinite(n) ? Math.trunc(n) : 0;
+    };
     const readInt = (name) => {
       const input = getInput(name);
-      if (!input) {
-        return 0;
-      }
-      const value = Number(input.value);
-      return Number.isFinite(value) ? Math.trunc(value) : 0;
+      if (!input) return 0;
+      return toInt(input.value);
     };
+    // 画面は常にカンマ付きで表示
+    const formatComma = (n) => new Intl.NumberFormat('ja-JP').format(toInt(n));
     const writeInt = (name, value) => {
       const input = getInput(name);
       if (input) {
-        const numeric = Number.isFinite(value) ? Math.trunc(value) : 0;
-        input.value = numeric;
+        input.value = formatComma(value);
       }
     };
-
     const makeReadonlyNumber = (name) => {
       const el = getInput(name);
       if (el) {
         el.readOnly = true;
         el.classList.add('bg-light', 'text-end');
-        if (el.type !== 'number') el.type = 'number';
+        // typeはtextのまま（カンマ許容）
       }
     };
 
@@ -1817,14 +1776,13 @@
 
       if (number) {
         number.name = name;
-        number.type = 'number';
+        number.type = 'text';
         number.readOnly = true;
         number.classList.add('bg-light', 'text-end');
         number.classList.remove('text-center');
         number.removeAttribute('data-dash-name');
         number.removeAttribute('data-dash-original-name');
-        const numeric = Number.isFinite(value) ? Math.trunc(value) : Math.trunc(Number(value) || 0);
-        number.value = numeric;
+        number.value = formatComma(value);
       }
 
       if (primaryDisplay && primaryDisplay !== number) {
@@ -1891,13 +1849,13 @@
         if (next && next.readOnly && next.value === '－') next.remove();
         num.dataset.dashed = '0';
       }
-      num.type = 'number';
+      num.type = 'text';
       if (num.dataset) {
         num.dataset.dashed = '0';
       }
       num.readOnly = true;
       num.classList.add('bg-light');
-      num.value = Math.trunc(Number(value) || 0);
+      num.value = formatComma(value);
     };
 
     const resolveKojoFieldName = (base, tax, period) => {
@@ -2509,6 +2467,48 @@
 
     // 2) 再計算ボタン押下直前にも強制同期してから送信
     const formEl = document.getElementById('furusato-input-form');
+    // ===== 3桁カンマ維持のまま数値を安全送信する仕組み =====
+    // 送信直前に、表示用input（カンマ付き）の name を外し、
+    // 同名の hidden を生成してカンマ除去数値をPOSTする
+    function materializeHiddenNumericForSubmit(form) {
+      const namedInputs = Array.from(form.querySelectorAll('input[name]'))
+        .filter(el => el.type === 'text' && el.name && !el.disabled);
+      namedInputs.forEach((el) => {
+        const name = el.name;
+        // 既存hiddenのクリーンアップ（重複防止）
+        Array.from(form.querySelectorAll(`input[type="hidden"][name="${name}"]`)).forEach(h => h.remove());
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = name;
+        hidden.value = String(toInt(el.value));
+        el.removeAttribute('name'); // 表示側はnameを外して見た目はそのまま
+        el.setAttribute('data-name-detached', name); // 送信後の復元用（遷移が走らなくても）
+        form.appendChild(hidden);
+      });
+    }
+
+    // blur時に3桁カンマ化
+    function attachCommaBlurFormatting(root) {
+      Array.from(root.querySelectorAll('input.js-comma')).forEach((el) => {
+        el.addEventListener('blur', () => {
+          el.value = el.value === '－' ? '－' : formatComma(el.value);
+        });
+      });
+    }
+    attachCommaBlurFormatting(document);
+
+    // 初期表示時に全てカンマ整形（既にカンマ無し数値が入っている場合）
+    Array.from(document.querySelectorAll('input.js-comma[name]')).forEach((el) => {
+      if (el.readOnly) {
+        el.value = el.value === '－' ? '－' : formatComma(el.value);
+      } else {
+        // 入力中のUXのため、空文字は触らない
+        if (String(el.value).trim() !== '') {
+          el.value = formatComma(el.value);
+        }
+      }
+    });
+
     if (formEl) {
       formEl.addEventListener('submit', (e) => {
         recalcShotokuGokei();
@@ -2524,6 +2524,7 @@
         recalcZeigakuGokeiAll();
         recalcTaxPipeline();
         recalcBunriKazeishotokuGroup();
+        materializeHiddenNumericForSubmit(formEl);
         // 送信トリガーのボタンを判定（再計算以外でも同期しておくと安全）
         const submitter = (e.submitter && e.submitter instanceof Element) ? e.submitter : null;
         const isRecalc = submitter

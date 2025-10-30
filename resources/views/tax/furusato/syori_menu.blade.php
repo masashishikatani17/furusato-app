@@ -165,7 +165,7 @@
       <div class="row g-4 ms-2 me-2">
         @foreach ($periods as $key => $period)
           <div class="col-md-6">
-            <div class="card h-100">
+            <div class="card h-100 tax-period-card" data-period="{{ $key }}">
               <div class="card-header text-center fw-bold">{{ $period['title'] }}</div>
               <div class="card-body">
                 <div class="mb-4">
@@ -262,19 +262,39 @@
                   <h1>○所得割の税率</h1>
                   <div class="mt-1 mb-1 ms-3">
                     <label class="form-label">都道府県（標準）</label>
-                    <input type="text" class="form-control suji4 comma decimal3 floor integer_comma" value="{{ number_format((float) $prefStandard, 2, '.', '') }}" readonly>
+                    <input type="text"
+                           class="form-control suji4 comma decimal3 floor integer_comma pref-standard-rate"
+                           value="{{ number_format((float) $prefStandard, 2, '.', '') }}"
+                           readonly>
                   </div>
                   <div class="mb-1 ms-3">
                     <label class="form-label">市区町村（標準）</label>
-                    <input type="text" class="form-control suji4 comma decimal3 floor integer_comma" value="{{ number_format((float) $muniStandard, 2, '.', '') }}" readonly>
+                    <input type="text"
+                           class="form-control suji4 comma decimal3 floor integer_comma muni-standard-rate"
+                           value="{{ number_format((float) $muniStandard, 2, '.', '') }}"
+                           readonly>
                   </div>
                   <div class="mb-1 ms-3">
                     <label class="form-label">都道府県（適用）</label>
-                    <input type="number" class="form-control suji7 comma decimal3 floor integer_comma" name="pref_applied_rate_{{ $key }}" value="{{ $period['pref_applied_rate'] }}" min="0" max="1" step="0.001" required>
+                    <input type="number"
+                           class="form-control suji7 comma decimal3 floor integer_comma pref-applied-rate"
+                           name="pref_applied_rate_{{ $key }}"
+                           value="{{ $period['pref_applied_rate'] }}"
+                           min="0"
+                           max="1"
+                           step="0.001"
+                           required>
                   </div>
                   <div class="mb-1 ms-3">
                     <label class="form-label">市区町村（適用）</label>
-                    <input type="number" class="form-control suji7 comma decimal3 floor integer_comma" name="muni_applied_rate_{{ $key }}" value="{{ $period['muni_applied_rate'] }}" min="0" max="1" step="0.001" required>
+                    <input type="number"
+                           class="form-control suji7 comma decimal3 floor integer_comma muni-applied-rate"
+                           name="muni_applied_rate_{{ $key }}"
+                           value="{{ $period['muni_applied_rate'] }}"
+                           min="0"
+                           max="1"
+                           step="0.001"
+                           required>
                   </div>
                 </div>
                 <div>
@@ -320,4 +340,58 @@
       </div>
     </form>
 </div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const formatValue = (value, digits) => value.toFixed(digits);
+
+    const updateCardRates = (card) => {
+      const period = card.dataset.period;
+      if (!period) {
+        return;
+      }
+
+      const selected = card.querySelector(`input[name="shitei_toshi_flag_${period}"]:checked`);
+      if (!selected) {
+        return;
+      }
+
+      const isDesignated = selected.value === '1';
+      const prefRate = isDesignated ? 0.08 : 0.06;
+      const muniRate = isDesignated ? 0.02 : 0.04;
+
+      const prefStandardInput = card.querySelector('.pref-standard-rate');
+      if (prefStandardInput) {
+        prefStandardInput.value = formatValue(prefRate, 2);
+      }
+
+      const muniStandardInput = card.querySelector('.muni-standard-rate');
+      if (muniStandardInput) {
+        muniStandardInput.value = formatValue(muniRate, 2);
+      }
+
+      const prefAppliedInput = card.querySelector('.pref-applied-rate');
+      if (prefAppliedInput) {
+        prefAppliedInput.value = formatValue(prefRate, 3);
+        prefAppliedInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      const muniAppliedInput = card.querySelector('.muni-applied-rate');
+      if (muniAppliedInput) {
+        muniAppliedInput.value = formatValue(muniRate, 3);
+        muniAppliedInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    };
+
+    const cards = document.querySelectorAll('.tax-period-card');
+    cards.forEach((card) => {
+      const period = card.dataset.period;
+      const radios = card.querySelectorAll(`input[name="shitei_toshi_flag_${period}"]`);
+      radios.forEach((radio) => {
+        radio.addEventListener('change', () => updateCardRates(card));
+      });
+
+      updateCardRates(card);
+    });
+  });
+</script>
 @endsection

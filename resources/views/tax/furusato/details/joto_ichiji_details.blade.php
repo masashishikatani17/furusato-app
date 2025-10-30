@@ -151,7 +151,7 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="half_joto_choki_{{ $period }}"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ old('half_joto_choki_' . $period, $inputs['half_joto_choki_' . $period] ?? null) }}" readonly>
+                             value="{{ old('half_joto_choki_' . $period, (($inputs['tsusango_joto_choki_' . $period] ?? 0) - ($inputs['shotoku_joto_choki_' . $period] ?? 0))) }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
@@ -203,7 +203,7 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="half_ichiji_{{ $period }}"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ old('half_ichiji_' . $period, $inputs['half_ichiji_' . $period] ?? null) }}" readonly>
+                             value="{{ old('half_ichiji_' . $period, (($inputs['tsusango_ichiji_' . $period] ?? 0) - ($inputs['shotoku_ichiji_' . $period] ?? 0))) }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"

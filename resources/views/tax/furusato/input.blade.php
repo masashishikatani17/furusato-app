@@ -116,6 +116,7 @@
                 'shotoku_ichiji',
                 'syunyu_joto_tanki',
                 'syunyu_joto_choki',
+                'syunyu_ichiji',
                 'bunri_syunyu_tanki_ippan',
                 'bunri_syunyu_tanki_keigen',
                 'bunri_syunyu_choki_ippan',
@@ -139,7 +140,6 @@
                 'bunri_shotoku_taishoku',
                 'bunri_kazeishotoku_tanki',
                 'bunri_kazeishotoku_choki',
-                'syunyu_ichiji',
                 'shotoku_jigyo_eigyo',
                 'shotoku_fudosan',
                 'shotoku_joto_ichiji',
@@ -2019,10 +2019,10 @@
         makeReadonlyNumber(`bunri_zeigaku_sanrin_jumin_${period}`);
 
         writeInt(
-          `bunri_zaigaku_taishoku_jumin_${period}`,
+          `bunri_zeigaku_taishoku_jumin_${period}`,
           Math.trunc(readInt(`bunri_kazeishotoku_taishoku_jumin_${period}`) * 0.10),
         );
-        makeReadonlyNumber(`bunri_zaigaku_taishoku_jumin_${period}`);
+        makeReadonlyNumber(`bunri_zeigaku_taishoku_jumin_${period}`);
       });
     };
 
@@ -2038,7 +2038,7 @@
             `bunri_zeigaku_sakimono_${tax}_${period}`,
             `bunri_zeigaku_sanrin_${tax}_${period}`,
             tax === 'jumin'
-              ? `bunri_zaigaku_taishoku_${tax}_${period}`
+              ? `bunri_zeigaku_taishoku_${tax}_${period}`
               : `bunri_zeigaku_taishoku_${tax}_${period}`,
           ];
           const sum = names.reduce((acc, name) => acc + readInt(name), 0);

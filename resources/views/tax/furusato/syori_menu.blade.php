@@ -264,14 +264,14 @@
                     <label class="form-label">都道府県（標準）</label>
                     <input type="text"
                            class="form-control suji4 comma decimal3 floor integer_comma pref-standard-rate"
-                           value="{{ number_format((float) $prefStandard, 2, '.', '') }}"
+                           value="{{ number_format((float) $prefStandard * 100, 2, '.', '') }}%"
                            readonly>
                   </div>
                   <div class="mb-1 ms-3">
                     <label class="form-label">市区町村（標準）</label>
                     <input type="text"
                            class="form-control suji4 comma decimal3 floor integer_comma muni-standard-rate"
-                           value="{{ number_format((float) $muniStandard, 2, '.', '') }}"
+                           value="{{ number_format((float) $muniStandard * 100, 2, '.', '') }}%"
                            readonly>
                   </div>
                   <div class="mb-1 ms-3">
@@ -279,9 +279,9 @@
                     <input type="number"
                            class="form-control suji7 comma decimal3 floor integer_comma pref-applied-rate"
                            name="pref_applied_rate_{{ $key }}"
-                           value="{{ $period['pref_applied_rate'] }}"
+                           value="{{ $period['pref_applied_rate'] * 100 }}"
                            min="0"
-                           max="1"
+                           max="100"
                            step="0.001"
                            required>
                   </div>
@@ -290,9 +290,9 @@
                     <input type="number"
                            class="form-control suji7 comma decimal3 floor integer_comma muni-applied-rate"
                            name="muni_applied_rate_{{ $key }}"
-                           value="{{ $period['muni_applied_rate'] }}"
+                           value="{{ $period['muni_applied_rate'] * 100 }}"
                            min="0"
-                           max="1"
+                           max="100"
                            step="0.001"
                            required>
                   </div>
@@ -342,7 +342,9 @@
 </div>
 <script>
   document.addEventListener('DOMContentLoaded', () => {
-    const formatValue = (value, digits) => value.toFixed(digits);
+    const formatValue = (value, digits) => {
+      return (value * 100).toFixed(digits) + '%';
+    };
 
     const updateCardRates = (card) => {
       const period = card.dataset.period;

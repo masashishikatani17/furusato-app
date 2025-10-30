@@ -172,7 +172,8 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="sashihiki_ichiji_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('sashihiki_ichiji_' . $period, $inputs['sashihiki_ichiji_' . $period] ?? null) }}" readonly>
+                             value="{{ old('sashihiki_ichiji_' . $period, max(0, ($inputs['syunyu_ichiji_' . $period] ?? 0) - ($inputs['keihi_ichiji_' . $period] ?? 0))) }}" readonly
+                             onblur="calculateSashihikiIchiji('{{ $period }}')">
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
@@ -216,6 +217,15 @@
             </div>
           </div>
         @endforeach
+        
+        <script>
+          function calculateSashihikiIchiji(period) {
+            const syunyu = parseFloat(document.querySelector('[data-name="syunyu_ichiji_' + period + '"]').value.replace(/,/g, '') || 0);
+            const keihi = parseFloat(document.querySelector('[data-name="keihi_ichiji_' + period + '"]').value.replace(/,/g, '') || 0);
+            const result = Math.max(0, syunyu - keihi);
+            document.querySelector('[data-name="sashihiki_ichiji_' + period + '"]').value = result.toLocaleString('ja-JP');
+          }
+        </script>
         <hr>
         <div class="text-end me-2 mb-2">
           <button type="submit" class="btn btn-base-blue me-2">戻 る</button>

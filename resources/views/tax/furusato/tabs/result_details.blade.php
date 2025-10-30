@@ -1004,7 +1004,7 @@
                          readonly
                         name="shotoku_joto_tanki_sogo_{{ $suffix }}"
                          class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('shotoku_joto_tanki_sogo_' . $suffix) }}">
+                         value="{{ $readonlyValue('after_3jitsusan_joto_tanki_sogo_' . $suffix) }}">
                 </td>
               </tr>
               <tr>

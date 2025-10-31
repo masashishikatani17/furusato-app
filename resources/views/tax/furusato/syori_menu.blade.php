@@ -276,26 +276,24 @@
                   </div>
                   <div class="mb-1 ms-3">
                       <label class="form-label">都道府県（適用）</label>
-                        <input type="number"
+                        <input type="text"
                                class="form-control suji4 pref-applied-rate"
                                inputmode="decimal"
+                               autocomplete="off"
+                               enterkeyhint="done"
                                name="pref_applied_rate_{{ $key }}"
                                value="{{ number_format($period['pref_applied_rate'] * 100, 2, '.', '') }}"
-                               min="0"
-                               max="100"
-                               step="0.01"
                                required>
                   </div>
                   <div class="mb-1 ms-3">
                       <label class="form-label">市区町村（適用）</label>
-                        <input type="number"
+                        <input type="text"
                                class="form-control suji4 muni-applied-rate"
                                inputmode="decimal"
+                               autocomplete="off"
+                               enterkeyhint="done"
                                name="muni_applied_rate_{{ $key }}"
                                value="{{ number_format($period['muni_applied_rate'] * 100, 2, '.', '') }}"
-                               min="0"
-                               max="100"
-                               step="0.01"
                                required>
                   </div>
                 </div>
@@ -303,34 +301,37 @@
                   <h1>○均等割・その他税額</h1>
                   <div class="mt-1 mb-1 ms-3">
                     <label class="form-label">都道府県 均等割</label>
-                    <input type="number"
+                    <input type="text"
                            class="form-control suji7 comma floor integer_comma"
-                           name="pref_equal_share_{{ $key }}" 
-                           value="{{ $period['pref_equal_share'] }}" 
-                           min="0"
-                           step="1" 
+                           inputmode="decimal"
+                           autocomplete="off"
+                           enterkeyhint="done"
+                           name="pref_equal_share_{{ $key }}"
+                           value="{{ $period['pref_equal_share'] }}"
                            required>
                            円
                   </div>
                   <div class="mb-1 ms-3">
                     <label class="form-label">市区町村 均等割</label>
-                    <input type="number" 
-                           class="form-control suji7 comma floor integer_comma" 
+                    <input type="text"
+                           class="form-control suji7 comma floor integer_comma"
+                           inputmode="decimal"
+                           autocomplete="off"
+                           enterkeyhint="done"
                            name="muni_equal_share_{{ $key }}" 
                            value="{{ $period['muni_equal_share'] }}"
-                           min="0" 
-                           step="1"
                            required>
                            円
                   </div>
                   <div class="mb-1 ms-3">
                     <label class="form-label">その他の税額</label>
-                    <input type="number" 
+                    <input type="text"
                            class="form-control suji7 comma floor integer_comma"
+                           inputmode="decimal"
+                           autocomplete="off"
+                           enterkeyhint="done"
                            name="other_taxes_amount_{{ $key }}"
                            value="{{ $period['other_taxes_amount'] }}"
-                           min="0"
-                           step="1" 
                            required>
                            円
                   </div>
@@ -366,6 +367,108 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
     const formatValue = (rate, digits) => (rate * 100).toFixed(digits);
+
+    const sanitizePercentValue = (value) => {
+        let sanitized = value.replace(/[^\d.]/g, '');
+        const firstDotIndex = sanitized.indexOf('.');
+        if (firstDotIndex !== -1) {
+            const beforeDot = sanitized.slice(0, firstDotIndex + 1);
+            const afterDot = sanitized.slice(firstDotIndex + 1).replace(/\./g, '');
+            sanitized = `${beforeDot}${afterDot}`;
+        }
+        if (sanitized.startsWith('.')) {
+            sanitized = `0.${sanitized.slice(1)}`;
+        }
+
+        return sanitized;
+    };
+
+    const normalizePercentValue = (input) => {
+        const sanitized = sanitizePercentValue(input.value);
+        if (sanitized !== input.value) {
+            input.value = sanitized;
+        }
+
+        const trimmed = input.value.trim();
+        if (trimmed === '') {
+            input.value = '';
+            return;
+        }
+
+        const numeric = parseFloat(trimmed);
+        if (Number.isNaN(numeric)) {
+            input.value = '';
+            return;
+        }
+
+        const clamped = Math.min(100, Math.max(0, numeric));
+        input.value = clamped.toFixed(2);
+    };
+
+    const setupPercentInput = (input) => {
+        input.addEventListener('input', () => {
+            const sanitized = sanitizePercentValue(input.value);
+            if (sanitized !== input.value) {
+                input.value = sanitized;
+            }
+        });
+
+        input.addEventListener('blur', () => {
+            normalizePercentValue(input);
+        });
+    };
+
+    const stripIntegerValue = (input) => {
+        const digitsOnly = input.value.replace(/\D/g, '');
+        if (digitsOnly !== input.value) {
+            input.value = digitsOnly;
+        }
+
+        return digitsOnly;
+    };
+
+    const formatIntegerDigits = (digits) => {
+        return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    };
+
+    const setupIntegerInput = (input) => {
+        input.addEventListener('focus', () => {
+            stripIntegerValue(input);
+        });
+
+        input.addEventListener('input', () => {
+            stripIntegerValue(input);
+        });
+
+        input.addEventListener('blur', () => {
+            const digits = stripIntegerValue(input);
+            if (digits === '') {
+                input.value = '';
+                return;
+            }
+
+            input.value = formatIntegerDigits(digits);
+        });
+    };
+
+    const percentInputs = Array.from(document.querySelectorAll('.pref-applied-rate, .muni-applied-rate'));
+    percentInputs.forEach(setupPercentInput);
+
+    const integerInputs = Array.from(document.querySelectorAll('.integer_comma'));
+    integerInputs.forEach(setupIntegerInput);
+
+    const form = document.getElementById('furusato-syori-form');
+    if (form) {
+        form.addEventListener('submit', () => {
+            percentInputs.forEach((input) => {
+                normalizePercentValue(input);
+            });
+
+            integerInputs.forEach((input) => {
+                stripIntegerValue(input);
+            });
+        });
+    }
 
     const updateStandardRatesDisplay = (card) => {
         const period = card.dataset.period;
@@ -412,12 +515,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (prefAppliedInput) {
             prefAppliedInput.value = formatValue(prefRate, 2);
             prefAppliedInput.dispatchEvent(new Event('input', { bubbles: true }));
+            normalizePercentValue(prefAppliedInput);
         }
 
         const muniAppliedInput = card.querySelector('.muni-applied-rate');
         if (muniAppliedInput) {
             muniAppliedInput.value = formatValue(muniRate, 2);
             muniAppliedInput.dispatchEvent(new Event('input', { bubbles: true }));
+            normalizePercentValue(muniAppliedInput);
         }
     };
 

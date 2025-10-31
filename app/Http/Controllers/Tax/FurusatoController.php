@@ -654,10 +654,26 @@ final class FurusatoController extends Controller
             $inputsForView[$sumShotokuKey] = $sum;
             $inputsForView[$sumJuminKey] = $sum;
 
-             // ▼第一表「所得金額等 合計」= 経常 + 譲渡(短/長) + 一時
-             //  View 側で readonly 表示させるため、税目別キーにも同額を明示代入
-             $inputsForView[sprintf('shotoku_gokei_shotoku_%s', $period)] = $sum;
-             $inputsForView[sprintf('shotoku_gokei_jumin_%s',  $period)] = $sum;
+            $keijoKey = sprintf('shotoku_keijo_%s', $period);
+            $keijo = (int) ($previewPayload[$keijoKey] ?? 0);
+            $previewTanki = (int) ($previewPayload[$tankiKey] ?? 0);
+            $previewChoki = (int) ($previewPayload[$chokiKey] ?? 0);
+            $previewIchiji = (int) max(0, $previewPayload[$ichijiKey] ?? 0);
+
+            $shotokuGokei = $keijo + $previewTanki + $previewChoki + $previewIchiji;
+
+            $inputsForView[sprintf('shotoku_gokei_shotoku_%s', $period)] = $shotokuGokei;
+            $inputsForView[sprintf('shotoku_gokei_jumin_%s', $period)] = $shotokuGokei;
+
+            $tankiGokeiKey = sprintf('joto_shotoku_tanki_gokei_%s', $period);
+            $chokiGokeiKey = sprintf('joto_shotoku_choki_gokei_%s', $period);
+            $tankiGokei = (int) ($previewPayload[$tankiGokeiKey] ?? 0);
+            $chokiGokei = (int) ($previewPayload[$chokiGokeiKey] ?? 0);
+
+            $inputsForView[sprintf('bunri_kazeishotoku_tanki_shotoku_%s', $period)] = $tankiGokei;
+            $inputsForView[sprintf('bunri_kazeishotoku_tanki_jumin_%s', $period)] = $tankiGokei;
+            $inputsForView[sprintf('bunri_kazeishotoku_choki_shotoku_%s', $period)] = $chokiGokei;
+            $inputsForView[sprintf('bunri_kazeishotoku_choki_jumin_%s', $period)] = $chokiGokei;
 
             if ($isSeparated) {
                 $valueOrZero = fn (array $candidates): int => $this->valueOrZero($lookup($candidates));
@@ -671,17 +687,6 @@ final class FurusatoController extends Controller
 
                 $inputsForView[$bunriShotokuKey] = $separatedSum;
                 $inputsForView[$bunriJuminKey] = $separatedSum;
-
-                 // 分離ONでも、短期/長期の課税所得は内訳（bunri_joto_detail）合計をそのままミラー
-                 $mirrorFrom = sprintf('joto_shotoku_tanki_gokei_%s', $period);
-                 $valTanki = $lookup([$mirrorFrom], true) ?? $lookup([$mirrorFrom], false) ?? 0;
-                 $inputsForView[sprintf('bunri_kazeishotoku_tanki_shotoku_%s', $period)] = (int) $valTanki;
-                 $inputsForView[sprintf('bunri_kazeishotoku_tanki_jumin_%s',  $period)] = (int) $valTanki;
- 
-                 $mirrorFrom = sprintf('joto_shotoku_choki_gokei_%s', $period);
-                 $valChoki = $lookup([$mirrorFrom], true) ?? $lookup([$mirrorFrom], false) ?? 0;
-                 $inputsForView[sprintf('bunri_kazeishotoku_choki_shotoku_%s', $period)] = (int) $valChoki;
-                 $inputsForView[sprintf('bunri_kazeishotoku_choki_jumin_%s',  $period)] = (int) $valChoki;
 
                 if (config('app.furusato_mirror_fallback')) {
                     $kojoShotoku = $this->valueOrZero($lookup([sprintf('kojo_gokei_shotoku_%s', $period)]));

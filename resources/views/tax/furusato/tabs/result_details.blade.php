@@ -1121,11 +1121,20 @@
                          value="{{ $readonlyValue('after_3jitsusan_sanrin_' . $suffix) }}">
                 </td>
                 <td class="text-end">
+                  @php
+                    //  山林は必ず「損益通算後（shotoku_sanrin_*)」を最優先で表示・出力
+                    $valSanrin = $firstNumber([
+                      $inputs['shotoku_sanrin_' . $suffix] ?? null,
+                      $resultsUpper['shotoku_sanrin_' . $suffix] ?? null,
+                      $prevDetails['shotoku_sanrin_' . $suffix] ?? null, // 念のため
+                    ]);
+                    $valSanrinDisp = $valSanrin === null ? '' : number_format((int)$valSanrin);
+                  @endphp
                   <input type="text"
                          readonly
                          name="shotoku_sanrin_{{ $suffix }}"
                          class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('shotoku_sanrin_' . $suffix) }}">
+                         value="{{ $valSanrinDisp }}">
                 </td>
               </tr>
               <tr>
@@ -1146,11 +1155,20 @@
                          value="{{ $readonlyValue('after_3jitsusan_taishoku_' . $suffix) }}">
                 </td>
                 <td class="text-end">
+                  @php
+                    //  退職も必ず「損益通算後（shotoku_taishoku_*)」を最優先で表示・出力
+                    $valTaishoku = $firstNumber([
+                      $inputs['shotoku_taishoku_' . $suffix] ?? null,
+                      $resultsUpper['shotoku_taishoku_' . $suffix] ?? null,
+                      $prevDetails['shotoku_taishoku_' . $suffix] ?? null,
+                    ]);
+                    $valTaishokuDisp = $valTaishoku === null ? '' : number_format((int)$valTaishoku);
+                  @endphp
                   <input type="text"
                          readonly
                          name="shotoku_taishoku_{{ $suffix }}"
                          class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('shotoku_taishoku_' . $suffix) }}">
+                         value="{{ $valTaishokuDisp }}">
                 </td>
               </tr>
               <tr>

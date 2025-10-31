@@ -22,52 +22,6 @@
 @endpush
 
 @section('content')
-@php
-    /**
-     * ▼ クロスタブ参照の読み取り専用フィールドをサーバ側で算出・注入
-     *  - shotoku_gokei_* は result_details の４項目合算
-     *  - bunri_kazeishotoku_*_* は bunri_joto_detail の合計欄を採用
-     *  - いずれも old() が空のときに $inputs 値が使われる前提のため、ここで $inputs に投入しておく
-     */
-    $inputs = array_replace(($inputs ?? []), ($out['inputs'] ?? []));
-    $normalizeServerInt = static function ($value): int {
-        if ($value === null || $value === '') {
-            return 0;
-        }
-
-        if (is_numeric($value)) {
-            return (int) $value;
-        }
-
-        $normalized = preg_replace('/[^0-9\-]/u', '', (string) $value);
-        if ($normalized === '' || $normalized === '-') {
-            return 0;
-        }
-
-        return (int) $normalized;
-    };
-    foreach (['prev', 'curr'] as $p) {
-        // 総合課税の所得合計（第一表：経常 + 譲渡（短期・長期・一時））
-        $keijo = $normalizeServerInt($inputs["shotoku_keijo_{$p}"] ?? 0);
-        $tanki = $normalizeServerInt($inputs["shotoku_joto_tanki_sogo_{$p}"] ?? 0);
-        $choki = $normalizeServerInt($inputs["shotoku_joto_choki_sogo_{$p}"] ?? 0);
-        $ichiji = $normalizeServerInt($inputs["shotoku_ichiji_{$p}"] ?? 0);
-        $gokei = $keijo + $tanki + $choki + $ichiji;
-
-        // 所得税・住民税とも同じ合計を表示
-        $inputs["shotoku_gokei_shotoku_{$p}"] = $gokei;
-        $inputs["shotoku_gokei_jumin_{$p}"]   = $gokei;
-
-        // 分離：短期・長期の課税所得（= 内訳画面の合計欄）
-        $tankiGokei = $normalizeServerInt($inputs["joto_shotoku_tanki_gokei_{$p}"] ?? 0); // from bunri_joto_detail
-        $chokiGokei = $normalizeServerInt($inputs["joto_shotoku_choki_gokei_{$p}"] ?? 0); // from bunri_joto_detail
-
-        $inputs["bunri_kazeishotoku_tanki_shotoku_{$p}"] = $tankiGokei;
-        $inputs["bunri_kazeishotoku_tanki_jumin_{$p}"]   = $tankiGokei;
-        $inputs["bunri_kazeishotoku_choki_shotoku_{$p}"] = $chokiGokei;
-        $inputs["bunri_kazeishotoku_choki_jumin_{$p}"]   = $chokiGokei;
-    }
-@endphp
 <div class="container-blue" style="width: 1200px;">
   <form method="POST" action="{{ route('furusato.save') }}" id="furusato-input-form">
     @csrf
@@ -146,7 +100,33 @@
         <div class="tab-pane fade {{ $inputPaneActiveClass }}" id="furusato-tab-input" role="tabpanel" aria-labelledby="furusato-tab-input-nav">
   
           @php
+            // ここで $inputs を最終確定させる（tab直前の差し替え後に合計を上書き）
             $inputs = array_replace(($inputs ?? []), ($out['inputs'] ?? []));
+            $normalizeServerInt = static function ($value): int {
+                if ($value === null || $value === '') return 0;
+                if (is_numeric($value)) return (int)$value;
+                $normalized = preg_replace('/[^0-9\-]/u', '', (string)$value);
+                if ($normalized === '' || $normalized === '-') return 0;
+                return (int)$normalized;
+            };
+            foreach (['prev','curr'] as $p) {
+                // 第一表 合計 = 経常 + 短期(総合) + 長期(総合) + 一時（負は0扱い）
+                $keijo = $normalizeServerInt($inputs["shotoku_keijo_{$p}"] ?? 0);
+                $tanki = $normalizeServerInt($inputs["shotoku_joto_tanki_sogo_{$p}"] ?? 0);
+                $choki = $normalizeServerInt($inputs["shotoku_joto_choki_sogo_{$p}"] ?? 0);
+                $ichiji = $normalizeServerInt($inputs["shotoku_ichiji_{$p}"] ?? 0);
+                $gokei  = $keijo + $tanki + $choki + max(0, $ichiji);
+                $inputs["shotoku_gokei_shotoku_{$p}"] = $gokei;
+                $inputs["shotoku_gokei_jumin_{$p}"]   = $gokei;
+
+                // 分離：短期・長期の課税所得（内訳の合計欄をミラー）
+                $tankiGokei = $normalizeServerInt($inputs["joto_shotoku_tanki_gokei_{$p}"] ?? 0);
+                $chokiGokei = $normalizeServerInt($inputs["joto_shotoku_choki_gokei_{$p}"] ?? 0);
+                $inputs["bunri_kazeishotoku_tanki_shotoku_{$p}"] = $tankiGokei;
+                $inputs["bunri_kazeishotoku_tanki_jumin_{$p}"]   = $tankiGokei;
+                $inputs["bunri_kazeishotoku_choki_shotoku_{$p}"] = $chokiGokei;
+                $inputs["bunri_kazeishotoku_choki_jumin_{$p}"]   = $chokiGokei;
+            }
             $warekiPrevLabel = $warekiPrev ?? '前年';
             $warekiCurrLabel = $warekiCurr ?? '当年';
             $showTokubetsu = in_array((int) ($kihuYear ?? 0), [2024, 2025], true);
@@ -183,7 +163,6 @@
                 'bunri_shotoku_jojo_kabuteki_haito',
                 'bunri_shotoku_sakimono',
                 'bunri_shotoku_sanrin',
-                'bunri_shotoku_taishoku',
                 'bunri_kazeishotoku_tanki',
                 'bunri_kazeishotoku_choki',
                 'shotoku_jigyo_eigyo',
@@ -2458,37 +2437,61 @@
             addReadonlyBg(name);
           };
 
-          const t1 = read('bunri_shotoku_tanki_ippan');
-          const t2 = read('bunri_shotoku_tanki_keigen');
-          write('bunri_kazeishotoku_tanki', floorToThousandsSigned(t1 + t2));
+          // ① 分離・カテゴリ別 原始額を読込
+          const tanki = read('bunri_shotoku_tanki_ippan') + read('bunri_shotoku_tanki_keigen');
+          const choki = read('bunri_shotoku_choki_ippan') + read('bunri_shotoku_choki_tokutei') + read('bunri_shotoku_choki_keika');
+          const kabuIppan = read('bunri_shotoku_ippan_kabuteki_joto');
+          const kabuJojo  = read('bunri_shotoku_jojo_kabuteki_joto');
+          const haito     = read('bunri_shotoku_jojo_kabuteki_haito');
+          const sakimono  = read('bunri_shotoku_sakimono');
+          const sanrinA   = read('bunri_shotoku_sanrin');     // 山林
+          const taishokuA = read('bunri_shotoku_taishoku');   // 退職
 
-          const c1 = read('bunri_shotoku_choki_ippan');
-          const c2 = read('bunri_shotoku_choki_tokutei');
-          const c3 = read('bunri_shotoku_choki_keika');
-          write('bunri_kazeishotoku_choki', floorToThousandsSigned(c1 + c2 + c3));
+          if (tax === 'shotoku') {
+            // 所得税は「総合→（残）山林→退職」だけ調整（従来どおり）
+            write('bunri_kazeishotoku_tanki',  floorToThousandsSigned(tanki));
+            write('bunri_kazeishotoku_choki',  floorToThousandsSigned(choki));
+            write('bunri_kazeishotoku_joto',   floorToThousandsSigned(kabuIppan + kabuJojo));
+            write('bunri_kazeishotoku_haito',  floorToThousandsSigned(haito));
+            write('bunri_kazeishotoku_sakimono', floorToThousandsSigned(sakimono));
 
-          const j1 = read('bunri_shotoku_ippan_kabuteki_joto');
-          const j2 = read('bunri_shotoku_jojo_kabuteki_joto');
-          write('bunri_kazeishotoku_joto', floorToThousandsSigned(j1 + j2));
+            const kojo = read('kojo_gokei');
+            const sogo = read('bunri_sogo_gokeigaku');
+            const sanAdj = Math.max(0, kojo - sogo);
+            write('bunri_kazeishotoku_sanrin',   floorToThousandsSigned(Math.max(0, sanrinA   - sanAdj)));
 
-          const h1 = read('bunri_shotoku_jojo_kabuteki_haito');
-          write('bunri_kazeishotoku_haito', floorToThousandsSigned(h1));
+            const taAdj = Math.max(0, kojo - sogo - Math.max(0, sanrinA - sanAdj));
+            write('bunri_kazeishotoku_taishoku', floorToThousandsSigned(Math.max(0, taishokuA - taAdj)));
+            return;
+          }
 
-          const s1 = read('bunri_shotoku_sakimono');
-          write('bunri_kazeishotoku_sakimono', floorToThousandsSigned(s1));
+          // ② 住民税：控除残（総合に当てた後の残り）を分離内へ順序配賦
+          //    順序：短期 → 長期 → 配当 → 一般株式譲渡 → 上場株式譲渡 → 先物 → 山林 → 退職
+          let residual = Math.max(0, read('kojo_gokei') - read('bunri_sogo_gokeigaku'));
+          const consume = (amt) => {
+            const use = Math.min(Math.max(0, amt), residual);
+            residual -= use;
+            return amt - use;
+          };
 
-          const sanA = read('bunri_shotoku_sanrin');
-          const sanKojo = read('kojo_gokei');
-          const sanSogo = read('bunri_sogo_gokeigaku');
-          const sanAdj = Math.max(0, sanKojo - sanSogo);
-          write('bunri_kazeishotoku_sanrin', floorToThousandsSigned(Math.max(0, sanA - sanAdj)));
+          // 分離内の各カテゴリーに順次ぶつける
+          const tankiAdj   = consume(tanki);
+          const chokiAdj   = consume(choki);
+          const haitoAdj   = consume(haito);
+          const kabuIppAdj = consume(kabuIppan);
+          const kabuJjAdj  = consume(kabuJojo);
+          const sakiAdj    = consume(sakimono);
+          const sanrinAdj  = consume(sanrinA);
+          const taishokuAdj= consume(taishokuA);
 
-          const taA = read('bunri_shotoku_taishoku');
-          const taKojo = read('kojo_gokei');
-          const taSogo = read('bunri_sogo_gokeigaku');
-          const sanJumin = readInt(`bunri_shotoku_sanrin_jumin_${period}`);
-          const taAdj = Math.max(0, taKojo - taSogo - sanJumin);
-          write('bunri_kazeishotoku_taishoku', floorToThousandsSigned(Math.max(0, taA - taAdj)));
+          // ③ 各カテゴリの課税所得（千円未満切捨）を書き戻し
+          write('bunri_kazeishotoku_tanki',    floorToThousandsSigned(tankiAdj));
+          write('bunri_kazeishotoku_choki',    floorToThousandsSigned(chokiAdj));
+          write('bunri_kazeishotoku_haito',    floorToThousandsSigned(haitoAdj));
+          write('bunri_kazeishotoku_joto',     floorToThousandsSigned(kabuIppAdj + kabuJjAdj));
+          write('bunri_kazeishotoku_sakimono', floorToThousandsSigned(sakiAdj));
+          write('bunri_kazeishotoku_sanrin',   floorToThousandsSigned(sanrinAdj));
+          write('bunri_kazeishotoku_taishoku', floorToThousandsSigned(taishokuAdj));
         };
 
         taxTypes.forEach(calcForTax);
@@ -2568,7 +2571,6 @@
       enforceServerLocks();
     };
 
-    // ====== ここが不足していると ReferenceError になります ======
     // blur 時に所得税→住民税へ値をコピーするヘルパ
     const mirrorOnBlur = (srcName, dstName) => {
       const src = getInput(srcName);
@@ -2722,17 +2724,14 @@
     ['prev', 'curr'].forEach((period) => {
       const incomeInput = getInput(`bunri_syunyu_taishoku_shotoku_${period}`);
       const shotokuInput = getInput(`bunri_shotoku_taishoku_shotoku_${period}`);
+      const hook = () => { mirrorRetirementToJumin(); runFullRecalcChain(); };
       if (incomeInput) {
-        incomeInput.addEventListener('blur', () => {
-          mirrorRetirementToJumin();
-          runFullRecalcChain();
-        });
+        incomeInput.addEventListener('input', hook);
+        incomeInput.addEventListener('blur', hook);
       }
       if (shotokuInput) {
-        shotokuInput.addEventListener('blur', () => {
-          mirrorRetirementToJumin();
-          runFullRecalcChain();
-        });
+        shotokuInput.addEventListener('input', hook);
+        shotokuInput.addEventListener('blur', hook);
       }
     });
 
@@ -2783,7 +2782,7 @@
       const namedInputs = Array.from(form.querySelectorAll('input[name]'))
         .filter(el => el.type === 'text' && el.name && !el.disabled);
       namedInputs.forEach((el) => {
-        // ★ ロック済みは name を外さない（hidden だけを最新rawに同期）
+        // ロック済みは name を外さない（hidden だけを最新rawに同期）
         if (el.dataset && el.dataset.serverLock === '1') {
           const raw = String(toInt(el.value));
           let hidden = form.querySelector(`input[type="hidden"][name="${el.name}"]`);
@@ -2830,24 +2829,6 @@
         }
       }
     });
-
-    // ─────────────────────────────────────────────────────
-    // ③ ロック対象をマーク（サーバ注入値を上書き不可にする）→ 初回再計算の“前”に実行すること！
-    //    ※ prev/curr 両方、所得税/住民税 両方
-    // ─────────────────────────────────────────────────────
-    (function markAllServerLocksBeforeRecalc() {
-      ['prev','curr'].forEach((p) => {
-        ['shotoku','jumin'].forEach((tax) => {
-          markServerLock(`shotoku_gokei_${tax}_${p}`);
-        });
-        ['tanki','choki'].forEach((kind) => {
-          ['shotoku','jumin'].forEach((tax) => {
-            markServerLock(`bunri_kazeishotoku_${kind}_${tax}_${p}`);
-          });
-        });
-      });
-      enforceServerLocks(); // ロック値を即時反映
-    })();
 
     if (formEl) {
       formEl.addEventListener('submit', (e) => {

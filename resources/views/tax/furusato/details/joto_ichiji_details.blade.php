@@ -257,7 +257,12 @@
             const syunyu = parseFloat(document.querySelector('[data-name="syunyu_ichiji_' + period + '"]').value.replace(/,/g, '') || 0);
             const keihi = parseFloat(document.querySelector('[data-name="keihi_ichiji_' + period + '"]').value.replace(/,/g, '') || 0);
             const result = Math.max(0, syunyu - keihi);
-            document.querySelector('[data-name="sashihiki_ichiji_' + period + '"]').value = result.toLocaleString('ja-JP');
+            // 表示更新（カンマ付き）
+            const out = document.querySelector('[data-name="sashihiki_ichiji_' + period + '"]');
+            if (out) out.value = result.toLocaleString('ja-JP');
+            // hidden(name="sashihiki_ichiji_*") にも raw を同期（これがPOSTに載る）
+            const hidden = document.querySelector('input[type="hidden"][name="sashihiki_ichiji_' + period + '"]');
+            if (hidden) hidden.value = String(result);
           }
         </script>
         <hr>
@@ -316,7 +321,7 @@
       return hidden || null;
     };
 
-    const ensureHidden = (input) => {
+    const ensureProbablyCreateHidden = (input) => {
       const name = input.dataset.name;
       if (!name) {
         return null;
@@ -338,59 +343,58 @@
         hiddenCache.set(name, hidden);
       }
 
-      const hiddenRaw = toRawInt(hidden.value ?? '');
-      const inputRaw = toRawInt(input.value ?? '');
-      const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+      // 表示値を正として raw に落として同期
+      const raw = toRawInt(input.value ?? '');
       hidden.value = raw;
       input.value = raw === '' ? '' : formatWithComma(raw);
 
       return hidden;
     };
 
-    const inputs = document.querySelectorAll('[data-format="comma-int"]:not([readonly])');
-
-    inputs.forEach((input) => {
+    // 1) 全ての data-format="comma-int" に対して、readonly であっても必ず hidden(name=...) を用意する
+    const allFmtInputs = Array.from(document.querySelectorAll('[data-format="comma-int"]'));
+    allFmtInputs.forEach((input) => {
       const name = input.dataset.name;
-      if (!name) {
-        return;
-      }
-
-      if (input.hasAttribute('readonly') || input.dataset.noMirror === '1') {
-        return;
-      }
-      ensureHidden(input);
-
-      input.addEventListener('focus', () => {
-        const hidden = getHidden(name);
-        input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
-        input.select();
-      });
-
-      input.addEventListener('blur', () => {
-        const raw = toRawInt(input.value ?? '');
-        const hidden = getHidden(name);
-        if (hidden) {
-          hidden.value = raw;
-        }
-        input.value = raw === '' ? '' : formatWithComma(raw);
-      });
+      if (!name) return;
+      ensureProbablyCreateHidden(input);
     });
+
+    // 1.5) 一時の入力 → 差引 の再計算フック（syunyu/keihi の blur で必ず再計算＆hidden 同期）
+    ['prev','curr'].forEach((p) => {
+      const s = document.querySelector('[data-name="syunyu_ichiji_' + p + '"]');
+      const k = document.querySelector('[data-name="keihi_ichiji_' + p + '"]');
+      if (s) s.addEventListener('blur', () => calculateSashihikiIchiji(p));
+      if (k) k.addEventListener('blur', () => calculateSashihikiIchiji(p));
+    });
+
+    // 2) 入力可能な項目にのみフォーカス/ブラーでのミラーリングを設定
+    allFmtInputs
+      .filter(el => !el.hasAttribute('readonly') && el.dataset.noMirror !== '1')
+      .forEach((input) => {
+        const name = input.dataset.name;
+        if (!name) return;
+        input.addEventListener('focus', () => {
+          const hidden = getHidden(name);
+          input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
+          input.select();
+        });
+        input.addEventListener('blur', () => {
+          const raw = toRawInt(input.value ?? '');
+          const hidden = getHidden(name);
+          if (hidden) hidden.value = raw;
+          input.value = raw === '' ? '' : formatWithComma(raw);
+        });
+      });
 
     const form = document.querySelector('form');
     if (form) {
       form.addEventListener('submit', () => {
-        inputs.forEach((input) => {
+        // 送信直前は readonly を含む全てを最終同期（hidden に raw を格納）
+        allFmtInputs.forEach((input) => {
           const name = input.dataset.name;
-          if (!name) {
-            return;
-          }
-          if (input.hasAttribute('readonly') || input.dataset.noMirror === '1') {
-            return; // readonlyは送信前補正も不要
-          }
-          const hidden = getHidden(name) || ensureHidden(input);
-          if (!hidden) {
-            return;
-          }
+          if (!name) return;
+          const hidden = getHidden(name) || ensureProbablyCreateHidden(input);
+          if (!hidden) return;
           const raw = toRawInt(input.value ?? hidden.value ?? '');
           hidden.value = raw;
         });

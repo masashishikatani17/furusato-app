@@ -264,17 +264,15 @@
                     <label class="form-label">都道府県（標準）</label>
                     <input type="text"
                            class="form-control suji6 pref-standard-rate"
-                           value="{{ number_format((float) $prefStandard * 100, 2, '.', '') }}%"
+                           value="{{ number_format((float) $prefStandard * 100, 2, '.', '') }}"
                            readonly>
-                    <span>%</span>
                   </div>
                   <div class="mb-1 ms-3">
                     <label class="form-label">市区町村（標準）</label>
                     <input type="text"
                            class="form-control suji6 muni-standard-rate"
-                           value="{{ number_format((float) $muniStandard * 100, 2, '.', '') }}%"
+                           value="{{ number_format((float) $muniStandard * 100, 2, '.', '') }}"
                            readonly>
-                    <span>%</span>
                   </div>
                   <div class="mb-1 ms-3">
                       <label class="form-label">都道府県（適用）</label>
@@ -287,7 +285,6 @@
                                max="100"
                                step="0.01"
                                required>
-                        <span>%</span>
                   </div>
                   <div class="mb-1 ms-3">
                       <label class="form-label">市区町村（適用）</label>
@@ -300,7 +297,6 @@
                                max="100"
                                step="0.01"
                                required>
-                        <span>%</span>
                   </div>
                 </div>
                 <div>
@@ -381,17 +377,17 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selected) return;
 
         const isDesignated = selected.value === '1';
-        const prefRate = isDesignated ? 0.08 : 0.06;
-        const muniRate = isDesignated ? 0.02 : 0.04;
+        const prefRate = isDesignated ? 0.02 : 0.04;
+        const muniRate = isDesignated ? 0.08 : 0.06;
 
         const prefStandardInput = card.querySelector('.pref-standard-rate');
         if (prefStandardInput) {
-            prefStandardInput.value = formatValue(prefRate, 2) + '%'; // Display percentage
+            prefStandardInput.value = formatValue(prefRate, 2);
         }
 
         const muniStandardInput = card.querySelector('.muni-standard-rate');
         if (muniStandardInput) {
-            muniStandardInput.value = formatValue(muniRate, 2) + '%'; // Display percentage
+            muniStandardInput.value = formatValue(muniRate, 2);
         }
 
     // 指定都市区分の変更時だけ（適用）に反映する
@@ -403,12 +399,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!selected) return;
 
         const isDesignated = selected.value === '1';
-        const prefRate = isDesignated ? 0.08 : 0.06;
-        const muniRate = isDesignated ? 0.02 : 0.04;
+        const prefRate = isDesignated ? 0.02 : 0.04;
+        const muniRate = isDesignated ? 0.08 : 0.06;
 
         const prefAppliedInput = card.querySelector('.pref-applied-rate');
         if (prefAppliedInput) {
-            // 数値のみ（%は付けない）。小数第2位まで（画面定義に合わせる）
             prefAppliedInput.value = formatValue(prefRate, 2);
             prefAppliedInput.dispatchEvent(new Event('input', { bubbles: true }));
         }

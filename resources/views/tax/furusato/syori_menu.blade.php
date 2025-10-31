@@ -263,21 +263,21 @@
                   <div class="mb-1 ms-3">
                     <label class="form-label">都道府県（標準）</label>
                     <input type="text"
-                           class="form-control suji6 pref-standard-rate"
+                           class="form-control suji4 pref-standard-rate"
                            value="{{ number_format((float) $prefStandard * 100, 2, '.', '') }}"
                            readonly>
                   </div>
                   <div class="mb-1 ms-3">
                     <label class="form-label">市区町村（標準）</label>
                     <input type="text"
-                           class="form-control suji6 muni-standard-rate"
+                           class="form-control suji4 muni-standard-rate"
                            value="{{ number_format((float) $muniStandard * 100, 2, '.', '') }}"
                            readonly>
                   </div>
                   <div class="mb-1 ms-3">
                       <label class="form-label">都道府県（適用）</label>
                         <input type="number"
-                               class="form-control suji6 pref-applied-rate"
+                               class="form-control suji4 pref-applied-rate"
                                inputmode="decimal"
                                name="pref_applied_rate_{{ $key }}"
                                value="{{ number_format($period['pref_applied_rate'] * 100, 2, '.', '') }}"
@@ -289,7 +289,7 @@
                   <div class="mb-1 ms-3">
                       <label class="form-label">市区町村（適用）</label>
                         <input type="number"
-                               class="form-control suji6 muni-applied-rate"
+                               class="form-control suji4 muni-applied-rate"
                                inputmode="decimal"
                                name="muni_applied_rate_{{ $key }}"
                                value="{{ number_format($period['muni_applied_rate'] * 100, 2, '.', '') }}"
@@ -365,16 +365,18 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // 表示は百分率化（内部は小数）
-    const formatValue = (value, digits) => (value * 100).toFixed(digits);
+    const formatValue = (rate, digits) => (rate * 100).toFixed(digits);
 
-    // （標準）表示だけを更新。※（適用）には触れない
     const updateStandardRatesDisplay = (card) => {
         const period = card.dataset.period;
-        if (!period) return;
+        if (!period) {
+            return;
+        }
 
         const selected = card.querySelector(`input[name="shitei_toshi_flag_${period}"]:checked`);
-        if (!selected) return;
+        if (!selected) {
+            return;
+        }
 
         const isDesignated = selected.value === '1';
         const prefRate = isDesignated ? 0.02 : 0.04;
@@ -389,14 +391,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (muniStandardInput) {
             muniStandardInput.value = formatValue(muniRate, 2);
         }
+    };
 
-    // 指定都市区分の変更時だけ（適用）に反映する
     const reflectStandardToApplied = (card) => {
         const period = card.dataset.period;
-        if (!period) return;
+        if (!period) {
+            return;
+        }
 
         const selected = card.querySelector(`input[name="shitei_toshi_flag_${period}"]:checked`);
-        if (!selected) return;
+        if (!selected) {
+            return;
+        }
 
         const isDesignated = selected.value === '1';
         const prefRate = isDesignated ? 0.02 : 0.04;
@@ -419,13 +425,14 @@ document.addEventListener('DOMContentLoaded', () => {
     cards.forEach((card) => {
         const period = card.dataset.period;
         const radios = card.querySelectorAll(`input[name="shitei_toshi_flag_${period}"]`);
-        // ▼ 指定都市区分を変更したときのみ（適用）へ反映
-        radios.forEach((radio) => radio.addEventListener('change', () => {
-            updateStandardRatesDisplay(card);     // 標準表示は常に更新
-            reflectStandardToApplied(card);       // 適用はこのタイミングのみに限定
-        }));
+        
+        radios.forEach((radio) => {
+            radio.addEventListener('change', () => {
+                updateStandardRatesDisplay(card);
+                reflectStandardToApplied(card);
+            });
+        });
 
-        // ▼ 初期表示時は（標準）だけ更新し、（適用）は一切触らない（old()/settings の入力を尊重）
         updateStandardRatesDisplay(card);
     });
 });

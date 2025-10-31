@@ -654,6 +654,11 @@ final class FurusatoController extends Controller
             $inputsForView[$sumShotokuKey] = $sum;
             $inputsForView[$sumJuminKey] = $sum;
 
+             // ▼第一表「所得金額等 合計」= 経常 + 譲渡(短/長) + 一時
+             //  View 側で readonly 表示させるため、税目別キーにも同額を明示代入
+             $inputsForView[sprintf('shotoku_gokei_shotoku_%s', $period)] = $sum;
+             $inputsForView[sprintf('shotoku_gokei_jumin_%s',  $period)] = $sum;
+
             if ($isSeparated) {
                 $valueOrZero = fn (array $candidates): int => $this->valueOrZero($lookup($candidates));
 
@@ -666,6 +671,17 @@ final class FurusatoController extends Controller
 
                 $inputsForView[$bunriShotokuKey] = $separatedSum;
                 $inputsForView[$bunriJuminKey] = $separatedSum;
+
+                 // 分離ONでも、短期/長期の課税所得は内訳（bunri_joto_detail）合計をそのままミラー
+                 $mirrorFrom = sprintf('joto_shotoku_tanki_gokei_%s', $period);
+                 $valTanki = $lookup([$mirrorFrom], true) ?? $lookup([$mirrorFrom], false) ?? 0;
+                 $inputsForView[sprintf('bunri_kazeishotoku_tanki_shotoku_%s', $period)] = (int) $valTanki;
+                 $inputsForView[sprintf('bunri_kazeishotoku_tanki_jumin_%s',  $period)] = (int) $valTanki;
+ 
+                 $mirrorFrom = sprintf('joto_shotoku_choki_gokei_%s', $period);
+                 $valChoki = $lookup([$mirrorFrom], true) ?? $lookup([$mirrorFrom], false) ?? 0;
+                 $inputsForView[sprintf('bunri_kazeishotoku_choki_shotoku_%s', $period)] = (int) $valChoki;
+                 $inputsForView[sprintf('bunri_kazeishotoku_choki_jumin_%s',  $period)] = (int) $valChoki;
 
                 if (config('app.furusato_mirror_fallback')) {
                     $kojoShotoku = $this->valueOrZero($lookup([sprintf('kojo_gokei_shotoku_%s', $period)]));
@@ -889,6 +905,14 @@ final class FurusatoController extends Controller
                 null,
                 true,
             );
+
+             // 非分離時でも shotoku_gokei_* を明示（Blade 側の readonly 表示が値を拾えるように）
+             if (!isset($inputsForView[sprintf('shotoku_gokei_shotoku_%s', $period)])) {
+                 $inputsForView[sprintf('shotoku_gokei_shotoku_%s', $period)] = $sum;
+             }
+             if (!isset($inputsForView[sprintf('shotoku_gokei_jumin_%s', $period)])) {
+                 $inputsForView[sprintf('shotoku_gokei_jumin_%s', $period)] = $sum;
+             }
 
             $mirrorMany(
                 [sprintf('tsusanmae_joto_tanki_sogo_%s', $period)],

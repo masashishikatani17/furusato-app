@@ -66,10 +66,16 @@
                     <th rowspan="2" class="th-cream">総合譲渡</th>
                     <th class="th-cream" nowrap="nowrap">短期</th>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="syunyu_joto_tanki_{{ $period }}" class="form-control suji11" value="{{ old('syunyu_joto_tanki_' . $period, $inputs['syunyu_joto_tanki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric"
+                             data-format="comma-int" data-name="syunyu_joto_tanki_{{ $period }}"
+                             class="form-control suji11"
+                             value="{{ old('syunyu_joto_tanki_' . $period, $inputs['syunyu_joto_tanki_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="keihi_joto_tanki_{{ $period }}" class="form-control suji11" value="{{ old('keihi_joto_tanki_' . $period, $inputs['keihi_joto_tanki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" 
+                             data-format="comma-int" data-name="keihi_joto_tanki_{{ $period }}" 
+                             class="form-control suji11" 
+                             value="{{ old('keihi_joto_tanki_' . $period, $inputs['keihi_joto_tanki_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
@@ -112,10 +118,16 @@
                   <tr>
                     <th class="th-cream">長期</th>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="syunyu_joto_choki_{{ $period }}" class="form-control suji11" value="{{ old('syunyu_joto_choki_' . $period, $inputs['syunyu_joto_choki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" 
+                             data-format="comma-int" data-name="syunyu_joto_choki_{{ $period }}" 
+                             class="form-control suji11"
+                             value="{{ old('syunyu_joto_choki_' . $period, $inputs['syunyu_joto_choki_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="keihi_joto_choki_{{ $period }}" class="form-control suji11" value="{{ old('keihi_joto_choki_' . $period, $inputs['keihi_joto_choki_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" 
+                             data-format="comma-int" data-name="keihi_joto_choki_{{ $period }}"
+                             class="form-control suji11"
+                             value="{{ old('keihi_joto_choki_' . $period, $inputs['keihi_joto_choki_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
@@ -145,13 +157,21 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tsusango_joto_choki_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('tsusango_joto_choki_' . $period, $inputs['after_3jitsusan_joto_choki_sogo_' . $period] ?? null) }}" readonly>
+                             value="{{ old('tsusango_joto_choki_' . $period, $inputs['tsusango_joto_choki_' . $period] ?? ($inputs['after_3jitsusan_joto_choki_sogo_' . $period] ?? null)) }}" readonly>
                     </td>
                     <td>
+                      @php
+                        $tsusangoChokiDisplay = old(
+                          'tsusango_joto_choki_' . $period,
+                          $inputs['tsusango_joto_choki_' . $period] ?? ($inputs['after_3jitsusan_joto_choki_sogo_' . $period] ?? 0)
+                        );
+                        $tsusangoChokiInt = (int) preg_replace('/[^\d-]/', '', (string) $tsusangoChokiDisplay);
+                        $halfJotoChoki    = (int) ceil($tsusangoChokiInt / 2);
+                      @endphp
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="half_joto_choki_{{ $period }}"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ old('half_joto_choki_' . $period, (($inputs['tsusango_joto_choki_' . $period] ?? 0) - ($inputs['shotoku_joto_choki_' . $period] ?? 0))) }}" readonly>
+                             value="{{ old('half_joto_choki_' . $period, $halfJotoChoki) }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
@@ -163,10 +183,16 @@
                   <tr>
                     <th colspan="2" class="th-cream">一時</th>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="syunyu_ichiji_{{ $period }}" class="form-control suji11" value="{{ old('syunyu_ichiji_' . $period, $inputs['syunyu_ichiji_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric"
+                             data-format="comma-int" data-name="syunyu_ichiji_{{ $period }}"
+                             class="form-control suji11"
+                             value="{{ old('syunyu_ichiji_' . $period, $inputs['syunyu_ichiji_' . $period] ?? null) }}">
                     </td>
                     <td>
-                      <input type="text" inputmode="numeric" data-format="comma-int" data-name="keihi_ichiji_{{ $period }}" class="form-control suji11" value="{{ old('keihi_ichiji_' . $period, $inputs['keihi_ichiji_' . $period] ?? null) }}">
+                      <input type="text" inputmode="numeric" 
+                             data-format="comma-int" data-name="keihi_ichiji_{{ $period }}" 
+                             class="form-control suji11" 
+                             value="{{ old('keihi_ichiji_' . $period, $inputs['keihi_ichiji_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
@@ -197,13 +223,21 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tsusango_ichiji_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('tsusango_ichiji_' . $period, $inputs['after_3jitsusan_ichiji_' . $period] ?? null) }}" readonly>
+                             value="{{ old('tsusango_ichiji_' . $period, $inputs['after_3jitsusan_ichiji_' . $period] ?? '') }}" readonly>
                     </td>
                     <td>
+                      @php
+                        $tsusangoIchijiDisplay = old(
+                          'tsusango_ichiji_' . $period,
+                          $inputs['after_3jitsusan_ichiji_' . $period] ?? 0
+                        );
+                        $tsusangoIchijiInt = (int) preg_replace('/[^\d-]/', '', (string) $tsusangoIchijiDisplay);
+                        $halfIchiji        = (int) ceil($tsusangoIchijiInt / 2);
+                      @endphp
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="half_ichiji_{{ $period }}"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ old('half_ichiji_' . $period, (($inputs['tsusango_ichiji_' . $period] ?? 0) - ($inputs['shotoku_ichiji_' . $period] ?? 0))) }}" readonly>
+                             value="{{ old('half_ichiji_' . $period, $halfIchiji) }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
@@ -313,7 +347,7 @@
       return hidden;
     };
 
-    const inputs = document.querySelectorAll('[data-format="comma-int"]');
+    const inputs = document.querySelectorAll('[data-format="comma-int"]:not([readonly])');
 
     inputs.forEach((input) => {
       const name = input.dataset.name;
@@ -321,6 +355,9 @@
         return;
       }
 
+      if (input.hasAttribute('readonly') || input.dataset.noMirror === '1') {
+        return;
+      }
       ensureHidden(input);
 
       input.addEventListener('focus', () => {
@@ -346,6 +383,9 @@
           const name = input.dataset.name;
           if (!name) {
             return;
+          }
+          if (input.hasAttribute('readonly') || input.dataset.noMirror === '1') {
+            return; // readonlyは送信前補正も不要
           }
           const hidden = getHidden(name) || ensureHidden(input);
           if (!hidden) {

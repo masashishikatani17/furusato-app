@@ -263,39 +263,44 @@
                   <div class="mb-1 ms-3">
                     <label class="form-label">都道府県（標準）</label>
                     <input type="text"
-                           class="form-control suji4 comma decimal3 floor integer_comma pref-standard-rate"
+                           class="form-control suji6 pref-standard-rate"
                            value="{{ number_format((float) $prefStandard * 100, 2, '.', '') }}%"
                            readonly>
+                    <span>%</span>
                   </div>
                   <div class="mb-1 ms-3">
                     <label class="form-label">市区町村（標準）</label>
                     <input type="text"
-                           class="form-control suji4 comma decimal3 floor integer_comma muni-standard-rate"
+                           class="form-control suji6 muni-standard-rate"
                            value="{{ number_format((float) $muniStandard * 100, 2, '.', '') }}%"
                            readonly>
+                    <span>%</span>
                   </div>
                   <div class="mb-1 ms-3">
                       <label class="form-label">都道府県（適用）</label>
-                      <input type="number"
-                             class="form-control suji7 comma decimal3 floor integer_comma pref-applied-rate"
-                             name="pref_applied_rate_{{ $key }}"
-                             value="{{ $period['pref_applied_rate'] * 100 }}"
-                             min="0"
-                             max="100"
-                             step="0.001"
-                             required>
+                        <input type="number"
+                               class="form-control suji6 pref-applied-rate"
+                               inputmode="decimal"
+                               name="pref_applied_rate_{{ $key }}"
+                               value="{{ number_format($period['pref_applied_rate'] * 100, 2, '.', '') }}"
+                               min="0"
+                               max="100"
+                               step="0.01"
+                               required>
+                        <span>%</span>
                   </div>
-                  
                   <div class="mb-1 ms-3">
                       <label class="form-label">市区町村（適用）</label>
-                      <input type="number"
-                             class="form-control suji7 comma decimal3 floor integer_comma muni-applied-rate"
-                             name="muni_applied_rate_{{ $key }}"
-                             value="{{ $period['muni_applied_rate'] * 100 }}"
-                             min="0"
-                             max="100"
-                             step="0.001"
-                             required>
+                        <input type="number"
+                               class="form-control suji6 muni-applied-rate"
+                               inputmode="decimal"
+                               name="muni_applied_rate_{{ $key }}"
+                               value="{{ number_format($period['muni_applied_rate'] * 100, 2, '.', '') }}"
+                               min="0"
+                               max="100"
+                               step="0.01"
+                               required>
+                        <span>%</span>
                   </div>
                 </div>
                 <div>
@@ -364,20 +369,16 @@
 </div>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const formatValue = (value, digits) => {
-        return (value * 100).toFixed(digits);  // Display percentage by multiplying by 100
-    };
+    // 表示は百分率化（内部は小数）
+    const formatValue = (value, digits) => (value * 100).toFixed(digits);
 
-    const updateCardRates = (card) => {
+    // （標準）表示だけを更新。※（適用）には触れない
+    const updateStandardRatesDisplay = (card) => {
         const period = card.dataset.period;
-        if (!period) {
-            return;
-        }
+        if (!period) return;
 
         const selected = card.querySelector(`input[name="shitei_toshi_flag_${period}"]:checked`);
-        if (!selected) {
-            return;
-        }
+        if (!selected) return;
 
         const isDesignated = selected.value === '1';
         const prefRate = isDesignated ? 0.08 : 0.06;
@@ -385,23 +386,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const prefStandardInput = card.querySelector('.pref-standard-rate');
         if (prefStandardInput) {
-            prefStandardInput.value = formatValue(prefRate, 2); // Display percentage
+            prefStandardInput.value = formatValue(prefRate, 2) + '%'; // Display percentage
         }
 
         const muniStandardInput = card.querySelector('.muni-standard-rate');
         if (muniStandardInput) {
-            muniStandardInput.value = formatValue(muniRate, 2); // Display percentage
+            muniStandardInput.value = formatValue(muniRate, 2) + '%'; // Display percentage
         }
+
+    // 指定都市区分の変更時だけ（適用）に反映する
+    const reflectStandardToApplied = (card) => {
+        const period = card.dataset.period;
+        if (!period) return;
+
+        const selected = card.querySelector(`input[name="shitei_toshi_flag_${period}"]:checked`);
+        if (!selected) return;
+
+        const isDesignated = selected.value === '1';
+        const prefRate = isDesignated ? 0.08 : 0.06;
+        const muniRate = isDesignated ? 0.02 : 0.04;
 
         const prefAppliedInput = card.querySelector('.pref-applied-rate');
         if (prefAppliedInput) {
-            prefAppliedInput.value = formatValue(prefRate, 3); // Display percentage
+            // 数値のみ（%は付けない）。小数第2位まで（画面定義に合わせる）
+            prefAppliedInput.value = formatValue(prefRate, 2);
             prefAppliedInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
 
         const muniAppliedInput = card.querySelector('.muni-applied-rate');
         if (muniAppliedInput) {
-            muniAppliedInput.value = formatValue(muniRate, 3); // Display percentage
+            muniAppliedInput.value = formatValue(muniRate, 2);
             muniAppliedInput.dispatchEvent(new Event('input', { bubbles: true }));
         }
     };
@@ -410,11 +424,14 @@ document.addEventListener('DOMContentLoaded', () => {
     cards.forEach((card) => {
         const period = card.dataset.period;
         const radios = card.querySelectorAll(`input[name="shitei_toshi_flag_${period}"]`);
-        radios.forEach((radio) => {
-            radio.addEventListener('change', () => updateCardRates(card));
-        });
+        // ▼ 指定都市区分を変更したときのみ（適用）へ反映
+        radios.forEach((radio) => radio.addEventListener('change', () => {
+            updateStandardRatesDisplay(card);     // 標準表示は常に更新
+            reflectStandardToApplied(card);       // 適用はこのタイミングのみに限定
+        }));
 
-        updateCardRates(card);  // Initially update rates on page load
+        // ▼ 初期表示時は（標準）だけ更新し、（適用）は一切触らない（old()/settings の入力を尊重）
+        updateStandardRatesDisplay(card);
     });
 });
 </script>

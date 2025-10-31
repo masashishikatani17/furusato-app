@@ -22,6 +22,36 @@
 @endpush
 
 @section('content')
+@php
+    /**
+     * ▼ クロスタブ参照の読み取り専用フィールドをサーバ側で算出・注入
+     *  - shotoku_gokei_* は result_details の４項目合算
+     *  - bunri_kazeishotoku_*_* は bunri_joto_detail の合計欄を採用
+     *  - いずれも old() が空のときに $inputs 値が使われる前提のため、ここで $inputs に投入しておく
+     */
+    $inputs = $out['inputs'] ?? ($inputs ?? []);
+    foreach (['prev', 'curr'] as $p) {
+        // 総合課税の所得合計（第一表：経常 + 譲渡（短期・長期・一時））
+        $keijo = (int)($inputs["shotoku_keijo_{$p}"] ?? 0);
+        $tanki = (int)($inputs["shotoku_joto_tanki_sogo_{$p}"] ?? 0);
+        $choki = (int)($inputs["shotoku_joto_choki_sogo_{$p}"] ?? 0);
+        $ichiji = (int)($inputs["shotoku_ichiji_{$p}"] ?? 0);
+        $gokei = $keijo + $tanki + $choki + $ichiji;
+
+        // 所得税・住民税とも同じ合計を表示
+        $inputs["shotoku_gokei_shotoku_{$p}"] = $gokei;
+        $inputs["shotoku_gokei_jumin_{$p}"]   = $gokei;
+
+        // 分離：短期・長期の課税所得（= 内訳画面の合計欄）
+        $tankiGokei = (int)($inputs["joto_shotoku_tanki_gokei_{$p}"] ?? 0); // from bunri_joto_detail
+        $chokiGokei = (int)($inputs["joto_shotoku_choki_gokei_{$p}"] ?? 0); // from bunri_joto_detail
+
+        $inputs["bunri_kazeishotoku_tanki_shotoku_{$p}"] = $tankiGokei;
+        $inputs["bunri_kazeishotoku_tanki_jumin_{$p}"]   = $tankiGokei;
+        $inputs["bunri_kazeishotoku_choki_shotoku_{$p}"] = $chokiGokei;
+        $inputs["bunri_kazeishotoku_choki_jumin_{$p}"]   = $chokiGokei;
+    }
+@endphp
 <div class="container-blue" style="width: 1200px;">
   <form method="POST" action="{{ route('furusato.save') }}" id="furusato-input-form">
     @csrf
@@ -100,7 +130,7 @@
         <div class="tab-pane fade {{ $inputPaneActiveClass }}" id="furusato-tab-input" role="tabpanel" aria-labelledby="furusato-tab-input-nav">
   
           @php
-            $inputs = $out['inputs'] ?? [];
+            $inputs = array_replace(($inputs ?? []), ($out['inputs'] ?? []));
             $warekiPrevLabel = $warekiPrev ?? '前年';
             $warekiCurrLabel = $warekiCurr ?? '当年';
             $showTokubetsu = in_array((int) ($kihuYear ?? 0), [2024, 2025], true);
@@ -200,7 +230,16 @@
 
                 return false;
             };
-            $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides, $kihuYear, $forceDash) {
+            // 第一表の一部収入項目は、内訳画面（総合譲渡・一時）で入力した period 単位の値を
+            // 税目（所得税/住民税）共通でミラーして readonly 表示に固定する
+            // 対象: syunyu_joto_tanki / syunyu_joto_choki / syunyu_ichiji の prev/curr
+            $mirrorFromDetailsBases = [
+                'syunyu_joto_tanki' => true,
+                'syunyu_joto_choki' => true,
+                'syunyu_ichiji'     => true,
+            ];
+
+            $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides, $kihuYear, $forceDash, $mirrorFromDetailsBases) {
                 $html = '';
                 foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                     foreach ($periods as $period) {
@@ -210,6 +249,34 @@
                         $kihuYearInt = isset($kihuYear) ? (int) $kihuYear : null;
                         $isForceDash = $forceDash($base, $tax, $period, $kihuYearInt);
                         $isReadonly = false;
+
+                        // ▼ 「総合譲渡・一時」行だけは内訳の所得値を合算してミラー（税目共通）し、常にreadonly
+                        if ($base === 'shotoku_joto_ichiji') {
+                            $tankiKey  = sprintf('shotoku_joto_tanki_%s', $period);
+                            $chokiKey  = sprintf('shotoku_joto_choki_%s', $period);
+                            $ichijiKey = sprintf('shotoku_ichiji_%s', $period);
+                            $sum = 0;
+                            foreach ([$tankiKey, $chokiKey, $ichijiKey] as $k) {
+                                $v = $inputs[$k] ?? null;
+                                if ($v !== null && $v !== '') {
+                                    $sum += (int) str_replace(',', '', (string) $v);
+                                }
+                            }
+                            $value = $sum;
+                            $isReadonly = true;
+                        }
+
+                        // ▼ 内訳画面の period 単位値をミラーする場合（tax 共通）
+                        if (isset($mirrorFromDetailsBases[$base])) {
+                            $detailsKey = sprintf('%s_%s', $base, $period); // ex) syunyu_joto_tanki_prev
+                            // old() は tax 付き name が来る可能性があるため、まず detailsKey 側を優先的に参照
+                            $mirrored = old($detailsKey, $inputs[$detailsKey] ?? null);
+                            if ($mirrored !== null && $mirrored !== '') {
+                                $value = $mirrored;
+                            }
+                            // ミラー対象は常に readonly
+                            $isReadonly = true;
+                        }
 
                         if ($isForceDash) {
                             $isReadonly = true;
@@ -1008,7 +1075,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1026,7 +1097,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1045,7 +1120,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1120,7 +1199,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1138,7 +1221,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1156,7 +1243,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1174,7 +1265,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1192,7 +1287,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1210,7 +1309,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1228,7 +1331,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1246,7 +1353,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1264,7 +1375,11 @@
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
-                                <input type="number" min="0" step="1" class="form-control form-control-compact-05 text-end" name="{{ $name }}" value="{{ $value }}">
+                                <input type="text"
+                                       inputmode="numeric"
+                                       class="form-control form-control-compact-05 text-end js-comma"
+                                       name="{{ $name }}"
+                                       value="{{ $value }}">
                               </td>
                             @endforeach
                           @endforeach
@@ -1344,7 +1459,70 @@
   </form>
 </div>
 @endsection
+@push('scripts')
+<script>
+  // 対象キーの入力を「読み取り専用」に固定し、隠しミラー（raw整数）も同期
+  document.addEventListener('DOMContentLoaded', () => {
+    (function restoreDetachedNames() {
+      document.querySelectorAll('input[data-name-detached]').forEach((el) => {
+        const n = el.getAttribute('data-name-detached');
+        if (!n) return;
+        // 既に name があればスキップ
+        if (!el.name) {
+          el.name = n;
+        }
+        el.removeAttribute('data-name-detached');
+        // 重複 hidden が残っていれば整理（最新1つだけ残す）
+        const hiddens = Array.from(document.querySelectorAll(`input[type="hidden"][name="${n}"]`));
+        if (hiddens.length > 1) {
+          // 最後の1つだけ残して他は削除
+          hiddens.slice(0, -1).forEach(h => h.remove());
+        }
+      });
+    })();
 
+    const roKeys = [
+      // 総合課税の所得合計
+      'shotoku_gokei_shotoku_prev','shotoku_gokei_jumin_prev',
+      'shotoku_gokei_shotoku_curr','shotoku_gokei_jumin_curr',
+      // 分離（短期）
+      'bunri_kazeishotoku_tanki_shotoku_prev','bunri_kazeishotoku_tanki_jumin_prev',
+      'bunri_kazeishotoku_tanki_shotoku_curr','bunri_kazeishotoku_tanki_jumin_curr',
+      // 分離（長期）
+      'bunri_kazeishotoku_choki_shotoku_prev','bunri_kazeishotoku_choki_jumin_prev',
+      'bunri_kazeishotoku_choki_shotoku_curr','bunri_kazeishotoku_choki_jumin_curr',
+    ];
+
+    const toRawInt = (v) => {
+      if (typeof v !== 'string') return '';
+      const s = v.replace(/,/g, '').trim();
+      if (s === '' || s === '-') return '';
+      if (!/^(-)?\d+$/.test(s)) return '';
+      const n = parseInt(s, 10);
+      return Number.isNaN(n) ? '' : String(n);
+    };
+
+    roKeys.forEach((name) => {
+      const input = document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+      if (!input) return;
+      input.readOnly = true;
+      input.classList.add('bg-light','text-end');
+
+      // 隠しミラー（raw整数）を確実に用意・同期
+      let hidden = document.querySelector(`input[type="hidden"][name="${name}"]`);
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = name;
+        hidden.dataset.commaMirror = '1';
+        (input.parentElement || document.body).appendChild(hidden);
+      }
+      const raw = toRawInt(input.value ?? '');
+      hidden.value = raw;
+    });
+  });
+</script>
+@endpush
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', function () {
@@ -1680,9 +1858,53 @@
     };
     // 画面は常にカンマ付きで表示
     const formatComma = (n) => new Intl.NumberFormat('ja-JP').format(toInt(n));
+    // ② サーバから注入された値を「ロック」し、再計算による上書きを防ぐ仕組み
+    //    - markServerLock(name) で data-server-lock と data-server-raw を付与
+    //    - enforceServerLocks() で表示値/hidden を常にサーバ値へ戻す
+    const ensureHiddenFor = (name) => {
+      const form = document.getElementById('furusato-input-form');
+      if (!form) return null;
+      let hidden = form.querySelector(`input[type="hidden"][name="${name}"]`);
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = name;
+        form.appendChild(hidden);
+      }
+      return hidden;
+    };
+    const markServerLock = (name) => {
+      const el = getInput(name);
+      if (!el) return;
+      const raw = String(toInt(el.value));
+      el.dataset.serverLock = '1';
+      el.dataset.serverRaw = raw; // カンマ無し整数を保持
+      el.readOnly = true;
+      el.classList.add('bg-light','text-end');
+      const hidden = ensureHiddenFor(name);
+      if (hidden) hidden.value = raw;
+    };
+    const enforceServerLocks = () => {
+      const form = document.getElementById('furusato-input-form');
+      if (!form) return;
+      form.querySelectorAll('input[data-server-lock="1"]').forEach((el) => {
+        const name = el.name;
+        const raw  = el.dataset.serverRaw || '';
+        // 表示側
+        el.value = raw === '' ? '' : formatComma(raw);
+        // hidden 側
+        const hidden = ensureHiddenFor(name);
+        if (hidden) hidden.value = raw;
+      });
+    };
+    // writeInt を利用する箇所が多いため、ロック済みは上書きしないガードを追加
     const writeInt = (name, value) => {
       const input = getInput(name);
       if (input) {
+        if (input.dataset && input.dataset.serverLock === '1') {
+          // ロック済みはサーバ値を優先
+          return;
+        }
         input.value = formatComma(value);
       }
     };
@@ -2290,6 +2512,7 @@
       recalcZeigakuGokeiAll();
       recalcTaxPipeline();
       recalcBunriKazeishotokuGroup();
+      enforceServerLocks();
     };
 
     // ====== ここが不足していると ReferenceError になります ======
@@ -2495,6 +2718,8 @@
 
     // 1) 画面読み込み直後にも強制同期（サーバ再計算後の再描画でも反映）
     bulkMirrorNow(kyuyoNenkinShotokuPairs);
+    // ロック再適用
+    enforceServerLocks();
 
     // 2) 再計算ボタン押下直前にも強制同期してから送信
     const formEl = document.getElementById('furusato-input-form');
@@ -2505,6 +2730,19 @@
       const namedInputs = Array.from(form.querySelectorAll('input[name]'))
         .filter(el => el.type === 'text' && el.name && !el.disabled);
       namedInputs.forEach((el) => {
+        // ★ ロック済みは name を外さない（hidden だけを最新rawに同期）
+        if (el.dataset && el.dataset.serverLock === '1') {
+          const raw = String(toInt(el.value));
+          let hidden = form.querySelector(`input[type="hidden"][name="${el.name}"]`);
+          if (!hidden) {
+            hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = el.name;
+            form.appendChild(hidden);
+          }
+          hidden.value = raw;
+          return; // ← name は保持
+        }
         const name = el.name;
         // 既存hiddenのクリーンアップ（重複防止）
         Array.from(form.querySelectorAll(`input[type="hidden"][name="${name}"]`)).forEach(h => h.remove());
@@ -2540,6 +2778,24 @@
       }
     });
 
+    // ─────────────────────────────────────────────────────
+    // ③ ロック対象をマーク（サーバ注入値を上書き不可にする）→ 初回再計算の“前”に実行すること！
+    //    ※ prev/curr 両方、所得税/住民税 両方
+    // ─────────────────────────────────────────────────────
+    (function markAllServerLocksBeforeRecalc() {
+      ['prev','curr'].forEach((p) => {
+        ['shotoku','jumin'].forEach((tax) => {
+          markServerLock(`shotoku_gokei_${tax}_${p}`);
+        });
+        ['tanki','choki'].forEach((kind) => {
+          ['shotoku','jumin'].forEach((tax) => {
+            markServerLock(`bunri_kazeishotoku_${kind}_${tax}_${p}`);
+          });
+        });
+      });
+      enforceServerLocks(); // ロック値を即時反映
+    })();
+
     if (formEl) {
       formEl.addEventListener('submit', (e) => {
         recalcShotokuGokei();
@@ -2555,6 +2811,7 @@
         recalcZeigakuGokeiAll();
         recalcTaxPipeline();
         recalcBunriKazeishotokuGroup();
+        enforceServerLocks();
         materializeHiddenNumericForSubmit(formEl);
         // 念のため送信直前にも孤立要素を hidden 化
         (function sanitizeOrphanTaxInputsOnSubmit() {

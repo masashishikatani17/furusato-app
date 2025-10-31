@@ -1584,6 +1584,37 @@
     } else {
       scrollToAnchor();
     }
+
+    // -------------------------------
+    // 孤立した数値入力（<td> 外に出たもの）を隠す
+    // -------------------------------
+    (function sanitizeOrphanTaxInputs() {
+      const formEl = document.getElementById('furusato-input-form');
+      if (!formEl) return;
+      // 画面表示させない対象（名前の接頭辞）
+      const mustBeHiddenPrefixes = [
+        'tax_kazeishotoku_', // 「課税所得金額又は第三表」行の各セル
+        'tax_zeigaku_',      // 税額
+      ];
+      // フィールド名が対象かを判定
+      const isTargetName = (name) => {
+        return mustBeHiddenPrefixes.some(pref => name && name.startsWith(pref));
+      };
+      // フォーム内の input を走査し、<td> の外にある対象は hidden 化
+      Array.from(formEl.querySelectorAll('input[name]')).forEach((el) => {
+        if (!(el instanceof HTMLInputElement)) return;
+        const name = el.getAttribute('name') || '';
+        if (!isTargetName(name)) return;
+        // テーブルセル内にいれば OK。セル外なら隠す。
+        const insideCell = !!el.closest('td');
+        if (!insideCell) {
+          el.type = 'hidden';
+          // 表示用クラスは意味がないので除去（誤表示防止）
+          el.classList.remove('bg-light', 'text-end');
+          // readonly は hidden では不要だが付いていても害はないためそのままでも可
+        }
+      });
+    })();
   });
 </script>
 <script>
@@ -2525,6 +2556,20 @@
         recalcTaxPipeline();
         recalcBunriKazeishotokuGroup();
         materializeHiddenNumericForSubmit(formEl);
+        // 念のため送信直前にも孤立要素を hidden 化
+        (function sanitizeOrphanTaxInputsOnSubmit() {
+          const mustBeHiddenPrefixes = ['tax_kazeishotoku_', 'tax_zeigaku_'];
+          const isTargetName = (name) => mustBeHiddenPrefixes.some(pref => name && name.startsWith(pref));
+          Array.from(formEl.querySelectorAll('input[name]')).forEach((el) => {
+            if (!(el instanceof HTMLInputElement)) return;
+            const name = el.getAttribute('name') || '';
+            if (!isTargetName(name)) return;
+            if (!el.closest('td')) {
+              el.type = 'hidden';
+              el.classList.remove('bg-light', 'text-end');
+            }
+          });
+        })();
         // 送信トリガーのボタンを判定（再計算以外でも同期しておくと安全）
         const submitter = (e.submitter && e.submitter instanceof Element) ? e.submitter : null;
         const isRecalc = submitter

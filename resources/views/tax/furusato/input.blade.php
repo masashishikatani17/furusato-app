@@ -29,13 +29,29 @@
      *  - bunri_kazeishotoku_*_* は bunri_joto_detail の合計欄を採用
      *  - いずれも old() が空のときに $inputs 値が使われる前提のため、ここで $inputs に投入しておく
      */
-    $inputs = $out['inputs'] ?? ($inputs ?? []);
+    $inputs = array_replace(($inputs ?? []), ($out['inputs'] ?? []));
+    $normalizeServerInt = static function ($value): int {
+        if ($value === null || $value === '') {
+            return 0;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value;
+        }
+
+        $normalized = preg_replace('/[^0-9\-]/u', '', (string) $value);
+        if ($normalized === '' || $normalized === '-') {
+            return 0;
+        }
+
+        return (int) $normalized;
+    };
     foreach (['prev', 'curr'] as $p) {
         // 総合課税の所得合計（第一表：経常 + 譲渡（短期・長期・一時））
-        $keijo = (int)($inputs["shotoku_keijo_{$p}"] ?? 0);
-        $tanki = (int)($inputs["shotoku_joto_tanki_sogo_{$p}"] ?? 0);
-        $choki = (int)($inputs["shotoku_joto_choki_sogo_{$p}"] ?? 0);
-        $ichiji = (int)($inputs["shotoku_ichiji_{$p}"] ?? 0);
+        $keijo = $normalizeServerInt($inputs["shotoku_keijo_{$p}"] ?? 0);
+        $tanki = $normalizeServerInt($inputs["shotoku_joto_tanki_sogo_{$p}"] ?? 0);
+        $choki = $normalizeServerInt($inputs["shotoku_joto_choki_sogo_{$p}"] ?? 0);
+        $ichiji = $normalizeServerInt($inputs["shotoku_ichiji_{$p}"] ?? 0);
         $gokei = $keijo + $tanki + $choki + $ichiji;
 
         // 所得税・住民税とも同じ合計を表示
@@ -43,8 +59,8 @@
         $inputs["shotoku_gokei_jumin_{$p}"]   = $gokei;
 
         // 分離：短期・長期の課税所得（= 内訳画面の合計欄）
-        $tankiGokei = (int)($inputs["joto_shotoku_tanki_gokei_{$p}"] ?? 0); // from bunri_joto_detail
-        $chokiGokei = (int)($inputs["joto_shotoku_choki_gokei_{$p}"] ?? 0); // from bunri_joto_detail
+        $tankiGokei = $normalizeServerInt($inputs["joto_shotoku_tanki_gokei_{$p}"] ?? 0); // from bunri_joto_detail
+        $chokiGokei = $normalizeServerInt($inputs["joto_shotoku_choki_gokei_{$p}"] ?? 0); // from bunri_joto_detail
 
         $inputs["bunri_kazeishotoku_tanki_shotoku_{$p}"] = $tankiGokei;
         $inputs["bunri_kazeishotoku_tanki_jumin_{$p}"]   = $tankiGokei;
@@ -317,6 +333,22 @@
 
                 return $html;
             };
+            $normalizeInt = static function ($value): int {
+                if ($value === null || $value === '') {
+                    return 0;
+                }
+
+                if (is_numeric($value)) {
+                    return (int) $value;
+                }
+
+                $normalized = preg_replace('/[^0-9\-]/u', '', (string) $value);
+                if ($normalized === '' || $normalized === '-') {
+                    return 0;
+                }
+
+                return (int) $normalized;
+            };
             $renderReadonlyBunriKazeishotoku = static function (string $base) use ($inputs) {
                 $html = '';
                 foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -328,6 +360,12 @@
                 }
 
                 return $html;
+            };
+            $renderServerLockedInput = static function (string $name, int $raw, string $class = 'form-control form-control-compact-05 text-end js-comma bg-light') use ($normalizeInt): string {
+                $raw = $normalizeInt($raw);
+                $display = number_format($raw);
+
+                return '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($display) . '" readonly data-server-lock="1" data-server-raw="' . e((string) $raw) . '"></td>';
             };
             $syunyuRowspan = 11;
             $shotokuRowspan = 11;
@@ -566,7 +604,15 @@
                 <tr>
                   <th colspan="3" class="align-middle th-cream">合  計</th>
                   <td colspan="2" class="text-center align-middle"></td>
-                  {!! $renderInputs('shotoku_gokei') !!}
+                  @php
+                    foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
+                        foreach ($periods as $period) {
+                            $name = sprintf('shotoku_gokei_%s_%s', $tax, $period);
+                            $raw = $normalizeInt($inputs[$name] ?? 0);
+                            echo $renderServerLockedInput($name, $raw, 'form-control form-control-compact-05-compact-05 text-end js-comma bg-light');
+                        }
+                    }
+                  @endphp
                 </tr>
                 <tr>
                   <th scope="rowgroup" rowspan="{{ $kojoRowspan }}" class="text-center align-middle th-ccc" nowrap="nowrap">所得から差し<br>引かれる金額</th>

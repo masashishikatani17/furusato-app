@@ -1181,7 +1181,16 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_tanki') !!}
+                          @php
+                            foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
+                                foreach ($periods as $period) {
+                                    $name = sprintf('bunri_kazeishotoku_tanki_%s_%s', $tax, $period);
+                                    $sourceKey = sprintf('joto_shotoku_tanki_gokei_%s', $period);
+                                    $raw = $normalizeInt($inputs[$sourceKey] ?? ($inputs[$name] ?? 0));
+                                    echo $renderServerLockedInput($name, $raw);
+                                }
+                            }
+                          @endphp
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">長期譲渡</th>
@@ -1189,7 +1198,16 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_choki') !!}
+                          @php
+                            foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
+                                foreach ($periods as $period) {
+                                    $name = sprintf('bunri_kazeishotoku_choki_%s_%s', $tax, $period);
+                                    $sourceKey = sprintf('joto_shotoku_choki_gokei_%s', $period);
+                                    $raw = $normalizeInt($inputs[$sourceKey] ?? ($inputs[$name] ?? 0));
+                                    echo $renderServerLockedInput($name, $raw);
+                                }
+                            }
+                          @endphp
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 pe-1 th-ddd" nowrap="nowrap">一般・上場株式の譲渡</th>
@@ -1905,7 +1923,7 @@
     // 画面は常にカンマ付きで表示
     const formatComma = (n) => new Intl.NumberFormat('ja-JP').format(toInt(n));
     // ② サーバから注入された値を「ロック」し、再計算による上書きを防ぐ仕組み
-    //    - markServerLock(name) で data-server-lock と data-server-raw を付与
+    //    - Blade 側で data-server-lock/data-server-raw を設定済み
     //    - enforceServerLocks() で表示値/hidden を常にサーバ値へ戻す
     const ensureHiddenFor = (name) => {
       const form = document.getElementById('furusato-input-form');
@@ -1918,17 +1936,6 @@
         form.appendChild(hidden);
       }
       return hidden;
-    };
-    const markServerLock = (name) => {
-      const el = getInput(name);
-      if (!el) return;
-      const raw = String(toInt(el.value));
-      el.dataset.serverLock = '1';
-      el.dataset.serverRaw = raw; // カンマ無し整数を保持
-      el.readOnly = true;
-      el.classList.add('bg-light','text-end');
-      const hidden = ensureHiddenFor(name);
-      if (hidden) hidden.value = raw;
     };
     const enforceServerLocks = () => {
       const form = document.getElementById('furusato-input-form');

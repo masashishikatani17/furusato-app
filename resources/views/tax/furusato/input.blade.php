@@ -1567,6 +1567,37 @@
       const raw = toRawInt(input.value ?? '');
       hidden.value = raw;
     });
+    // 所得税側の入力を住民税側へミラー（読み取り専用で表示）
+    //  - kojo_shakaihoken_shotoku_prev → kojo_shakaihoken_jumin_prev（readonly）
+    //  - kojo_shokibo_shotoku_prev     → kojo_shokibo_jumin_prev（readonly）
+    (function mirrorKojoShotokuToJuminPrev() {
+      const pairs = [
+        ['kojo_shakaihoken_shotoku_prev', 'kojo_shakaihoken_jumin_prev'],
+        ['kojo_shokibo_shotoku_prev',     'kojo_shokibo_jumin_prev'],
+      ];
+      const toInt = (v) => {
+        const s = String(v ?? '').replace(/,/g,'').trim();
+        if (s === '' || s === '-' || !/^-?\d+$/.test(s)) return 0;
+        return parseInt(s, 10);
+      };
+      const fmt = (n) => new Intl.NumberFormat('ja-JP').format(toInt(n));
+      const get = (name) => document.querySelector(`[name="${name}"]`);
+      const makeReadonly = (el) => { if (!el) return; el.readOnly = true; el.classList.add('bg-light','text-end'); };
+      const syncOne = (src, dst) => {
+        const s = get(src), d = get(dst);
+        if (!s || !d) return;
+        d.value = fmt(s.value);
+        makeReadonly(d);
+      };
+      // 初期同期
+      pairs.forEach(([src, dst]) => syncOne(src, dst));
+      // blur/入力時にも随時同期
+      pairs.forEach(([src, dst]) => {
+        const s = get(src);
+        if (!s) return;
+        ['input','blur','change'].forEach(ev => s.addEventListener(ev, () => syncOne(src, dst)));
+      });
+    })();
   });
 </script>
 @endpush
@@ -2790,12 +2821,27 @@
       // 雑（公的年金等：所得金額）
       ['shotoku_zatsu_nenkin_shotoku_prev', 'shotoku_zatsu_nenkin_jumin_prev'],
       ['shotoku_zatsu_nenkin_shotoku_curr', 'shotoku_zatsu_nenkin_jumin_curr'],
+      // 社保・小規模：所得税 → 住民税（読み取り専用でミラー）
+      ['kojo_shakaihoken_shotoku_prev',     'kojo_shakaihoken_jumin_prev'],
+      ['kojo_shakaihoken_shotoku_curr',     'kojo_shakaihoken_jumin_curr'],
+      ['kojo_shokibo_shotoku_prev',         'kojo_shokibo_jumin_prev'],
+      ['kojo_shokibo_shotoku_curr',         'kojo_shokibo_jumin_curr'],
+    ];
+
+    // 社会保険料／小規模共済（prev）のみを個別に同期したい場合のペア（※配列外で宣言）
+    const kojoMirrorPrevPairs = [
+      ['kojo_shakaihoken_shotoku_prev','kojo_shakaihoken_jumin_prev'],
+      ['kojo_shokibo_shotoku_prev',    'kojo_shokibo_jumin_prev'],
     ];
 
     // 1) 画面読み込み直後にも強制同期（サーバ再計算後の再描画でも反映）
     bulkMirrorNow(kyuyoNenkinShotokuPairs);
+    bulkMirrorNow(kojoMirrorPrevPairs);
     // ロック再適用
     enforceServerLocks();
+    // 社保・小規模の住民税側は常に読み取り専用で表示固定
+    ['kojo_shakaihoken_jumin_prev','kojo_shakaihoken_jumin_curr','kojo_shokibo_jumin_prev','kojo_shokibo_jumin_curr']
+      .forEach(makeReadonlyNumber);
 
     // 2) 再計算ボタン押下直前にも強制同期してから送信
     const formEl = document.getElementById('furusato-input-form');
@@ -2893,6 +2939,7 @@
           : false;
         // 再計算に限らず常に同期しておく（保存でもズレを防止）
         bulkMirrorNow(kyuyoNenkinShotokuPairs);
+        bulkMirrorNow(kojoMirrorPrevPairs);
       });
     }
 
@@ -2910,7 +2957,10 @@
     mirrorOnBlur('shotoku_kyuyo_shotoku_prev',        'shotoku_kyuyo_jumin_prev');         // 給与
     mirrorOnBlur('shotoku_zatsu_nenkin_shotoku_prev', 'shotoku_zatsu_nenkin_jumin_prev');  // 公的年金等
     mirrorOnBlur('shotoku_zatsu_gyomu_shotoku_prev',  'shotoku_zatsu_gyomu_jumin_prev');
-    mirrorOnBlur('shotoku_zatsu_sonota_shotoku_prev', 'shotoku_zatsu_sonota_jumin_prev');    
+    mirrorOnBlur('shotoku_zatsu_sonota_shotoku_prev', 'shotoku_zatsu_sonota_jumin_prev');
+    // 社保・小規模（prev）
+    mirrorOnBlur('kojo_shakaihoken_shotoku_prev',     'kojo_shakaihoken_jumin_prev');
+    mirrorOnBlur('kojo_shokibo_shotoku_prev',         'kojo_shokibo_jumin_prev');
 
     // 収入（金額等）系：所得税→住民税（curr）
     mirrorOnBlur('syunyu_jigyo_nogyo_shotoku_curr',  'syunyu_jigyo_nogyo_jumin_curr');
@@ -2928,6 +2978,10 @@
     mirrorOnBlur('shotoku_zatsu_nenkin_shotoku_curr', 'shotoku_zatsu_nenkin_jumin_curr');  // 公的年金等
     mirrorOnBlur('shotoku_zatsu_gyomu_shotoku_curr',  'shotoku_zatsu_gyomu_jumin_curr');
     mirrorOnBlur('shotoku_zatsu_sonota_shotoku_curr', 'shotoku_zatsu_sonota_jumin_curr');
+    // 社保・小規模（curr）
+    mirrorOnBlur('kojo_shakaihoken_shotoku_curr',     'kojo_shakaihoken_jumin_curr');
+    mirrorOnBlur('kojo_shokibo_shotoku_curr',         'kojo_shokibo_jumin_curr');
   });
 </script>
 @endpush
+

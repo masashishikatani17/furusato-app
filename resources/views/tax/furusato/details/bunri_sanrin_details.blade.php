@@ -47,7 +47,6 @@
                   <th style="height:30px;">収入金額</th>
                   <th>必要経費</th>
                   <th>差引金額</th>
-                  <th>損益通算後</th>
                   <th>特別控除額</th>
                   <th>山林所得金額</th>
                 </tr>
@@ -69,13 +68,6 @@
                            value="{{ old($name, $inputs[$name] ?? null) }}">
                   </td>
                   @php($name = 'sashihiki_sanrin_' . $period)
-                  <td>
-                    <input type="text" inputmode="numeric" autocomplete="off"
-                           data-format="comma-int" data-name="{{ $name }}"
-                           class="form-control suji11 text-end bg-light"
-                           value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
-                  </td>
-                  @php($name = 'after_3jitsusan_sanrin_' . $period)
                   <td>
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
@@ -227,13 +219,18 @@ document.addEventListener('DOMContentLoaded', function () {
   const periods = ['prev', 'curr'];
 
   const recalc = (period) => {
-    const syunyu = getIntValue(`syunyu_sanrin_${period}`);
-    const keihi = getIntValue(`keihi_sanrin_${period}`);
-    setValue(`sashihiki_sanrin_${period}`, syunyu - keihi);
+    // 差引＝収入−経費（小数点以下は切り捨てのみ／千円丸めはここではしない）
+    const syunyu = Math.trunc(Number(getIntValue(`syunyu_sanrin_${period}`)));
+    const keihi  = Math.trunc(Number(getIntValue(`keihi_sanrin_${period}`)));
+    const sashihiki = Math.trunc(syunyu - keihi);
+    setValue(`sashihiki_sanrin_${period}`, sashihiki);
 
-    const tsusanAfter = getIntValue(`after_3jitsusan_sanrin_${period}`);
-    const tokubetsu = getIntValue(`tokubetsukojo_sanrin_${period}`);
-    setValue(`shotoku_sanrin_${period}`, tsusanAfter - tokubetsu);
+    // 特別控除＝min(500,000, max(0, 差引))（小数点以下切捨）
+    const tokubetsu = Math.trunc(Math.min(500000, Math.max(0, sashihiki)));
+    setValue(`tokubetsukojo_sanrin_${period}`, tokubetsu);
+
+    // 「山林所得金額」はここでは算出しない（= after_3 の最終値をサーバ側/全体再計算で反映させる）
+    // setValue(`shotoku_sanrin_${period}`, ...) は行わない
   };
 
   const inputs = document.querySelectorAll('[data-format="comma-int"]');

@@ -138,10 +138,14 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         $after1Short = (int) ($stAfter - $useFromSt);
         $after1Long = (int) ($ltAfter - $useFromLt);
         $after1Ichiji = (int) max(0, $itAfter - $useFromIt);
-        $after1Forest = $this->valueWithAliases($payload, [
-            sprintf('sashihiki_sanrin_%s', $period),
-            sprintf('bunri_shotoku_sanrin_shotoku_%s', $period),
-        ]);
+        /**
+         * 山林の第1次通算 after_1 は「差引金額 − 特別控除額」を起点にする
+         *  - 小数点以下は切り捨て（floor）、負になれば 0
+         *  - 千円未満切捨てはここでは行わない（課税所得金額の算出段階でのみ）
+         */
+        $sashihikiRaw = $this->fvalue($payload, sprintf('sashihiki_sanrin_%s', $period));
+        $tokubetsuRaw = $this->fvalue($payload, sprintf('tokubetsukojo_sanrin_%s', $period));
+        $after1Forest = (int) max(0, floor($sashihikiRaw) - floor($tokubetsuRaw));
 
         [$after2Econ, $after2Short, $after2Long, $after2Forest, $after2Ichiji] = $this->netWithForest(
             $after1Econ,
@@ -355,6 +359,29 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         }
 
         return 0;
+    }
+    /**
+     * 小数点以下切り捨て判定用に float で値を取得する（カンマ・空白除去）
+     */
+    private function fvalue(array $payload, string $key): float
+    {
+        if (!array_key_exists($key, $payload)) {
+            return 0.0;
+        }
+        $value = $payload[$key];
+        if (is_string($value)) {
+            $value = str_replace([',', ' '], '', $value);
+        }
+        if (is_int($value)) {
+            return (float) $value;
+        }
+        if (is_float($value)) {
+            return $value;
+        }
+        if (is_numeric($value)) {
+            return (float) $value;
+        }
+        return 0.0;
     }
 
     private function half(int $value): int

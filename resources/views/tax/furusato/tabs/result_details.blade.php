@@ -1100,11 +1100,19 @@
                 <th colspan="3" class="text-start ps-1">山林</th>
                 <td colspan="2" class="text-center">⇒</td>
                 <td class="text-end">
+                  @php
+                    // after_1 = 差引金額 − 特別控除額（小数点以下切捨て、千円丸めはしない）
+                    $rawSashihiki = str_replace(',', '', (string)$readonlyValue('sashihiki_sanrin_' . $suffix));
+                    $rawTokubetsu = str_replace(',', '', (string)$readonlyValue('tokubetsukojo_sanrin_' . $suffix));
+                    $numSashihiki = is_numeric($rawSashihiki) ? (int) floor((float)$rawSashihiki) : 0;
+                    $numTokubetsu = is_numeric($rawTokubetsu) ? (int) floor((float)$rawTokubetsu) : 0;
+                    $after1Calc   = $numSashihiki - $numTokubetsu;
+                  @endphp
                   <input type="text"
                          readonly
                          name="after_1jitsusan_sanrin_{{ $suffix }}"
                          class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('after_1jitsusan_sanrin_' . $suffix) }}">
+                         value="{{ number_format($after1Calc) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
@@ -1122,11 +1130,15 @@
                 </td>
                 <td class="text-end">
                   @php
-                    //  山林は必ず「損益通算後（shotoku_sanrin_*)」を最優先で表示・出力
+                    // 最終「山林所得金額」＝ 損益通算後（after_3）と同値を表示
+                    //   1) after_3（表示セルと同一の readonly 値）を最優先
+                    //   2) inputs の shotoku_sanrin_*（after_3 と同値で供給される）
+                    //   3) resultsUpper 等のフォールバック
                     $valSanrin = $firstNumber([
+                      $readonlyValue('after_3jitsusan_sanrin_' . $suffix),
                       $inputs['shotoku_sanrin_' . $suffix] ?? null,
                       $resultsUpper['shotoku_sanrin_' . $suffix] ?? null,
-                      $prevDetails['shotoku_sanrin_' . $suffix] ?? null, // 念のため
+                      $prevDetails['shotoku_sanrin_' . $suffix] ?? null,
                     ]);
                     $valSanrinDisp = $valSanrin === null ? '' : number_format((int)$valSanrin);
                   @endphp
@@ -1156,8 +1168,12 @@
                 </td>
                 <td class="text-end">
                   @php
-                    //  退職も必ず「損益通算後（shotoku_taishoku_*)」を最優先で表示・出力
+                    // 最終「退職所得金額」＝ 損益通算後（after_3）と同値を表示
+                    //   1) after_3（表示セルと同一の readonly 値）を最優先
+                    //   2) inputs の shotoku_taishoku_*（after_3 と同値で供給される）
+                    //   3) resultsUpper / prevDetails をフォールバック
                     $valTaishoku = $firstNumber([
+                      $readonlyValue('after_3jitsusan_taishoku_' . $suffix),
                       $inputs['shotoku_taishoku_' . $suffix] ?? null,
                       $resultsUpper['shotoku_taishoku_' . $suffix] ?? null,
                       $prevDetails['shotoku_taishoku_' . $suffix] ?? null,

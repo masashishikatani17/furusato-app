@@ -126,6 +126,10 @@
                 $inputs["bunri_kazeishotoku_tanki_jumin_{$p}"]   = $tankiGokei;
                 $inputs["bunri_kazeishotoku_choki_shotoku_{$p}"] = $chokiGokei;
                 $inputs["bunri_kazeishotoku_choki_jumin_{$p}"]   = $chokiGokei;
+                // 山林（所得金額・表示）：最終損益通算値（result_details の shotoku_sanrin_* = after_3）を第三表の表示欄へミラー
+                $sanrinFinal = $normalizeServerInt($inputs["shotoku_sanrin_{$p}"] ?? 0);
+                $inputs["bunri_shotoku_sanrin_shotoku_{$p}"] = $sanrinFinal;
+                $inputs["bunri_shotoku_sanrin_jumin_{$p}"]   = $sanrinFinal;
             }
             $warekiPrevLabel = $warekiPrev ?? '前年';
             $warekiCurrLabel = $warekiCurr ?? '当年';
@@ -2090,6 +2094,17 @@
         makeReadonlyNumber(dstShotoku);
       });
     }
+    // 山林の「所得金額（表示）」は“損益通算後の最終値（result_details の shotoku_sanrin_*）”をミラーする
+    function mirrorSanrinShotokuDisplay() {
+      ['prev', 'curr'].forEach((period) => {
+        const finalSanrin = readInt(`shotoku_sanrin_${period}`); // = after_3 と同値が供給される前提
+        // 表示用（分離・所得金額）にそのまま反映（丸めなし）
+        writeInt(`bunri_shotoku_sanrin_shotoku_${period}`, finalSanrin);
+        writeInt(`bunri_shotoku_sanrin_jumin_${period}`,  finalSanrin);
+        makeReadonlyNumber(`bunri_shotoku_sanrin_shotoku_${period}`);
+        makeReadonlyNumber(`bunri_shotoku_sanrin_jumin_${period}`);
+      });
+    }
 
     const floorToThousands = (x) => {
       const n = Math.trunc(Number(x) || 0);
@@ -2448,20 +2463,28 @@
           const taishokuA = read('bunri_shotoku_taishoku');   // 退職
 
           if (tax === 'shotoku') {
-            // 所得税は「総合→（残）山林→退職」だけ調整（従来どおり）
-            write('bunri_kazeishotoku_tanki',  floorToThousandsSigned(tanki));
-            write('bunri_kazeishotoku_choki',  floorToThousandsSigned(choki));
-            write('bunri_kazeishotoku_joto',   floorToThousandsSigned(kabuIppan + kabuJojo));
-            write('bunri_kazeishotoku_haito',  floorToThousandsSigned(haito));
-            write('bunri_kazeishotoku_sakimono', floorToThousandsSigned(sakimono));
+            // 所得税の控除配賦順：総合 → 山林 → 退職（千円切捨ては課税所得金額の確定時のみ）
+            // まず分離「表示系」はそのまま（短期/長期/配当/一般・上場株式/先物）
+            write('bunri_kazeishotoku_tanki',     floorToThousandsSigned(tanki));
+            write('bunri_kazeishotoku_choki',     floorToThousandsSigned(choki));
+            write('bunri_kazeishotoku_joto',      floorToThousandsSigned(kabuIppan + kabuJojo));
+            write('bunri_kazeishotoku_haito',     floorToThousandsSigned(haito));
+            write('bunri_kazeishotoku_sakimono',  floorToThousandsSigned(sakimono));
 
-            const kojo = read('kojo_gokei');
-            const sogo = read('bunri_sogo_gokeigaku');
-            const sanAdj = Math.max(0, kojo - sogo);
-            write('bunri_kazeishotoku_sanrin',   floorToThousandsSigned(Math.max(0, sanrinA   - sanAdj)));
+            // 総合に充当した後の控除残
+            const kojoTotal = read('kojo_gokei');
+            const sogoTotal = read('bunri_sogo_gokeigaku');
+            const residualAfterSogo = Math.max(0, kojoTotal - sogoTotal);
 
-            const taAdj = Math.max(0, kojo - sogo - Math.max(0, sanrinA - sanAdj));
-            write('bunri_kazeishotoku_taishoku', floorToThousandsSigned(Math.max(0, taishokuA - taAdj)));
+            // 山林（after_3 と同値の表示値 sanrinA）にまず充当
+            const sanrinConsumed = Math.min(residualAfterSogo, Math.max(0, sanrinA));
+            const sanrinTaxable  = Math.max(0, sanrinA - residualAfterSogo);
+            write('bunri_kazeishotoku_sanrin', floorToThousandsSigned(sanrinTaxable));
+
+            // 残りを退職へ
+            const residualAfterSanrin = Math.max(0, residualAfterSogo - sanrinConsumed);
+            const taishokuTaxable     = Math.max(0, taishokuA - residualAfterSanrin);
+            write('bunri_kazeishotoku_taishoku', floorToThousandsSigned(taishokuTaxable));
             return;
           }
 
@@ -2560,6 +2583,7 @@
       recalcTaxableSogo();
       recalcBunriSogoMirror();
       mirrorRetirementToJumin();
+      mirrorSanrinShotokuDisplay();
       recalcBunriSashihikiGokei();
       recalcBunriKazeishotokuSogo();
       recalcShotokuTaxFromMaster();
@@ -2837,6 +2861,7 @@
         recalcTaxableSogo();
         recalcBunriSogoMirror();
         mirrorRetirementToJumin();
+        mirrorSanrinShotokuDisplay();
         recalcBunriSashihikiGokei();
         recalcBunriKazeishotokuSogo();
         recalcShotokuTaxFromMaster();

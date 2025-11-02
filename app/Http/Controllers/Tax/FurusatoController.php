@@ -331,6 +331,14 @@ final class FurusatoController extends Controller
                 $kazeiSogoJumin = (int) ($previewPayload["kazeisoushotoku_{$period}"] ?? 0);
                 $previewPayload["tax_kazeishotoku_jumin_{$period}"] = $floorToThousands($kazeiSogoJumin);
             }
+            /**
+             * 表示用の最終値（第三表「所得金額」）は after_3（損益通算後の最終）を唯一のソースに統一
+             *   - 山林:  after_3jitsusan_sanrin_*   → shotoku_sanrin_*
+             *   - 退職:  after_3jitsusan_taishoku_* → shotoku_taishoku_*
+             *   ※ 以降の buildInputsForView では shotoku_* をそのまま第三表「所得金額」にミラーする
+             */
+            $previewPayload["shotoku_sanrin_{$period}"]   = (int) ($previewPayload["after_3jitsusan_sanrin_{$period}"] ?? 0);
+            $previewPayload["shotoku_taishoku_{$period}"] = (int) ($previewPayload["after_3jitsusan_taishoku_{$period}"] ?? 0);
         }
 
         foreach (['prev', 'curr'] as $period) {
@@ -687,7 +695,20 @@ final class FurusatoController extends Controller
 
                 $inputsForView[$bunriShotokuKey] = $separatedSum;
                 $inputsForView[$bunriJuminKey] = $separatedSum;
-
+                // 分離ONでも、after_3 から転記済みの shotoku_* をビュー側に必ず橋渡しする
+                //    （この値を第三表「退職／山林の所得金額」表示としてそのまま使う）
+                $assign(
+                    sprintf('shotoku_sanrin_%s', $period),
+                    [sprintf('shotoku_sanrin_%s', $period)],
+                    null,
+                    true  // previewOnly: payload/upper を優先
+                );
+                $assign(
+                    sprintf('shotoku_taishoku_%s', $period),
+                    [sprintf('shotoku_taishoku_%s', $period)],
+                    null,
+                    true
+                );
                 if (config('app.furusato_mirror_fallback')) {
                     $kojoShotoku = $this->valueOrZero($lookup([sprintf('kojo_gokei_shotoku_%s', $period)]));
                     $kojoJumin = $this->valueOrZero($lookup([sprintf('kojo_gokei_jumin_%s', $period)]));

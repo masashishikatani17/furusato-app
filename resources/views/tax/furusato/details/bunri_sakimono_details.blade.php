@@ -8,6 +8,8 @@
     $inputs = $out['inputs'] ?? [];
     $warekiPrevLabel = $warekiPrev ?? '前年';
     $warekiCurrLabel = $warekiCurr ?? '当年';
+    $bunriPrevOff = (int)($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0;
+    $bunriCurrOff = (int)($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0;
     $originTabRaw = request()->input('origin_tab', 'input');
     $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
@@ -42,6 +44,7 @@
 
         @foreach (['prev' => $warekiPrevLabel, 'curr' => $warekiCurrLabel] as $period => $label)
           <div class="fw-bold ms-2 mb-1">{{ $label }}</div>
+          @php $off = ($period === 'prev') ? $bunriPrevOff : $bunriCurrOff; @endphp
           <div class="table-responsive mb-2">
             <table class="table-base table-bordered align-middle text-center">
               <thead>
@@ -57,23 +60,68 @@
                 <tr>
                   @php($name = 'syunyu_sakimono_' . $period)
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    @if($off)
+                      <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                      <input type="hidden" name="{{ $name }}" value="0">
+                    @else
+                      <input type="number" min="0" step="1" 
+                             class="form-control suji11 text-end" 
+                             data-name="{{ $name }}" 
+                             value="{{ old($name, $inputs[$name] ?? null) }}">
+                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    @endif
                   </td>
                   @php($name = 'keihi_sakimono_' . $period)
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    @if($off)
+                      <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                      <input type="hidden" name="{{ $name }}" value="0">
+                    @else
+                      <input type="number" min="0" step="1" 
+                             class="form-control suji11 text-end" 
+                             data-name="{{ $name }}"
+                             value="{{ old($name, $inputs[$name] ?? null) }}">
+                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    @endif
                   </td>
                   @php($name = 'shotoku_sakimono_' . $period)
                   <td>
-                    <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    @if($off)
+                      <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                      <input type="hidden" name="{{ $name }}" value="0">
+                    @else
+                      <input type="number" step="1"
+                             class="form-control suji11 text-end bg-light" 
+                             data-name="{{ $name }}" 
+                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    @endif
                   </td>
                   @php($name = 'kurikoshi_sakimono_' . $period)
                   <td>
-                    <input type="number" min="0" step="1" class="form-control suji11 text-end" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    @if($off)
+                      <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                      <input type="hidden" name="{{ $name }}" value="0">
+                    @else
+                      <input type="number" min="0" step="1"
+                             class="form-control suji11 text-end"
+                             data-name="{{ $name }}" 
+                             value="{{ old($name, $inputs[$name] ?? null) }}">
+                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    @endif
                   </td>
                   @php($name = 'shotoku_sakimono_after_kurikoshi_' . $period)
                   <td>
-                    <input type="number" step="1" class="form-control suji11 text-end bg-light" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                    @if($off)
+                      <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                      <input type="hidden" name="{{ $name }}" value="0">
+                    @else
+                      <input type="number" step="1" 
+                             class="form-control suji11 text-end bg-light" 
+                             data-name="{{ $name }}" 
+                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                    @endif
                   </td>
                 </tr>
               </tbody>

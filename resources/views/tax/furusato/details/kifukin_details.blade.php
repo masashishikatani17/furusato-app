@@ -107,6 +107,7 @@
           <input type="hidden" name="recalc_all" value="1">
           <input type="hidden" name="origin_tab" value="{{ $originTab }}">
           <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
+          <input type="hidden" name="stay_on_details" id="stay-on-details-flag" value="0">
       
           <div class="table-responsive mb-4">
             <table class="table-base table-bordered align-middle text-start ms-2">
@@ -206,11 +207,10 @@
           <p class="p-small">(※) 都道府県、市区町村が条例で指定したものに限る。</p>
           <hr>
             <div class="text-end me-2 mb-2">
-            <button type="submit" class="btn btn-base-blue me-2">戻 る</button>
+            <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
             <button type="submit"
-                    class="btn btn-base-green ms-2"
-                    name="stay_on_details"
-                    value="1"
+                    class="btn-base-green ms-2"
+                    id="btn-recalc"
                     data-disable-on-submit>再計算</button>
             </div>
         </form>
@@ -222,6 +222,27 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  // ===== stay_on_details フラグの確実送信（プログラム submit でも失われないように） =====
+  (function ensureStayFlag() {
+    const form = document.querySelector('form');
+    if (!form) return;
+    const stayFlag = form.querySelector('#stay-on-details-flag');
+    const btnBack = form.querySelector('#btn-back');
+    const btnRecalc = form.querySelector('#btn-recalc');
+
+    if (btnBack) {
+      btnBack.addEventListener('click', () => { if (stayFlag) stayFlag.value = '0'; });
+    }
+    if (btnRecalc) {
+      btnRecalc.addEventListener('click', () => { if (stayFlag) stayFlag.value = '1'; });
+    }
+    // 念のため submit 直前にも最終補正（submitterが失われても安全）
+    form.addEventListener('submit', () => {
+      if (!stayFlag || (stayFlag.value !== '0' && stayFlag.value !== '1')) {
+        stayFlag.value = '0';
+      }
+    });
+  })();
   // ===== 3桁カンマ表示 + hidden数値POST =====
   const toRawInt = (value) => {
     if (typeof value !== 'string') return '';

@@ -33,6 +33,7 @@
         <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
         <input type="hidden" name="redirect_to" value="input">
         <input type="hidden" name="recalc_all" value="1">
+        <input type="hidden" name="stay_on_details" id="stay-on-details-flag" value="0">
 
         @if ($errors->any())
           <div class="alert alert-danger">
@@ -118,11 +119,10 @@
         @endforeach
         <hr>
         <div class="text-end me-2 mb-3">
-          <button type="submit" class="btn btn-base-blue me-2">入力画面へ戻る</button>
+          <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
           <button type="submit"
-                  class="btn btn-base-green"
-                  name="stay_on_details"
-                  value="1"
+                  class="btn-base-green ms-2"
+                  id="btn-recalc"
                   data-disable-on-submit>再計算</button>
         </div>
       </form>
@@ -134,6 +134,27 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+  // ===== stay_on_details フラグの確実送信（プログラム submit でも失われないように） =====
+  (function ensureStayFlag() {
+    const form = document.querySelector('form');
+    if (!form) return;
+    const stayFlag = form.querySelector('#stay-on-details-flag');
+    const btnBack = form.querySelector('#btn-back');
+    const btnRecalc = form.querySelector('#btn-recalc');
+
+    if (btnBack) {
+      btnBack.addEventListener('click', () => { if (stayFlag) stayFlag.value = '0'; });
+    }
+    if (btnRecalc) {
+      btnRecalc.addEventListener('click', () => { if (stayFlag) stayFlag.value = '1'; });
+    }
+    // 念のため submit 直前にも最終補正（submitterが失われても安全）
+    form.addEventListener('submit', () => {
+      if (!stayFlag || (stayFlag.value !== '0' && stayFlag.value !== '1')) {
+        stayFlag.value = '0';
+      }
+    });
+  })();
   // ===== カンマ整形 + hidden 連携（表示は常に3桁カンマ、POSTは数値のみ）=====
   const toRawInt = (value) => {
     if (typeof value !== 'string') return '';

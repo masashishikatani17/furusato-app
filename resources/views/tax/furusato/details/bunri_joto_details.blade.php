@@ -8,6 +8,8 @@
     $inputs = $out['inputs'] ?? [];
     $warekiPrevLabel = $warekiPrev ?? '前年';
     $warekiCurrLabel = $warekiCurr ?? '当年';
+    $bunriPrevOff = (int)($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0;
+    $bunriCurrOff = (int)($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0;
     $originTabRaw = request()->input('origin_tab', 'input');
     $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
@@ -61,6 +63,7 @@
 
         @foreach (['prev' => $warekiPrevLabel, 'curr' => $warekiCurrLabel] as $period => $label)
           <div class="fw-bold mb-1">{{ $label }}</div>
+          @php $off = ($period === 'prev') ? $bunriPrevOff : $bunriCurrOff; @endphp
           <div class="table-responsive mb-2">
             <table class="table-base table-bordered align-middle text-center">
               <thead>
@@ -87,53 +90,88 @@
                       @php($base = $row['key'] . '_' . $period)
                       @php($name = 'syunyu_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
-                               class="form-control suji11 text-end"
-                               value="{{ old($name, $inputs[$name] ?? null) }}">
+                        @if($off)
+                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                          <input type="hidden" name="{{ $name }}" value="0">
+                        @else
+                          <input type="text" inputmode="numeric" autocomplete="off"
+                                 data-format="comma-int" data-name="{{ $name }}"
+                                 class="form-control suji11 text-end"
+                                 value="{{ old($name, $inputs[$name] ?? null) }}">
+                        @endif
                       </td>
                       @php($name = 'keihi_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
-                               class="form-control suji11 text-end"
-                               value="{{ old($name, $inputs[$name] ?? null) }}">
+                        @if($off)
+                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                          <input type="hidden" name="{{ $name }}" value="0">
+                        @else
+                          <input type="text" inputmode="numeric" autocomplete="off"
+                                 data-format="comma-int" data-name="{{ $name }}"
+                                 class="form-control suji11 text-end"
+                                 value="{{ old($name, $inputs[$name] ?? null) }}">
+                        @endif
                       </td>
                       @php($name = 'before_tsusan_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
-                               class="form-control suji11 text-end bg-light"
-                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        @if($off)
+                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                          <input type="hidden" name="{{ $name }}" value="0">
+                        @else
+                          <input type="text" inputmode="numeric" autocomplete="off"
+                                 data-format="comma-int" data-name="{{ $name }}"
+                                 class="form-control suji11 text-end bg-light"
+                                 value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        @endif
                       </td>
                       @php($name = 'tsusango_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
-                               class="form-control suji11 text-end bg-light"
-                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        @if($off)
+                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                          <input type="hidden" name="{{ $name }}" value="0">
+                        @else
+                          <input type="text" inputmode="numeric" autocomplete="off"
+                                 data-format="comma-int" data-name="{{ $name }}"
+                                 class="form-control suji11 text-end bg-light"
+                                 value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        @endif
                       </td>
                       @php($name = 'tokubetsukojo_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
-                               class="form-control suji8 text-end"
-                               value="{{ old($name, $inputs[$name] ?? null) }}">
+                        @if($off)
+                          <input type="text" class="form-control suji8 text-center bg-light" readonly value="－">
+                          <input type="hidden" name="{{ $name }}" value="0">
+                        @else
+                          <input type="text" inputmode="numeric" autocomplete="off"
+                                 data-format="comma-int" data-name="{{ $name }}"
+                                 class="form-control suji8 text-end"
+                                 value="{{ old($name, $inputs[$name] ?? null) }}">
+                        @endif
                       </td>
                       @php($name = 'joto_shotoku_' . $base)
                       <td>
-                        <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
-                               class="form-control suji11 text-end bg-light"
-                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        @if($off)
+                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                          <input type="hidden" name="{{ $name }}" value="0">
+                        @else
+                          <input type="text" inputmode="numeric" autocomplete="off"
+                                 data-format="comma-int" data-name="{{ $name }}"
+                                 class="form-control suji11 text-end bg-light"
+                                 value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                        @endif
                       </td>
                       @if ($index === 0)
                         @php($gokeiName = sprintf('joto_shotoku_%s_gokei_%s', $group['key'], $period))
                         <td rowspan="{{ $rowspan }}">
-                          <input type="text" inputmode="numeric" autocomplete="off"
-                                 data-format="comma-int" data-name="{{ $gokeiName }}"
-                                 class="form-control suji11 text-end bg-light"
-                                 value="{{ old($gokeiName, $inputs[$gokeiName] ?? null) }}" readonly>
+                          @if($off)
+                            <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                            <input type="hidden" name="{{ $gokeiName }}" value="0">
+                          @else
+                            <input type="text" inputmode="numeric" autocomplete="off"
+                                   data-format="comma-int" data-name="{{ $gokeiName }}"
+                                   class="form-control suji11 text-end bg-light"
+                                   value="{{ old($gokeiName, $inputs[$gokeiName] ?? null) }}" readonly>
+                          @endif
                         </td>
                       @endif
                     </tr>

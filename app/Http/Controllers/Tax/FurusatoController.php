@@ -1104,9 +1104,9 @@ final class FurusatoController extends Controller
             $v = $mirrorFrom([sprintf('shotoku_joto_choki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('shotoku_joto_choki_%s', $p)] = (int)$v;
 
-            // 一時（参考：仕様に沿って同様の扱い）
-            $v = $mirrorFrom([sprintf('after_3jitsusan_ichiji_%s', $p)]);
-            if ($v !== null) $inputsForView[sprintf('tsusango_ichiji_%s', $p)] = (int)$v;
+            // 一時：損益通算後は 0 下限で確定（Calculator の tsusango_ichiji_* を採用）
+            $v = $mirrorFrom([sprintf('tsusango_ichiji_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('tsusango_ichiji_%s', $p)] = max(0, (int)$v);
             $v = $mirrorFrom([sprintf('after_joto_ichiji_tousan_ichiji_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('after_joto_ichiji_tousan_ichiji_%s', $p)] = (int)$v;
             $v = $mirrorFrom([sprintf('tokubetsukojo_ichiji_%s', $p)]);
@@ -1538,6 +1538,7 @@ final class FurusatoController extends Controller
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
         $payload = $this->getFurusatoInputPayload($data);
+        $syoriSettings = $this->getSyoriSettings($data->id);
 
         return view('tax.furusato.details.bunri_joto_details', [
             'dataId' => $data->id,
@@ -1545,6 +1546,7 @@ final class FurusatoController extends Controller
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
             'out' => ['inputs' => $payload],
+            'syoriSettings' => $syoriSettings,
             'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
         ]);
     }
@@ -1620,6 +1622,7 @@ final class FurusatoController extends Controller
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
         $payload = $this->getFurusatoInputPayload($data);
+        $syoriSettings = $this->getSyoriSettings($data->id);
 
         return view('tax.furusato.details.bunri_kabuteki_details', [
             'dataId' => $data->id,
@@ -1627,6 +1630,7 @@ final class FurusatoController extends Controller
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
             'out' => ['inputs' => $payload],
+            'syoriSettings' => $syoriSettings,
             'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
         ]);
     }
@@ -1709,6 +1713,7 @@ final class FurusatoController extends Controller
         $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
         $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear) : '当年';
         $payload = $this->getFurusatoInputPayload($data);
+        $syoriSettings = $this->getSyoriSettings($data->id);
 
         return view('tax.furusato.details.bunri_sakimono_details', [
             'dataId' => $data->id,
@@ -1716,6 +1721,7 @@ final class FurusatoController extends Controller
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
             'out' => ['inputs' => $payload],
+            'syoriSettings' => $syoriSettings,
             'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
         ]);
     }

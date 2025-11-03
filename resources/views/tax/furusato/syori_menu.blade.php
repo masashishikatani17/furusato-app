@@ -147,7 +147,7 @@
 <div class="container-blue mt-2" style="max-width: 700px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-    <h0 class="mb-0 mt-2">処理メニュー設定</h0>
+    <h0 class="mb-0 mt-2">処理メニュー設定あ</h0>
   </div>
     <form method="POST" action="{{ route('furusato.syori.save') }}" id="furusato-syori-form" class="card">
     @csrf

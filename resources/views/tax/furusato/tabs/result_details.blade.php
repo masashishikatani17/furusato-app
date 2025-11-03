@@ -16,7 +16,9 @@
   $tkComputed = $tokureiComputedPercent ?? [];
   $resultsUpper = $results['upper'] ?? [];
   $showSeparatedNettingFlag = (bool) ($showSeparatedNetting ?? false);
-
+  // ▼ 分離課税フラグ
+  $bunriPrevOff = (int)($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0;
+  $bunriCurrOff = (int)($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0;
   // hiddenの値：payload 優先、なければ計算結果をそのままraw整数（カンマなし）
   $rawInt = static function (array $ins, string $key, ?int $fallback): string {
       if (array_key_exists($key, $ins) && $ins[$key] !== null && $ins[$key] !== '') {
@@ -795,6 +797,7 @@
   <div class="mt-4">
     <h5 class="fw-bold">総合課税所得の損益通算</h5>
     @foreach ($warekiTables as $suffix => $label)
+      @php $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff; @endphp
       <div class="mt-4">
         <div class="fw-bold ms-5">（{{ $label }}）</div>
         <div class="table-responsive">
@@ -1100,6 +1103,10 @@
                 <th colspan="3" class="text-start ps-1">山林</th>
                 <td colspan="2" class="text-center">⇒</td>
                 <td class="text-end">
+                  @if($isBunriOff)
+                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="hidden" name="after_1jitsusan_sanrin_{{ $suffix }}" value="0">
+                  @else
                   @php
                     // after_1 = 差引金額 − 特別控除額（小数点以下切捨て、千円丸めはしない）
                     $rawSashihiki = str_replace(',', '', (string)$readonlyValue('sashihiki_sanrin_' . $suffix));
@@ -1113,78 +1120,102 @@
                          name="after_1jitsusan_sanrin_{{ $suffix }}"
                          class="form-control form-control-compact-05 text-end bg-light"
                          value="{{ number_format($after1Calc) }}">
+                  @endif
                 </td>
                 <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="after_2jitsusan_sanrin_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('after_2jitsusan_sanrin_' . $suffix) }}">
+                  @if($isBunriOff)
+                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="hidden" name="after_2jitsusan_sanrin_{{ $suffix }}" value="0">
+                  @else
+                    <input type="text"
+                           readonly
+                           name="after_2jitsusan_sanrin_{{ $suffix }}"
+                           class="form-control form-control-compact-05 text-end bg-light"
+                           value="{{ $readonlyValue('after_2jitsusan_sanrin_' . $suffix) }}">
+                  @endif
                 </td>
                 <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="after_3jitsusan_sanrin_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('after_3jitsusan_sanrin_' . $suffix) }}">
+                  @if($isBunriOff)
+                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="hidden" name="after_3jitsusan_sanrin_{{ $suffix }}" value="0">
+                  @else
+                    <input type="text"
+                           readonly
+                           name="after_3jitsusan_sanrin_{{ $suffix }}"
+                           class="form-control form-control-compact-05 text-end bg-light"
+                           value="{{ $readonlyValue('after_3jitsusan_sanrin_' . $suffix) }}">
+                  @endif
                 </td>
                 <td class="text-end">
-                  @php
-                    // 最終「山林所得金額」＝ 損益通算後（after_3）と同値を表示
-                    //   1) after_3（表示セルと同一の readonly 値）を最優先
-                    //   2) inputs の shotoku_sanrin_*（after_3 と同値で供給される）
-                    //   3) resultsUpper 等のフォールバック
-                    $valSanrin = $firstNumber([
-                      $readonlyValue('after_3jitsusan_sanrin_' . $suffix),
-                      $inputs['shotoku_sanrin_' . $suffix] ?? null,
-                      $resultsUpper['shotoku_sanrin_' . $suffix] ?? null,
-                      $prevDetails['shotoku_sanrin_' . $suffix] ?? null,
-                    ]);
-                    $valSanrinDisp = $valSanrin === null ? '' : number_format((int)$valSanrin);
-                  @endphp
-                  <input type="text"
-                         readonly
-                         name="shotoku_sanrin_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $valSanrinDisp }}">
+                  @if($isBunriOff)
+                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="hidden" name="shotoku_sanrin_{{ $suffix }}" value="0">
+                  @else
+                    @php
+                      // 最終「山林所得金額」＝ 損益通算後（after_3）
+                      $valSanrin = $firstNumber([
+                        $readonlyValue('after_3jitsusan_sanrin_' . $suffix),
+                        $inputs['shotoku_sanrin_' . $suffix] ?? null,
+                        $resultsUpper['shotoku_sanrin_' . $suffix] ?? null,
+                        $prevDetails['shotoku_sanrin_' . $suffix] ?? null,
+                      ]);
+                      $valSanrinDisp = $valSanrin === null ? '' : number_format((int)$valSanrin);
+                    @endphp
+                    <input type="text"
+                           readonly
+                           name="shotoku_sanrin_{{ $suffix }}"
+                           class="form-control form-control-compact-05 text-end bg-light"
+                           value="{{ $valSanrinDisp }}">
+                  @endif
                 </td>
               </tr>
               <tr>
                 <th colspan="3" class="text-start ps-1">退職</th>
                 <td colspan="4" class="text-center">⇒</td>
                 <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="after_2jitsusan_taishoku_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('after_2jitsusan_taishoku_' . $suffix) }}">
+                  @if($isBunriOff)
+                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="hidden" name="after_2jitsusan_taishoku_{{ $suffix }}" value="0">
+                  @else
+                    <input type="text"
+                           readonly
+                           name="after_2jitsusan_taishoku_{{ $suffix }}"
+                           class="form-control form-control-compact-05 text-end bg-light"
+                           value="{{ $readonlyValue('after_2jitsusan_taishoku_' . $suffix) }}">
+                  @endif
                 </td>
                 <td class="text-end">
-                  <input type="text"
-                         readonly
-                         name="after_3jitsusan_taishoku_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('after_3jitsusan_taishoku_' . $suffix) }}">
+                  @if($isBunriOff)
+                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="hidden" name="after_3jitsusan_taishoku_{{ $suffix }}" value="0">
+                  @else
+                    <input type="text"
+                           readonly
+                           name="after_3jitsusan_taishoku_{{ $suffix }}"
+                           class="form-control form-control-compact-05 text-end bg-light"
+                           value="{{ $readonlyValue('after_3jitsusan_taishoku_' . $suffix) }}">
+                  @endif
                 </td>
                 <td class="text-end">
-                  @php
-                    // 最終「退職所得金額」＝ 損益通算後（after_3）と同値を表示
-                    //   1) after_3（表示セルと同一の readonly 値）を最優先
-                    //   2) inputs の shotoku_taishoku_*（after_3 と同値で供給される）
-                    //   3) resultsUpper / prevDetails をフォールバック
-                    $valTaishoku = $firstNumber([
-                      $readonlyValue('after_3jitsusan_taishoku_' . $suffix),
-                      $inputs['shotoku_taishoku_' . $suffix] ?? null,
-                      $resultsUpper['shotoku_taishoku_' . $suffix] ?? null,
-                      $prevDetails['shotoku_taishoku_' . $suffix] ?? null,
-                    ]);
-                    $valTaishokuDisp = $valTaishoku === null ? '' : number_format((int)$valTaishoku);
-                  @endphp
-                  <input type="text"
-                         readonly
-                         name="shotoku_taishoku_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $valTaishokuDisp }}">
+                  @if($isBunriOff)
+                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="hidden" name="shotoku_taishoku_{{ $suffix }}" value="0">
+                  @else
+                    @php
+                      $valTaishoku = $firstNumber([
+                        $readonlyValue('after_3jitsusan_taishoku_' . $suffix),
+                        $inputs['shotoku_taishoku_' . $suffix] ?? null,
+                        $resultsUpper['shotoku_taishoku_' . $suffix] ?? null,
+                        $prevDetails['shotoku_taishoku_' . $suffix] ?? null,
+                      ]);
+                      $valTaishokuDisp = $valTaishoku === null ? '' : number_format((int)$valTaishoku);
+                    @endphp
+                    <input type="text"
+                           readonly
+                           name="shotoku_taishoku_{{ $suffix }}"
+                           class="form-control form-control-compact-05 text-end bg-light"
+                           value="{{ $valTaishokuDisp }}">
+                  @endif
                 </td>
               </tr>
               <tr>

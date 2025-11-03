@@ -1064,7 +1064,58 @@ final class FurusatoController extends Controller
                 }
             }
         }
+        
+        /**
+         * ▼ 最終ミラー（result → details 表示キー）
+         *   - details 側は「差引」「1/2」以外は“サーバ確定値をそのまま表示”
+         *   - 優先度: results（payload/upper） > previewPayload > savedInputs
+         *   - ここで dest を“最後に”上書きして、古い値に負けないようにする
+         */
+        $mirrorFrom = static function (array $sources) use ($resultsPayload, $resultsUpper, $previewPayload) {
+            foreach ($sources as $key) {
+                if (array_key_exists($key, $resultsPayload) && $resultsPayload[$key] !== null) return $resultsPayload[$key];
+                if (array_key_exists($key, $resultsUpper)   && $resultsUpper[$key]   !== null) return $resultsUpper[$key];
+                if (array_key_exists($key, $previewPayload) && $previewPayload[$key] !== null) return $previewPayload[$key];
+            }
+            return null;
+        };
+        foreach (['prev','curr'] as $p) {
+            // 譲渡 短期
+            $v = $mirrorFrom([sprintf('tsusango_joto_tanki_sogo_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('after_naibutsusan_joto_tanki_sogo_%s', $p)] = (int)$v;
+            $v = $mirrorFrom([sprintf('tokubetsukojo_joto_tanki_sogo_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('tokubetsukojo_joto_tanki_%s', $p)] = (int)$v;
+            $v = $mirrorFrom([sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $p)] = (int)$v;
+            $v = $mirrorFrom([sprintf('after_3jitsusan_joto_tanki_sogo_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('tsusango_joto_tanki_%s', $p)] = (int)$v;
+            $v = $mirrorFrom([sprintf('shotoku_joto_tanki_sogo_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('shotoku_joto_tanki_%s', $p)] = (int)$v;
 
+            // 譲渡 長期
+            $v = $mirrorFrom([sprintf('tsusango_joto_choki_sogo_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('after_naibutsusan_joto_choki_sogo_%s', $p)] = (int)$v;
+            $v = $mirrorFrom([sprintf('tokubetsukojo_joto_choki_sogo_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('tokubetsukojo_joto_choki_%s', $p)] = (int)$v;
+            $v = $mirrorFrom([sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('after_joto_ichiji_tousan_joto_choki_%s', $p)] = (int)$v;
+            $v = $mirrorFrom([sprintf('after_3jitsusan_joto_choki_sogo_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('tsusango_joto_choki_%s', $p)] = (int)$v;
+            $v = $mirrorFrom([sprintf('shotoku_joto_choki_sogo_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('shotoku_joto_choki_%s', $p)] = (int)$v;
+
+            // 一時（参考：仕様に沿って同様の扱い）
+            $v = $mirrorFrom([sprintf('after_3jitsusan_ichiji_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('tsusango_ichiji_%s', $p)] = (int)$v;
+            $v = $mirrorFrom([sprintf('after_joto_ichiji_tousan_ichiji_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('after_joto_ichiji_tousan_ichiji_%s', $p)] = (int)$v;
+            $v = $mirrorFrom([sprintf('tokubetsukojo_ichiji_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('tokubetsukojo_ichiji_%s', $p)] = (int)$v;
+            // 所得金額（サーバ確定）
+            $v = $mirrorFrom([sprintf('shotoku_ichiji_%s', $p)]);
+            if ($v !== null) $inputsForView[sprintf('shotoku_ichiji_%s', $p)] = (int)$v;
+        }
+        
         return $inputsForView;
     }
 
@@ -1721,15 +1772,23 @@ final class FurusatoController extends Controller
     public function bunriSanrinDetails(Request $req)
     {
         $data = $this->resolveAuthorizedDataOrFail($req);
-        $context = $this->makeInputContext($req, $data->id);
-        $inputsForView = $context['outInputs'] ?? $context['savedInputs'] ?? [];
-
+        // ▼ ここで年ラベル等を確実に初期化（$kihuYear 未定義エラー対策）
+        $kihuYear   = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear)     : '当年';
+    
+        // 入力ペイロード取得
+        $payload = $this->getFurusatoInputPayload($data);
+        // 分離設定（ON/OFF）もビューに渡す
+        $syoriSettings = $this->getSyoriSettings($data->id);
+    
         return view('tax.furusato.details.bunri_sanrin_details', [
-            'dataId' => $data->id,
-            'kihuYear' => $context['kihuYear'] ?? ($data->kihu_year ? (int) $data->kihu_year : null),
-            'warekiPrev' => $context['warekiPrev'] ?? ($data->kihu_year ? $this->toWarekiYear((int) $data->kihu_year - 1) : '前年'),
-            'warekiCurr' => $context['warekiCurr'] ?? ($data->kihu_year ? $this->toWarekiYear((int) $data->kihu_year) : '当年'),
-            'out' => ['inputs' => $inputsForView],
+            'dataId'        => $data->id,
+            'kihuYear'      => $kihuYear,
+            'warekiPrev'    => $warekiPrev,
+            'warekiCurr'    => $warekiCurr,
+            'out'           => ['inputs' => $payload],
+            'syoriSettings' => $syoriSettings,
             'placeholderMessage' => self::BUNRI_PLACEHOLDER_MESSAGE,
         ]);
     }
@@ -2128,7 +2187,40 @@ final class FurusatoController extends Controller
             $record->saveOrFail();
         });
 
-        $this->performFullRecalculation($request, $data, [], $recalculateUseCase);
+        // ▼ 分離なし年度は分離系（山林・退職）を SoT=0 に正規化して保存
+        $forceZeros = [];
+        $offPrev = (int)($payload['bunri_flag_prev'] ?? $payload['bunri_flag'] ?? 0) === 0;
+        $offCurr = (int)($payload['bunri_flag_curr'] ?? $payload['bunri_flag'] ?? 0) === 0;
+        if ($offPrev) {
+            $forceZeros = array_merge($forceZeros, [
+                // 山林（分離）
+                'bunri_syunyu_sanrin_prev'            => 0,
+                'bunri_shotoku_sanrin_prev'           => 0,
+                'bunri_syunyu_sanrin_jumin_prev'      => 0,
+                'bunri_shotoku_sanrin_jumin_prev'     => 0,
+                // 退職（分離）
+                'bunri_syunyu_taishoku_prev'          => 0,
+                'bunri_shotoku_taishoku_prev'         => 0,
+                'bunri_syunyu_taishoku_jumin_prev'    => 0,
+                'bunri_shotoku_taishoku_jumin_prev'   => 0,
+            ]);
+        }
+        if ($offCurr) {
+            $forceZeros = array_merge($forceZeros, [
+                // 山林（分離）
+                'bunri_syunyu_sanrin_curr'            => 0,
+                'bunri_shotoku_sanrin_curr'           => 0,
+                'bunri_syunyu_sanrin_jumin_curr'      => 0,
+                'bunri_shotoku_sanrin_jumin_curr'     => 0,
+                // 退職（分離）
+                'bunri_syunyu_taishoku_curr'          => 0,
+                'bunri_shotoku_taishoku_curr'         => 0,
+                'bunri_syunyu_taishoku_jumin_curr'    => 0,
+                'bunri_shotoku_taishoku_jumin_curr'   => 0,
+            ]);
+        }
+        // 正規化した 0 を反映してフル再計算
+        $this->performFullRecalculation($request, $data, $forceZeros, $recalculateUseCase);
 
         $goto = (string) $request->input('redirect_to', '');
         $routeParams = ['data_id' => $data->id];

@@ -1387,6 +1387,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
+            Log::info('[details:kifukin] recompute & redirect');
             $this->runRecalculationPipeline(
                 $req,
                 $data,
@@ -1452,7 +1453,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->line('[details:joto_ichiji] recompute & redirect');
+            Log::info('[details:joto_ichiji] recompute & redirect');
             $this->runRecalculationPipeline(
                 $req,
                 $data,
@@ -1534,6 +1535,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
+            Log::info('[details:bunri_joto] recompute & redirect');
             $this->runRecalculationPipeline(
                 $req,
                 $data,
@@ -1622,6 +1624,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
+            Log::info('[details:bunri_kabuteki] recompute & redirect');
             $this->runRecalculationPipeline(
                 $req,
                 $data,
@@ -1688,6 +1691,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
+            Log::info('[details:bunri_sakimono] recompute & redirect');
             $this->runRecalculationPipeline(
                 $req,
                 $data,
@@ -1752,6 +1756,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
+            Log::info('[details:bunri_sanrin] recompute & redirect');
             $this->runRecalculationPipeline(
                 $req,
                 $data,
@@ -1834,6 +1839,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
+            Log::info('[details:kojo_seimei_jishin] recompute & redirect');
             $this->runRecalculationPipeline(
                 $req,
                 $data,
@@ -1958,6 +1964,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
+            Log::info('[details:kojo_jinteki] recompute & redirect');
             $this->runRecalculationPipeline(
                 $req,
                 $data,
@@ -2041,6 +2048,7 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
+            Log::info('[details:kojo_iryo] recompute & redirect');
             $this->runRecalculationPipeline(
                 $req,
                 $data,

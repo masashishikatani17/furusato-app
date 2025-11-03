@@ -33,7 +33,8 @@
         <input type="hidden" name="data_id" value="{{ $dataId }}">
         <input type="hidden" name="origin_tab" value="{{ $originTab }}">
         <input type="hidden" name="origin_anchor" value="{{ $originAnchor ?: 'kojo_seimei_jishin' }}">
-        <input type="hidden" name="redirect_to" value="">
+        <input type="hidden" name="redirect_to" value="input">
+        <input type="hidden" name="recalc_all" value="1">
     
         <div class="table-responsive mb-2">
           <table class="table-base table-bordered align-middle">
@@ -198,10 +199,9 @@
           <button type="submit" class="btn-base-blue">戻 る</button>
           <button type="submit"
                   class="btn-base-green ms-2"
-                  name="recalc_all"
+                  name="stay_on_details"
                   value="1"
-                  data-disable-on-submit
-                  data-redirect-to="kojo_seimei_jishin">再計算</button>
+                  data-disable-on-submit>再計算</button>
         </div>
       </form>
     </div>  

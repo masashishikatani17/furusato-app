@@ -31,7 +31,8 @@
         <input type="hidden" name="data_id" value="{{ $dataId }}">
         <input type="hidden" name="origin_tab" value="{{ $originTab }}">
         <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
-        <input type="hidden" name="redirect_to" value="">
+        <input type="hidden" name="redirect_to" value="input">
+        <input type="hidden" name="recalc_all" value="1">
 
         @if ($errors->any())
           <div class="alert alert-danger">
@@ -120,10 +121,9 @@
           <button type="submit" class="btn btn-base-blue me-2">入力画面へ戻る</button>
           <button type="submit"
                   class="btn btn-base-green"
-                  name="recalc_all"
+                  name="stay_on_details"
                   value="1"
-                  data-disable-on-submit
-                  data-redirect-to="bunri_kabuteki">再計算</button>
+                  data-disable-on-submit>再計算</button>
         </div>
       </form>
     </div>

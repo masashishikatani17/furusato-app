@@ -514,7 +514,7 @@
                   <td class="text-center align-middle">
                     <button type="submit"
                             class="btn-base-green"
-                            nowrap=”nowrap”
+                            nowrap="nowrap"
                             name="redirect_to"
                             value="fudosan"
                             data-return-anchor="shotoku_row_fudosan">内訳</button>
@@ -607,7 +607,7 @@
                   {!! $renderInputs('kojo_shakaihoken') !!}
                 </tr>
                 <tr>
-                  <th colspan="3" class="text-start align-middle ps-1 pe-1" nowrap=”nowrap”>小規模企業共済等掛金控除</th>
+                  <th colspan="3" class="text-start align-middle ps-1 pe-1" nowrap="nowrap">小規模企業共済等掛金控除</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
@@ -1136,7 +1136,7 @@
                           @endforeach
                         </tr>
                         <tr>
-                          <th scope="rowgroup" rowspan="8" class="align-middle text-start ps-1" nowrap=”nowrap”>課税所得<br>金額</th>
+                          <th scope="rowgroup" rowspan="8" class="align-middle text-start ps-1" nowrap="nowrap">課税所得<br>金額</th>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">総合課税</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>

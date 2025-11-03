@@ -33,7 +33,8 @@
         <input type="hidden" name="data_id" value="{{ $dataId }}">
         <input type="hidden" name="origin_tab" value="{{ $originTab }}">
         <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
-        <input type="hidden" name="redirect_to" value="">
+        <input type="hidden" name="redirect_to" value="input">
+        <input type="hidden" name="recalc_all" value="1">
 
         @php
             $tables = [
@@ -270,10 +271,9 @@
           <button type="submit" class="btn btn-base-blue me-2">戻 る</button>
           <button type="submit"
                   class="btn btn-base-green"
-                  name="recalc_all"
+                  name="stay_on_details"
                   value="1"
-                  data-disable-on-submit
-                  data-redirect-to="joto_ichiji">再計算</button>
+                  data-disable-on-submit>再計算</button>
         </div>
       </form>
     </div>

@@ -132,11 +132,9 @@ final class FurusatoController extends Controller
             $context['results'] = $this->getStoredFurusatoResults($dataId);
         }
 
-        if ($session->has('show_furusato_result')) {
-            $context['showResult'] = (bool) $session->get('show_furusato_result');
-        } else {
-            $context['showResult'] = $context['results'] !== [];
-        }
+        // show_furusato_result が明示的に true の場合のみ結果タブを開く。
+        $context['showResult'] = (bool) $session->get('show_furusato_result', false);
+
         unset($context['savedInputs']);
 
         return view('tax.furusato.input', $context);
@@ -1233,21 +1231,25 @@ final class FurusatoController extends Controller
         $updatesForRecalc = array_merge($payload, $labelUpdates);
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'jigyo';
-            }
-
+            // details側の「戻る／再計算」時もフル再計算はするが、結果タブは自動で開かない
+            Log::info('[details:jigyo_eigyo] recompute & redirect');
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'jigyo'
+                : (string) $req->input('redirect_to', 'jigyo');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
-
         $this->runRecalculationPipeline(
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 
@@ -1300,21 +1302,24 @@ final class FurusatoController extends Controller
         $updatesForRecalc = array_merge($payload, $labelUpdates);
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'fudosan';
-            }
-
+            Log::info('[details:fudosan] recompute & redirect');
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'fudosan'
+                : (string) $req->input('redirect_to', 'fudosan');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
-
         $this->runRecalculationPipeline(
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 
@@ -1382,13 +1387,16 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'kifukin_details';
-            }
-
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'kifukin_details'
+                : (string) $req->input('redirect_to', 'kifukin_details');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
@@ -1396,7 +1404,7 @@ final class FurusatoController extends Controller
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 
@@ -1444,13 +1452,17 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'joto_ichiji';
-            }
-
+            $this->line('[details:joto_ichiji] recompute & redirect');
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'joto_ichiji'
+                : (string) $req->input('redirect_to', 'joto_ichiji');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
@@ -1458,7 +1470,7 @@ final class FurusatoController extends Controller
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 
@@ -1522,13 +1534,16 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'bunri_joto';
-            }
-
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'bunri_joto'
+                : (string) $req->input('redirect_to', 'bunri_joto');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
@@ -1536,7 +1551,7 @@ final class FurusatoController extends Controller
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 
@@ -1607,13 +1622,16 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'bunri_kabuteki';
-            }
-
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'bunri_kabuteki'
+                : (string) $req->input('redirect_to', 'bunri_kabuteki');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
@@ -1621,7 +1639,7 @@ final class FurusatoController extends Controller
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 
@@ -1670,13 +1688,16 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'bunri_sakimono';
-            }
-
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'bunri_sakimono'
+                : (string) $req->input('redirect_to', 'bunri_sakimono');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
@@ -1684,7 +1705,7 @@ final class FurusatoController extends Controller
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 
@@ -1731,13 +1752,16 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'bunri_sanrin';
-            }
-
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'bunri_sanrin'
+                : (string) $req->input('redirect_to', 'bunri_sanrin');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
@@ -1745,7 +1769,7 @@ final class FurusatoController extends Controller
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 
@@ -1810,13 +1834,16 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'kojo_seimei_jishin';
-            }
-
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'kojo_seimei_jishin'
+                : (string) $req->input('redirect_to', 'kojo_seimei_jishin');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
@@ -1824,7 +1851,7 @@ final class FurusatoController extends Controller
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 
@@ -1931,13 +1958,16 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'kojo_jinteki';
-            }
-
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'kojo_jinteki'
+                : (string) $req->input('redirect_to', 'kojo_jinteki');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
@@ -1945,7 +1975,7 @@ final class FurusatoController extends Controller
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 
@@ -2011,13 +2041,16 @@ final class FurusatoController extends Controller
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
-            $this->performFullRecalculation($req, $data, $updatesForRecalc, $recalculateUseCase);
-
-            $goto = (string) $req->input('redirect_to', '');
-            if ($goto === '' || $goto === 'input') {
-                $goto = 'kojo_iryo';
-            }
-
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $updatesForRecalc,
+                ['should_flash_results' => false],
+                $recalculateUseCase,
+            );
+            $goto = $req->boolean('stay_on_details')
+                ? 'kojo_iryo'
+                : (string) $req->input('redirect_to', 'kojo_iryo');
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
@@ -2025,7 +2058,7 @@ final class FurusatoController extends Controller
             $req,
             $data,
             $updatesForRecalc,
-            ['should_flash_results' => false],
+            ['should_flash_results' => true],
             $recalculateUseCase,
         );
 

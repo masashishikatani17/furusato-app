@@ -1604,6 +1604,104 @@
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', function () {
+    // ▼ 分離なし年度の退職（分離ミラー）を UI 上で『ー』表示＋ hidden=0 に固定
+    (function dashifyRetirementWhenBunriOff(){
+      try {
+        const bunriPrevOff = Boolean(@json((int)($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0));
+        const bunriCurrOff = Boolean(@json((int)($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0));
+        const apply = (name, off) => {
+          if (!off) return;
+          const el = document.querySelector(`input[name="${name}"]`);
+          if (el) {
+            // 表示を『ー』にしつつ name を外す
+            el.removeAttribute('name');
+            el.value = '－';
+            el.readOnly = true;
+            el.classList.add('bg-light','text-center');
+            // hidden=0 を挿入
+            const h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = name;
+            h.value = '0';
+            el.insertAdjacentElement('afterend', h);
+          }
+        };
+
+        apply('bunri_syunyu_taishoku_shotoku_prev', bunriPrevOff);
+        apply('bunri_shotoku_taishoku_shotoku_prev', bunriPrevOff);
+        apply('bunri_syunyu_taishoku_shotoku_curr', bunriCurrOff);
+        apply('bunri_shotoku_taishoku_shotoku_curr', bunriCurrOff);
+        apply('bunri_syunyu_taishoku_jumin_prev', bunriPrevOff);
+        apply('bunri_shotoku_taishoku_jumin_prev', bunriPrevOff);
+        apply('bunri_syunyu_taishoku_jumin_curr', bunriCurrOff);
+        apply('bunri_shotoku_taishoku_jumin_curr', bunriCurrOff);
+      } catch(e) { /* no-op */ }
+    })();
+
+    // ▼ 第三表（分離課税）全項目に対し、分離なし年度は『ー』表示＋ hidden=0 を一括適用
+    (function dashifyAllBunriTableWhenOff() {
+      try {
+        const bunriPrevOff = Boolean(@json((int)($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0));
+        const bunriCurrOff = Boolean(@json((int)($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0));
+
+        const dashifyOne = (inputEl) => {
+          if (!inputEl || !(inputEl instanceof HTMLInputElement)) return;
+          const name = inputEl.getAttribute('name');
+          if (!name) return;
+          // すでにダッシュ化済みならスキップ
+          if (!inputEl.hasAttribute('name')) return;
+          // 表示側を『ー』に固定し、name を外す
+          inputEl.removeAttribute('name');
+          inputEl.value = '－';
+          inputEl.readOnly = true;
+          inputEl.classList.add('bg-light','text-center');
+          inputEl.classList.remove('text-end');
+          // 既存 hidden 重複を除去して 0 を最後に1つだけ置く
+          const siblings = Array.from(inputEl.parentElement?.querySelectorAll('input[type="hidden"]') ?? []);
+          siblings.forEach(h => {
+            if (h.getAttribute('name') === name) h.remove();
+          });
+          const h = document.createElement('input');
+          h.type = 'hidden';
+          h.name = name;
+          h.value = '0';
+          inputEl.insertAdjacentElement('afterend', h);
+
+          //   同セル内の readonly 入力(data-server-lock)も『ー』に上書きする
+          const cell = inputEl.closest('td');
+          if (cell) {
+            const lockInputs = cell.querySelectorAll('input[type="text"][data-server-lock]');
+            lockInputs.forEach((lock) => {
+              // 値と見た目を『ー』へ統一。name は付いていないはずだが安全のため念のため除去
+              lock.removeAttribute('name');
+              lock.value = '－';
+              lock.readOnly = true;
+              lock.classList.add('bg-light','text-center');
+              lock.classList.remove('text-end');
+              // ▼ 後段の enforceServerLocks が再び 0 を描画しないようにマーキング
+              lock.dataset.serverLockDashed = '1';
+              // ▼ 念のため raw も空に（0を再描画させない）
+              if (lock.dataset) {
+                lock.dataset.serverRaw = '';           
+              }  
+            });
+          }
+        };
+
+        // 指定 period が OFF の場合のみ、その period の *全て* の bunri_* 入力をダッシュ化
+        const processForPeriod = (period, isOff) => {
+          if (!isOff) return;
+          // 「name が bunri_ で始まり、末尾が _<period>」の input を画面全体から一括抽出
+          const selector = `input[name^="bunri_"][name$="_${period}"]`;
+          const list = document.querySelectorAll(selector);
+          list.forEach(dashifyOne);
+        };
+
+        processForPeriod('prev', bunriPrevOff);
+        processForPeriod('curr', bunriCurrOff);
+      } catch(e) { /* no-op */ }
+    })();
+
     const initialTab = @json((string) request()->query('tab', session('return_tab', '')));
     const showResultFlag = Boolean(@json($showResultFlag));
     const form = document.getElementById('furusato-input-form');
@@ -1955,6 +2053,9 @@
       const form = document.getElementById('furusato-input-form');
       if (!form) return;
       form.querySelectorAll('input[data-server-lock="1"]').forEach((el) => {
+        if (el.dataset && el.dataset.serverLockDashed === '1') {
+          return;
+        }
         const name = el.name;
         const raw  = el.dataset.serverRaw || '';
         // 表示側

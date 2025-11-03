@@ -36,6 +36,11 @@
         <input type="hidden" name="redirect_to" value="input">
         <input type="hidden" name="recalc_all" value="1">
         <input type="hidden" name="stay_on_details" id="stay-on-details-flag" value="0">
+        {{-- ▼ Calculator入力用（サーバが読むキー）：短期/長期の「差引金額（総合）」を必ずPOSTする --}}
+        <input type="hidden" name="sashihiki_joto_tanki_sogo_prev" id="sashihiki_joto_tanki_sogo_prev">
+        <input type="hidden" name="sashihiki_joto_tanki_sogo_curr" id="sashihiki_joto_tanki_sogo_curr">
+        <input type="hidden" name="sashihiki_joto_choki_sogo_prev" id="sashihiki_joto_choki_sogo_prev">
+        <input type="hidden" name="sashihiki_joto_choki_sogo_curr" id="sashihiki_joto_choki_sogo_curr">
 
         @php
             $tables = [
@@ -83,38 +88,41 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="sashihiki_joto_tanki_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('sashihiki_joto_tanki_' . $period, $inputs['sashihiki_joto_tanki_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['sashihiki_joto_tanki_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
+                      {{-- 内部通算後（仕様上、tsusango_*_sogo を表示） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_naibutsusan_joto_tanki_sogo_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('after_naibutsusan_joto_tanki_sogo_' . $period, $inputs['tsusango_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['tsusango_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tokubetsukojo_joto_tanki_{{ $period }}"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ old('tokubetsukojo_joto_tanki_' . $period, $inputs['tokubetsukojo_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['tokubetsukojo_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_joto_ichiji_tousan_joto_tanki_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('after_joto_ichiji_tousan_joto_tanki_' . $period, $inputs['after_joto_ichiji_tousan_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['after_joto_ichiji_tousan_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
+                      {{-- 損益通算後（最終通算） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tsusango_joto_tanki_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('tsusango_joto_tanki_' . $period, $inputs['after_3jitsusan_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['after_3jitsusan_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
                     <td class="text-center align-middle">－</td>
                     <td>
+                      {{-- 最終 所得金額（サーバ確定） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="shotoku_joto_tanki_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('shotoku_joto_tanki_' . $period, $inputs['shotoku_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['shotoku_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
                   </tr>
                   <tr>
@@ -135,31 +143,33 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="sashihiki_joto_choki_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('sashihiki_joto_choki_' . $period, $inputs['sashihiki_joto_choki_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['sashihiki_joto_choki_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
+                      {{-- 内部通算後（仕様上、tsusango_*_sogo を表示） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_naibutsusan_joto_choki_sogo_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('after_naibutsusan_joto_choki_sogo_' . $period, $inputs['tsusango_joto_choki_sogo_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['tsusango_joto_choki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tokubetsukojo_joto_choki_{{ $period }}"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ old('tokubetsukojo_joto_choki_' . $period, $inputs['tokubetsukojo_joto_choki_sogo_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['tokubetsukojo_joto_choki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_joto_ichiji_tousan_joto_choki_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('after_joto_ichiji_tousan_joto_choki_' . $period, $inputs['after_joto_ichiji_tousan_joto_choki_sogo_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['after_joto_ichiji_tousan_joto_choki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
+                      {{-- 損益通算後（最終通算） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tsusango_joto_choki_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('tsusango_joto_choki_' . $period, $inputs['tsusango_joto_choki_' . $period] ?? ($inputs['after_3jitsusan_joto_choki_sogo_' . $period] ?? null)) }}" readonly>
+                             value="{{ $inputs['after_3jitsusan_joto_choki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
                       @php
@@ -168,18 +178,20 @@
                           $inputs['tsusango_joto_choki_' . $period] ?? ($inputs['after_3jitsusan_joto_choki_sogo_' . $period] ?? 0)
                         );
                         $tsusangoChokiInt = (int) preg_replace('/[^\d-]/', '', (string) $tsusangoChokiDisplay);
-                        $halfJotoChoki    = (int) ceil($tsusangoChokiInt / 2);
+                        // 1/2 は「控除額の表示」なので切り上げ。負は 0 扱い。
+                        $halfJotoChoki    = (int) ceil(max(0, $tsusangoChokiInt) / 2);
                       @endphp
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="half_joto_choki_{{ $period }}"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ old('half_joto_choki_' . $period, $halfJotoChoki) }}" readonly>
+                             value="{{ $halfJotoChoki }}" readonly>
                     </td>
                     <td>
+                      {{-- 最終 所得金額（サーバ確定） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="shotoku_joto_choki_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('shotoku_joto_choki_' . $period, $inputs['shotoku_joto_choki_sogo_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['shotoku_joto_choki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
                   </tr>
                   <tr>
@@ -200,32 +212,34 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="sashihiki_ichiji_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('sashihiki_ichiji_' . $period, max(0, ($inputs['syunyu_ichiji_' . $period] ?? 0) - ($inputs['keihi_ichiji_' . $period] ?? 0))) }}" readonly
+                             value="{{ max(0, (int)($inputs['syunyu_ichiji_' . $period] ?? 0) - (int)($inputs['keihi_ichiji_' . $period] ?? 0)) }}"
+                             readonly
                              onblur="calculateSashihikiIchiji('{{ $period }}')">
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_naibutsusan_ichiji_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('after_naibutsusan_ichiji_' . $period, $inputs['tsusango_ichiji_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['tsusango_ichiji_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tokubetsukojo_ichiji_{{ $period }}"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ old('tokubetsukojo_ichiji_' . $period, $inputs['tokubetsukojo_ichiji_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['tokubetsukojo_ichiji_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_joto_ichiji_tousan_ichiji_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('after_joto_ichiji_tousan_ichiji_' . $period, $inputs['after_joto_ichiji_tousan_ichiji_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['after_joto_ichiji_tousan_ichiji_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
+                      {{-- 損益通算後（最終通算） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tsusango_ichiji_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('tsusango_ichiji_' . $period, $inputs['after_3jitsusan_ichiji_' . $period] ?? '') }}" readonly>
+                             value="{{ $inputs['after_3jitsusan_ichiji_' . $period] ?? '' }}" readonly>
                     </td>
                     <td>
                       @php
@@ -234,18 +248,19 @@
                           $inputs['after_3jitsusan_ichiji_' . $period] ?? 0
                         );
                         $tsusangoIchijiInt = (int) preg_replace('/[^\d-]/', '', (string) $tsusangoIchijiDisplay);
-                        $halfIchiji        = (int) ceil($tsusangoIchijiInt / 2);
+                        // 1/2 は「控除額の表示」なので切り上げ。負は 0 扱い。
+                        $halfIchiji        = (int) ceil(max(0, $tsusangoIchijiInt) / 2);
                       @endphp
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="half_ichiji_{{ $period }}"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ old('half_ichiji_' . $period, $halfIchiji) }}" readonly>
+                             value="{{ $halfIchiji }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="shotoku_ichiji_{{ $period }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old('shotoku_ichiji_' . $period, $inputs['shotoku_ichiji_' . $period] ?? null) }}" readonly>
+                             value="{{ $inputs['shotoku_ichiji_' . $period] ?? '' }}" readonly>
                     </td>
                   </tr>
                 </tbody>
@@ -265,6 +280,28 @@
             // hidden(name="sashihiki_ichiji_*") にも raw を同期（これがPOSTに載る）
             const hidden = document.querySelector('input[type="hidden"][name="sashihiki_ichiji_' + period + '"]');
             if (hidden) hidden.value = String(result);
+          }
+          // ▼ 短期/長期の差引（sashihiki_joto_*）を計算し、Calculatorが読む *_sogo_* hidden にも同期
+          function calculateSashihikiJoto(kind, period) {
+            // kind = 'tanki' | 'choki'
+            const syunyuEl = document.querySelector('[data-name="syunyu_joto_' + kind + '_' + period + '"]');
+            const keihiEl  = document.querySelector('[data-name="keihi_joto_'  + kind + '_' + period + '"]');
+            const outEl    = document.querySelector('[data-name="sashihiki_joto_' + kind + '_' + period + '"]');
+            if (!syunyuEl || !keihiEl || !outEl) return;
+            const toRaw = (v) => {
+              const s = String(v ?? '').replace(/,/g, '').trim();
+              if (s === '' || s === '-') return 0;
+              const n = Number(s); return Number.isFinite(n) ? Math.trunc(n) : 0;
+            };
+            const syunyu = toRaw(syunyuEl.value);
+            const keihi  = toRaw(keihiEl.value);
+            const diff   = syunyu - keihi; // 譲渡の差引は負も許容（内部通算の入力になり得る）
+            // 表示（カンマ付き）
+            outEl.value  = diff.toLocaleString('ja-JP');
+            // hidden（Calculator入力用）：*_sogo_* キーへ raw を同期
+            const hiddenId = 'sashihiki_joto_' + kind + '_sogo_' + period;
+            const hiddenEl = document.getElementById(hiddenId);
+            if (hiddenEl) hiddenEl.value = String(diff);
           }
         </script>
         <hr>
@@ -387,6 +424,22 @@
       if (s) s.addEventListener('blur', () => calculateSashihikiIchiji(p));
       if (k) k.addEventListener('blur', () => calculateSashihikiIchiji(p));
     });
+    // 1.6) 譲渡（短期/長期）も同様に blur で差引を再計算し、*_sogo_* hidden を更新
+    ['prev','curr'].forEach((p) => {
+      // 短期
+      const sTanki = document.querySelector('[data-name="syunyu_joto_tanki_' + p + '"]');
+      const kTanki = document.querySelector('[data-name="keihi_joto_tanki_' + p + '"]');
+      if (sTanki) sTanki.addEventListener('blur', () => calculateSashihikiJoto('tanki', p));
+      if (kTanki) kTanki.addEventListener('blur', () => calculateSashihikiJoto('tanki', p));
+      // 長期
+      const sChoki = document.querySelector('[data-name="syunyu_joto_choki_' + p + '"]');
+      const kChoki = document.querySelector('[data-name="keihi_joto_choki_' + p + '"]');
+      if (sChoki) sChoki.addEventListener('blur', () => calculateSashihikiJoto('choki', p));
+      if (kChoki) kChoki.addEventListener('blur', () => calculateSashihikiJoto('choki', p));
+      // 初期計算（ロード時にも一発計算）
+      calculateSashihikiJoto('tanki', p);
+      calculateSashihikiJoto('choki', p);
+    });
 
     // 2) 入力可能な項目にのみフォーカス/ブラーでのミラーリングを設定
     allFmtInputs
@@ -418,6 +471,11 @@
           if (!hidden) return;
           const raw = toRawInt(input.value ?? hidden.value ?? '');
           hidden.value = raw;
+        });
+        // 念のため：短期/長期の *_sogo_* hidden を最終補正
+        ['prev','curr'].forEach((p) => {
+          calculateSashihikiJoto('tanki', p);
+          calculateSashihikiJoto('choki', p);
         });
       });
     }

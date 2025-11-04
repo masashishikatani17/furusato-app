@@ -140,7 +140,7 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $year = 2025;
         }
 
-        if ($year <= 2025) {
+        if ($year < 2025) {
             if ($income <= 1_625_000) {
                 return max(0, $income - 550_000);
             }

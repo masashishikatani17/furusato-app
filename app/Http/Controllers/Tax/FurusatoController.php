@@ -1139,9 +1139,30 @@ final class FurusatoController extends Controller
             $v = $mirrorFrom([sprintf('shotoku_ichiji_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('shotoku_ichiji_%s', $p)] = (int)$v;
         }
+        /**
+         * ▼ 医療費控除（内訳→第一表へのブリッジ）
+         *   - results/upper/preview/saved の順で kojo_iryo_kojogaku_* を探索し、あればそれを採用
+         *   - 無い場合は A/B/D から制度どおりに再計算してブリッジ
+         *   - 所得税・住民税は同じ控除額を用いる（所得控除のため）
+         */
+        foreach (['prev','curr'] as $p) {
+            $kojogaku = $lookup([sprintf('kojo_iryo_kojogaku_%s', $p)]) ?? null;
+            if ($kojogaku === null) {
+                // 再計算（A/B/D は saved/preview/upper/results の混在から lookup と同様の順で拾える）
+                // ここでは $inputsForView に反映済みのキーも含めた「最新寄せ集め」を材料にして安全に再計算する
+                $material = array_replace([], $savedInputs, $previewPayload, $resultsPayload, $resultsUpper, $inputsForView);
+                $kojogaku = $this->computeMedicalDeduction($material, $p);
+            } else {
+                $kojogaku = $this->valueOrZero($this->toNullableInt($kojogaku));
+            }
+            // 第一表：所得税・住民税の医療費控除セルへ同額をセット
+            $inputsForView[sprintf('kojo_iryo_shotoku_%s', $p)] = (int)$kojogaku;
+            $inputsForView[sprintf('kojo_iryo_jumin_%s',  $p)] = (int)$kojogaku;
+        }
         
         return $inputsForView;
     }
+
 
     private function computeJintekiDiff(array $payload): array
     {
@@ -1529,27 +1550,28 @@ final class FurusatoController extends Controller
         ];
 
         $rules = [
-            'kyuyo_syunyu_prev' => ['bail','nullable','integer','min:0'],
-            'kyuyo_syunyu_curr' => ['bail','nullable','integer','min:0'],
-            'kyuyo_chosei_applicable_prev' => ['bail','nullable','in:0,1'],
-            'kyuyo_chosei_applicable_curr' => ['bail','nullable','in:0,1'],
-            'zatsu_nenkin_syunyu_prev' => ['bail','nullable','integer','min:0'],
-            'zatsu_nenkin_syunyu_curr' => ['bail','nullable','integer','min:0'],
-            'zatsu_gyomu_syunyu_prev' => ['bail','nullable','integer','min:0'],
-            'zatsu_gyomu_syunyu_curr' => ['bail','nullable','integer','min:0'],
-            'zatsu_gyomu_shiharai_prev' => ['bail','nullable','integer','min:0'],
-            'zatsu_gyomu_shiharai_curr' => ['bail','nullable','integer','min:0'],
-            'zatsu_sonota_syunyu_prev' => ['bail','nullable','integer','min:0'],
-            'zatsu_sonota_syunyu_curr' => ['bail','nullable','integer','min:0'],
-            'zatsu_sonota_shiharai_prev' => ['bail','nullable','integer','min:0'],
-            'zatsu_sonota_shiharai_curr' => ['bail','nullable','integer','min:0'],
+            'kyuyo_syunyu_prev' => ['bail', 'nullable', 'integer', 'min:0'],
+            'kyuyo_syunyu_curr' => ['bail', 'nullable', 'integer', 'min:0'],
+            'kyuyo_chosei_applicable_prev' => ['bail', 'nullable', 'in:0,1'],
+            'kyuyo_chosei_applicable_curr' => ['bail', 'nullable', 'in:0,1'],
+            'zatsu_nenkin_syunyu_prev' => ['bail', 'nullable', 'integer', 'min:0'],
+            'zatsu_nenkin_syunyu_curr' => ['bail', 'nullable', 'integer', 'min:0'],
+            'zatsu_gyomu_syunyu_prev' => ['bail', 'nullable', 'integer', 'min:0'],
+            'zatsu_gyomu_syunyu_curr' => ['bail', 'nullable', 'integer', 'min:0'],
+            'zatsu_gyomu_shiharai_prev' => ['bail', 'nullable', 'integer', 'min:0'],
+            'zatsu_gyomu_shiharai_curr' => ['bail', 'nullable', 'integer', 'min:0'],
+            'zatsu_sonota_syunyu_prev' => ['bail', 'nullable', 'integer', 'min:0'],
+            'zatsu_sonota_syunyu_curr' => ['bail', 'nullable', 'integer', 'min:0'],
+            'zatsu_sonota_shiharai_prev' => ['bail', 'nullable', 'integer', 'min:0'],
+            'zatsu_sonota_shiharai_curr' => ['bail', 'nullable', 'integer', 'min:0'],
         ];
-        $validated = \Validator::make($req->only($fields), $rules)->validate();
+        $this->normalizeIntegerFieldsFromRequest($req, $fields);
+        $validated = Validator::make($req->only($fields), $rules)->validate();
 
         // サニタイズ
         $payload = [];
         foreach ($fields as $k) {
-            $payload[$k] = $this->toNullableInt($validated[$k] ?? $req->input($k));
+            $payload[$k] = $this->toNullableInt($validated[$k] ?? null);
         }
 
         // 850 万円超チェック：収入が 8,500,000 以下は適用不可（0 に矯正）
@@ -1572,7 +1594,9 @@ final class FurusatoController extends Controller
         );
 
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
-        return $this->redirectToInputWithAnchor($data, $anchor ?: 'shotoku_row_kyuyo', '保存しました');
+        $query = $this->buildReturnQuery($req);
+
+        return $this->redirectToInputWithAnchor($data, $anchor ?: 'shotoku_row_kyuyo', '保存しました', $query);
     }
 
     public function jotoIchijiDetails(Request $req)
@@ -3288,6 +3312,41 @@ final class FurusatoController extends Controller
                 }
             }
         }
+    }
+
+    /**
+     * 医療費控除（所得控除）をペイロードから制度どおり再計算する。
+     * G = max( min(max(A-B,0), 2,000,000) - min(100,000, floor(max(0,D)*0.05)) , 0 )
+     * - A: kojo_iryo_shiharai_*
+     * - B: kojo_iryo_hotengaku_*
+     * - D: 総所得金額等（ここでは第一表の合計 shotoku_gokei_shotoku_* を採用）
+     */
+    private function computeMedicalDeduction(array $source, string $period): int
+    {
+        $a = $this->valueOrZero($this->toNullableInt($source["kojo_iryo_shiharai_{$period}"] ?? null));
+        $b = $this->valueOrZero($this->toNullableInt($source["kojo_iryo_hotengaku_{$period}"] ?? null));
+        // 総所得金額等：負値は 0 として扱う
+        $dCandidates = [
+            // 内訳画面で供給される場合のキー（存在すれば優先）
+            "kojo_iryo_shotoku_gokei_{$period}",
+            // 第一表の合計（本プロジェクトではこれが SoT）
+            "shotoku_gokei_shotoku_{$period}",
+        ];
+        $d = 0;
+        foreach ($dCandidates as $k) {
+            if (array_key_exists($k, $source) && $source[$k] !== null && $source[$k] !== '') {
+                $d = $this->valueOrZero($this->toNullableInt($source[$k]));
+                break;
+            }
+        }
+        $d = max(0, $d);
+
+        $c       = max(0, $a - $b);
+        $cCapped = min($c, 2_000_000);
+        $e       = (int) floor($d * 0.05);
+        $f       = min($e, 100_000);
+        $g       = max(0, $cCapped - $f);
+        return $g;
     }
 
     private function getSyoriSettings(int $dataId): array

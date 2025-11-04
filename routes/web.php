@@ -233,5 +233,10 @@ Route::middleware(['auth'])->prefix('furusato')->group(function () {
         ->name('furusato.details.kifukin');
     Route::post('/details/kifukin/save', [FurusatoController::class, 'saveKifukinDetails'])
         ->name('furusato.details.kifukin.save');
+    Route::get('/details/kyuyo_zatsu', [\App\Http\Controllers\Tax\FurusatoController::class, 'kyuyoZatsuDetails'])
+        ->name('furusato.details.kyuyo_zatsu');
+    Route::post('/details/kyuyo_zatsu/save', [\App\Http\Controllers\Tax\FurusatoController::class, 'saveKyuyoZatsuDetails'])
+        ->name('furusato.details.kyuyo_zatsu.save');
+
 });
 

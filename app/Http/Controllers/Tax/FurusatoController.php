@@ -544,6 +544,30 @@ final class FurusatoController extends Controller
             }
         };
 
+        // ▼ details（kyuyo/zatsu）→ 第一表 収入ミラー（税目共通・readonly表示用）
+        foreach (['prev','curr'] as $p) {
+            $v = $this->toNullableInt($previewPayload["kyuyo_syunyu_{$p}"] ?? $savedInputs["kyuyo_syunyu_{$p}"] ?? null);
+            if ($v !== null) {
+                $inputsForView["syunyu_kyuyo_shotoku_{$p}"] = $v;
+                $inputsForView["syunyu_kyuyo_jumin_{$p}"]   = $v;
+            }
+            $v = $this->toNullableInt($previewPayload["zatsu_nenkin_syunyu_{$p}"] ?? $savedInputs["zatsu_nenkin_syunyu_{$p}"] ?? null);
+            if ($v !== null) {
+                $inputsForView["syunyu_zatsu_nenkin_shotoku_{$p}"] = $v;
+                $inputsForView["syunyu_zatsu_nenkin_jumin_{$p}"]   = $v;
+            }
+            $v = $this->toNullableInt($previewPayload["zatsu_gyomu_syunyu_{$p}"] ?? $savedInputs["zatsu_gyomu_syunyu_{$p}"] ?? null);
+            if ($v !== null) {
+                $inputsForView["syunyu_zatsu_gyomu_shotoku_{$p}"] = $v;
+                $inputsForView["syunyu_zatsu_gyomu_jumin_{$p}"]   = $v;
+            }
+            $v = $this->toNullableInt($previewPayload["zatsu_sonota_syunyu_{$p}"] ?? $savedInputs["zatsu_sonota_syunyu_{$p}"] ?? null);
+            if ($v !== null) {
+                $inputsForView["syunyu_zatsu_sonota_shotoku_{$p}"] = $v;
+                $inputsForView["syunyu_zatsu_sonota_jumin_{$p}"]   = $v;
+            }
+        }
+
         foreach (['prev', 'curr'] as $period) {
             $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
@@ -1464,6 +1488,92 @@ final class FurusatoController extends Controller
 
         return $this->redirectToInputWithAnchor($data, $anchor);
     }
+    /**
+     * 給与・雑 details 表示
+     */
+    public function kyuyoZatsuDetails(Request $req)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear   = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear)     : '当年';
+        $payload    = $this->getFurusatoInputPayload($data);
+
+        return view('tax.furusato.details.kyuyo_zatsu_details', [
+            'dataId'     => $data->id,
+            'kihuYear'   => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out'        => ['inputs' => $payload],
+        ]);
+    }
+
+    /**
+     * 給与・雑 details 保存
+     */
+    public function saveKyuyoZatsuDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase
+    ): RedirectResponse {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        // 入力キー
+        $fields = [
+            'kyuyo_syunyu_prev','kyuyo_syunyu_curr',
+            'kyuyo_chosei_applicable_prev','kyuyo_chosei_applicable_curr',
+            'zatsu_nenkin_syunyu_prev','zatsu_nenkin_syunyu_curr',
+            'zatsu_gyomu_syunyu_prev','zatsu_gyomu_syunyu_curr',
+            'zatsu_gyomu_shiharai_prev','zatsu_gyomu_shiharai_curr',
+            'zatsu_sonota_syunyu_prev','zatsu_sonota_syunyu_curr',
+            'zatsu_sonota_shiharai_prev','zatsu_sonota_shiharai_curr',
+        ];
+
+        $rules = [
+            'kyuyo_syunyu_prev' => ['bail','nullable','integer','min:0'],
+            'kyuyo_syunyu_curr' => ['bail','nullable','integer','min:0'],
+            'kyuyo_chosei_applicable_prev' => ['bail','nullable','in:0,1'],
+            'kyuyo_chosei_applicable_curr' => ['bail','nullable','in:0,1'],
+            'zatsu_nenkin_syunyu_prev' => ['bail','nullable','integer','min:0'],
+            'zatsu_nenkin_syunyu_curr' => ['bail','nullable','integer','min:0'],
+            'zatsu_gyomu_syunyu_prev' => ['bail','nullable','integer','min:0'],
+            'zatsu_gyomu_syunyu_curr' => ['bail','nullable','integer','min:0'],
+            'zatsu_gyomu_shiharai_prev' => ['bail','nullable','integer','min:0'],
+            'zatsu_gyomu_shiharai_curr' => ['bail','nullable','integer','min:0'],
+            'zatsu_sonota_syunyu_prev' => ['bail','nullable','integer','min:0'],
+            'zatsu_sonota_syunyu_curr' => ['bail','nullable','integer','min:0'],
+            'zatsu_sonota_shiharai_prev' => ['bail','nullable','integer','min:0'],
+            'zatsu_sonota_shiharai_curr' => ['bail','nullable','integer','min:0'],
+        ];
+        $validated = \Validator::make($req->only($fields), $rules)->validate();
+
+        // サニタイズ
+        $payload = [];
+        foreach ($fields as $k) {
+            $payload[$k] = $this->toNullableInt($validated[$k] ?? $req->input($k));
+        }
+
+        // 850 万円超チェック：収入が 8,500,000 以下は適用不可（0 に矯正）
+        foreach (['prev','curr'] as $p) {
+            $income = (int)($payload["kyuyo_syunyu_{$p}"] ?? 0);
+            if ($income <= 8_500_000) {
+                $payload["kyuyo_chosei_applicable_{$p}"] = 0;
+            } else {
+                $payload["kyuyo_chosei_applicable_{$p}"] = (int)($payload["kyuyo_chosei_applicable_{$p}"] ?? 0) === 1 ? 1 : 0;
+            }
+        }
+
+        // 再計算 & 保存（表示確定値はサーバ側 Calculator を採用）
+        $this->runRecalculationPipeline(
+            $req,
+            $data,
+            $payload,
+            ['should_flash_results' => true],
+            $recalculateUseCase
+        );
+
+        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+        return $this->redirectToInputWithAnchor($data, $anchor ?: 'shotoku_row_kyuyo', '保存しました');
+    }
 
     public function jotoIchijiDetails(Request $req)
     {
@@ -1610,9 +1720,10 @@ final class FurusatoController extends Controller
             $recalculateUseCase,
         );
 
-        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
-
-        return $this->redirectToInputWithAnchor($data, $anchor);
+        // ▼ 戻り先のタブ/サブタブ/アンカーを URL へ反映してリダイレクト
+        $query    = $this->buildReturnQuery($req);         // ['data_id'=>..., 'tab'=>'input', 'subtab'=>'bunri']
+        $fragment = $this->sanitizedAnchor($req);          // '#bunri_...'
+        return $this->redirectToInputWithAnchor($data, $fragment, '保存しました', $query);
     }
 
     public function bunriKabutekiDetails(Request $req)
@@ -1701,9 +1812,10 @@ final class FurusatoController extends Controller
             $recalculateUseCase,
         );
 
-        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
-
-        return $this->redirectToInputWithAnchor($data, $anchor);
+        // ▼ 戻り先のタブ/サブタブ/アンカーを URL に反映
+        $query    = $this->buildReturnQuery($req);  // ['data_id'=>..., 'tab'=>'input', 'subtab'=>'bunri' ...]
+        $fragment = $this->sanitizedAnchor($req);   // 'bunri_...'
+        return $this->redirectToInputWithAnchor($data, $fragment, '保存しました', $query);
     }
 
     public function bunriSakimonoDetails(Request $req)
@@ -1770,9 +1882,10 @@ final class FurusatoController extends Controller
             $recalculateUseCase,
         );
 
-        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
-
-        return $this->redirectToInputWithAnchor($data, $anchor);
+        // ▼ 戻り先のタブ/サブタブ/アンカーを URL に反映
+        $query    = $this->buildReturnQuery($req);
+        $fragment = $this->sanitizedAnchor($req);
+        return $this->redirectToInputWithAnchor($data, $fragment, '保存しました', $query);
     }
 
     public function bunriSanrinDetails(Request $req)
@@ -1843,9 +1956,10 @@ final class FurusatoController extends Controller
             $recalculateUseCase,
         );
 
-        $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
-
-        return $this->redirectToInputWithAnchor($data, $anchor);
+        // ▼ 戻り先のタブ/サブタブ/アンカーを URL に反映
+        $query    = $this->buildReturnQuery($req);
+        $fragment = $this->sanitizedAnchor($req);
+        return $this->redirectToInputWithAnchor($data, $fragment, '保存しました', $query);
     }
 
     public function kojoSeimeiJishinDetails(Request $req)
@@ -2630,12 +2744,49 @@ final class FurusatoController extends Controller
             $query['origin_tab'] = 'input';
         }
 
+        $subtabRaw = $request->input('origin_subtab');
+        if (is_string($subtabRaw)) {
+            $subtab = preg_replace('/[^A-Za-z0-9_-]/', '', trim($subtabRaw));
+            if ($subtab !== '') {
+                $query['origin_subtab'] = $subtab;
+            }
+        }
+
         $anchor = $this->sanitizeOriginAnchor($request->input('origin_anchor'));
         if ($anchor !== '') {
             $query['origin_anchor'] = $anchor;
         }
 
         return $query;
+    }
+
+    private function buildReturnQuery(Request $request): array
+    {
+        $dataId = (int) $request->input('data_id');
+        $query = ['data_id' => $dataId];
+
+        $tabRaw = $request->input('origin_tab');
+        if (is_string($tabRaw)) {
+            $tab = preg_replace('/[^A-Za-z0-9_-]/', '', trim($tabRaw));
+            if ($tab !== '') {
+                $query['tab'] = $tab;
+            }
+        }
+
+        $subtabRaw = $request->input('origin_subtab');
+        if (is_string($subtabRaw)) {
+            $subtab = preg_replace('/[^A-Za-z0-9_-]/', '', trim($subtabRaw));
+            if ($subtab !== '') {
+                $query['subtab'] = $subtab;
+            }
+        }
+
+        return $query;
+    }
+
+    private function sanitizedAnchor(Request $request): string
+    {
+        return $this->sanitizeOriginAnchor($request->input('origin_anchor'));
     }
     
     private function normalizeBunriChokiSyunyuKeys(array &$payload): void
@@ -2900,7 +3051,6 @@ final class FurusatoController extends Controller
     {
         $routeParams = ['data_id' => $data->id];
         $originQuery = $this->buildOriginQuery($request);
-        $anchor = $this->sanitizeOriginAnchor($request->input('origin_anchor'));
 
         switch ($goto) {
             case 'syori':
@@ -2909,6 +3059,8 @@ final class FurusatoController extends Controller
                 return redirect()->route('furusato.master', $routeParams)->with('success', $message);
             case 'jigyo':
                 return redirect()->route('furusato.details.jigyo', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'kyuyo_zatsu':
+                return redirect()->route('furusato.details.kyuyo_zatsu', array_merge($routeParams, $originQuery))->with('success', $message);
             case 'fudosan':
                 return redirect()->route('furusato.details.fudosan', array_merge($routeParams, $originQuery))->with('success', $message);
             case 'kifukin_details':
@@ -2931,9 +3083,11 @@ final class FurusatoController extends Controller
                 return redirect()->route('furusato.details.bunri_sanrin', array_merge($routeParams, $originQuery))->with('success', $message);
             case 'input':
             case '':
-                return $this->redirectToInputWithAnchor($data, $anchor, $message);
             default:
-                return $this->redirectToInputWithAnchor($data, $anchor, $message);
+                $query = $this->buildReturnQuery($request);
+                $fragment = $this->sanitizedAnchor($request);
+
+                return $this->redirectToInputWithAnchor($data, $fragment, $message, $query);
         }
     }
 
@@ -2974,9 +3128,15 @@ final class FurusatoController extends Controller
         return $filtered !== null ? $filtered : '';
     }
 
-    private function redirectToInputWithAnchor(Data $data, string $anchor = '', string $message = '保存しました'): RedirectResponse
+    private function redirectToInputWithAnchor(Data $data, string $anchor = '', string $message = '保存しました', array $query = []): RedirectResponse
     {
-        $redirect = redirect()->route('furusato.input', ['data_id' => $data->id])
+        $dataId = (int) ($query['data_id'] ?? 0);
+        if ($dataId <= 0) {
+            $dataId = $data->id;
+        }
+        $query['data_id'] = $dataId;
+
+        $redirect = redirect()->route('furusato.input', $query)
                               ->with('success', $message);
 
         if ($anchor !== '') {

@@ -21,14 +21,20 @@ class KyuyoNenkinCalculator implements ProvidesKeys
     public static function provides(): array
     {
         $keys = [];
-
         foreach (self::PERIODS as $period) {
+            // 給与（所得）
             $keys[] = sprintf('shotoku_kyuyo_shotoku_%s', $period);
-            $keys[] = sprintf('jumin_kyuyo_jumin_%s', $period);
+            $keys[] = sprintf('jumin_kyuyo_jumin_%s',   $period);
+            // 雑・公的年金（所得）
             $keys[] = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
-            $keys[] = sprintf('jumin_zatsu_nenkin_jumin_%s', $period);
+            $keys[] = sprintf('jumin_zatsu_nenkin_jumin_%s',     $period);
+            // 雑・業務（所得）
+            $keys[] = sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period);
+            $keys[] = sprintf('jumin_zatsu_gyomu_jumin_%s',     $period);
+            // 雑・その他（所得）
+            $keys[] = sprintf('shotoku_zatsu_sonota_shotoku_%s', $period);
+            $keys[] = sprintf('jumin_zatsu_sonota_jumin_%s',     $period);
         }
-
         return $keys;
     }
 
@@ -46,8 +52,9 @@ class KyuyoNenkinCalculator implements ProvidesKeys
         foreach (self::PERIODS as $period) {
             $year = $this->resolveYear($ctx['kihu_year'] ?? null, $period);
 
-            $kyuyoIncomeKey = sprintf('syunyu_kyuyo_shotoku_%s', $period);
-            $kyuyoIncome = $this->clampIncome($payload[$kyuyoIncomeKey] ?? null);
+            // ▼ 給与：detailsの「kyuyo_syunyu_*」を収入として読み、給与所得を算出
+            $kyuyoIncomeKey = sprintf('kyuyo_syunyu_%s', $period);
+            $kyuyoIncome    = $this->clampIncome($payload[$kyuyoIncomeKey] ?? null);
             $kyuyoAmount = $this->calculateKyuyoShotoku($kyuyoIncome, $year);
 
             $shotokuKyuyoKey = sprintf('shotoku_kyuyo_shotoku_%s', $period);
@@ -57,8 +64,9 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $working[$shotokuKyuyoKey] = $kyuyoAmount;
             $working[$juminKyuyoKey] = $kyuyoAmount;
 
-            $nenkinIncomeKey = sprintf('syunyu_zatsu_nenkin_shotoku_%s', $period);
-            $nenkinIncome = $this->clampIncome($payload[$nenkinIncomeKey] ?? null);
+            // ▼ 雑（公的年金等）：detailsの「zatsu_nenkin_syunyu_*」を収入として読み、所得控除適用後の所得を算出
+            $nenkinIncomeKey = sprintf('zatsu_nenkin_syunyu_%s', $period);
+            $nenkinIncome    = $this->clampIncome($payload[$nenkinIncomeKey] ?? null);
 
             $shotokuOther = $this->sumOtherIncome($working, 'shotoku_', sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period), $period);
             $juminOther = $this->sumOtherIncome($working, 'jumin_', sprintf('jumin_zatsu_nenkin_jumin_%s', $period), $period);
@@ -73,6 +81,24 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $updates[$juminNenkinKey] = $juminResult;
             $working[$shotokuNenkinKey] = $shotokuResult;
             $working[$juminNenkinKey] = $juminResult;
+
+            // ▼ 雑（業務）：所得＝max(0, 収入−支払) を税目共通でミラー
+            $gyomuInc = $this->clampIncome($payload[sprintf('zatsu_gyomu_syunyu_%s',   $period)] ?? null);
+            $gyomuPay = $this->clampIncome($payload[sprintf('zatsu_gyomu_shiharai_%s', $period)] ?? null);
+            $gyomuShotoku = max(0, $gyomuInc - $gyomuPay);
+            $updates[sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)] = $gyomuShotoku;
+            $updates[sprintf('jumin_zatsu_gyomu_jumin_%s',     $period)] = $gyomuShotoku;
+            $working[sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)] = $gyomuShotoku;
+            $working[sprintf('jumin_zatsu_gyomu_jumin_%s',     $period)] = $gyomuShotoku;
+
+            // ▼ 雑（その他）：所得＝max(0, 収入−支払) を税目共通でミラー
+            $sonotaInc = $this->clampIncome($payload[sprintf('zatsu_sonota_syunyu_%s',   $period)] ?? null);
+            $sonotaPay = $this->clampIncome($payload[sprintf('zatsu_sonota_shiharai_%s', $period)] ?? null);
+            $sonotaShotoku = max(0, $sonotaInc - $sonotaPay);
+            $updates[sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)] = $sonotaShotoku;
+            $updates[sprintf('jumin_zatsu_sonota_jumin_%s',     $period)] = $sonotaShotoku;
+            $working[sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)] = $sonotaShotoku;
+            $working[sprintf('jumin_zatsu_sonota_jumin_%s',     $period)] = $sonotaShotoku;
         }
 
         return array_replace($payload, $updates);

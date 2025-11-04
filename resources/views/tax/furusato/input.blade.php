@@ -139,6 +139,12 @@
                 'jumin_kyuyo',
                 'shotoku_zatsu_nenkin',
                 'jumin_zatsu_nenkin',
+                'syunyu_kyuyo',
+                'syunyu_zatsu_nenkin',
+                'syunyu_zatsu_gyomu',
+                'syunyu_zatsu_sonota',
+                'shotoku_zatsu_gyomu',
+                'shotoku_zatsu_sonota',
                 'syunyu_jigyo_eigyo',
                 'syunyu_fudosan',
                 'shotoku_joto_tanki',
@@ -420,12 +426,18 @@
                   <td class="text-center align-middle"></td>
                   {!! $renderInputs('syunyu_haito') !!}
                 </tr>
-                <tr>
+                <tr id="syunyu_row_kyuyo" data-anchor>
                   <th colspan="3" class="text-start align-middle ps-1">給与</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
-                  <td class="text-center align-middle"></td>
+                  <td class="text-center align-middle" rowspan="4">
+                    <button type="button"
+                            class="btn-base-green js-open-details"
+                            data-redirect-to="kyuyo_zatsu"
+                            data-origin-subtab="sogo"
+                            data-origin-anchor="syunyu_row_kyuyo">内訳</button>
+                  </td>
                   {!! $renderInputs('syunyu_kyuyo') !!}
                 </tr>
                 <tr>
@@ -434,7 +446,6 @@
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
-                  <td class="text-center align-middle"></td>
                   {!! $renderInputs('syunyu_zatsu_nenkin') !!}
                 </tr>
                 <tr>
@@ -442,7 +453,6 @@
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
-                  <td class="text-center align-middle"></td>
                   {!! $renderInputs('syunyu_zatsu_gyomu') !!}
                 </tr>
                 <tr>
@@ -450,7 +460,6 @@
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
-                  <td class="text-center align-middle"></td>
                   {!! $renderInputs('syunyu_zatsu_sonota') !!}
                 </tr>
                 <tr id="income_joto_ichiji" data-anchor>
@@ -537,12 +546,18 @@
                   <td class="text-center align-middle"></td>
                   {!! $renderInputs('shotoku_haito') !!}
                 </tr>
-                <tr>
+                <tr id="shotoku_row_kyuyo" data-anchor>
                   <th colspan="3" class="text-start align-middle ps-1">給与</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
-                  <td class="text-center align-middle"></td>
+                  <td class="text-center align-middle" rowspan="4">
+                    <button type="button"
+                            class="btn-base-green js-open-details"
+                            data-redirect-to="kyuyo_zatsu"
+                            data-origin-subtab="sogo"
+                            data-origin-anchor="shotoku_row_kyuyo">内訳</button>
+                  </td>
                   {!! $renderInputs('shotoku_kyuyo') !!}
                 </tr>
                 <tr>
@@ -551,7 +566,6 @@
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
-                  <td class="text-center align-middle"></td>
                   {!! $renderInputs('shotoku_zatsu_nenkin') !!}
                 </tr>
                 <tr>
@@ -559,7 +573,6 @@
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
-                  <td class="text-center align-middle"></td>
                   {!! $renderInputs('shotoku_zatsu_gyomu') !!}
                 </tr>
                 <tr>
@@ -567,7 +580,6 @@
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
-                  <td class="text-center align-middle"></td>
                   {!! $renderInputs('shotoku_zatsu_sonota') !!}
                 </tr>
                 <tr id="shotoku_joto_ichiji" data-anchor>
@@ -846,22 +858,30 @@
   
       @if ($showSeparatedNettingFlag)
         <div class="card mb-4">
-          <div class="card-header pb-0">
+        <div class="card-header pb-0">
+            @php
+              $initialSubtab = (string) request()->query('subtab', '');
+            $isBunri = $initialSubtab === 'bunri';
+              $sogoActive  = $isBunri ? '' : 'active';
+              $sogoShown   = $isBunri ? '' : 'show active';
+              $bunriActive = $isBunri ? 'active' : '';
+              $bunriShown  = $isBunri ? 'show active' : '';
+            @endphp
             <ul class="nav nav-tabs card-header-tabs" id="furusato-input-tabs" role="tablist">
               <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="tab-sogo" data-bs-toggle="tab" data-bs-target="#pane-sogo" type="button" role="tab" aria-controls="pane-sogo" aria-selected="true">確定申告書(総合課税)</button>
+                <button class="nav-link {{ $sogoActive }}" id="tab-sogo" data-bs-toggle="tab" data-bs-target="#pane-sogo" type="button" role="tab" aria-controls="pane-sogo" aria-selected="{{ $isBunri ? 'false' : 'true' }}">確定申告書(総合課税)</button>
               </li>
               <li class="nav-item" role="presentation">
-                <button class="nav-link" id="tab-bunri" data-bs-toggle="tab" data-bs-target="#pane-bunri" type="button" role="tab" aria-controls="pane-bunri" aria-selected="false">確定申告書(分離課税)</button>
+                <button class="nav-link {{ $bunriActive }}" id="tab-bunri" data-bs-toggle="tab" data-bs-target="#pane-bunri" type="button" role="tab" aria-controls="pane-bunri" aria-selected="{{ $isBunri ? 'true' : 'false' }}">確定申告書(分離課税)</button>
               </li>
             </ul>
           </div>
           <div class="card-body">
             <div class="tab-content" id="furusato-input-tab-content">
-              <div class="tab-pane fade show active" id="pane-sogo" role="tabpanel" aria-labelledby="tab-sogo">
+              <div class="tab-pane fade {{ $sogoShown }}" id="pane-sogo" role="tabpanel" aria-labelledby="tab-sogo">
                 {!! $sogoContent !!}
               </div>
-              <div class="tab-pane fade" id="pane-bunri" role="tabpanel" aria-labelledby="tab-bunri">
+              <div class="tab-pane fade {{ $bunriShown }}" id="pane-bunri" role="tabpanel" aria-labelledby="tab-bunri">
                 <div>
                   <hb class="card-title mb-3">確定申告書(分離課税) 第三表</hb>
                   <div class="table-responsive">
@@ -893,6 +913,7 @@
                                     class="btn-base-green"
                                     name="redirect_to"
                                     value="bunri_joto"
+                                    data-origin-subtab="bunri"
                                     data-return-anchor="bunri_income_shortlong_top">内訳</button>
                           </td>
                           {!! $renderInputs('bunri_syunyu_tanki_ippan') !!}
@@ -921,7 +942,7 @@
                           {!! $renderInputs('bunri_syunyu_choki_' . $type) !!}
                         </tr>
                         @endforeach
-                        <tr>
+                        <tr id="bunri_income_kabuteki_top" data-anchor>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">一般株式等の譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -931,6 +952,7 @@
                                     class="btn-base-green"
                                     name="redirect_to"
                                     value="bunri_kabuteki"
+                                    data-origin-subtab="bunri"
                                     data-return-anchor="bunri_income_kabuteki_top">内訳</button>
                           </td>
                           {!! $renderInputs('bunri_syunyu_ippan_kabuteki_joto') !!}
@@ -949,7 +971,7 @@
                           </td>
                           {!! $renderInputs('bunri_syunyu_jojo_kabuteki_haito') !!}
                         </tr>
-                        <tr>
+                        <tr id="bunri_income_sakimono" data-anchor>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">先物取引</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -959,11 +981,12 @@
                                     class="btn-base-green"
                                     name="redirect_to"
                                     value="bunri_sakimono"
+                                    data-origin-subtab="bunri"
                                     data-return-anchor="bunri_income_sakimono">内訳</button>
                           </td>
                           {!! $renderInputs('bunri_syunyu_sakimono') !!}
                         </tr>
-                        <tr>
+                        <tr id="bunri_income_sanrin" data-anchor>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">山林</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -973,6 +996,7 @@
                                     class="btn-base-green"
                                     name="redirect_to"
                                     value="bunri_sanrin"
+                                    data-origin-subtab="bunri"
                                     data-return-anchor="bunri_income_sanrin">内訳</button>
                           </td>
                           {!! $renderInputs('bunri_syunyu_sanrin') !!}
@@ -985,7 +1009,7 @@
                           <td></td>
                           {!! $renderInputs('bunri_syunyu_taishoku') !!}
                         </tr>
-                        <tr>
+                        <tr id="bunri_shotoku_shortlong_top" data-anchor>
                           <th scope="rowgroup" rowspan="11" class="text-center align-middle th-ccc">所得金額</th>
                           <th scope="rowgroup" rowspan="11" class="text-start align-middle ps-1">分離課税</th>
                           <th scope="rowgroup" rowspan="2" class="text-start align-middle th-ddd ps-1">短 期</th>
@@ -998,6 +1022,7 @@
                                     class="btn-base-green"
                                     name="redirect_to"
                                     value="bunri_joto"
+                                    data-origin-subtab="bunri"
                                     data-return-anchor="bunri_shotoku_shortlong_top">内訳</button>
                           </td>
                           {!! $renderInputs('bunri_shotoku_tanki_ippan') !!}
@@ -1026,7 +1051,7 @@
                           {!! $renderInputs('bunri_shotoku_choki_' . $type) !!}
                         </tr>
                         @endforeach
-                        <tr>
+                        <tr id="bunri_shotoku_kabuteki_top" data-anchor>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">一般株式等の譲渡</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -1036,6 +1061,7 @@
                                     class="btn-base-green"
                                     name="redirect_to"
                                     value="bunri_kabuteki"
+                                    data-origin-subtab="bunri"
                                     data-return-anchor="bunri_shotoku_kabuteki_top">内訳</button>
                           </td>
                           {!! $renderInputs('bunri_shotoku_ippan_kabuteki_joto') !!}
@@ -1054,7 +1080,7 @@
                           </td>
                           {!! $renderInputs('bunri_shotoku_jojo_kabuteki_haito') !!}
                         </tr>
-                        <tr>
+                        <tr id="bunri_shotoku_sakimono" data-anchor>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">先物取引</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -1064,11 +1090,12 @@
                                     class="btn-base-green"
                                     name="redirect_to"
                                     value="bunri_sakimono"
+                                    data-origin-subtab="bunri"
                                     data-return-anchor="bunri_shotoku_sakimono">内訳</button>
                           </td>
                           {!! $renderInputs('bunri_shotoku_sakimono') !!}
                         </tr>
-                        <tr>
+                        <tr id="bunri_shotoku_sanrin" data-anchor>
                           <th scope="row" colspan="2" class="align-middle text-start th-ddd ps-1">山林</th>
                           <td class="text-center align-middle">
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
@@ -1078,6 +1105,7 @@
                                     class="btn-base-green"
                                     name="redirect_to"
                                     value="bunri_sanrin"
+                                    data-origin-subtab="bunri"
                                     data-return-anchor="bunri_shotoku_sanrin">内訳</button>
                           </td>
                           {!! $renderInputs('bunri_shotoku_sanrin') !!}
@@ -1702,6 +1730,35 @@
       } catch(e) { /* no-op */ }
     })();
 
+    const params = new URLSearchParams(window.location.search);
+    const targetTab = params.get('tab');
+    const targetSubtab = params.get('subtab');
+
+    const readHash = () => {
+      if (typeof window === 'undefined' || !window.location) {
+        return '';
+      }
+
+      const { hash } = window.location;
+      if (!hash || hash.length <= 1) {
+        return '';
+      }
+
+      const raw = hash.slice(1);
+      try {
+        return decodeURIComponent(raw);
+      } catch (error) {
+        return raw;
+      }
+    };
+
+    const anchorId = readHash();
+    // ▼ デバッグ用に現在のナビ情報を公開（コンソールから確認可能）
+    window.__furusatoNav = {
+      targetTab, targetSubtab, anchorId,
+      initialTab: @json((string) request()->query('tab', session('return_tab', ''))),
+      showResultFlag: Boolean(@json($showResultFlag)),
+    };
     const initialTab = @json((string) request()->query('tab', session('return_tab', '')));
     const showResultFlag = Boolean(@json($showResultFlag));
     const form = document.getElementById('furusato-input-form');
@@ -1721,30 +1778,79 @@
       return input;
     };
 
+    const removeHiddenField = (name) => {
+      if (!form) {
+        return;
+      }
+      const input = form.querySelector(`input[name="${name}"]`);
+      if (input) {
+        input.remove();
+      }
+    };
+
+    const inferSubtabFromAnchor = (anchor) => {
+      if (typeof anchor !== 'string' || anchor === '') {
+        return '';
+      }
+      if (anchor.startsWith('bunri_')) {
+        return 'bunri';
+      }
+      return '';
+    };
+
     const clearOriginFields = () => {
       if (!form) {
         return;
       }
-      ['origin_tab', 'origin_anchor'].forEach((name) => {
-        const input = form.querySelector(`input[name="${name}"]`);
-        if (input) {
-          input.remove();
-        }
-      });
+      ['origin_tab', 'origin_subtab', 'origin_anchor'].forEach((name) => removeHiddenField(name));
       if (form.dataset) {
         delete form.dataset.returnAnchor;
+        delete form.dataset.returnSubtab;
+      }
+    };
+
+    const setOriginFields = (anchor, subtab) => {
+      if (!form) {
+        return;
+      }
+      const resolvedSubtab = subtab || inferSubtabFromAnchor(anchor);
+      const hasAnchor = typeof anchor === 'string' && anchor !== '';
+      const hasSubtab = typeof resolvedSubtab === 'string' && resolvedSubtab !== '';
+
+      if (!hasAnchor && !hasSubtab) {
+        clearOriginFields();
+        return;
+      }
+
+      ensureHiddenField('origin_tab', 'input');
+
+      if (hasAnchor) {
+        ensureHiddenField('origin_anchor', anchor);
+      } else {
+        removeHiddenField('origin_anchor');
+      }
+
+      if (hasSubtab) {
+        ensureHiddenField('origin_subtab', resolvedSubtab);
+      } else {
+        removeHiddenField('origin_subtab');
+      }
+
+      if (form.dataset) {
+        if (hasAnchor) {
+          form.dataset.returnAnchor = anchor;
+        } else {
+          delete form.dataset.returnAnchor;
+        }
+        if (hasSubtab) {
+          form.dataset.returnSubtab = resolvedSubtab;
+        } else {
+          delete form.dataset.returnSubtab;
+        }
       }
     };
 
     if (form) {
-      const setOriginFields = (anchor) => {
-        if (form.dataset) {
-          form.dataset.returnAnchor = anchor;
-        }
-        ensureHiddenField('origin_tab', 'input');
-        ensureHiddenField('origin_anchor', anchor);
-      };
-
       const detailButtons = form.querySelectorAll('.js-open-details');
       detailButtons.forEach((button) => {
         button.addEventListener('click', (event) => {
@@ -1753,9 +1859,10 @@
           const anchor = button.getAttribute('data-origin-anchor')
             || button.getAttribute('data-return-anchor')
             || '';
+          const subtab = button.getAttribute('data-origin-subtab') || '';
 
-          if (anchor) {
-            setOriginFields(anchor);
+          if (anchor || subtab) {
+            setOriginFields(anchor, subtab);
           } else {
             clearOriginFields();
           }
@@ -1798,24 +1905,12 @@
         });
       }
 
-      const readLocationHash = () => {
-        if (typeof window === 'undefined' || !window.location) {
-          return '';
-        }
-
-        const { hash } = window.location;
-        if (!hash || hash.length <= 1) {
-          return '';
-        }
-
-        return hash.substring(1);
-      };
-
       form.addEventListener('click', (event) => {
         const target = event.target instanceof Element ? event.target.closest('[data-return-anchor]') : null;
         if (target) {
           const anchor = target.getAttribute('data-return-anchor') || '';
-          setOriginFields(anchor);
+          const subtab = target.getAttribute('data-origin-subtab') || '';
+          setOriginFields(anchor, subtab);
           return;
         }
 
@@ -1824,48 +1919,20 @@
 
       form.addEventListener('submit', () => {
         const datasetAnchor = form.dataset && form.dataset.returnAnchor ? form.dataset.returnAnchor : '';
-        if (datasetAnchor) {
-          setOriginFields(datasetAnchor);
+        const datasetSubtab = form.dataset && form.dataset.returnSubtab ? form.dataset.returnSubtab : '';
+        if (datasetAnchor || datasetSubtab) {
+          setOriginFields(datasetAnchor, datasetSubtab);
           return;
         }
 
-        const hashAnchor = readLocationHash();
+        const hashAnchor = readHash();
         if (hashAnchor) {
-          ensureHiddenField('origin_tab', 'input');
-          ensureHiddenField('origin_anchor', hashAnchor);
+          setOriginFields(hashAnchor, '');
           return;
         }
 
         clearOriginFields();
       });
-    }
-
-    if (!showResultFlag && initialTab === 'input') {
-      const inputTab = document.getElementById('furusato-tab-input-nav');
-      if (inputTab) {
-        if (typeof bootstrap !== 'undefined' && typeof bootstrap.Tab !== 'undefined') {
-          bootstrap.Tab.getOrCreateInstance(inputTab).show();
-        } else {
-          const navContainer = inputTab.closest('.nav');
-          if (navContainer) {
-            navContainer.querySelectorAll('.nav-link').forEach((link) => {
-              link.classList.remove('active');
-            });
-          }
-          inputTab.classList.add('active');
-
-          const tabPane = document.getElementById('furusato-tab-input');
-          if (tabPane) {
-            const tabContent = tabPane.closest('.tab-content');
-            if (tabContent) {
-              tabContent.querySelectorAll('.tab-pane').forEach((pane) => {
-                pane.classList.remove('show', 'active');
-              });
-            }
-            tabPane.classList.add('show', 'active');
-          }
-        }
-      }
     }
 
     const resolveRestoreScrollConfig = () => {
@@ -1884,60 +1951,169 @@
       document.documentElement.style.setProperty('--restore-scroll-offset', `${restoreScrollConfig.offsetPx}px`);
     }
 
-    const scrollToAnchor = () => {
-      const { hash } = window.location;
-      if (!hash || hash.length <= 1) {
-        return;
+    // 最寄りの「実際にスクロール量がある」コンテナを見つける
+    const getScrollableAncestor = (el) => {
+      let node = el?.parentElement;
+      while (node && node !== document.body) {
+        const style = window.getComputedStyle(node);
+        const oy = style.overflowY;
+        const hasScroll = (oy === 'auto' || oy === 'scroll') &&
+                          (node.scrollHeight - node.clientHeight > 1);
+        if (hasScroll) return node;
+        node = node.parentElement;
       }
-
-      let id = hash.substring(1);
-      try {
-        id = decodeURIComponent(id);
-      } catch (error) {
-        // ignore decode errors and use raw id
-      }
-
-      if (!id) {
-        return;
-      }
-
-      const target = document.getElementById(id);
-      if (!target) {
-        return;
-      }
-
-      const currentScroll = typeof window.scrollY === 'number' ? window.scrollY : window.pageYOffset || 0;
-      const rect = target.getBoundingClientRect();
-      const top = rect.top + currentScroll - restoreScrollConfig.offsetPx;
-      window.scrollTo({ top, behavior: 'auto' });
-
-      if (restoreScrollConfig.focusMode === 'silent' && typeof target.focus === 'function') {
-        target.setAttribute('data-silent-focus', '1');
-        target.focus({ preventScroll: true });
-        setTimeout(() => {
-          if (typeof target.blur === 'function') {
-            target.blur();
-          }
-          target.removeAttribute('data-silent-focus');
-        }, 0);
-      } else if (restoreScrollConfig.focusMode === 'visible' && typeof target.focus === 'function') {
-        target.focus({ preventScroll: true });
-      }
+      // どれもスクロールできない場合はページ本体
+      return document.scrollingElement || document.documentElement;
     };
 
-    const scheduleScrollToAnchor = () => {
-      if (typeof window.requestAnimationFrame === 'function') {
-        window.requestAnimationFrame(scrollToAnchor);
+    // アンカーへスクロール（table-responsive 等の内側も対応）
+    const scrollToAnchorIfPresent = () => {
+      if (!anchorId) return;
+      const target = document.getElementById(String(anchorId));
+      if (!target) return;
+
+      let container = getScrollableAncestor(target);
+
+      // container がページ本体かどうかでスクロール方法を切替
+      const isPage =
+        container === document.scrollingElement ||
+        container === document.documentElement ||
+        container === document.body;
+
+      if (isPage) {
+        const currentScroll = typeof window.scrollY === 'number'
+          ? window.scrollY
+          : (window.pageYOffset || 0);
+        const rect = target.getBoundingClientRect();
+        const top = rect.top + currentScroll - restoreScrollConfig.offsetPx;
+        window.scrollTo({ top, behavior: 'auto' });
       } else {
-        setTimeout(scrollToAnchor, 0);
+        // コンテナ内にスクロール余地がない場合はページ本体へフォールバック
+        if (container.scrollHeight - container.clientHeight <= 1) {
+          container = document.scrollingElement || document.documentElement;
+          const rect = target.getBoundingClientRect();
+          const cur = typeof window.scrollY === 'number' ? window.scrollY : (window.pageYOffset || 0);
+          const top = rect.top + cur - restoreScrollConfig.offsetPx;
+          window.scrollTo({ top, behavior: 'auto' });
+        } else {
+          // コンテナ内オフセットでスクロール
+          const crect = container.getBoundingClientRect();
+          const trect = target.getBoundingClientRect();
+          const delta = trect.top - crect.top;
+          const top = container.scrollTop + delta - restoreScrollConfig.offsetPx;
+          container.scrollTo({ top, behavior: 'auto' });
+        }
+      }
+
+      // フォーカス（視覚/サイレント）
+      if (typeof target.focus === 'function') {
+        if (restoreScrollConfig.focusMode === 'silent') {
+          target.setAttribute('data-silent-focus', '1');
+          target.focus({ preventScroll: true });
+          setTimeout(() => {
+            if (typeof target.blur === 'function') target.blur();
+            target.removeAttribute('data-silent-focus');
+          }, 0);
+        } else if (restoreScrollConfig.focusMode === 'visible') {
+          target.focus({ preventScroll: true });
+        }
       }
     };
 
-    if (!showResultFlag && initialTab === 'input') {
-      scheduleScrollToAnchor();
-    } else {
-      scrollToAnchor();
-    }
+    // 要素の存在と可視(レイアウト確定)を待ってからスクロール
+    const waitFor = (pred, timeout = 1200, step = 50) => new Promise((resolve) => {
+      const t0 = Date.now();
+      (function loop(){
+        if (pred()) return resolve(true);
+        if (Date.now() - t0 >= timeout) return resolve(false);
+        setTimeout(loop, step);
+      })();
+    });
+    const scheduleScrollToAnchor = async () => {
+      if (!anchorId) return;
+      // 2フレーム待機（タブ描画/高さ確定の猶予）
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      // 目標要素が実体化しているか待つ
+      await waitFor(() => !!document.getElementById(String(anchorId)));
+      // スクロール実行＋軽い追撃（レイアウト揺れ対策）
+      scrollToAnchorIfPresent();
+      setTimeout(scrollToAnchorIfPresent, 60);
+      setTimeout(scrollToAnchorIfPresent, 140);
+    };
+    window.__scrollToAnchorNow = scrollToAnchorIfPresent;
+
+    // レイアウト確定が遅い環境向けに再試行を薄く入れる（描画完了待ち）
+    const scheduleScrollRetry = () => {
+      if (!anchorId) return;
+      setTimeout(scrollToAnchorIfPresent, 50);
+      setTimeout(scrollToAnchorIfPresent, 150);
+    };
+
+    // タブを「shown」後に進める Promise 版に置換
+    const showTabById = (btnId) => new Promise((resolve) => {
+      const button = document.getElementById(btnId);
+      if (!button) return resolve(false);
+      const TabClass = (typeof bootstrap !== 'undefined' && bootstrap.Tab) ? bootstrap.Tab : null;
+      if (TabClass && typeof TabClass.getOrCreateInstance === 'function') {
+        const handler = () => { button.removeEventListener('shown.bs.tab', handler); resolve(true); };
+        button.addEventListener('shown.bs.tab', handler, { once: true });
+        const instance = TabClass.getOrCreateInstance(button);
+        const alreadyActive = button.classList.contains('active');
+        instance.show();
+        // すでに active だった場合は shown が出ないことがある → 即時resolve
+        if (alreadyActive) return resolve(true);
+        return;
+      }
+      // フォールバック（手動クラス切替）
+      const nav = button.closest('.nav');
+      if (nav) nav.querySelectorAll('.nav-link').forEach((l) => l.classList.remove('active'));
+      button.classList.add('active');
+      const sel = button.getAttribute('data-bs-target');
+      if (sel) {
+        const pane = document.querySelector(sel);
+        if (pane) {
+          const tc = pane.closest('.tab-content');
+          if (tc) tc.querySelectorAll('.tab-pane').forEach((p) => p.classList.remove('show','active'));
+          pane.classList.add('show','active');
+        }
+      }
+      resolve(true);
+    });
+
+    const hasTargetTab = typeof targetTab === 'string' && targetTab.trim() !== '';
+    const normalizedTargetTab = hasTargetTab ? targetTab.trim() : '';
+    const normalizedTargetSubtab = typeof targetSubtab === 'string' ? targetSubtab.trim() : '';
+
+    (async () => {
+      if (hasTargetTab) {
+        if (normalizedTargetTab === 'input') {
+          await showTabById('furusato-tab-input-nav');
+          if (normalizedTargetSubtab === 'bunri')      await showTabById('tab-bunri');
+          else if (normalizedTargetSubtab === 'sogo')  await showTabById('tab-sogo');
+          await scheduleScrollToAnchor(); scheduleScrollRetry();
+        } else if (normalizedTargetTab === 'result-details') {
+          await showTabById('furusato-tab-result-details-nav');
+          if (normalizedTargetSubtab === 'prev')       await showTabById('furusato-result-details-prev-nav');
+          else if (normalizedTargetSubtab === 'curr')  await showTabById('furusato-result-details-curr-nav');
+          await scheduleScrollToAnchor(); scheduleScrollRetry();
+        } else if (normalizedTargetTab === 'result-upper') {
+          await showTabById('furusato-tab-result-upper-nav');
+          await scheduleScrollToAnchor(); scheduleScrollRetry();
+        } else {
+          await scheduleScrollToAnchor(); scheduleScrollRetry();
+        }
+      } else {
+        const impliedSubtab = inferSubtabFromAnchor(anchorId);
+        if (!showResultFlag && initialTab === 'input') {
+          await showTabById('furusato-tab-input-nav');
+          if (impliedSubtab === 'bunri')      await showTabById('tab-bunri');
+          else if (impliedSubtab === 'sogo')  await showTabById('tab-sogo');
+          await scheduleScrollToAnchor(); scheduleScrollRetry();
+        } else {
+          await scheduleScrollToAnchor(); scheduleScrollRetry();
+        }
+      }
+    })();
 
     // -------------------------------
     // 孤立した数値入力（<td> 外に出たもの）を隠す
@@ -2521,7 +2697,10 @@
           } else {
             const g = readInt(`shotoku_gokei_${tax}_${period}`);
             const k = readInt(`kojo_gokei_${tax}_${period}`);
-            undashifySetNumber(name, g - k);
+            const raw = g - k;
+            // 下限0 → 千円未満切捨て
+            const floored = floorToThousands(Math.max(0, raw));
+            undashifySetNumber(name, floored);
           }
         });
       });
@@ -2560,14 +2739,16 @@
       ['prev', 'curr'].forEach((period) => {
         let sogo = readInt(`bunri_sogo_gokeigaku_shotoku_${period}`);
         let sashihiki = readInt(`bunri_sashihiki_gokei_shotoku_${period}`);
-        let v = floorToThousands(sogo - sashihiki);
+        // 下限0 → 千円未満切捨て
+        let v = floorToThousands(Math.max(0, sogo - sashihiki));
         writeInt(`bunri_kazeishotoku_sogo_shotoku_${period}`, v);
         let el = getInput(`bunri_kazeishotoku_sogo_shotoku_${period}`);
         if (el) { el.readOnly = true; el.classList.add('bg-light'); }
 
         sogo = readInt(`bunri_sogo_gokeigaku_jumin_${period}`);
         sashihiki = readInt(`bunri_sashihiki_gokei_jumin_${period}`);
-        v = floorToThousands(sogo - sashihiki);
+        // 下限0 → 千円未満切捨て
+        v = floorToThousands(Math.max(0, sogo - sashihiki));
         writeInt(`bunri_kazeishotoku_sogo_jumin_${period}`, v);
         el = getInput(`bunri_kazeishotoku_sogo_jumin_${period}`);
         if (el) { el.readOnly = true; el.classList.add('bg-light'); }

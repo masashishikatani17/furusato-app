@@ -853,3 +853,70 @@ select.bg-light[readonly] {
             height: 22px;
             line-height: 1.2;
             }
+            
+    /* margin-top/bottom/left/right */
+.mt-0 { margin-top: 0 !important; }
+.mt-1 { margin-top: 4px !important; }
+.mt-2 { margin-top: 8px !important; }
+.mt-3 { margin-top: 12px !important; }
+.mt-4 { margin-top: 16px !important;  }
+.mt-5 { margin-top: 24px !important;}
+.mb-0 { margin-bottom: 0 !important; }
+.mb-1 { margin-bottom: 4px !important; }
+.mb-2 { margin-bottom: 8px !important; }
+.mb-3 { margin-bottom: 12px !important;; }
+.mb-4 { margin-bottom: 16px !important; }
+.mb-5 { margin-bottom: 24px !important;}
+.mb-10 { margin-bottom: 48px !important; }
+/* 論理プロパティ（ms/me=inline start/end）。古い環境向けに左右も併記 */
+.ms-0 { margin-left: 0 !important; }
+.ms-1 { margin-left: 4px !important; }
+.ms-2 { margin-left: 8px !important; }
+.ms-3 { margin-left: 12px !important; }
+.ms-4 { margin-left: 16px !important;  }
+.ms-5 { margin-left: 24px !important; }
+.ms-10 { margin-left: 48px !important; }
+.ms-20 { margin-left: 96px !important; }
+.ms-40 { margin-left: 192px !important; }
+.me-0 { margin-right: 0 !important; }
+.me-1 { margin-right: 4px !important; }
+.me-2 { margin-right: 8px !important; }
+.me-3 { margin-right: 12px !important; }
+.me-4 { margin-right: 16px !important; }
+.me-5 { margin-right: 24px !important;}
+.me-10 { margin-right: 48px !important; }
+.me-40 { margin-right: 192px !important; }
+.mt-10 { margin-top: 48px !important; }
+.mt-8 { margin-top: 36px !important;}
+
+/* padding top/bottom/左右のスケール */
+.pt-0 { padding-top: 0 !important; }
+.pt-1 { padding-top: 4px !important; }
+.pt-2 { padding-top: 8px !important;  }
+.pt-3 { padding-top: 12px !important;  }
+.pt-4 { padding-top: 16px !important;}
+.pt-5 { padding-top: 24px !important; }
+.pt-10 { padding-top: 48px !important; }
+.pb-0 { padding-bottom: 0 !important; }
+.pb-1 { padding-bottom: 4px !important; }
+.pb-2 { padding-bottom: 8px !important;  }
+.pb-3 { padding-bottom: 12px !important; }
+.pb-4 { padding-bottom: 16px !important; }
+.pb-5 { padding-bottom: 24px !important; }
+.ps-0 { padding-left: 0 !important; }
+.ps-1 { padding-left: 4px !important;}
+.ps-2 { padding-left: 8px !important; }
+.ps-3 { padding-left: 12px !important;}
+.ps-4 { padding-left: 16px !important; }
+.ps-5 { padding-left: 24px !important; }
+.ps-10 { padding-left: 48px !important; }
+.ps-20 { padding-left: 80px !important; }
+.ps-130 { padding-left: 130px !important; }
+.pe-0 { padding-right: 0 !important; }
+.pe-1 { padding-right: 4px !important; }
+.pe-2 { padding-right: 8px !important;} 
+.pe-4 { padding-right: 16px !important; }
+.pe-5 { padding-right: 24px !important; }
+
+.pe-10 { padding-right: 48px !important; }
+.pe-11 { padding-right: 52px !important; }        

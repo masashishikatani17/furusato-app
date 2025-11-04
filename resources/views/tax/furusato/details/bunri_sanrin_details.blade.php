@@ -12,6 +12,9 @@
     $bunriCurrOff = (int)($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0;
     $originTabRaw = request()->input('origin_tab', 'input');
     $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
+    $originSubtabRaw = request()->input('origin_subtab', 'bunri');
+    $originSubtabCandidate = is_string($originSubtabRaw) ? preg_replace('/[^A-Za-z0-9_-]/', '', trim($originSubtabRaw)) : '';
+    $originSubtab = in_array($originSubtabCandidate, ['bunri', 'sogo', 'prev', 'curr'], true) ? $originSubtabCandidate : 'bunri';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
 @endphp
 <div class="container-blue mt-2" style="width: 800px;">
@@ -27,6 +30,7 @@
         @csrf
         <input type="hidden" name="data_id" value="{{ $dataId }}">
         <input type="hidden" name="origin_tab" value="{{ $originTab }}">
+        <input type="hidden" name="origin_subtab" value="{{ $originSubtab }}">
         <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
         <input type="hidden" name="redirect_to" value="input">
         <input type="hidden" name="recalc_all" value="1">

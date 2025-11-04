@@ -224,7 +224,15 @@
       const ensureHidden = (displayInput) => {
         const name = displayInput?.dataset?.name;
         if (!name) return null;
-        let h = getHidden(name);
+
+        // 既存 hidden を厳密に一意化
+        let existing = Array.from(document.querySelectorAll(`input[type="hidden"][name="${name}"]`));
+        if (existing.length > 1) {
+          console.warn(`[kojo_iryo] duplicated hidden inputs for ${name}. Using the first and ignoring others.`);
+          // 2個以上ある場合は最初以外を無効化（送信されないように name を外す等）
+          existing.slice(1).forEach(el => el.name = `${name}__dup_ignored`);
+        }
+        let h = existing[0] || getHidden(name);
         if (!h) {
           h = document.createElement('input');
           h.type = 'hidden';
@@ -266,11 +274,16 @@
         const a = V(`kojo_iryo_shiharai_${period}`);
         const b = V(`kojo_iryo_hotengaku_${period}`);
         const d = V(`kojo_iryo_shotoku_gokei_${period}`); // サーバ渡しの読み取り専用
-
+        // 総所得金額等は負にならない前提で5%を計算（負の場合は0として扱う）
+        const dPos = Math.max(d, 0);
+        // 差引金額（A-B）…表示のⒸは従来どおり生の差引を表示
         const c = a - b;
-        const e = Math.floor(d * 0.05);
+        // 医療費控除の対象額には200万円の上限（A-B を 0〜2,000,000 に丸め）
+        const cCapped = Math.min(Math.max(c, 0), 2000000);
+        const e = Math.floor(dPos * 0.05);
         const f = Math.min(e, 100000);
-        const g = Math.max(c - f, 0);
+        // 控除額は「上限適用後のC」から足切り額を引いたもの（0未満は0）
+        const g = Math.max(cCapped - f, 0);
 
         S(`kojo_iryo_sashihiki_${period}`, c);
         S(`kojo_iryo_shotoku_5pct_${period}`, e);

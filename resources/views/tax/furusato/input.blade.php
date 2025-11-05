@@ -69,6 +69,7 @@
                   data-redirect-to="input">再計算</button>
         </div>
       </div>
+      @includeWhen(config('app.debug'), 'components.furusato.totals_debug')
     <div class="wrapper">
       @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>

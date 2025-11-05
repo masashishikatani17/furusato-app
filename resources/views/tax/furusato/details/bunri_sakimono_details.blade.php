@@ -68,11 +68,11 @@
                       <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
                       <input type="hidden" name="{{ $name }}" value="0">
                     @else
-                      <input type="number" min="0" step="1" 
-                             class="form-control suji11 text-end" 
-                             data-name="{{ $name }}" 
-                             value="{{ old($name, $inputs[$name] ?? null) }}">
-                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                      <input type="number" min="0" step="1"
+                             class="form-control suji11 text-end"
+                             data-name="{{ $name }}"
+                             value="{{ $inputs[$name] ?? null }}">
+                      <input type="hidden" name="{{ $name }}" value="{{ $inputs[$name] ?? null }}">
                     @endif
                   </td>
                   @php($name = 'keihi_sakimono_' . $period)
@@ -81,11 +81,11 @@
                       <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
                       <input type="hidden" name="{{ $name }}" value="0">
                     @else
-                      <input type="number" min="0" step="1" 
-                             class="form-control suji11 text-end" 
+                      <input type="number" min="0" step="1"
+                             class="form-control suji11 text-end"
                              data-name="{{ $name }}"
-                             value="{{ old($name, $inputs[$name] ?? null) }}">
-                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                             value="{{ $inputs[$name] ?? null }}">
+                      <input type="hidden" name="{{ $name }}" value="{{ $inputs[$name] ?? null }}">
                     @endif
                   </td>
                   @php($name = 'shotoku_sakimono_' . $period)
@@ -95,10 +95,10 @@
                       <input type="hidden" name="{{ $name }}" value="0">
                     @else
                       <input type="number" step="1"
-                             class="form-control suji11 text-end bg-light" 
-                             data-name="{{ $name }}" 
-                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
-                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                             class="form-control suji11 text-end bg-light"
+                             data-name="{{ $name }}"
+                             value="{{ $inputs[$name] ?? null }}" readonly>
+                      <input type="hidden" name="{{ $name }}" value="{{ $inputs[$name] ?? null }}">
                     @endif
                   </td>
                   @php($name = 'kurikoshi_sakimono_' . $period)
@@ -109,9 +109,9 @@
                     @else
                       <input type="number" min="0" step="1"
                              class="form-control suji11 text-end"
-                             data-name="{{ $name }}" 
-                             value="{{ old($name, $inputs[$name] ?? null) }}">
-                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                             data-name="{{ $name }}"
+                             value="{{ $inputs[$name] ?? null }}">
+                      <input type="hidden" name="{{ $name }}" value="{{ $inputs[$name] ?? null }}">
                     @endif
                   </td>
                   @php($name = 'shotoku_sakimono_after_kurikoshi_' . $period)
@@ -120,11 +120,11 @@
                       <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
                       <input type="hidden" name="{{ $name }}" value="0">
                     @else
-                      <input type="number" step="1" 
-                             class="form-control suji11 text-end bg-light" 
-                             data-name="{{ $name }}" 
-                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
-                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                      <input type="number" step="1"
+                             class="form-control suji11 text-end bg-light"
+                             data-name="{{ $name }}"
+                             value="{{ $inputs[$name] ?? null }}" readonly>
+                      <input type="hidden" name="{{ $name }}" value="{{ $inputs[$name] ?? null }}">
                     @endif
                   </td>
                 </tr>
@@ -169,49 +169,81 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   })();
-  const Q = (name) => document.querySelector(`[name="${name}"]`);
-  const V = (name) => {
-    const el = Q(name);
-    if (!el) { return 0; }
-    const raw = (el.value ?? '').toString().trim();
-    if (raw === '') { return 0; }
-    const num = Number(raw.replace(/[^\-0-9.]/g, ''));
-    return Number.isFinite(num) ? Math.trunc(num) : 0;
+  // --- 見える input(data-name) と hidden(name) の同期ユーティリティ ---
+  const byData = (name) => document.querySelector(`[data-name="${name}"]`);
+  const byName = (name) => document.querySelector(`[name="${name}"]`);
+  const toInt = (v) => {
+    const s = String(v ?? '').replace(/[^\-0-9]/g, '').trim();
+    if (s === '' || s === '-') return 0;
+    const n = Number(s);
+    return Number.isFinite(n) ? Math.trunc(n) : 0;
   };
-  const S = (name, value) => {
-    const el = Q(name);
-    if (el) {
-      el.value = value ?? 0;
-    }
+  const get = (name) => {
+    const vis = byData(name);
+    if (!vis) return 0;
+    return toInt(vis.value);
+  };
+  const setBoth = (name, value) => {
+    const vis = byData(name);
+    const hid = byName(name);
+    const v = toInt(value);
+    if (vis) vis.value = String(v);
+    if (hid) hid.value = String(v);
+  };
+  const syncHiddenFromVisible = (name) => {
+    const vis = byData(name);
+    const hid = byName(name);
+    if (!vis || !hid) return;
+    hid.value = String(toInt(vis.value));
   };
 
   const recalc = (period) => {
     const base = `sakimono_${period}`;
-    const syunyu = V(`syunyu_${base}`);
-    const keihi = V(`keihi_${base}`);
+    const syunyu = get(`syunyu_${base}`);
+    const keihi  = get(`keihi_${base}`);
     const shotoku = syunyu - keihi;
-    S(`shotoku_${base}`, shotoku);
+    setBoth(`shotoku_${base}`, shotoku);
 
-    const kurikoshi = V(`kurikoshi_${base}`);
-    S(`shotoku_sakimono_after_kurikoshi_${period}`, shotoku - kurikoshi);
+    const kurikoshi = get(`kurikoshi_${base}`);
+    const after = Math.max(0, shotoku - kurikoshi);
+    setBoth(`shotoku_sakimono_after_kurikoshi_${period}`, after);
   };
 
   const bindBlur = () => {
-    document.querySelectorAll('input[type="number"]').forEach((el) => {
-      if (el.readOnly) {
-        return;
-      }
-      const match = el.name.match(/_(prev|curr)$/);
-      if (!match) {
-        return;
-      }
-      el.addEventListener('blur', () => recalc(match[1]));
+    document.querySelectorAll('input[type="number"][data-name]').forEach((el) => {
+      if (el.readOnly) return;
+      const dn = el.getAttribute('data-name') || '';
+      const m = dn.match(/_(prev|curr)$/);
+      if (!m) return;
+      const period = m[1];
+      // 入力のたびに hidden へ同期し、blur で再計算（input 時にも軽く同期）
+      el.addEventListener('input', () => syncHiddenFromVisible(dn));
+      el.addEventListener('blur',  () => { syncHiddenFromVisible(dn); recalc(period); });
     });
   };
 
   bindBlur();
-  recalc('prev');
-  recalc('curr');
+  // 初期表示：hidden と visible の整合を取り、両年分を再計算
+  ['prev','curr'].forEach((p) => {
+    ['syunyu','keihi','kurikoshi','shotoku','shotoku_sakimono_after_kurikoshi'].forEach((k) => {
+      const key = k === 'shotoku_sakimono_after_kurikoshi'
+        ? `${k}_${p}` : `${k}_sakimono_${p}`;
+      // 初期は visible を正とみなし hidden を同期（old()撤廃に伴う確定表示）
+      syncHiddenFromVisible(key);
+    });
+    recalc(p);
+  });
+
+  // 送信直前ガード：全 data-name を hidden へ同期
+  const form = document.querySelector('form');
+  if (form) {
+    form.addEventListener('submit', () => {
+      document.querySelectorAll('input[data-name]').forEach((el) => {
+        const dn = el.getAttribute('data-name');
+        if (dn) syncHiddenFromVisible(dn);
+      });
+    });
+  }
 });
 </script>
 @endpush

@@ -782,6 +782,73 @@ final class FurusatoController extends Controller
                         $inputsForView[$juminKey] = $fallback;
                     }
                 }
+                /**
+                 * ▼ 分離ONでも kabuteki（一般/上場の収入・所得）を第三表へブリッジ
+                 *  （ここでやらないと continue で以降が実行されず、表示されない）
+                 */
+                // 一般株式等の譲渡（収入）
+                $mirrorMany(
+                    [
+                        sprintf('bunri_syunyu_ippan_kabuteki_joto_shotoku_%s', $period),
+                        sprintf('bunri_syunyu_ippan_kabuteki_joto_jumin_%s',   $period),
+                    ],
+                    [sprintf('syunyu_ippan_joto_%s', $period)],
+                    null,
+                    false, // preview/results/upper を優先しつつ saved も許容
+                    true
+                );
+                // 上場の譲渡（収入）
+                $mirrorMany(
+                    [
+                        sprintf('bunri_syunyu_jojo_kabuteki_joto_shotoku_%s', $period),
+                        sprintf('bunri_syunyu_jojo_kabuteki_joto_jumin_%s',   $period),
+                    ],
+                    [sprintf('syunyu_jojo_joto_%s', $period)],
+                    null,
+                    false,
+                    true
+                );
+                // 上場の配当（収入）
+                $mirrorMany(
+                    [
+                        sprintf('bunri_syunyu_jojo_kabuteki_haito_shotoku_%s', $period),
+                        sprintf('bunri_syunyu_jojo_kabuteki_haito_jumin_%s',   $period),
+                    ],
+                    [sprintf('syunyu_jojo_haito_%s', $period)],
+                    null,
+                    false,
+                    true
+                );
+                // 一般株式等の譲渡（繰越控除後の所得）…サーバ確定値を強制
+                $mirrorMany(
+                    [
+                        sprintf('bunri_shotoku_ippan_kabuteki_joto_shotoku_%s', $period),
+                        sprintf('bunri_shotoku_ippan_kabuteki_joto_jumin_%s',   $period),
+                    ],
+                    [sprintf('shotoku_after_kurikoshi_ippan_joto_%s', $period)],
+                    null,
+                    true  // previewOnly=true → results/upper/preview のサーバ確定を必ず採用
+                );
+                // 上場の譲渡（繰越控除後の所得）
+                $mirrorMany(
+                    [
+                        sprintf('bunri_shotoku_jojo_kabuteki_joto_shotoku_%s', $period),
+                        sprintf('bunri_shotoku_jojo_kabuteki_joto_jumin_%s',   $period),
+                    ],
+                    [sprintf('shotoku_after_kurikoshi_jojo_joto_%s', $period)],
+                    null,
+                    true
+                );
+                // 上場の配当（繰越控除後の所得）
+                $mirrorMany(
+                    [
+                        sprintf('bunri_shotoku_jojo_kabuteki_haito_shotoku_%s', $period),
+                        sprintf('bunri_shotoku_jojo_kabuteki_haito_jumin_%s',   $period),
+                    ],
+                    [sprintf('shotoku_after_kurikoshi_jojo_haito_%s', $period)],
+                    null,
+                    true
+                );
 
                 continue;
             }
@@ -1028,6 +1095,96 @@ final class FurusatoController extends Controller
                 [sprintf('joto_shotoku_choki_gokei_%s', $period)],
                 null,
                 true,
+            );
+
+            /**
+             * ▼ 先物（分離）ブリッジ
+             *   - 収入：bunri_syunyu_sakimono_{shotoku/jumin}_* ← syunyu_sakimono_*
+             *   - 所得（繰越控除後）：bunri_shotoku_sakimono_{shotoku/jumin}_* ← shotoku_sakimono_after_kurikoshi_*
+             *   - サーバ確定値（preview/upper/payload）を最優先に採用（previewOnly=true）
+             */
+            $mirrorMany(
+                [
+                    sprintf('bunri_syunyu_sakimono_shotoku_%s', $period),
+                    sprintf('bunri_syunyu_sakimono_jumin_%s',   $period),
+                ],
+                [sprintf('syunyu_sakimono_%s', $period)],
+                null,
+                false, // 収入は saved を許容（SoT: 入力）ただし結果があればそれを優先
+                true
+            );
+            $mirrorMany(
+                [
+                    sprintf('bunri_shotoku_sakimono_shotoku_%s', $period),
+                    sprintf('bunri_shotoku_sakimono_jumin_%s',   $period),
+                ],
+                [sprintf('shotoku_sakimono_after_kurikoshi_%s', $period)],
+                null,
+                true  // 所得は必ずサーバ確定値（Calculator）を使用
+            );
+
+            /**
+             * ▼ 株式等（分離・一般株式等の譲渡）ブリッジ
+             *   - 収入：bunri_syunyu_ippan_kabuteki_joto_{shotoku/jumin}_* ← syunyu_ippan_joto_*
+             *   - 所得（繰越控除後）：bunri_shotoku_ippan_kabuteki_joto_{shotoku/jumin}_* ← shotoku_after_kurikoshi_ippan_joto_*
+             *   - 方針は先物と同じ（収入=保存値許容、所得=サーバ確定値を強制）
+             */
+            $mirrorMany(
+                [
+                    sprintf('bunri_syunyu_ippan_kabuteki_joto_shotoku_%s', $period),
+                    sprintf('bunri_syunyu_ippan_kabuteki_joto_jumin_%s',   $period),
+                ],
+                [sprintf('syunyu_ippan_joto_%s', $period)],
+                null,
+                false, // 収入は saved を許容（結果があればそれを優先）
+                true
+            );
+            $mirrorMany(
+                [
+                    sprintf('bunri_syunyu_jojo_kabuteki_joto_shotoku_%s', $period),
+                    sprintf('bunri_syunyu_jojo_kabuteki_joto_jumin_%s',   $period),
+                ],
+                [sprintf('syunyu_jojo_joto_%s', $period)],
+                null,
+                false, // 収入は saved を許容（結果があればそれを優先）
+                true
+            );
+            $mirrorMany(
+                [
+                    sprintf('bunri_syunyu_jojo_kabuteki_haito_shotoku_%s', $period),
+                    sprintf('bunri_syunyu_jojo_kabuteki_haito_jumin_%s',   $period),
+                ],
+                [sprintf('syunyu_jojo_haito_%s', $period)],
+                null,
+                false, // 収入は saved を許容（結果があればそれを優先）
+                true
+            );
+            $mirrorMany(
+                [
+                    sprintf('bunri_shotoku_ippan_kabuteki_joto_shotoku_%s', $period),
+                    sprintf('bunri_shotoku_ippan_kabuteki_joto_jumin_%s',   $period),
+                ],
+                [sprintf('shotoku_after_kurikoshi_ippan_joto_%s', $period)],
+                null,
+                true  // 所得は必ずサーバ確定値（Calculator）を使用
+            );
+            $mirrorMany(
+                [
+                    sprintf('bunri_shotoku_jojo_kabuteki_joto_shotoku_%s', $period),
+                    sprintf('bunri_shotoku_jojo_kabuteki_joto_jumin_%s',   $period),
+                ],
+                [sprintf('shotoku_after_kurikoshi_jojo_joto_%s', $period)],
+                null,
+                true  // 所得は必ずサーバ確定値（Calculator）を使用
+            );
+            $mirrorMany(
+                [
+                    sprintf('bunri_shotoku_jojo_kabuteki_haito_shotoku_%s', $period),
+                    sprintf('bunri_shotoku_jojo_kabuteki_haito_jumin_%s',   $period),
+                ],
+                [sprintf('shotoku_after_kurikoshi_jojo_haito_%s', $period)],
+                null,
+                true  // 所得は必ずサーバ確定値（Calculator）を使用
             );
 
              // 非分離時でも shotoku_gokei_* を明示（Blade 側の readonly 表示が値を拾えるように）

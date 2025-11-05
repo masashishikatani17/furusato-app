@@ -708,16 +708,34 @@ final class FurusatoController extends Controller
             $inputsForView[$sumShotokuKey] = $sum;
             $inputsForView[$sumJuminKey] = $sum;
 
-            $keijoKey = sprintf('shotoku_keijo_%s', $period);
-            $keijo = (int) ($previewPayload[$keijoKey] ?? 0);
+            $keijoKey     = sprintf('shotoku_keijo_%s', $period);
+            $keijo        = (int) ($previewPayload[$keijoKey] ?? 0);
             $previewTanki = (int) ($previewPayload[$tankiKey] ?? 0);
             $previewChoki = (int) ($previewPayload[$chokiKey] ?? 0);
-            $previewIchiji = (int) max(0, $previewPayload[$ichijiKey] ?? 0);
+            $previewIchiji= (int) max(0, $previewPayload[$ichijiKey] ?? 0);
+            $previewSanrin= (int) ($previewPayload[sprintf('shotoku_sanrin_%s',   $period)] ?? 0);
+            $previewTaishoku = (int) ($previewPayload[sprintf('shotoku_taishoku_%s', $period)] ?? 0);
 
-            $shotokuGokei = $keijo + $previewTanki + $previewChoki + $previewIchiji;
-
-            $inputsForView[sprintf('shotoku_gokei_shotoku_%s', $period)] = $shotokuGokei;
-            $inputsForView[sprintf('shotoku_gokei_jumin_%s', $period)] = $shotokuGokei;
+            // A+B は共通 SoT（CommonSumsCalculator）から採用
+            $assign(
+                sprintf('shotoku_gokei_%s', $period),
+                [ sprintf('sum_for_ab_total_%s', $period) ],
+                null,
+                /* previewOnly */ true  // results/upper/preview の確定値を優先
+            );
+            // 既存の表示セル互換（_shotoku/_jumin も同値表示にしておく）
+            $assign(
+                sprintf('shotoku_gokei_shotoku_%s', $period),
+                [ sprintf('sum_for_ab_total_%s', $period) ],
+                null,
+                true
+            );
+            $assign(
+                sprintf('shotoku_gokei_jumin_%s', $period),
+                [ sprintf('sum_for_ab_total_%s', $period) ],
+                null,
+                true
+            );
 
             $tankiGokeiKey = sprintf('joto_shotoku_tanki_gokei_%s', $period);
             $chokiGokeiKey = sprintf('joto_shotoku_choki_gokei_%s', $period);
@@ -1187,14 +1205,6 @@ final class FurusatoController extends Controller
                 true  // 所得は必ずサーバ確定値（Calculator）を使用
             );
 
-             // 非分離時でも shotoku_gokei_* を明示（Blade 側の readonly 表示が値を拾えるように）
-             if (!isset($inputsForView[sprintf('shotoku_gokei_shotoku_%s', $period)])) {
-                 $inputsForView[sprintf('shotoku_gokei_shotoku_%s', $period)] = $sum;
-             }
-             if (!isset($inputsForView[sprintf('shotoku_gokei_jumin_%s', $period)])) {
-                 $inputsForView[sprintf('shotoku_gokei_jumin_%s', $period)] = $sum;
-             }
-
             $mirrorMany(
                 [sprintf('tsusanmae_joto_tanki_sogo_%s', $period)],
                 [
@@ -1282,6 +1292,17 @@ final class FurusatoController extends Controller
             if (! array_key_exists($juminKey, $inputsForView)) {
                 $inputsForView[$juminKey] = $roundedJumin;
             }
+
+            // ▼ 配偶者控除・配偶者特別控除は「サーバ確定値を常に優先」してミラー（画面遷移時に即反映）
+            foreach ([
+                'kojo_haigusha_shotoku_%s',
+                'kojo_haigusha_jumin_%s',
+                'kojo_haigusha_tokubetsu_shotoku_%s',
+                'kojo_haigusha_tokubetsu_jumin_%s',
+            ] as $fmt) {
+                $dst = sprintf($fmt, $period);
+                $assign($dst, [ $dst ], null, /* previewOnly */ true /* results/upper/preview優先 */);
+            }
         }
 
         foreach (['prev', 'curr'] as $period) {
@@ -1296,11 +1317,6 @@ final class FurusatoController extends Controller
 
             foreach ($afterThreeMap as $destination => $candidates) {
                 $assign($destination, $candidates, null, true);
-            }
-
-            $value = $lookup([sprintf('shotoku_gokei_%s', $period)]);
-            if ($value !== null) {
-                $inputsForView[sprintf('shotoku_gokei_%s', $period)] = $value;
             }
 
             $assign(

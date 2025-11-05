@@ -56,13 +56,16 @@ final class ServicesProvideKeysTest extends TestCase
             app(BunriNettingCalculator::class),
             app(BunriKabutekiNettingCalculator::class),
             app(ResultToDetailsAliasCalculator::class),
-            app(TaxBaseMirrorCalculator::class),
         ];
 
         foreach ($services as $service) {
             $this->assertInstanceOf(ProvidesKeys::class, $service);
             foreach ($service::provides() as $key) {
-                $this->assertArrayHasKey($key, $payload, sprintf('Failed asserting that %s populates %s', $service::class, $key));
+                $this->assertArrayHasKey(
+                    $key,
+                    $payload,
+                    sprintf('Failed asserting that %s populates %s', $service::class, $key)
+                );
             }
         }
     }

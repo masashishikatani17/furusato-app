@@ -7,29 +7,13 @@ use App\Services\Tax\Contracts\ProvidesKeys;
 class HaigushaKojoCalculator implements ProvidesKeys
 {
     public const ID = 'kojo.haigusha';
-    public const ORDER = 2300;
-    public const ANCHOR = 'deductions';
+    public const ORDER = 4200;
     public const BEFORE = [];
-    public const AFTER = [];
+    public const AFTER  = [ \App\Domain\Tax\Calculators\CommonSumsCalculator::ID ];
+    public const ANCHOR = 'deductions';
 
     /** @var string[] */
     private const PERIODS = ['prev', 'curr'];
-
-    /** @var string[] */
-    private const TOTAL_BASE_KEYS = [
-        'shotoku_gokei_shotoku',
-        'bunri_shotoku_tanki_ippan_shotoku',
-        'bunri_shotoku_tanki_keigen_shotoku',
-        'bunri_shotoku_choki_ippan_shotoku',
-        'bunri_shotoku_choki_tokutei_shotoku',
-        'bunri_shotoku_choki_keika_shotoku',
-        'bunri_shotoku_ippan_kabuteki_joto_shotoku',
-        'bunri_shotoku_jojo_kabuteki_joto_shotoku',
-        'bunri_shotoku_jojo_kabuteki_haito_shotoku',
-        'bunri_shotoku_sakimono_shotoku',
-        'bunri_shotoku_sanrin_shotoku',
-        'bunri_shotoku_taishoku_shotoku',
-    ];
 
     private const SPOUSAL_THRESHOLD = 10_000_000;
 
@@ -93,6 +77,7 @@ class HaigushaKojoCalculator implements ProvidesKeys
         $updates = array_fill_keys(self::provides(), 0);
 
         foreach (self::PERIODS as $period) {
+            // ▼ 納税者本人の合計所得金額（制度定義どおり）
             $total = $this->calculateTotal($payload, $period);
             $category = $this->normalizeCategory($payload, $period);
 
@@ -100,6 +85,7 @@ class HaigushaKojoCalculator implements ProvidesKeys
             $updates[sprintf('kojo_haigusha_shotoku_%s', $period)] = $shotoku;
             $updates[sprintf('kojo_haigusha_jumin_%s', $period)] = $jumin;
 
+            // ▼ 配偶者の合計所得金額（入力フィールドを使用）
             $spouseIncome = $this->n($payload[sprintf('kojo_haigusha_tokubetsu_gokeishotoku_%s', $period)] ?? null);
             [$specialShotoku, $specialJumin] = $this->calculateSpecialDeduction($total, $spouseIncome);
             $updates[sprintf('kojo_haigusha_tokubetsu_shotoku_%s', $period)] = $specialShotoku;
@@ -194,15 +180,14 @@ class HaigushaKojoCalculator implements ProvidesKeys
         };
     }
 
+    /**
+     * 納税者本人の「合計所得金額」
+     * NTA: 1191（配偶者控除）、1195（配偶者特別控除）
+     * - 本人側の判定は sum_for_gokeishotoku_{p} を使用
+     */
     private function calculateTotal(array $payload, string $period): int
     {
-        $total = 0;
-
-        foreach (self::TOTAL_BASE_KEYS as $base) {
-            $total += $this->n($payload[sprintf('%s_%s', $base, $period)] ?? null);
-        }
-
-        return $total;
+        return $this->n($payload[sprintf('sum_for_gokeishotoku_%s', $period)] ?? null);
     }
 
     private function matchValue(int $value, array $thresholds, array $values): int

@@ -88,6 +88,12 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
                 }
             }
 
+            // ▼ 第一表の「所得金額の合計額」は A+B を採用（共通 SoT からミラー）
+            $abKey = sprintf('sum_for_ab_total_%s', $period);
+            if (array_key_exists($abKey, $payload)) {
+                $updates[sprintf('shotoku_gokei_%s', $period)] = (int) $payload[$abKey];
+            }
+
             // ▼ 参考合計（総合課税のみ）が必要なら sum_for_sogoshotoku_* を使う
             //    既存 shotoku_joto_ichiji_* にミラー（後方互換のため／利用箇所がある場合）
             $sumSogoKey = sprintf('sum_for_sogoshotoku_%s', $period);

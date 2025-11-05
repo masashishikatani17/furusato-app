@@ -35,9 +35,9 @@ class CommonSumsCalculator implements ProvidesKeys
             $out[] = sprintf('sum_for_gokeishotoku_%s', $p);
             $out[] = sprintf('sum_for_sogoshotoku_%s', $p);          // 総所得金額(A)
             $out[] = sprintf('sum_for_sogoshotoku_etc_%s', $p);
-            // compute() は sum_for_pension_bucket_* に書き込むので一致させる
-            $out[] = sprintf('sum_for_pension_%s', $p);              // ←この行を削除
-            $out[] = sprintf('sum_for_pension_bucket_%s', $p);       // 追加
+            $out[] = sprintf('sum_for_pension_bucket_%s', $p);
+            // 追加：UIの「第一表 合計」を A+B に一本化
+            $out[] = sprintf('sum_for_ab_total_%s', $p);
         }
         return $out;
     }
@@ -77,6 +77,9 @@ class CommonSumsCalculator implements ProvidesKeys
 
             $gokei = $Ap + $Bp + $Cp;
             $payload[sprintf('sum_for_gokeishotoku_%s', $period)] = $gokei;
+
+            // 追加：第一表で使う A+B（総合A＋退職・山林B）
+            $payload[sprintf('sum_for_ab_total_%s', $period)] = $Ap + $Bp;
 
             // ===== 2) 総所得金額 sum_for_sogoshotoku_{p}（総合課税のみ）=====
             // 総合課税のみなので A_p をそのまま採用（0下限は既に適用済み）

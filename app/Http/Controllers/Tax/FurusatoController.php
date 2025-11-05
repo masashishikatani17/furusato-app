@@ -716,11 +716,26 @@ final class FurusatoController extends Controller
             $previewSanrin= (int) ($previewPayload[sprintf('shotoku_sanrin_%s',   $period)] ?? 0);
             $previewTaishoku = (int) ($previewPayload[sprintf('shotoku_taishoku_%s', $period)] ?? 0);
 
-            // UI表示用の「合計（A+B）」＝総合(A)＋退職・山林(B) の合計
-            $abTotal = $keijo + $previewTanki + $previewChoki + $previewIchiji + $previewSanrin + $previewTaishoku;
-            $inputsForView[sprintf('shotoku_gokei_%s',         $period)] = $abTotal;
-            $inputsForView[sprintf('shotoku_gokei_shotoku_%s', $period)] = $abTotal;
-            $inputsForView[sprintf('shotoku_gokei_jumin_%s',   $period)] = $abTotal;
+            // A+B は共通 SoT（CommonSumsCalculator）から採用
+            $assign(
+                sprintf('shotoku_gokei_%s', $period),
+                [ sprintf('sum_for_ab_total_%s', $period) ],
+                null,
+                /* previewOnly */ true  // results/upper/preview の確定値を優先
+            );
+            // 既存の表示セル互換（_shotoku/_jumin も同値表示にしておく）
+            $assign(
+                sprintf('shotoku_gokei_shotoku_%s', $period),
+                [ sprintf('sum_for_ab_total_%s', $period) ],
+                null,
+                true
+            );
+            $assign(
+                sprintf('shotoku_gokei_jumin_%s', $period),
+                [ sprintf('sum_for_ab_total_%s', $period) ],
+                null,
+                true
+            );
 
             $tankiGokeiKey = sprintf('joto_shotoku_tanki_gokei_%s', $period);
             $chokiGokeiKey = sprintf('joto_shotoku_choki_gokei_%s', $period);

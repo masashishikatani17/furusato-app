@@ -68,12 +68,14 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $nenkinIncomeKey = sprintf('zatsu_nenkin_syunyu_%s', $period);
             $nenkinIncome    = $this->clampIncome($payload[$nenkinIncomeKey] ?? null);
 
+            // ▼ 年金バケット判定だけは新キー(sum_for_pension_bucket_*)を優先使用（v1要件）
+            $bucketOther = $this->n($payload[sprintf('sum_for_pension_bucket_%s', $period)] ?? null);
             $shotokuOther = $this->sumOtherIncome($working, 'shotoku_', sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period), $period);
-            $juminOther = $this->sumOtherIncome($working, 'jumin_', sprintf('jumin_zatsu_nenkin_jumin_%s', $period), $period);
+            $juminOther   = $this->sumOtherIncome($working, 'jumin_',   sprintf('jumin_zatsu_nenkin_jumin_%s',     $period), $period);
 
             $isSenior = $this->isSenior($birthDate, $year);
-            $shotokuResult = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $shotokuOther);
-            $juminResult = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $juminOther);
+            $shotokuResult = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $bucketOther > 0 ? $bucketOther : $shotokuOther);
+            $juminResult   = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $bucketOther > 0 ? $bucketOther : $juminOther);
 
             $shotokuNenkinKey = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
             $juminNenkinKey = sprintf('jumin_zatsu_nenkin_jumin_%s', $period);

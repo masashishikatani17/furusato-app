@@ -250,7 +250,24 @@
                     foreach ($periods as $period) {
                         $format = $kojoFieldOverrides[$base][$tax] ?? null;
                         $name = $format ? sprintf($format, $period) : sprintf('%s_%s_%s', $base, $tax, $period);
-                        $value = old($name, $inputs[$name] ?? null);
+                        $isBunriThird =
+                            str_starts_with($base, 'bunri_syunyu_') ||
+                            str_starts_with($base, 'bunri_shotoku_') ||
+                            str_starts_with($base, 'bunri_kazeishotoku_');
+                        // 分離・第三表は server 計算値のみ表示（old()は採用しない）
+                        $value = $isBunriThird ? ($inputs[$name] ?? null) : old($name, $inputs[$name] ?? null);
+                        // data-server-raw 用にカンマ除去した整数文字列を用意
+                        $valueRaw = null;
+                        if ($isBunriThird) {
+                            $v = $value;
+                            if ($v !== null && $v !== '') {
+                                $v = preg_replace('/,/', '', (string)$v);
+                                $v = trim((string)$v);
+                                if ($v !== '' && preg_match('/^-?\d+$/', $v) === 1) {
+                                    $valueRaw = $v;
+                                }
+                            }
+                        }
                         $kihuYearInt = isset($kihuYear) ? (int) $kihuYear : null;
                         $isForceDash = $forceDash($base, $tax, $period, $kihuYearInt);
                         $isReadonly = false;
@@ -314,8 +331,10 @@
                             if ($isReadonly) {
                                 $class .= ' bg-light';
                             }
-                            // type="text" に統一し、カンマ表示と送信時のhidden数値化をJSで行う
-                            $html .= '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . '></td>';
+                            // 分離・第三表は data-server-lock＋（可能なら）data-server-raw を付与
+                            $lockAttr = $isBunriThird ? ' data-server-lock="1"' : '';
+                            $rawAttr  = ($isBunriThird && $valueRaw !== null) ? ' data-server-raw="' . e($valueRaw) . '"' : '';
+                            $html .= '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . $lockAttr . $rawAttr . '></td>';
                         }
                     }
                 }
@@ -2233,12 +2252,17 @@
           return;
         }
         const name = el.name;
-        const raw  = el.dataset.serverRaw || '';
-        // 表示側
-        el.value = raw === '' ? '' : formatComma(raw);
-        // hidden 側
+        // raw が無ければ現在値から補完（カンマ除去・数値判定）
+        let raw = (el.dataset && typeof el.dataset.serverRaw === 'string') ? el.dataset.serverRaw : '';
+        if (!raw) {
+          const s = (el.value ?? '').toString().replace(/,/g, '').trim();
+          if (s !== '' && /^-?\d+$/.test(s)) raw = s;
+        }
+        // 表示側（raw が無いなら現状維持にする）
+        if (raw) el.value = formatComma(raw);
+        // hidden 側も同期
         const hidden = ensureHiddenFor(name);
-        if (hidden) hidden.value = raw;
+        if (hidden) hidden.value = raw || '';
       });
     };
     // writeInt を利用する箇所が多いため、ロック済みは上書きしないガードを追加

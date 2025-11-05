@@ -16,19 +16,28 @@
     $originSubtabCandidate = is_string($originSubtabRaw) ? preg_replace('/[^A-Za-z0-9_-]/', '', trim($originSubtabRaw)) : '';
     $originSubtab = in_array($originSubtabCandidate, ['bunri', 'sogo', 'prev', 'curr'], true) ? $originSubtabCandidate : 'bunri';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
+    // ▼ 0下限＆表示用フォーマッタ（tsusango_* 用の補助）
+    //   - $nz: 文字列/数値/カンマ付き → int にして max(0, n)
+    //   - $fmt: カンマ付き文字列へ
+    $nz = static function($v): int {
+        if ($v === null || $v === '') return 0;
+        $s = is_string($v) ? str_replace(',', '', $v) : (string) $v;
+        return max(0, (int) (is_numeric($s) ? $s : 0));
+    };
+    $fmt = static fn(int $n): string => number_format($n);
     $groups = [
         [
             'title' => '短期譲渡',
-            'key' => 'tanki',
-            'rows' => [
+            'key'   => 'tanki',
+            'rows'  => [
                 ['label' => '一般分', 'key' => 'tanki_ippan'],
                 ['label' => '軽減分', 'key' => 'tanki_keigen'],
             ],
         ],
         [
             'title' => '長期譲渡',
-            'key' => 'choki',
-            'rows' => [
+            'key'   => 'choki',
+            'rows'  => [
                 ['label' => '一般分', 'key' => 'choki_ippan'],
                 ['label' => '特定分', 'key' => 'choki_tokutei'],
                 ['label' => '軽課分', 'key' => 'choki_keika'],
@@ -83,104 +92,121 @@
                 </tr>
               </thead>
               <tbody>
-                @foreach ($groups as $group)
-                  @php($rowspan = count($group['rows']))
-                  @foreach ($group['rows'] as $index => $row)
-                    <tr>
-                      @if ($index === 0)
-                        <th scope="rowgroup" rowspan="{{ $rowspan }}" class="text-center align-middle" style="width:40px;">{{ $group['title'] }}</th>
+              {{-- groups（短期/長期） × rows（一般/軽減/…）の二重ループ --}}
+              @foreach ($groups as $group)
+                @php $rowspan = count($group['rows']); @endphp
+                @foreach ($group['rows'] as $index => $row)
+                  @php
+                    $base = $row['key'] . '_' . $period;
+                  @endphp
+                  <tr>
+                    @if ($index === 0)
+                      <th scope="rowgroup" rowspan="{{ $rowspan }}" class="text-center align-middle" style="width:40px;">
+                        {{ $group['title'] }}
+                      </th>
+                    @endif
+                    <th class="text-start align-middle th-ddd ps-1" nowrap="nowrap">{{ $row['label'] }}</th>
+                    {{-- 収入 --}}
+                    @php $name = 'syunyu_' . $base; @endphp
+                    <td>
+                      @if($off)
+                        <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                        <input type="hidden" name="{{ $name }}" value="0">
+                      @else
+                        <input type="text" inputmode="numeric" autocomplete="off"
+                               data-format="comma-int" data-name="{{ $name }}"
+                               class="form-control suji11 text-end"
+                               value="{{ old($name, $inputs[$name] ?? null) }}">
                       @endif
-                      <th class="text-start align-middle th-ddd ps-1" nowrap="nowrap">{{ $row['label'] }}</th>
-                      @php($base = $row['key'] . '_' . $period)
-                      @php($name = 'syunyu_' . $base)
-                      <td>
-                        @if($off)
-                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
-                          <input type="hidden" name="{{ $name }}" value="0">
-                        @else
-                          <input type="text" inputmode="numeric" autocomplete="off"
-                                 data-format="comma-int" data-name="{{ $name }}"
-                                 class="form-control suji11 text-end"
-                                 value="{{ old($name, $inputs[$name] ?? null) }}">
-                        @endif
-                      </td>
-                      @php($name = 'keihi_' . $base)
-                      <td>
-                        @if($off)
-                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
-                          <input type="hidden" name="{{ $name }}" value="0">
-                        @else
-                          <input type="text" inputmode="numeric" autocomplete="off"
-                                 data-format="comma-int" data-name="{{ $name }}"
-                                 class="form-control suji11 text-end"
-                                 value="{{ old($name, $inputs[$name] ?? null) }}">
-                        @endif
-                      </td>
-                      @php($name = 'before_tsusan_' . $base)
-                      <td>
-                        @if($off)
-                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
-                          <input type="hidden" name="{{ $name }}" value="0">
-                        @else
-                          <input type="text" inputmode="numeric" autocomplete="off"
-                                 data-format="comma-int" data-name="{{ $name }}"
-                                 class="form-control suji11 text-end bg-light"
-                                 value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
-                        @endif
-                      </td>
-                      @php($name = 'tsusango_' . $base)
-                      <td>
-                        @if($off)
-                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
-                          <input type="hidden" name="{{ $name }}" value="0">
-                        @else
-                          <input type="text" inputmode="numeric" autocomplete="off"
-                                 data-format="comma-int" data-name="{{ $name }}"
-                                 class="form-control suji11 text-end bg-light"
-                                 value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
-                        @endif
-                      </td>
-                      @php($name = 'tokubetsukojo_' . $base)
-                      <td>
-                        @if($off)
-                          <input type="text" class="form-control suji8 text-center bg-light" readonly value="－">
-                          <input type="hidden" name="{{ $name }}" value="0">
-                        @else
-                          <input type="text" inputmode="numeric" autocomplete="off"
-                                 data-format="comma-int" data-name="{{ $name }}"
-                                 class="form-control suji8 text-end"
-                                 value="{{ old($name, $inputs[$name] ?? null) }}">
-                        @endif
-                      </td>
-                      @php($name = 'joto_shotoku_' . $base)
-                      <td>
-                        @if($off)
-                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
-                          <input type="hidden" name="{{ $name }}" value="0">
-                        @else
-                          <input type="text" inputmode="numeric" autocomplete="off"
-                                 data-format="comma-int" data-name="{{ $name }}"
-                                 class="form-control suji11 text-end bg-light"
-                                 value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
-                        @endif
-                      </td>
-                      @if ($index === 0)
-                        @php($gokeiName = sprintf('joto_shotoku_%s_gokei_%s', $group['key'], $period))
-                        <td rowspan="{{ $rowspan }}">
-                          @if($off)
-                            <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
-                            <input type="hidden" name="{{ $gokeiName }}" value="0">
-                          @else
-                            <input type="text" inputmode="numeric" autocomplete="off"
-                                   data-format="comma-int" data-name="{{ $gokeiName }}"
-                                   class="form-control suji11 text-end bg-light"
-                                   value="{{ old($gokeiName, $inputs[$gokeiName] ?? null) }}" readonly>
-                          @endif
-                        </td>
+                    </td>
+                    {{-- 必要経費 --}}
+                    @php $name = 'keihi_' . $base; @endphp
+                    <td>
+                      @if($off)
+                        <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                        <input type="hidden" name="{{ $name }}" value="0">
+                      @else
+                        <input type="text" inputmode="numeric" autocomplete="off"
+                               data-format="comma-int" data-name="{{ $name }}"
+                               class="form-control suji11 text-end"
+                               value="{{ old($name, $inputs[$name] ?? null) }}">
                       @endif
-                    </tr>
-                  @endforeach
+                    </td>
+                    {{-- 差引（通算前） --}}
+                    @php $name = 'before_tsusan_' . $base; @endphp
+                    <td>
+                      @if($off)
+                        <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                        <input type="hidden" name="{{ $name }}" value="0">
+                      @else
+                        <input type="text" inputmode="numeric" autocomplete="off"
+                               data-format="comma-int" data-name="{{ $name }}"
+                               class="form-control suji11 text-end bg-light"
+                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                      @endif
+                    </td>
+                    {{-- 損益通算後（0下限・hidden反映） --}}
+                    @php $name = 'tsusango_' . $base; @endphp
+                    <td>
+                      @if($off)
+                        <input type="text" class="form-control suji11 text-center bg-light" value="－" readonly>
+                        <input type="hidden" name="{{ $name }}" value="0">
+                      @else
+                        @php
+                          $tsusangoSrc = old($name, $inputs[$name] ?? null);
+                          $tsusangoVal = $nz($tsusangoSrc);
+                        @endphp
+                        <input type="text" inputmode="numeric" autocomplete="off"
+                               data-format="comma-int" data-name="{{ $name }}"
+                               class="form-control suji11 text-end bg-light"
+                               value="{{ $fmt($tsusangoVal) }}" readonly>
+                        <input type="hidden" name="{{ $name }}" value="{{ $tsusangoVal }}">
+                      @endif
+                    </td>
+                    {{-- 特別控除額 --}}
+                    @php $name = 'tokubetsukojo_' . $base; @endphp
+                    <td>
+                      @if($off)
+                        <input type="text" class="form-control suji8 text-center bg-light" readonly value="－">
+                        <input type="hidden" name="{{ $name }}" value="0">
+                      @else
+                        <input type="text" inputmode="numeric" autocomplete="off"
+                               data-format="comma-int" data-name="{{ $name }}"
+                               class="form-control suji8 text-end"
+                               value="{{ old($name, $inputs[$name] ?? null) }}">
+                      @endif
+                    </td>
+                    {{-- 譲渡所得金額（表示専用） --}}
+                    @php $name = 'joto_shotoku_' . $base; @endphp
+                    <td>
+                      @if($off)
+                        <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                        <input type="hidden" name="{{ $name }}" value="0">
+                      @else
+                        <input type="text" inputmode="numeric" autocomplete="off"
+                               data-format="comma-int" data-name="{{ $name }}"
+                               class="form-control suji11 text-end bg-light"
+                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                      @endif
+                    </td>
+                    {{-- 区分合計（行頭で rowspan） --}}
+                    @if ($index === 0)
+                      @php $gokeiName = sprintf('joto_shotoku_%s_gokei_%s', $group['key'], $period); @endphp
+                      <td rowspan="{{ $rowspan }}">
+                        @if($off)
+                          <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
+                          <input type="hidden" name="{{ $gokeiName }}" value="0">
+                        @else
+                          <input type="text" inputmode="numeric" autocomplete="off"
+                                 data-format="comma-int" data-name="{{ $gokeiName }}"
+                                 class="form-control suji11 text-end bg-light"
+                                 value="{{ old($gokeiName, $inputs[$gokeiName] ?? null) }}" readonly>
+                        @endif
+                      </td>
+                    @endif
+                  </tr>
                 @endforeach
+              @endforeach
               </tbody>
             </table>
           </div>
@@ -410,7 +436,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!hidden) {
           return;
         }
-        const raw = toRawInt(input.value ?? hidden.value ?? '');
+        let raw = toRawInt(input.value ?? hidden.value ?? '');
+        // ▼ 送信直前の最終ガード：tsusango_* は必ず 0 以上で POST
+        if (name.startsWith('tsusango_')) {
+          if (raw === '' || /^-/.test(raw)) raw = '0';
+        }
         hidden.value = raw;
       });
     });

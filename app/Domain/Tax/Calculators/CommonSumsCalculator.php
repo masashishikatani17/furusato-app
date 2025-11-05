@@ -5,35 +5,28 @@ namespace App\Domain\Tax\Calculators;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use Illuminate\Support\Facades\Log;
 
-/**
- * v1: 既存の合成と完全同値の「代理値」を出力する薄いレイヤ
- *
- * - sum_for_gokeishotoku_{prev|curr}
- * - sum_for_sogoshotoku_etc_{prev|curr}
- * - sum_for_pension_bucket_{prev|curr}
- *
- * 参照元は「通算系（第一表素材）」= after_3 系を採用。
- * 丸め・下限は“現行踏襲”（ここでは行わない／元データのまま）。
- */
 class CommonSumsCalculator implements ProvidesKeys
 {
-    public const ID     = 'common.sums';
-    public const ORDER  = 4100; // 通算(4010/4020)の直後、控除集計(4000)より後に来ないよう注意
+    public const ID = 'common.sums';
+    public const ORDER = 4100;
     public const BEFORE = [];
-    public const AFTER  = [];
+    public const AFTER = [];
 
     /** @var string[] */
     private const PERIODS = ['prev', 'curr'];
 
+    /**
+     * @return array<int, string>
+     */
     public static function provides(): array
     {
-        $keys = [];
+        $out = [];
         foreach (self::PERIODS as $p) {
-            $keys[] = "sum_for_gokeishotoku_{$p}";
-            $keys[] = "sum_for_sogoshotoku_etc_{$p}";
-            $keys[] = "sum_for_pension_bucket_{$p}";
+            $out[] = sprintf('sum_for_gokeishotoku_%s', $p);
+            $out[] = sprintf('sum_for_sogoshotoku_etc_%s', $p);
+            $out[] = sprintf('sum_for_pension_bucket_%s', $p);
         }
-        return $keys;
+        return $out;
     }
 
     /**
@@ -44,69 +37,80 @@ class CommonSumsCalculator implements ProvidesKeys
     public function compute(array $payload, array $ctx): array
     {
         foreach (self::PERIODS as $period) {
-            // --- 第一表素材（after_3）から必要合計を復元 ---
-            $keijo = $this->n($payload["after_3jitsusan_keijo_{$period}"] ?? null);
-            $st    = $this->n($payload["after_3jitsusan_joto_tanki_sogo_{$period}"] ?? $payload["after_3jitsusan_tanki_sogo_{$period}"] ?? null);
-            $lt    = $this->n($payload["after_3jitsusan_joto_choki_sogo_{$period}"] ?? $payload["after_3jitsusan_choki_sogo_{$period}"] ?? null);
-            $it    = $this->n($payload["after_3jitsusan_ichiji_{$period}"] ?? null);
-            $san   = $this->n($payload["after_3jitsusan_sanrin_{$period}"] ?? null);
-            $ret   = $this->n($payload["after_3jitsusan_taishoku_{$period}"] ?? null);
+            // ===== 1) 合計所得金額(代理) =====
+            // まずは現行 shotoku_gokei_* があればそれを採用（完全互換）
+            $gokeiKey = sprintf('shotoku_gokei_%s', $period);
+            $gokei = $this->intOrNull($payload[$gokeiKey] ?? null);
+            if ($gokei === null) {
+                // 無ければ現行と同値の合成：keijo + joto短期 + joto長期 + 1時(半額済) + 山林 + 退職
+                $gokei = 0;
+                $gokei += $this->n($payload[sprintf('shotoku_keijo_%s', $period)] ?? null);
+                $gokei += $this->n($payload[sprintf('shotoku_joto_tanki_%s', $period)] ?? null);
+                $gokei += $this->n($payload[sprintf('shotoku_joto_choki_sogo_%s', $period)] ?? null);
+                $gokei += $this->n($payload[sprintf('shotoku_ichiji_%s', $period)] ?? null);
+                $gokei += $this->n($payload[sprintf('shotoku_sanrin_%s', $period)] ?? null);
+                $gokei += $this->n($payload[sprintf('shotoku_taishoku_%s', $period)] ?? null);
+            }
+            $payload[sprintf('sum_for_gokeishotoku_%s', $period)] = $gokei;
 
-            // 「総所得金額等」の現行同値（= 経常＋短期＋長期＋ max(0,一時)）
-            $sogoEtc = $keijo + $st + $lt + max(0, $it);
+            // ===== 2) 総所得金額等(代理) =====
+            // 現行 TaxBaseMirror の sumComprehensive と等価：山林・退職を含めず、一時は 0 下限
+            $keijo = $this->n($payload[sprintf('shotoku_keijo_%s', $period)] ?? null);
+            $st    = $this->n($payload[sprintf('shotoku_joto_tanki_%s', $period)] ?? null);
+            $lt    = $this->n($payload[sprintf('shotoku_joto_choki_sogo_%s', $period)] ?? null);
+            $it    = max(0, $this->n($payload[sprintf('shotoku_ichiji_%s', $period)] ?? null));
+            $sogoshotokuEtc = $keijo + $st + $lt + $it;
+            $payload[sprintf('sum_for_sogoshotoku_etc_%s', $period)] = $sogoshotokuEtc;
 
-            // 「合計所得金額」相当の現行同値（= 経常ベース：after_3 の和を shotoku_* と同様に）
-            // v1 は「現行の shotoku_* 合成（Kojo 前）」と同値の代理値を置く
-            $gokei = $keijo + $st + (int)floor($lt / 2) + (int)floor($it / 2) + $san + $ret;
+            // ===== 3) 年金バケット用：年金“以外”の外側合計(代理) =====
+            // v1は KyuyoNenkin の従来合算と同値：'shotoku_' かつ当該periodで終わるキーの総和から
+            // 'shotoku_zatsu_nenkin_shotoku_%s' を除外
+            $suffix = '_' . $period;
+            $exclude = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
+            $bucketOther = 0;
+            foreach ($payload as $k => $v) {
+                if (!is_string($k)) continue;
+                if (!str_starts_with($k, 'shotoku_')) continue;
+                if (!str_ends_with($k, $suffix)) continue;
+                if ($k === $exclude) continue;
+                $bucketOther = $this->n($v);
+            }
+            $payload[sprintf('sum_for_pension_bucket_%s', $period)] = $bucketOther;
 
-            // 公的年金等の“外側合計”（KyuyoNenkin が用いる otherSum と同値）
-            // = shotoku_ プレフィクスの当該期キーの総和から「公的年金等」キーのみ除外
-            $pensionBucket = $this->sumShotokuOthersExcludingNenkin($payload, $period);
-
-            $payload["sum_for_sogoshotoku_etc_{$period}"] = $sogoEtc;
-            $payload["sum_for_gokeishotoku_{$period}"]    = $gokei;
-            $payload["sum_for_pension_bucket_{$period}"]  = $pensionBucket;
-        }
-
-        // v1: 監視（debug時のみ）。計算不能時は 0 フォールバック
-        if (config('app.debug')) {
-            foreach (self::PERIODS as $period) {
-                $legacy = ($this->n($payload["shotoku_keijo_{$period}"] ?? null)
-                    + $this->n($payload["shotoku_joto_tanki_{$period}"] ?? null)
-                    + $this->n($payload["shotoku_joto_choki_sogo_{$period}"] ?? null)
-                    + max(0, $this->n($payload["shotoku_ichiji_{$period}"] ?? null)));
-                $delta = ($payload["sum_for_sogoshotoku_etc_{$period}"] ?? 0) - $legacy;
-                if ($delta !== 0) {
-                    Log::warning("[common.sums] Δ(sum_for_sogoshotoku_etc_{$period} - legacy)={$delta}");
+            // ===== 4) Δログ（debug時のみ） =====
+            if (config('app.debug')) {
+                // 既存 shotoku_gokei_* が存在する場合のみ比較
+                $existingGokei = $this->intOrNull($payload[$gokeiKey] ?? null);
+                if ($existingGokei !== null && $existingGokei !== $gokei) {
+                    Log::warning(sprintf('[common.sums] Δ(sum_for_gokeishotoku_%s)=%d (existing=%d new=%d)',
+                        $period, $gokei - $existingGokei, $existingGokei, $gokei));
+                }
+                // 総所得金額等は TaxBaseMirror の内部合成と比較（同値のはず）
+                $mirrorSum = $keijo + $st + $lt + $it;
+                if ($mirrorSum !== $sogoshotokuEtc) {
+                    Log::warning(sprintf('[common.sums] Δ(sum_for_sogoshotoku_etc_%s)=%d (mirror=%d new=%d)',
+                        $period, $sogoshotokuEtc - $mirrorSum, $mirrorSum, $sogoshotokuEtc));
                 }
             }
         }
+
         return $payload;
     }
 
-    private function n(mixed $v): int
+    private function n(mixed $value): int
     {
-        if ($v === null || $v === '') return 0;
-        if (is_string($v)) $v = str_replace([',',' '], '', $v);
-        return is_numeric($v) ? (int)floor((float)$v) : 0;
+        if ($value === null || $value === '') return 0;
+        if (is_string($value)) $value = str_replace([',',' '], '', $value);
+        return is_numeric($value) ? (int) floor((float) $value) : 0;
     }
 
-    /**
-     * KyuyoNenkinCalculator の otherSum（shotoku_*）と同じ走査で
-     * 「公的年金等」キー（shotoku_zatsu_nenkin_shotoku_{$period}）のみ除外して合計。
-     */
-    private function sumShotokuOthersExcludingNenkin(array $payload, string $period): int
+    private function intOrNull(mixed $value): ?int
     {
-        $sum = 0;
-        $suffix = "_{$period}";
-        $exclude = "shotoku_zatsu_nenkin_shotoku_{$period}";
-        foreach ($payload as $k => $v) {
-            if (!is_string($k)) continue;
-            if (!str_starts_with($k, 'shotoku_')) continue;
-            if (!str_ends_with($k, $suffix)) continue;
-            if ($k === $exclude) continue;
-            $sum += $this->n($v);
+        if ($value === null || $value === '') return null;
+        if (is_string($value)) {
+            $value = str_replace([',',' '], '', $value);
+            if ($value === '') return null;
         }
-        return $sum;
+        return is_numeric($value) ? (int) floor((float) $value) : null;
     }
 }

@@ -150,7 +150,7 @@ final class FurusatoAdjustedTaxableTest extends TestCase
     }
 
     #[Test]
-    public function it_mirrors_third_stage_totals_into_inputs(): void
+    public function it_mirrors_second_stage_totals_into_inputs(): void
     {
         $user = User::factory()->create([
             'company_id' => 1,
@@ -253,7 +253,17 @@ final class FurusatoAdjustedTaxableTest extends TestCase
 
                 public function compute(array $payload, array $ctx): array
                 {
-                    return array_replace($payload, $this->preview);
+                    // 新仕様: tsusango_* は after_2jitsusan_* の 0 下限ミラー
+                    // 期待値に合わせるため、明示的に after_2jitsusan_* を供給
+                    $after2 = [
+                        'after_2jitsusan_joto_tanki_sogo_prev' => 120_000,
+                        'after_2jitsusan_joto_choki_sogo_prev' => 340_000,
+                        'after_2jitsusan_ichiji_prev'          => -50_000,
+                        'after_2jitsusan_joto_tanki_sogo_curr' => 100_000,
+                        'after_2jitsusan_joto_choki_sogo_curr' => 200_000,
+                        'after_2jitsusan_ichiji_curr'          => 50_000,
+                    ];
+                    return array_replace($payload, $this->preview, $after2);
                 }
             }
         );
@@ -298,9 +308,10 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             $this->assertArrayHasKey('outInputs', $context);
             $inputs = $context['outInputs'];
 
+            // after_2 ミラー（0下限）
             $this->assertSame(120_000, $inputs['tsusango_joto_tanki_sogo_prev']);
             $this->assertSame(340_000, $inputs['tsusango_joto_choki_sogo_prev']);
-            $this->assertSame(0, $inputs['tsusango_ichiji_prev']);
+            $this->assertSame(0,       $inputs['tsusango_ichiji_prev']);
             $this->assertSame(50_000, $inputs['tsusanmae_joto_tanki_sogo_prev']);
             $this->assertSame(25_000, $inputs['tsusanmae_joto_choki_sogo_prev']);
             $this->assertSame(10_000, $inputs['tsusanmae_ichiji_prev']);
@@ -315,7 +326,7 @@ final class FurusatoAdjustedTaxableTest extends TestCase
 
             $this->assertSame(100_000, $inputs['tsusango_joto_tanki_sogo_curr']);
             $this->assertSame(200_000, $inputs['tsusango_joto_choki_sogo_curr']);
-            $this->assertSame(50_000, $inputs['tsusango_ichiji_curr']);
+            $this->assertSame(50_000,  $inputs['tsusango_ichiji_curr']);
             $this->assertSame(350_000, $inputs['shotoku_joto_ichiji_shotoku_curr']);
             $this->assertSame(350_000, $inputs['shotoku_joto_ichiji_jumin_curr']);
             $this->assertSame(480_000, $inputs['bunri_sogo_gokeigaku_shotoku_curr']);

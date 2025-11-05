@@ -395,135 +395,96 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
      */
     private function calculateSeparatedNettingStages(array $payload, string $period): array
     {
-        $shortGeneral = $this->resolveSeparatedValue($payload, $period, [
+        // === 0) 通算前（BunriNetting と同じソース／キー ===
+        $sG = $this->resolveSeparatedValue($payload, $period, [
             'bunri_shotoku_tanki_ippan_shotoku_%s',
             'before_tsusan_tanki_ippan_%s',
         ]);
-        $shortReduced = $this->resolveSeparatedValue($payload, $period, [
+        $sR = $this->resolveSeparatedValue($payload, $period, [
             'bunri_shotoku_tanki_keigen_shotoku_%s',
             'before_tsusan_tanki_keigen_%s',
         ]);
-        $longGeneral = $this->resolveSeparatedValue($payload, $period, [
+        $lG = $this->resolveSeparatedValue($payload, $period, [
             'bunri_shotoku_choki_ippan_shotoku_%s',
             'before_tsusan_choki_ippan_%s',
         ]);
-        $longReduced = $this->resolveSeparatedValue($payload, $period, [
+        $lT = $this->resolveSeparatedValue($payload, $period, [
             'bunri_shotoku_choki_tokutei_shotoku_%s',
             'before_tsusan_choki_tokutei_%s',
         ]);
-        $longLight = $this->resolveSeparatedValue($payload, $period, [
+        $lK = $this->resolveSeparatedValue($payload, $period, [
             'bunri_shotoku_choki_keika_shotoku_%s',
             'before_tsusan_choki_keika_%s',
         ]);
 
-        $shortGeneralAfter = $shortGeneral;
-        $shortReducedAfter = $shortReduced;
+        // 出力: before_* はそのまま
+        $out = [
+            sprintf('before_tsusan_tanki_ippan_%s',  $period) => $sG,
+            sprintf('before_tsusan_tanki_keigen_%s', $period) => $sR,
+            sprintf('before_tsusan_choki_ippan_%s',  $period) => $lG,
+            sprintf('before_tsusan_choki_tokutei_%s',$period) => $lT,
+            sprintf('before_tsusan_choki_keika_%s',  $period) => $lK,
+        ];
 
-        if ($shortGeneral >= 0 && $shortReduced < 0) {
-            $move = min($shortGeneral, -$shortReduced);
-            $shortGeneralAfter -= $move;
-            $shortReducedAfter += $move;
-        } elseif ($shortGeneral < 0 && $shortReduced >= 0) {
-            $move = min($shortReduced, -$shortGeneral);
-            $shortGeneralAfter += $move;
-            $shortReducedAfter -= $move;
+        // === 1) 第1次通算（BunriNetting と同じ順序で補填）===
+        // 短期内: まず一般と軽減を相殺
+        if ($sG >= 0 && $sR < 0) {
+            $m = min($sG, -$sR); $sG -= $m; $sR += $m;
+        } elseif ($sG < 0 && $sR >= 0) {
+            $m = min($sR, -$sG); $sG += $m; $sR -= $m;
+        }
+        // 長期内: 一般/特定/軽課の順序相殺
+        // 1-1 一般が負なら特定→軽課の順で補填
+        if ($lG < 0) { $m = min(max(0, $lT), -$lG); $lG += $m; $lT -= $m; }
+        if ($lG < 0) { $m = min(max(0, $lK), -$lG); $lG += $m; $lK -= $m; }
+        // 1-2 特定が負なら一般→軽課
+        if ($lT < 0) { $m = min(max(0, $lG), -$lT); $lG -= $m; $lT += $m; }
+        if ($lT < 0) { $m = min(max(0, $lK), -$lT); $lK -= $m; $lT += $m; }
+        // 1-3 軽課が負なら一般→特定
+        if ($lK < 0) { $m = min(max(0, $lG), -$lK); $lG -= $m; $lK += $m; }
+        if ($lK < 0) { $m = min(max(0, $lT), -$lK); $lT -= $m; $lK += $m; }
+
+        // after_1 を出力
+        $out += [
+            sprintf('after_1jitsusan_tanki_ippan_%s',   $period) => $sG,
+            sprintf('after_1jitsusan_tanki_keigen_%s',  $period) => $sR,
+            sprintf('after_1jitsusan_choki_ippan_%s',   $period) => $lG,
+            sprintf('after_1jitsusan_choki_tokutei_%s', $period) => $lT,
+            sprintf('after_1jitsusan_choki_keika_%s',   $period) => $lK,
+        ];
+
+        // === 2) 第2次通算（短期群⇔長期群の相互補填） ===
+        $sNeg = max(0, -min(0, $sG) - min(0, $sR));               // 短期の不足総量
+        $lNeg = max(0, -min(0, $lG) - min(0, $lT) - min(0, $lK)); // 長期の不足総量
+
+        if ($sNeg > 0 && ($lG > 0 || $lT > 0 || $lK > 0)) {
+            // 長期→短期へ: G→T→K の順で取り出し、短期は G→R の順で埋める
+            $give = 0;
+            $m = min(max(0, $lG), $sNeg - $give); $lG -= $m; $give += $m;
+            $m = min(max(0, $lT), $sNeg - $give); $lT -= $m; $give += $m;
+            $m = min(max(0, $lK), $sNeg - $give); $lK -= $m; $give += $m;
+            if ($sG < 0) { $u = min($give, -$sG); $sG += $u; $give -= $u; }
+            if ($give > 0 && $sR < 0) { $u = min($give, -$sR); $sR += $u; $give -= $u; }
+        } elseif ($lNeg > 0 && ($sG > 0 || $sR > 0)) {
+            // 短期→長期へ: sG→sR の順に取り、長期は G→T→K の順で埋める
+            $give = 0;
+            $m = min(max(0, $sG), $lNeg - $give); $sG -= $m; $give += $m;
+            $m = min(max(0, $sR), $lNeg - $give); $sR -= $m; $give += $m;
+            if ($lG < 0) { $u = min($give, -$lG); $lG += $u; $give -= $u; }
+            if ($give > 0 && $lT < 0) { $u = min($give, -$lT); $lT += $u; $give -= $u; }
+            if ($give > 0 && $lK < 0) { $u = min($give, -$lK); $lK += $u; $give -= $u; }
         }
 
-        $needGeneral = max(0, -$longGeneral);
-        $moveReducedToGeneral = min(max(0, $longReduced), $needGeneral);
-        $lgA = $longGeneral + $moveReducedToGeneral;
-        $lrA = $longReduced - $moveReducedToGeneral;
-        $llA = $longLight;
-
-        $needGeneral2 = max(0, -$lgA);
-        $moveLightToGeneral = min(max(0, $llA), $needGeneral2);
-        $lgB = $lgA + $moveLightToGeneral;
-        $lrB = $lrA;
-        $llB = $llA - $moveLightToGeneral;
-
-        $needReduced = max(0, -$lrB);
-        $moveGeneralToReduced = min(max(0, $lgB), $needReduced);
-        $lgC = $lgB - $moveGeneralToReduced;
-        $lrC = $lrB + $moveGeneralToReduced;
-
-        $needReduced2 = max(0, -$lrC);
-        $moveLightToReduced = min(max(0, $llB), $needReduced2);
-        $lgD = $lgC;
-        $lrD = $lrC + $moveLightToReduced;
-        $llC = $llB - $moveLightToReduced;
-
-        $needLight = max(0, -$llC);
-        $moveGeneralToLight = min(max(0, $lgD), $needLight);
-        $lgE = $lgD - $moveGeneralToLight;
-        $llD = $llC + $moveGeneralToLight;
-
-        $needLight2 = max(0, -$llD);
-        $moveReducedToLight = min(max(0, $lrD), $needLight2);
-        unset($moveReducedToLight);
-
-        $shortNeed = max(0, -(min(0, $shortGeneralAfter) + min(0, $shortReducedAfter)));
-        $longNeed = max(0, -(min(0, $lgE) + min(0, $lrD) + min(0, $llC)));
-
-        $giveLongGeneral = ($shortNeed > 0 && $longNeed === 0)
-            ? min(max(0, $lgE), $shortNeed)
-            : 0;
-        $remainingShortNeed = $shortNeed > 0 && $longNeed === 0
-            ? $shortNeed - $giveLongGeneral
-            : 0;
-        $giveLongReduced = ($shortNeed > 0 && $longNeed === 0)
-            ? min(max(0, $lrD), $remainingShortNeed)
-            : 0;
-        $remainingShortNeed = $shortNeed > 0 && $longNeed === 0
-            ? $remainingShortNeed - $giveLongReduced
-            : 0;
-        $giveLongLight = ($shortNeed > 0 && $longNeed === 0)
-            ? min(max(0, $llC), $remainingShortNeed)
-            : 0;
-        $totalGivenToShort = $giveLongGeneral + $giveLongReduced + $giveLongLight;
-
-        $increaseShortGeneral = min(max(0, -$shortGeneralAfter), $totalGivenToShort);
-        $takeShortGeneral = ($longNeed > 0 && $shortNeed === 0)
-            ? min(max(0, $shortGeneralAfter), $longNeed)
-            : 0;
-        $remainingLongNeed = $longNeed > 0 && $shortNeed === 0
-            ? $longNeed - $takeShortGeneral
-            : 0;
-        $takeShortReduced = ($longNeed > 0 && $shortNeed === 0)
-            ? min(max(0, $shortReducedAfter), $remainingLongNeed)
-            : 0;
-
-        $afterSecondShortGeneral = $shortGeneralAfter + $increaseShortGeneral - $takeShortGeneral;
-        $increaseShortReduced = min(max(0, -$shortReducedAfter), max(0, $totalGivenToShort - $increaseShortGeneral));
-        $afterSecondShortReduced = $shortReducedAfter + $increaseShortReduced - $takeShortReduced;
-
-        $increaseLongGeneral = min(max(0, -$lgE), $takeShortGeneral + $takeShortReduced);
-        $afterSecondLongGeneral = $lgE - $giveLongGeneral + $increaseLongGeneral;
-
-        $availableForLongReduced = max(0, $takeShortGeneral + $takeShortReduced - $increaseLongGeneral);
-        $increaseLongReduced = min(max(0, -$lrD), $availableForLongReduced);
-        $afterSecondLongReduced = $lrD - $giveLongReduced + $increaseLongReduced;
-
-        $availableForLongLight = max(0, $takeShortGeneral + $takeShortReduced - $increaseLongGeneral - $increaseLongReduced);
-        $increaseLongLight = min(max(0, -$llC), $availableForLongLight);
-        $afterSecondLongLight = $llC - $giveLongLight + $increaseLongLight;
-
-        return [
-            sprintf('before_tsusan_tanki_ippan_%s', $period) => $shortGeneral,
-            sprintf('before_tsusan_tanki_keigen_%s', $period) => $shortReduced,
-            sprintf('before_tsusan_choki_ippan_%s', $period) => $longGeneral,
-            sprintf('before_tsusan_choki_tokutei_%s', $period) => $longReduced,
-            sprintf('before_tsusan_choki_keika_%s', $period) => $longLight,
-            sprintf('after_1jitsusan_tanki_ippan_%s', $period) => $shortGeneralAfter,
-            sprintf('after_1jitsusan_tanki_keigen_%s', $period) => $shortReducedAfter,
-            sprintf('after_1jitsusan_choki_ippan_%s', $period) => $lgE,
-            sprintf('after_1jitsusan_choki_tokutei_%s', $period) => $lrD,
-            sprintf('after_1jitsusan_choki_keika_%s', $period) => $llC,
-            sprintf('after_2jitsusan_tanki_ippan_%s', $period) => $afterSecondShortGeneral,
-            sprintf('after_2jitsusan_tanki_keigen_%s', $period) => $afterSecondShortReduced,
-            sprintf('after_2jitsusan_choki_ippan_%s', $period) => $afterSecondLongGeneral,
-            sprintf('after_2jitsusan_choki_tokutei_%s', $period) => $afterSecondLongReduced,
-            sprintf('after_2jitsusan_choki_keika_%s', $period) => $afterSecondLongLight,
+        // after_2 を出力
+        $out += [
+            sprintf('after_2jitsusan_tanki_ippan_%s',   $period) => $sG,
+            sprintf('after_2jitsusan_tanki_keigen_%s',  $period) => $sR,
+            sprintf('after_2jitsusan_choki_ippan_%s',   $period) => $lG,
+            sprintf('after_2jitsusan_choki_tokutei_%s', $period) => $lT,
+            sprintf('after_2jitsusan_choki_keika_%s',   $period) => $lK,
         ];
+
+        return $out;
     }
 
     /**

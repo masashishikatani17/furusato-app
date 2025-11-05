@@ -141,33 +141,57 @@ class SogoShotokuNettingStagesCalculatorTest extends TestCase
         int $longReduced,
         int $longLight,
     ): void {
-        $payload = [
-            sprintf('bunri_shotoku_tanki_ippan_shotoku_%s', $period) => $shortGeneral,
-            sprintf('bunri_shotoku_tanki_keigen_shotoku_%s', $period) => $shortReduced,
-            sprintf('bunri_shotoku_choki_ippan_shotoku_%s', $period) => $longGeneral,
-            sprintf('bunri_shotoku_choki_tokutei_shotoku_%s', $period) => $longReduced,
-            sprintf('bunri_shotoku_choki_keika_shotoku_%s', $period) => $longLight,
+        // Stage 側には実装が参照するキー名で渡す:
+        //  - 短期: bunri_shotoku_tanki_{ippan|keigen}_**shotoku**_<period>
+        //  - 長期: bunri_shotoku_choki_{ippan|tokutei|keika}_**shotoku**_<period>
+        $stagePayload = [
+            sprintf('bunri_shotoku_tanki_ippan_shotoku_%s',   $period)    => $shortGeneral,
+            sprintf('bunri_shotoku_tanki_keigen_shotoku_%s',  $period)    => $shortReduced,
+            sprintf('bunri_shotoku_choki_ippan_shotoku_%s',   $period)    => $longGeneral,
+            sprintf('bunri_shotoku_choki_tokutei_shotoku_%s', $period)    => $longReduced,
+            sprintf('bunri_shotoku_choki_keika_shotoku_%s',   $period)    => $longLight,
         ];
 
-        $expected = $bunriCalculator->compute($payload, $period);
-        $actual = $stageCalculator->compute($payload, $period);
+        // Bunri 側の期待値は「before = syunyu - keihi」で同じ値になるように組成
+        $toPair = static function (int $v): array {
+            return $v >= 0 ? [$v, 0] : [0, -$v];
+        };
+        [$sgY, $sgC] = $toPair($shortGeneral);
+        [$srY, $srC] = $toPair($shortReduced);
+        [$lgY, $lgC] = $toPair($longGeneral);
+        [$ltY, $ltC] = $toPair($longReduced);
+        [$lkY, $lkC] = $toPair($longLight);
+        $bunriPayload = [
+            sprintf('syunyu_tanki_ippan_%s',   $period) => $sgY, sprintf('keihi_tanki_ippan_%s',   $period) => $sgC,
+            sprintf('syunyu_tanki_keigen_%s',  $period) => $srY, sprintf('keihi_tanki_keigen_%s',  $period) => $srC,
+            sprintf('syunyu_choki_ippan_%s',   $period) => $lgY, sprintf('keihi_choki_ippan_%s',   $period) => $lgC,
+            sprintf('syunyu_choki_tokutei_%s', $period) => $ltY, sprintf('keihi_choki_tokutei_%s', $period) => $ltC,
+            sprintf('syunyu_choki_keika_%s',   $period) => $lkY, sprintf('keihi_choki_keika_%s',   $period) => $lkC,
+        ];
+
+        $expected = $bunriCalculator->compute($bunriPayload, $period);
+        $actual   = $stageCalculator->compute($stagePayload, $period);
+ 
 
         $mapping = [
-            'before_tsusan_tanki_ippan_%s' => 'before_tsusan_tanki_ippan_%s',
-            'before_tsusan_tanki_keigen_%s' => 'before_tsusan_tanki_keigen_%s',
-            'before_tsusan_choki_ippan_%s' => 'before_tsusan_choki_ippan_%s',
-            'before_tsusan_choki_tokutei_%s' => 'before_tsusan_choki_tokutei_%s',
-            'before_tsusan_choki_keika_%s' => 'before_tsusan_choki_keika_%s',
-            'after_1jitsusan_tanki_ippan_%s' => 'after_1jitsusan_tanki_ippan_%s',
-            'after_1jitsusan_tanki_keigen_%s' => 'after_1jitsusan_tanki_keigen_%s',
-            'after_1jitsusan_choki_ippan_%s' => 'after_1jitsusan_choki_ippan_%s',
-            'after_1jitsusan_choki_tokutei_%s' => 'after_1jitsusan_tanki_tokutei_%s',
-            'after_1jitsusan_choki_keika_%s'   => 'after_1jitsusan_tanki_keika_%s',
-            'after_2jitsusan_tanki_ippan_%s' => 'after_2jitsusan_tanki_ippan_%s',
-            'after_2jitsusan_tanki_keigen_%s' => 'after_2jitsusan_tanki_keigen_%s',
-            'after_2jitsusan_choki_ippan_%s' => 'after_2jitsusan_choki_ippan_%s',
-            'after_2jitsusan_choki_tokutei_%s' => 'after_2jitsusan_tanki_tokutei_%s',
-            'after_2jitsusan_choki_keika_%s'   => 'after_2jitsusan_tanki_keika_%s',
+            // before
+            'before_tsusan_tanki_ippan_%s'      => 'before_tsusan_tanki_ippan_%s',
+            'before_tsusan_tanki_keigen_%s'     => 'before_tsusan_tanki_keigen_%s',
+            'before_tsusan_choki_ippan_%s'      => 'before_tsusan_choki_ippan_%s',
+            'before_tsusan_choki_tokutei_%s'    => 'before_tsusan_choki_tokutei_%s',
+            'before_tsusan_choki_keika_%s'      => 'before_tsusan_choki_keika_%s',
+            // after_1
+            'after_1jitsusan_tanki_ippan_%s'    => 'after_1jitsusan_tanki_ippan_%s',
+            'after_1jitsusan_tanki_keigen_%s'   => 'after_1jitsusan_tanki_keigen_%s',
+            'after_1jitsusan_choki_ippan_%s'    => 'after_1jitsusan_choki_ippan_%s',
+            'after_1jitsusan_choki_tokutei_%s'  => 'after_1jitsusan_choki_tokutei_%s',
+            'after_1jitsusan_choki_keika_%s'    => 'after_1jitsusan_choki_keika_%s',
+            // after_2
+            'after_2jitsusan_tanki_ippan_%s'    => 'after_2jitsusan_tanki_ippan_%s',
+            'after_2jitsusan_tanki_keigen_%s'   => 'after_2jitsusan_tanki_keigen_%s',
+            'after_2jitsusan_choki_ippan_%s'    => 'after_2jitsusan_choki_ippan_%s',
+            'after_2jitsusan_choki_tokutei_%s'  => 'after_2jitsusan_choki_tokutei_%s',
+            'after_2jitsusan_choki_keika_%s'    => 'after_2jitsusan_choki_keika_%s',
         ];
 
         foreach ($mapping as $stagePattern => $bunriPattern) {

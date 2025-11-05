@@ -315,6 +315,30 @@ final class FurusatoController extends Controller
         $bunriMinCalculator = app(BunriSeparatedMinRateCalculator::class);
         $previewPayload = $bunriMinCalculator->compute($previewPayload, $calculatorCtx);
 
+        /**
+         * ▼ tsusango_%_% をサーバで確定（0 下限）
+         *   仕様：tsusango_%_% = max(0, after_2jitsusan_%_%)
+         *   - ここで previewPayload に確定値として生成しておくと、
+         *     以降の details / inputs / POST すべてが 0 未満にならない
+         */
+        foreach (['prev','curr'] as $period) {
+            foreach ([
+                'tanki_ippan',
+                'tanki_keigen',
+                'choki_ippan',
+                'choki_tokutei',
+                'choki_keika',
+            ] as $suffix) {
+                $after2Key = sprintf('after_2jitsusan_%s_%s', $suffix, $period);
+                $tsusangoKey = sprintf('tsusango_%s_%s', $suffix, $period);
+                $val = (int) ($previewPayload[$after2Key] ?? 0);
+                $previewPayload[$tsusangoKey] = max(0, $val);
+            }
+            // 一時も 0 下限（既に elsewhere で max(0, …) しているが念のため統一）
+            $after2Ichiji = (int) ($previewPayload[sprintf('after_2jitsusan_ichiji_%s', $period)] ?? 0);
+            $previewPayload[sprintf('tsusango_ichiji_%s', $period)] = max(0, $after2Ichiji);
+        }
+
         $floorToThousands = static function (int $value): int {
             return $value > 0 ? intdiv($value, 1000) * 1000 : 0;
         };
@@ -915,7 +939,59 @@ final class FurusatoController extends Controller
                     );
                 }
             }
+            /**
+             * ▼ 橋渡し（行レベルの損益通算後を details に供給）
+             * - details/bunri_joto_details の tsusango_%_* は「第2次通算後（after_2）」を表示したい
+             * - サーバ確定値を優先（previewOnly=true）で埋める
+             * - 要件：tsusango_%_% は 0 下限（負値は 0 に丸める）
+             */
+            foreach ([
+                'tanki_ippan',
+                'tanki_keigen',
+                'choki_ippan',
+                'choki_tokutei',
+                'choki_keika',
+            ] as $suffix) {
+                $assign(
+                    sprintf('tsusango_%s_%s', $suffix, $period),
+                    [sprintf('after_2jitsusan_%s_%s', $suffix, $period)],
+                    // ▼ 0 下限を保証
+                    static function (int $v): int {
+                        return max(0, $v);
+                    },
+                    true // previewOnly: results/upper が無くても preview（＝Calculator出力）を採用
+                );
+            }
 
+            /**
+             * ▼ input.blade.php 向けの「分離・収入」ミラー
+             *   bunri_syunyu_%_{shotoku,jumin}_* ← details の syunyu_%_*
+             *   - ユーザー入力(SoT: FurusatoInput)なので savedInputs も許容（previewOnly=false, allowSaved=true）
+             */
+            foreach ([
+                'tanki_ippan',
+                'tanki_keigen',
+                'choki_ippan',
+                'choki_tokutei',
+                'choki_keika',
+            ] as $suffix) {
+                /**
+                 * ▼ input.blade.php 向けの「分離・所得（特別控除後）」ミラー
+                 *   bunri_shotoku_%_{shotoku,jumin}_* ← details の joto_shotoku_%_*
+                 *   - 計算結果（Calculator出力）を最優先。fallbackで savedInputs も許容。
+                 */
+                $mirrorMany(
+                    [
+                        sprintf('bunri_shotoku_%s_shotoku_%s', $suffix, $period),
+                        sprintf('bunri_shotoku_%s_jumin_%s',   $suffix, $period),
+                    ],
+                    [sprintf('joto_shotoku_%s_%s', $suffix, $period)],
+                    null,
+                    false, // results/upper/preview を優先しつつ saved も可
+                    true
+                );
+            }
+            
             foreach ([
                 'tanki_ippan',
                 'tanki_keigen',
@@ -1159,7 +1235,35 @@ final class FurusatoController extends Controller
             $inputsForView[sprintf('kojo_iryo_shotoku_%s', $p)] = (int)$kojogaku;
             $inputsForView[sprintf('kojo_iryo_jumin_%s',  $p)] = (int)$kojogaku;
         }
-        
+        /**
+         * ▼ 最終鏡写し（input.blade.php の第三表に出す“分離・収入/所得”のキーを確実に埋める）
+         *  - bunri_syunyu_%_{shotoku|jumin}_*   ← syunyu_%_*
+         *  - bunri_shotoku_%_{shotoku|jumin}_*  ← joto_shotoku_%_*
+         *  - 既に値が入っていても、見つかったサーバ確定値で**無条件に上書き**する
+         *  - （第三表はサーバ値が SoT。old()/送信直前の JS に負けないようにここで決め切る）
+
+         */
+        foreach (['prev','curr'] as $period) {
+            foreach (['tanki_ippan','tanki_keigen','choki_ippan','choki_tokutei','choki_keika'] as $suffix) {
+                // 分離・収入（details/bunri_joto_details の syunyu_%_% をそのまま映す）
+                $srcIncomeKey = sprintf('syunyu_%s_%s', $suffix, $period); // 例: syunyu_choki_keika_prev
+                $dstIncomeShotoku = sprintf('bunri_syunyu_%s_shotoku_%s', $suffix, $period);
+                $dstIncomeJumin   = sprintf('bunri_syunyu_%s_jumin_%s',   $suffix, $period);
+                $v = $lookup([$srcIncomeKey], false, true); // allowSaved=true（ユーザー入力を尊重）
+                if ($v !== null) { $inputsForView[$dstIncomeShotoku] = (int)$v; }
+                if ($v !== null) { $inputsForView[$dstIncomeJumin]   = (int)$v; }
+
+                // 分離・所得（特別控除後）… Calculator 出力の joto_shotoku_%_% を映す
+                $srcShotokuKey    = sprintf('joto_shotoku_%s_%s', $suffix, $period); // 例: joto_shotoku_choki_keika_prev
+                $dstShotokuShotoku = sprintf('bunri_shotoku_%s_shotoku_%s', $suffix, $period);
+                $dstShotokuJumin   = sprintf('bunri_shotoku_%s_jumin_%s',   $suffix, $period);
+                // 結果(payload/upper) → previewPayload の順で拾う（saved は使わない）
+                $v2 = $lookup([$srcShotokuKey], false, false /* allowSaved=false */);
+                if ($v2 !== null) { $inputsForView[$dstShotokuShotoku] = (int)$v2; }
+                if ($v2 !== null) { $inputsForView[$dstShotokuJumin]   = (int)$v2; }
+            }
+        }
+
         return $inputsForView;
     }
 

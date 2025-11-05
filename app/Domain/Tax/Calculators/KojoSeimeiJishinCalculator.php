@@ -105,7 +105,7 @@ class KojoSeimeiJishinCalculator implements ProvidesKeys
 
         $shotokuEq = $this->calculateShotokuJishinEq($eq);
         $shotokuOld = $this->calculateShotokuJishinOld($oldEq);
-        $shotokuJishinTotal = min(self::SHOTOKU_JISHIN_TOTAL_CAP, $shotokuEq + $shotokuOld);
+        $shotokuJishinTotal = min(self::SHOTOKU_JISHIN_TOTAL_CAP, max($shotokuEq, $shotokuOld));
 
         $juminEq = $this->calculateJuminJishinEq($eq);
         $juminOld = $this->calculateJuminJishinOld($oldEq);

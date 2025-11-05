@@ -124,7 +124,9 @@
   };
   $readonlyValue = static function (string $key, $fallback = null) use ($inputs, $syoriSettings): string {
       $value = old($key, $inputs[$key] ?? $fallback);
-
+      // ▼ tsusango_（損益通算「後」）は仕様として 0 下限
+      //    ここで 0 未満を 0 に矯正しておくと、表示も POST も常に 0 以上となり min:0 に合致
+      $isTsusango = str_starts_with($key, 'tsusango_');
       if ($value === null || $value === '') {
           return '';
       }
@@ -175,6 +177,10 @@
       }
 
       $number = (int) $normalized;
+
+      if ($isTsusango && $number < 0) {
+          $number = 0;
+      }
 
       return number_format($number);
   };

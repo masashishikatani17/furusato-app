@@ -14,6 +14,8 @@ use App\Domain\Tax\Calculators\JuminTaxCalculator;
 use App\Domain\Tax\Calculators\KifukinCalculator;
 use App\Domain\Tax\Calculators\KisoKojoCalculator;
 use App\Domain\Tax\Calculators\KojoAggregationCalculator;
+use App\Domain\Tax\Calculators\CommonSumsCalculator;
+use App\Domain\Tax\Calculators\CommonTaxableBaseCalculator;
 use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\SeitotoTokubetsuZeigakuKojoCalculator;
@@ -51,7 +53,9 @@ class AppServiceProvider extends ServiceProvider
             JintekiKojoCalculator::class,
             HaigushaKojoCalculator::class,
             KojoAggregationCalculator::class,
+            CommonSumsCalculator::class,
             TaxBaseMirrorCalculator::class,
+            CommonTaxableBaseCalculator::class,
             ShotokuTaxCalculator::class,
             JuminTaxCalculator::class,
             JuminzeiKifukinCalculator::class,
@@ -75,6 +79,8 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->tag($taggedCalculatorClasses, 'tax.furusato.calculators');
 
+        // RecalculateFurusatoPayload には「通常Calculator（tagged）」のみを注入する。
+        // period系（prev/curr引数をとるCalculator）は、UseCase側のperiodループで個別に実行される前提。
         $this->app->bind(RecalculateFurusatoPayload::class, function ($app) use ($taggedCalculatorClasses) {
             $calculators = array_map(static fn (string $class) => $app->make($class), $taggedCalculatorClasses);
 

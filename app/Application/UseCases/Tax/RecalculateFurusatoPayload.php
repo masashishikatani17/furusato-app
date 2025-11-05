@@ -10,6 +10,7 @@ use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\ResultToDetailsAliasCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
+use App\Domain\Tax\Calculators\SakimonoCalculator;
 use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Models\Data;
 use App\Models\FurusatoInput;
@@ -381,6 +382,15 @@ class RecalculateFurusatoPayload
             $detailsAliasCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $detailsAliasCalculator);
+ 
+        /** @var SakimonoCalculator $sakimonoCalculator */
+        $sakimonoCalculator = app(SakimonoCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $sakimonoCalculator->compute($payload, 'prev'),
+            $sakimonoCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $sakimonoCalculator);
 
         /** @var SogoShotokuNettingCalculator $sogoShotokuCalculator */
         $sogoShotokuCalculator = app(SogoShotokuNettingCalculator::class);

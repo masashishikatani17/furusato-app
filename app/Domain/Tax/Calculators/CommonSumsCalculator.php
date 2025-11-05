@@ -23,6 +23,7 @@ class CommonSumsCalculator implements ProvidesKeys
         $out = [];
         foreach (self::PERIODS as $p) {
             $out[] = sprintf('sum_for_gokeishotoku_%s', $p);
+            $out[] = sprintf('sum_for_sogoshotoku_%s', $p);
             $out[] = sprintf('sum_for_sogoshotoku_etc_%s', $p);
             $out[] = sprintf('sum_for_pension_bucket_%s', $p);
         }
@@ -65,16 +66,27 @@ class CommonSumsCalculator implements ProvidesKeys
             $gokei = $Ap + $Bp + $Cp;
             $payload[sprintf('sum_for_gokeishotoku_%s', $period)] = $gokei;
 
-            // ===== 2) 総所得金額等(代理) =====
-            // 現行 TaxBaseMirror の sumComprehensive と等価：山林・退職を含めず、一時は 0 下限
-            $keijo = $this->n($payload[sprintf('shotoku_keijo_%s', $period)] ?? null);
-            $st    = $this->n($payload[sprintf('shotoku_joto_tanki_%s', $period)] ?? null);
-            $lt    = $this->n($payload[sprintf('shotoku_joto_choki_sogo_%s', $period)] ?? null);
-            $it    = max(0, $this->n($payload[sprintf('shotoku_ichiji_%s', $period)] ?? null));
-            $sogoshotokuEtc = $keijo + $st + $lt + $it;
+            // ===== 2) 総所得金額 sum_for_sogoshotoku_{p}（総合課税のみ）=====
+            // 総合課税のみなので A_p をそのまま採用（0下限は既に適用済み）
+            $sumSogo = $Ap;
+            $payload[sprintf('sum_for_sogoshotoku_%s', $period)] = $sumSogo;
+
+            // ===== 3) 総所得金額等 sum_for_sogoshotoku_etc_{p} =====
+            // 総所得金額 + 退職/山林 + 分離（繰越控除“後”）の正値合計
+            $Cafter =
+                  max(0, $this->n($payload[sprintf('tsusango_tanki_ippan_%s',   $period)] ?? null))
+                + max(0, $this->n($payload[sprintf('tsusango_tanki_keigen_%s',  $period)] ?? null))
+                + max(0, $this->n($payload[sprintf('tsusango_choki_ippan_%s',   $period)] ?? null))
+                + max(0, $this->n($payload[sprintf('tsusango_choki_tokutei_%s', $period)] ?? null))
+                + max(0, $this->n($payload[sprintf('tsusango_choki_keika_%s',   $period)] ?? null))
+                + max(0, $this->n($payload[sprintf('shotoku_after_kurikoshi_ippan_joto_%s', $period)] ?? null))
+                + max(0, $this->n($payload[sprintf('shotoku_after_kurikoshi_jojo_joto_%s',  $period)] ?? null))
+                + max(0, $this->n($payload[sprintf('shotoku_after_kurikoshi_jojo_haito_%s', $period)] ?? null))
+                + max(0, $this->n($payload[sprintf('shotoku_sakimono_after_kurikoshi_%s',   $period)] ?? null));
+            $sogoshotokuEtc = $sumSogo + $Bp + $Cafter;
             $payload[sprintf('sum_for_sogoshotoku_etc_%s', $period)] = $sogoshotokuEtc;
 
-            // ===== 3) 年金バケット用：年金“以外”の外側合計(代理) =====
+            // ===== 4) 年金バケット用：年金“以外”の外側合計(代理) =====
             // v1互換のまま（本ターンは合計所得金額のみ厳密化）
             $suffix = '_' . $period;
             $exclude = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
@@ -84,11 +96,11 @@ class CommonSumsCalculator implements ProvidesKeys
                 if (!str_starts_with($k, 'shotoku_')) continue;
                 if (!str_ends_with($k, $suffix)) continue;
                 if ($k === $exclude) continue;
-                $bucketOther = $this->n($v);
+                $bucketOther += $this->n($v);
             }
             $payload[sprintf('sum_for_pension_bucket_%s', $period)] = $bucketOther;
 
-            // ===== 4) Δログ（debug時のみ） =====
+            // ===== 5) Δログ（debug時のみ） =====
             if (config('app.debug')) {
                 // 既存 shotoku_gokei_* が存在する場合のみ比較（監視用）
                 $existingGokei = $this->intOrNull($payload[sprintf('shotoku_gokei_%s', $period)] ?? null);
@@ -98,12 +110,11 @@ class CommonSumsCalculator implements ProvidesKeys
                         $period, $gokei - $existingGokei, $existingGokei, $gokei, $Ap, $Bp, $Cp
                     ));
                 }
-                // 総所得金額等は TaxBaseMirror の内部合成と比較（同値のはず）
-                $mirrorSum = $keijo + $st + $lt + $it;
-                if ($mirrorSum !== $sogoshotokuEtc) {
-                    Log::warning(sprintf('[common.sums] Δ(sum_for_sogoshotoku_etc_%s)=%d (mirror=%d new=%d)',
-                        $period, $sogoshotokuEtc - $mirrorSum, $mirrorSum, $sogoshotokuEtc));
-                }
+                // 参考ログ：ブロック別の可視化
+                Log::info(sprintf(
+                    '[common.sums.v2] parts.%s A=%d B=%d C_pre=%d C_after=%d sogo=%d sogo_etc=%d',
+                    $period, $Ap, $Bp, $Cp, $Cafter, $sumSogo, $sogoshotokuEtc
+                ));
             }
         }
 

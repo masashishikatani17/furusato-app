@@ -139,16 +139,9 @@ class TokureiRateCalculator implements ProvidesKeys
 
     private function taxableBase(array $payload, array $ctx, string $period): int
     {
-        $settings = $this->syoriSettings($ctx);
-        $flagKey = sprintf('bunri_flag_%s', $period);
-        $flag = $settings[$flagKey] ?? ($settings['bunri_flag'] ?? 0);
-        $isSeparated = (int) $flag === 1;
-
-        $key = $isSeparated
-            ? sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)
-            : sprintf('tax_kazeishotoku_shotoku_%s', $period);
-
-        $raw = $this->n($payload[$key] ?? null);
+        unset($ctx);
+        // SoT統一：常に tb_sogo_shotoku_*
+        $raw = $this->n($payload[sprintf('tb_sogo_shotoku_%s', $period)] ?? null);
 
         return $this->floorToThousands(max(0, $raw));
     }
@@ -166,7 +159,8 @@ class TokureiRateCalculator implements ProvidesKeys
 
     private function computeSanrinRate(array $rows, array $payload, string $period): ?float
     {
-        $amount = $this->separatedIncomeAmount($payload, 'bunri_kazeishotoku_sanrin', $period);
+        // tb_sanrin_shotoku_*
+        $amount = $this->n($payload[sprintf('tb_sanrin_shotoku_%s', $period)] ?? null);
         if ($amount <= 0) {
             return null;
         }
@@ -181,7 +175,8 @@ class TokureiRateCalculator implements ProvidesKeys
 
     private function computeTaishokuRate(array $rows, array $payload, string $period): ?float
     {
-        $amount = $this->separatedIncomeAmount($payload, 'bunri_kazeishotoku_taishoku', $period);
+        // tb_taishoku_shotoku_*
+        $amount = $this->n($payload[sprintf('tb_taishoku_shotoku_%s', $period)] ?? null);
         if ($amount <= 0) {
             return null;
         }
@@ -257,19 +252,6 @@ class TokureiRateCalculator implements ProvidesKeys
         }
 
         return $fallbackRate;
-    }
-
-    private function separatedIncomeAmount(array $payload, string $baseKey, string $period): int
-    {
-        $juminKey = sprintf('%s_jumin_%s', $baseKey, $period);
-        $shotokuKey = sprintf('%s_shotoku_%s', $baseKey, $period);
-
-        $jumin = $this->n($payload[$juminKey] ?? null);
-        if ($jumin > 0) {
-            return $jumin;
-        }
-
-        return max(0, $this->n($payload[$shotokuKey] ?? null));
     }
 
     private function resolveMasterYear(array $ctx): int

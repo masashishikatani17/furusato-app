@@ -78,7 +78,10 @@ class CommonSumsCalculator implements ProvidesKeys
                 + max(0, $this->n($payload[sprintf('shotoku_sakimono_%s',       $period)] ?? null));
 
             $gokei = $Ap + $Bp + $Cp;
+            // v2 SoT（合計所得金額）
             $payload[sprintf('sum_for_gokeishotoku_%s', $period)] = $gokei;
+            // 互換ミラー（従来テスト・表示が参照）：shotoku_gokei_{prev/curr}
+            $payload[sprintf('shotoku_gokei_%s', $period)] = $gokei;
 
             // ===== 2) 総所得金額 sum_for_sogoshotoku_{p}（総合課税のみ）=====
             // 総合課税のみなので A_p をそのまま採用（0下限は既に適用済み）

@@ -144,14 +144,8 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
         ];
 
         foreach (self::PERIODS as $period) {
-            $shotokuGokei = $this->n($payload["shotoku_gokei_shotoku_{$period}"] ?? null);
-            $sanrin = $this->n($payload["bunri_shotoku_sanrin_shotoku_{$period}"] ?? null);
-            $taishoku = $this->n($payload["bunri_shotoku_taishoku_shotoku_{$period}"] ?? null);
-            $kojoJumin = $this->n($payload["kojo_gokei_jumin_{$period}"] ?? null);
-
-            $tmp = $shotokuGokei + $sanrin + $taishoku - $kojoJumin;
-            $tmpFloorThousand = $this->floorToThousands($tmp);
-            $kazeisoushotoku = max(0, $tmpFloorThousand);
+            // ▼ 課税総所得金額（住民税）は SoT（tb_*）を唯一参照
+            $kazeisoushotoku = $this->n($payload[sprintf('tb_sogo_jumin_%s', $period)] ?? null);
             $out["kazeisoushotoku_{$period}"] = $kazeisoushotoku;
 
             $categories = ['furusato', 'kyodobokin_nisseki', 'npo', 'koueki', 'sonota'];
@@ -205,7 +199,18 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
                 'city'
             );
 
-            $guardedTotal = $shotokuGokei + $sanrin + $taishoku;
+            // ▼ 上限等の判定で使う「合計所得の基礎」は tb_*（住民税側）で一元化
+            $guardedTotal =
+                $this->n($payload[sprintf('tb_sogo_jumin_%s', $period)] ?? null) +
+                $this->n($payload[sprintf('tb_joto_tanki_jumin_%s', $period)] ?? null) +
+                $this->n($payload[sprintf('tb_joto_choki_jumin_%s', $period)] ?? null) +
+                // 一般・上場の譲渡は和で評価
+                $this->n($payload[sprintf('tb_ippan_kabuteki_joto_jumin_%s', $period)] ?? null) +
+                $this->n($payload[sprintf('tb_jojo_kabuteki_joto_jumin_%s', $period)] ?? null) +
+                $this->n($payload[sprintf('tb_jojo_kabuteki_haito_jumin_%s', $period)] ?? null) +
+                $this->n($payload[sprintf('tb_sakimono_jumin_%s', $period)] ?? null) +
+                $this->n($payload[sprintf('tb_sanrin_jumin_%s', $period)] ?? null) +
+                $this->n($payload[sprintf('tb_taishoku_jumin_%s', $period)] ?? null);
             $baseTotal = 0;
 
             if ($guardedTotal <= 25_000_000 && $kazeisoushotoku > 0) {

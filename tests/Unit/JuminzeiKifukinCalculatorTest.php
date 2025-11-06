@@ -53,7 +53,7 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
         });
 
         $payload = [
-            'shotoku_gokei_shotoku_prev' => 300_000,
+            'tb_sogo_jumin_prev' => 300_000,
             'bunri_shotoku_sanrin_shotoku_prev' => 0,
             'bunri_shotoku_taishoku_shotoku_prev' => 0,
             'kojo_gokei_jumin_prev' => 0,
@@ -122,7 +122,7 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
         });
 
         $payload = [
-            'shotoku_gokei_shotoku_curr' => 400_000,
+            'tb_sogo_jumin_curr' => 400_000,
             'bunri_shotoku_sanrin_shotoku_curr' => 0,
             'bunri_shotoku_taishoku_shotoku_curr' => 0,
             'kojo_gokei_jumin_curr' => 0,
@@ -199,7 +199,7 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
         });
 
         $payload = [
-            'shotoku_gokei_shotoku_prev' => 30_000_000,
+            'tb_sogo_jumin_prev' => 30_000_000,
             'kojo_gokei_jumin_prev' => 0,
             'juminzei_zeigakukojo_furusato_prev' => 100_000,
             'tokurei_rate_final_prev' => 80.0,

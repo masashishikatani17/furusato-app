@@ -145,7 +145,7 @@
           return (int) $flag === 1;
       };
 
-      if (str_starts_with($key, 'tax_kazeishotoku_shotoku_')) {
+      if (str_starts_with($key, 'tb_sogo_shotoku_')) {
           $parts = explode('_', $key);
           $period = end($parts);
 
@@ -156,7 +156,7 @@
           }
       }
 
-      if (str_starts_with($key, 'tax_kazeishotoku_jumin_')) {
+      if (str_starts_with($key, 'tb_sogo_jumin_')) {
           if ($isSeparated($key, $syoriSettings)) {
               return '－';
           }
@@ -213,23 +213,37 @@
     'curr' => (int) ($jintekiDiff['sum']['curr'] ?? $inputs['human_diff_sum_curr'] ?? 0),
   ];
 
-  // 分離系の金額（判定用）
+  // 分離系の金額（判定用）…SoT=tb_* へ移行
+  // part は 'tanki','choki','joto','haito','sakimono','sanrin','taishoku' を想定
   $bunriShotoku = function(string $part, string $p) use ($inputs): int {
-    $key = sprintf('bunri_kazeishotoku_%s_shotoku_%s', $part, $p);
-    $v = $inputs[$key] ?? null;
-    if ($v === '' || $v === null) return 0;
-    return (int) $v;
+      $map = [
+          'tanki'    => [sprintf('tb_joto_tanki_shotoku_%s', $p)],
+          'choki'    => [sprintf('tb_joto_choki_shotoku_%s', $p)],
+          // 「一般・上場の譲渡」は表示上は合算なので、tb_を和で評価
+          'joto'     => [
+              sprintf('tb_ippan_kabuteki_joto_shotoku_%s', $p),
+              sprintf('tb_jojo_kabuteki_joto_shotoku_%s', $p),
+          ],
+          'haito'    => [sprintf('tb_jojo_kabuteki_haito_shotoku_%s', $p)],
+          'sakimono' => [sprintf('tb_sakimono_shotoku_%s', $p)],
+          'sanrin'   => [sprintf('tb_sanrin_shotoku_%s', $p)],
+          'taishoku' => [sprintf('tb_taishoku_shotoku_%s', $p)],
+      ];
+      $keys = $map[$part] ?? [];
+      $sum  = 0;
+      foreach ($keys as $k) {
+          $v = $inputs[$k] ?? null;
+          if ($v !== null && $v !== '') {
+              $sum += (int) $v;
+          }
+      }
+      return $sum;
   };
 
-  // taxable_base（分離ON時は bunri_kazeishotoku_sogo_shotoku_*、OFF時は tax_kazeishotoku_shotoku_*）
+  // taxable_base は SoT（tb_sogo_shotoku_*）で統一
   $taxableBase = [];
   foreach ($periods as $p) {
-    if ($bunriFlag[$p] === 1) {
-      $baseKey = sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $p);
-    } else {
-      $baseKey = sprintf('tax_kazeishotoku_shotoku_%s', $p);
-    }
-    $v = $inputs[$baseKey] ?? null;
+    $v = $inputs[sprintf('tb_sogo_shotoku_%s', $p)] ?? null;
     $taxableBase[$p] = ($v === '' || $v === null) ? 0 : (int) $v;
   }
 
@@ -521,33 +535,35 @@
         ]);
 
         $sanrinBase = $firstNumber([
-            $resultsUpper[sprintf('bunri_kazeishotoku_sanrin_shotoku_%s', $period)] ?? null,
-            $inputs[sprintf('bunri_kazeishotoku_sanrin_shotoku_%s', $period)] ?? null,
+            $resultsUpper[sprintf('tb_sanrin_shotoku_%s', $period)] ?? null,
+            $inputs[sprintf('tb_sanrin_shotoku_%s', $period)] ?? null,
         ]);
         $taishokuBase = $firstNumber([
-            $resultsUpper[sprintf('bunri_kazeishotoku_taishoku_shotoku_%s', $period)] ?? null,
-            $inputs[sprintf('bunri_kazeishotoku_taishoku_shotoku_%s', $period)] ?? null,
+            $resultsUpper[sprintf('tb_taishoku_shotoku_%s', $period)] ?? null,
+            $inputs[sprintf('tb_taishoku_shotoku_%s', $period)] ?? null,
         ]);
 
         $shortBase = $firstNumber([
-            $resultsUpper[sprintf('bunri_kazeishotoku_tanki_shotoku_%s', $period)] ?? null,
-            $inputs[sprintf('bunri_kazeishotoku_tanki_shotoku_%s', $period)] ?? null,
+            $resultsUpper[sprintf('tb_joto_tanki_shotoku_%s', $period)] ?? null,
+            $inputs[sprintf('tb_joto_tanki_shotoku_%s', $period)] ?? null,
         ]);
         $longBase = $firstNumber([
-            $resultsUpper[sprintf('bunri_kazeishotoku_choki_shotoku_%s', $period)] ?? null,
-            $inputs[sprintf('bunri_kazeishotoku_choki_shotoku_%s', $period)] ?? null,
+            $resultsUpper[sprintf('tb_joto_choki_shotoku_%s', $period)] ?? null,
+            $inputs[sprintf('tb_joto_choki_shotoku_%s', $period)] ?? null,
         ]);
         $haitoBase = $firstNumber([
-            $resultsUpper[sprintf('bunri_kazeishotoku_haito_shotoku_%s', $period)] ?? null,
-            $inputs[sprintf('bunri_kazeishotoku_haito_shotoku_%s', $period)] ?? null,
+            $resultsUpper[sprintf('tb_jojo_kabuteki_haito_shotoku_%s', $period)] ?? null,
+            $inputs[sprintf('tb_jojo_kabuteki_haito_shotoku_%s', $period)] ?? null,
         ]);
         $sakimonoBase = $firstNumber([
-            $resultsUpper[sprintf('bunri_kazeishotoku_sakimono_shotoku_%s', $period)] ?? null,
-            $inputs[sprintf('bunri_kazeishotoku_sakimono_shotoku_%s', $period)] ?? null,
+            $resultsUpper[sprintf('tb_sakimono_shotoku_%s', $period)] ?? null,
+            $inputs[sprintf('tb_sakimono_shotoku_%s', $period)] ?? null,
         ]);
         $jotoBase = $firstNumber([
-            $resultsUpper[sprintf('bunri_kazeishotoku_joto_shotoku_%s', $period)] ?? null,
-            $inputs[sprintf('bunri_kazeishotoku_joto_shotoku_%s', $period)] ?? null,
+            ($resultsUpper[sprintf('tb_ippan_kabuteki_joto_shotoku_%s', $period)] ?? 0) +
+            ($resultsUpper[sprintf('tb_jojo_kabuteki_joto_shotoku_%s',  $period)] ?? 0),
+            ($inputs[sprintf('tb_ippan_kabuteki_joto_shotoku_%s', $period)] ?? 0) +
+            ($inputs[sprintf('tb_jojo_kabuteki_joto_shotoku_%s',  $period)] ?? 0),
         ]);
 
         $standardValue = $resolvePercentValue($tkComputed[sprintf('standard_%s', $period)] ?? null, $detail['AA50'] ?? null);

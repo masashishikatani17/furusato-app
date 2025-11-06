@@ -16,12 +16,8 @@ class BunriSeparatedMinRateCalculator implements ProvidesKeys
     private const PERIODS = ['prev', 'curr'];
 
     /** @var string[] */
-    private const OTHER_BASE_KEYS = [
-        'bunri_kazeishotoku_choki',
-        'bunri_kazeishotoku_haito',
-        'bunri_kazeishotoku_sakimono',
-        'bunri_kazeishotoku_joto',
-    ];
+    // tb_* SoTに移行：評価対象の分離科目（短期以外）
+    private const OTHER_KINDS = ['choki', 'haito', 'sakimono', 'joto'];
 
     /**
      * @return array<int, string>
@@ -48,17 +44,14 @@ class BunriSeparatedMinRateCalculator implements ProvidesKeys
         foreach (self::PERIODS as $period) {
             $rate = null;
 
-            $shortAmount = $this->floorToThousands(
-                $this->separatedIncomeAmount($payload, 'bunri_kazeishotoku_tanki', $period)
-            );
+            // 短期：tb_joto_tanki_shotoku_*
+            $shortAmount = $this->floorToThousands($this->fromTb($payload, 'tanki', $period));
 
             if ($shortAmount > 0) {
                 $rate = $this->roundPercent(59.37);
             } else {
-                foreach (self::OTHER_BASE_KEYS as $base) {
-                    $amount = $this->floorToThousands(
-                        $this->separatedIncomeAmount($payload, $base, $period)
-                    );
+                foreach (self::OTHER_KINDS as $kind) {
+                    $amount = $this->floorToThousands($this->fromTb($payload, $kind, $period));
 
                     if ($amount > 0) {
                         $rate = $this->roundPercent(74.685);
@@ -73,17 +66,31 @@ class BunriSeparatedMinRateCalculator implements ProvidesKeys
         return array_replace($payload, $updates);
     }
 
-    private function separatedIncomeAmount(array $payload, string $baseKey, string $period): int
+    /**
+     * tb_* SoT から分離科目金額（所得税側）を取得
+     * kind: tanki|choki|haito|sakimono|joto
+     */
+    private function fromTb(array $payload, string $kind, string $period): int
     {
-        $juminKey = sprintf('%s_jumin_%s', $baseKey, $period);
-        $shotokuKey = sprintf('%s_shotoku_%s', $baseKey, $period);
-
-        $jumin = $this->n($payload[$juminKey] ?? null);
-        if ($jumin > 0) {
-            return $jumin;
+        $key = function (string $name): string {
+            return $name . '_shotoku_%s';
+        };
+        switch ($kind) {
+            case 'tanki':
+                return $this->n($payload[sprintf($key('tb_joto_tanki'), $period)] ?? null);
+            case 'choki':
+                return $this->n($payload[sprintf($key('tb_joto_choki'), $period)] ?? null);
+            case 'haito':
+                return $this->n($payload[sprintf($key('tb_jojo_kabuteki_haito'), $period)] ?? null);
+            case 'sakimono':
+                return $this->n($payload[sprintf($key('tb_sakimono'), $period)] ?? null);
+            case 'joto':
+                return
+                    $this->n($payload[sprintf($key('tb_ippan_kabuteki_joto'), $period)] ?? null) +
+                    $this->n($payload[sprintf($key('tb_jojo_kabuteki_joto'),  $period)] ?? null);
+            default:
+                return 0;
         }
-
-        return max(0, $this->n($payload[$shotokuKey] ?? null));
     }
 
     private function floorToThousands(int $value): int

@@ -119,18 +119,6 @@
                 $gokei  = $keijo + $tanki + $choki + max(0, $ichiji);
                 $inputs["shotoku_gokei_shotoku_{$p}"] = $gokei;
                 $inputs["shotoku_gokei_jumin_{$p}"]   = $gokei;
-
-                // 分離：短期・長期の課税所得（内訳の合計欄をミラー）
-                $tankiGokei = $normalizeServerInt($inputs["joto_shotoku_tanki_gokei_{$p}"] ?? 0);
-                $chokiGokei = $normalizeServerInt($inputs["joto_shotoku_choki_gokei_{$p}"] ?? 0);
-                $inputs["bunri_kazeishotoku_tanki_shotoku_{$p}"] = $tankiGokei;
-                $inputs["bunri_kazeishotoku_tanki_jumin_{$p}"]   = $tankiGokei;
-                $inputs["bunri_kazeishotoku_choki_shotoku_{$p}"] = $chokiGokei;
-                $inputs["bunri_kazeishotoku_choki_jumin_{$p}"]   = $chokiGokei;
-                // 山林（所得金額・表示）：最終損益通算値（result_details の shotoku_sanrin_* = after_3）を第三表の表示欄へミラー
-                $sanrinFinal = $normalizeServerInt($inputs["shotoku_sanrin_{$p}"] ?? 0);
-                $inputs["bunri_shotoku_sanrin_shotoku_{$p}"] = $sanrinFinal;
-                $inputs["bunri_shotoku_sanrin_jumin_{$p}"]   = $sanrinFinal;
             }
             $warekiPrevLabel = $warekiPrev ?? '前年';
             $warekiCurrLabel = $warekiCurr ?? '当年';
@@ -174,8 +162,6 @@
                 'bunri_shotoku_jojo_kabuteki_haito',
                 'bunri_shotoku_sakimono',
                 'bunri_shotoku_sanrin',
-                'bunri_kazeishotoku_tanki',
-                'bunri_kazeishotoku_choki',
                 'shotoku_jigyo_eigyo',
                 'shotoku_fudosan',
                 'shotoku_joto_ichiji',
@@ -254,7 +240,7 @@
                         $isBunriThird =
                             str_starts_with($base, 'bunri_syunyu_') ||
                             str_starts_with($base, 'bunri_shotoku_') ||
-                            str_starts_with($base, 'bunri_kazeishotoku_');
+                            str_starts_with($base, 'tb_');
                         // 分離・第三表は server 計算値のみ表示（old()は採用しない）
                         $value = $isBunriThird ? ($inputs[$name] ?? null) : old($name, $inputs[$name] ?? null);
                         // data-server-raw 用にカンマ除去した整数文字列を用意
@@ -358,16 +344,29 @@
 
                 return (int) $normalized;
             };
-            $renderReadonlyBunriKazeishotoku = static function (string $base) use ($inputs) {
+            /**
+             * ▼ 第三表課税標準を tb_* で表示（合算行は表示のみ合算、POSTは個別 tb_* hidden）
+             */
+            $renderSeparatedTb = static function (array|string $keysOrOne, array $inputs) {
+                $keys = is_array($keysOrOne) ? $keysOrOne : [$keysOrOne];
                 $html = '';
-                foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
-                    foreach ($periods as $period) {
-                        $name = sprintf('%s_%s_%s', $base, $tax, $period);
-                        $value = old($name, $inputs[$name] ?? 0);
-                        $html .= '<td><input type="text" inputmode="numeric" class="form-control form-control-sm text-end bg-light js-comma" name="' . e($name) . '" value="' . e($value) . '" readonly></td>';
+                foreach (['shotoku'=>['prev','curr'],'jumin'=>['prev','curr']] as $tax=>$periods) {
+                    foreach ($periods as $p) {
+                        $disp = 0;
+                        foreach ($keys as $k) {
+                            $tb = sprintf('%s_%s_%s', $k, $tax, $p);
+                            $disp += (int)($inputs[$tb] ?? 0);
+                      }
+                        $html .= '<td>';
+                        $html .= '<input type="text" class="form-control form-control-sm text-end bg-light js-comma" value="' . e(number_format($disp)) . '" readonly>';
+                        foreach ($keys as $k) {
+                            $tb = sprintf('%s_%s_%s', $k, $tax, $p);
+                            $raw = (int)($inputs[$tb] ?? 0);
+                            $html .= '<input type="hidden" name="' . e($tb) . '" value="' . e((string)$raw) . '">';
+                        }
+                        $html .= '</td>';
                     }
                 }
-
                 return $html;
             };
             $renderServerLockedInput = static function (string $name, int $raw, string $class = 'form-control form-control-compact-05 text-end js-comma bg-light') use ($normalizeInt): string {
@@ -794,7 +793,21 @@
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
                   <td class="text-center align-middle"></td>
-                  {!! $renderInputs('tax_kazeishotoku') !!}
+                  @php
+                    // SoT：tb_sogo_* をそのまま表示＆POST
+                    $cells = [
+                      ['tb_sogo_shotoku_prev',  $inputs['tb_sogo_shotoku_prev']  ?? 0],
+                      ['tb_sogo_shotoku_curr',  $inputs['tb_sogo_shotoku_curr']  ?? 0],
+                      ['tb_sogo_jumin_prev',    $inputs['tb_sogo_jumin_prev']    ?? 0],
+                      ['tb_sogo_jumin_curr',    $inputs['tb_sogo_jumin_curr']    ?? 0],
+                    ];
+                  @endphp
+                  @foreach ($cells as [$name,$raw])
+                    <td>
+                      <input type="text" class="form-control form-control-compact-05-compact-05 text-end js-comma bg-light" value="{{ number_format((int)$raw) }}" readonly>
+                      <input type="hidden" name="{{ $name }}" value="{{ (int)$raw }}">
+                    </td>
+                  @endforeach
                 </tr>
                 <tr>
                   <th colspan="3" class="text-start align-middle ps-1">税額</th>
@@ -1193,7 +1206,7 @@
                           @foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods)
                             @foreach ($periods as $period)
                               @php
-                                $name = sprintf('bunri_kazeishotoku_sogo_%s_%s', $tax, $period);
+                                $name = sprintf('tb_sogo_%s_%s', $tax, $period);
                                 $value = old($name, $inputs[$name] ?? null);
                               @endphp
                               <td>
@@ -1215,9 +1228,9 @@
                           @php
                             foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                                 foreach ($periods as $period) {
-                                    $name = sprintf('bunri_kazeishotoku_tanki_%s_%s', $tax, $period);
-                                    $sourceKey = sprintf('joto_shotoku_tanki_gokei_%s', $period);
-                                    $raw = $normalizeInt($inputs[$sourceKey] ?? ($inputs[$name] ?? 0));
+                                    $name = sprintf('tb_joto_tanki_%s_%s', $tax, $period);
+                                    $sourceKey = sprintf('tb_joto_tanki_%s_%s', $tax, $period);
+                                    $raw = $normalizeInt($inputs[$sourceKey] ?? 0);
                                     echo $renderServerLockedInput($name, $raw);
                                 }
                             }
@@ -1232,9 +1245,9 @@
                           @php
                             foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                                 foreach ($periods as $period) {
-                                    $name = sprintf('bunri_kazeishotoku_choki_%s_%s', $tax, $period);
-                                    $sourceKey = sprintf('joto_shotoku_choki_gokei_%s', $period);
-                                    $raw = $normalizeInt($inputs[$sourceKey] ?? ($inputs[$name] ?? 0));
+                                    $name = sprintf('tb_joto_choki_%s_%s', $tax, $period);
+                                    $sourceKey = sprintf('tb_joto_choki_%s_%s', $tax, $period);
+                                    $raw = $normalizeInt($inputs[$sourceKey] ?? 0);
                                     echo $renderServerLockedInput($name, $raw);
                                 }
                             }
@@ -1246,7 +1259,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_joto') !!}
+                          {!! $renderSeparatedTb(['tb_ippan_kabuteki_joto','tb_jojo_kabuteki_joto'], $inputs) !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">上場株式の配当等</th>
@@ -1254,7 +1267,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_haito') !!}
+                          {!! $renderSeparatedTb('tb_jojo_kabuteki_haito', $inputs) !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">先物取引</th>
@@ -1262,7 +1275,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_sakimono') !!}
+                          {!! $renderSeparatedTb('tb_sakimono', $inputs) !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">山林</th>
@@ -1270,7 +1283,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_sanrin') !!}
+                          {!! $renderSeparatedTb('tb_sanrin', $inputs) !!}
                         </tr>
                         <tr>
                           <th scope="row" colspan="2" class="align-middle text-start ps-1 th-ddd">退職</th>
@@ -1278,7 +1291,7 @@
                             <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                           </td>
                           <td></td>
-                          {!! $renderReadonlyBunriKazeishotoku('bunri_kazeishotoku_taishoku') !!}
+                          {!! $renderSeparatedTb('tb_taishoku', $inputs) !!}
                         </tr>
                         <tr>
                           <th scope="rowgroup" rowspan="8" class="text-center align-middle text-start ps-1">税 額</th>
@@ -1556,224 +1569,53 @@
 @endsection
 @push('scripts')
 <script>
-  // 対象キーの入力を「読み取り専用」に固定し、隠しミラー（raw整数）も同期
+  // 表示はサーバSoT(tb_*)に従う：ここでは見た目のカンマ整形と若干のフォーム整頓のみ行う
   document.addEventListener('DOMContentLoaded', () => {
-    (function restoreDetachedNames() {
-      document.querySelectorAll('input[data-name-detached]').forEach((el) => {
-        const n = el.getAttribute('data-name-detached');
-        if (!n) return;
-        // 既に name があればスキップ
-        if (!el.name) {
-          el.name = n;
-        }
-        el.removeAttribute('data-name-detached');
-        // 重複 hidden が残っていれば整理（最新1つだけ残す）
-        const hiddens = Array.from(document.querySelectorAll(`input[type="hidden"][name="${n}"]`));
-        if (hiddens.length > 1) {
-          // 最後の1つだけ残して他は削除
-          hiddens.slice(0, -1).forEach(h => h.remove());
-        }
-      });
-    })();
-
-    const roKeys = [
-      // 総合課税の所得合計
-      'shotoku_gokei_shotoku_prev','shotoku_gokei_jumin_prev',
-      'shotoku_gokei_shotoku_curr','shotoku_gokei_jumin_curr',
-      // 分離（短期）
-      'bunri_kazeishotoku_tanki_shotoku_prev','bunri_kazeishotoku_tanki_jumin_prev',
-      'bunri_kazeishotoku_tanki_shotoku_curr','bunri_kazeishotoku_tanki_jumin_curr',
-      // 分離（長期）
-      'bunri_kazeishotoku_choki_shotoku_prev','bunri_kazeishotoku_choki_jumin_prev',
-      'bunri_kazeishotoku_choki_shotoku_curr','bunri_kazeishotoku_choki_jumin_curr',
-    ];
-
-    const toRawInt = (v) => {
-      if (typeof v !== 'string') return '';
-      const s = v.replace(/,/g, '').trim();
-      if (s === '' || s === '-') return '';
-      if (!/^(-)?\d+$/.test(s)) return '';
-      const n = parseInt(s, 10);
-      return Number.isNaN(n) ? '' : String(n);
-    };
-
-    roKeys.forEach((name) => {
-      const input = document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
-      if (!input) return;
-      input.readOnly = true;
-      input.classList.add('bg-light','text-end');
-
-      // 隠しミラー（raw整数）を確実に用意・同期
-      let hidden = document.querySelector(`input[type="hidden"][name="${name}"]`);
-      if (!hidden) {
-        hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = name;
-        hidden.dataset.commaMirror = '1';
-        (input.parentElement || document.body).appendChild(hidden);
-      }
-      const raw = toRawInt(input.value ?? '');
-      hidden.value = raw;
+    // 3桁カンマ整形
+    const fmt = n => new Intl.NumberFormat('ja-JP').format((() => {
+      const s = String(n ?? '').replace(/,/g, '').trim();
+      if (s === '' || s === '-') return 0;
+      const v = Number(s); return Number.isFinite(v) ? Math.trunc(v) : 0;
+    })());
+    document.querySelectorAll('input.js-comma[name]').forEach(el => {
+      if (String(el.value).trim() !== '' && el.readOnly) el.value = fmt(el.value);
+      el.addEventListener('blur', () => { if (el.value !== '－') el.value = fmt(el.value); });
     });
-    // 所得税側の入力を住民税側へミラー（読み取り専用で表示）
-    //  - kojo_shakaihoken_shotoku_prev → kojo_shakaihoken_jumin_prev（readonly）
-    //  - kojo_shokibo_shotoku_prev     → kojo_shokibo_jumin_prev（readonly）
-    (function mirrorKojoShotokuToJuminPrev() {
-      const pairs = [
-        ['kojo_shakaihoken_shotoku_prev', 'kojo_shakaihoken_jumin_prev'],
-        ['kojo_shokibo_shotoku_prev',     'kojo_shokibo_jumin_prev'],
-      ];
-      const toInt = (v) => {
-        const s = String(v ?? '').replace(/,/g,'').trim();
-        if (s === '' || s === '-' || !/^-?\d+$/.test(s)) return 0;
-        return parseInt(s, 10);
-      };
-      const fmt = (n) => new Intl.NumberFormat('ja-JP').format(toInt(n));
-      const get = (name) => document.querySelector(`[name="${name}"]`);
-      const makeReadonly = (el) => { if (!el) return; el.readOnly = true; el.classList.add('bg-light','text-end'); };
-      const syncOne = (src, dst) => {
-        const s = get(src), d = get(dst);
-        if (!s || !d) return;
-        d.value = fmt(s.value);
-        makeReadonly(d);
-      };
-      // 初期同期
-      pairs.forEach(([src, dst]) => syncOne(src, dst));
-      // blur/入力時にも随時同期
-      pairs.forEach(([src, dst]) => {
-        const s = get(src);
-        if (!s) return;
-        ['input','blur','change'].forEach(ev => s.addEventListener(ev, () => syncOne(src, dst)));
-      });
-    })();
+    // SoTで上書きされる課税標準/分離課税標準は編集不可（tb_* のみ）
+    const lockPrefixes = [
+      'tb_sogo_shotoku_', 'tb_sogo_jumin_',
+      'tb_joto_tanki_shotoku_', 'tb_joto_tanki_jumin_',
+      'tb_joto_choki_shotoku_', 'tb_joto_choki_jumin_',
+      'tb_ippan_kabuteki_joto_shotoku_', 'tb_ippan_kabuteki_joto_jumin_',
+      'tb_jojo_kabuteki_joto_shotoku_',  'tb_jojo_kabuteki_joto_jumin_',
+      'tb_jojo_kabuteki_haito_shotoku_', 'tb_jojo_kabuteki_haito_jumin_',
+      'tb_sakimono_shotoku_', 'tb_sakimono_jumin_',
+      'tb_sanrin_shotoku_',   'tb_sanrin_jumin_',
+      'tb_taishoku_shotoku_', 'tb_taishoku_jumin_',
+    ];
+    document.querySelectorAll('input[name]').forEach(el => {
+      const name = el.getAttribute('name') || '';
+      if (lockPrefixes.some(p => name.startsWith(p))) {
+        el.readOnly = true;
+        el.classList.add('bg-light', 'text-end');
+      }
+    });
   });
 </script>
 @endpush
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    // ▼ 分離なし年度の退職（分離ミラー）を UI 上で『ー』表示＋ hidden=0 に固定
-    (function dashifyRetirementWhenBunriOff(){
-      try {
-        const bunriPrevOff = Boolean(@json((int)($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0));
-        const bunriCurrOff = Boolean(@json((int)($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0));
-        const apply = (name, off) => {
-          if (!off) return;
-          const el = document.querySelector(`input[name="${name}"]`);
-          if (el) {
-            // 表示を『ー』にしつつ name を外す
-            el.removeAttribute('name');
-            el.value = '－';
-            el.readOnly = true;
-            el.classList.add('bg-light','text-center');
-            // hidden=0 を挿入
-            const h = document.createElement('input');
-            h.type = 'hidden';
-            h.name = name;
-            h.value = '0';
-            el.insertAdjacentElement('afterend', h);
-          }
-        };
-
-        apply('bunri_syunyu_taishoku_shotoku_prev', bunriPrevOff);
-        apply('bunri_shotoku_taishoku_shotoku_prev', bunriPrevOff);
-        apply('bunri_syunyu_taishoku_shotoku_curr', bunriCurrOff);
-        apply('bunri_shotoku_taishoku_shotoku_curr', bunriCurrOff);
-        apply('bunri_syunyu_taishoku_jumin_prev', bunriPrevOff);
-        apply('bunri_shotoku_taishoku_jumin_prev', bunriPrevOff);
-        apply('bunri_syunyu_taishoku_jumin_curr', bunriCurrOff);
-        apply('bunri_shotoku_taishoku_jumin_curr', bunriCurrOff);
-      } catch(e) { /* no-op */ }
-    })();
-
-    // ▼ 第三表（分離課税）全項目に対し、分離なし年度は『ー』表示＋ hidden=0 を一括適用
-    (function dashifyAllBunriTableWhenOff() {
-      try {
-        const bunriPrevOff = Boolean(@json((int)($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0));
-        const bunriCurrOff = Boolean(@json((int)($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0) === 0));
-
-        const dashifyOne = (inputEl) => {
-          if (!inputEl || !(inputEl instanceof HTMLInputElement)) return;
-          const name = inputEl.getAttribute('name');
-          if (!name) return;
-          // すでにダッシュ化済みならスキップ
-          if (!inputEl.hasAttribute('name')) return;
-          // 表示側を『ー』に固定し、name を外す
-          inputEl.removeAttribute('name');
-          inputEl.value = '－';
-          inputEl.readOnly = true;
-          inputEl.classList.add('bg-light','text-center');
-          inputEl.classList.remove('text-end');
-          // 既存 hidden 重複を除去して 0 を最後に1つだけ置く
-          const siblings = Array.from(inputEl.parentElement?.querySelectorAll('input[type="hidden"]') ?? []);
-          siblings.forEach(h => {
-            if (h.getAttribute('name') === name) h.remove();
-          });
-          const h = document.createElement('input');
-          h.type = 'hidden';
-          h.name = name;
-          h.value = '0';
-          inputEl.insertAdjacentElement('afterend', h);
-
-          //   同セル内の readonly 入力(data-server-lock)も『ー』に上書きする
-          const cell = inputEl.closest('td');
-          if (cell) {
-            const lockInputs = cell.querySelectorAll('input[type="text"][data-server-lock]');
-            lockInputs.forEach((lock) => {
-              // 値と見た目を『ー』へ統一。name は付いていないはずだが安全のため念のため除去
-              lock.removeAttribute('name');
-              lock.value = '－';
-              lock.readOnly = true;
-              lock.classList.add('bg-light','text-center');
-              lock.classList.remove('text-end');
-              // ▼ 後段の enforceServerLocks が再び 0 を描画しないようにマーキング
-              lock.dataset.serverLockDashed = '1';
-              // ▼ 念のため raw も空に（0を再描画させない）
-              if (lock.dataset) {
-                lock.dataset.serverRaw = '';           
-              }  
-            });
-          }
-        };
-
-        // 指定 period が OFF の場合のみ、その period の *全て* の bunri_* 入力をダッシュ化
-        const processForPeriod = (period, isOff) => {
-          if (!isOff) return;
-          // 「name が bunri_ で始まり、末尾が _<period>」の input を画面全体から一括抽出
-          const selector = `input[name^="bunri_"][name$="_${period}"]`;
-          const list = document.querySelectorAll(selector);
-          list.forEach(dashifyOne);
-        };
-
-        processForPeriod('prev', bunriPrevOff);
-        processForPeriod('curr', bunriCurrOff);
-      } catch(e) { /* no-op */ }
-    })();
-
+    // 以降はナビ/アンカー復元と送信整頓のみ（計算処理は撤去）
     const params = new URLSearchParams(window.location.search);
     const targetTab = params.get('tab');
     const targetSubtab = params.get('subtab');
-
     const readHash = () => {
-      if (typeof window === 'undefined' || !window.location) {
-        return '';
-      }
-
-      const { hash } = window.location;
-      if (!hash || hash.length <= 1) {
-        return '';
-      }
-
-      const raw = hash.slice(1);
-      try {
-        return decodeURIComponent(raw);
-      } catch (error) {
-        return raw;
-      }
+      const hash = (typeof window !== 'undefined' && window.location) ? window.location.hash : '';
+    if (!hash || hash.length <= 1) return '';
+      try { return decodeURIComponent(hash.slice(1)); } catch { return hash.slice(1); }
     };
-
     const anchorId = readHash();
-    // ▼ デバッグ用に現在のナビ情報を公開（コンソールから確認可能）
     window.__furusatoNav = {
       targetTab, targetSubtab, anchorId,
       initialTab: @json((string) request()->query('tab', session('return_tab', ''))),
@@ -2135,33 +1977,18 @@
       }
     })();
 
-    // -------------------------------
-    // 孤立した数値入力（<td> 外に出たもの）を隠す
-    // -------------------------------
+    // 孤立して表に出ていない tax_* は hidden 化（誤送信防止）
     (function sanitizeOrphanTaxInputs() {
       const formEl = document.getElementById('furusato-input-form');
       if (!formEl) return;
-      // 画面表示させない対象（名前の接頭辞）
-      const mustBeHiddenPrefixes = [
-        'tax_kazeishotoku_', // 「課税所得金額又は第三表」行の各セル
-        'tax_zeigaku_',      // 税額
-      ];
-      // フィールド名が対象かを判定
-      const isTargetName = (name) => {
-        return mustBeHiddenPrefixes.some(pref => name && name.startsWith(pref));
-      };
-      // フォーム内の input を走査し、<td> の外にある対象は hidden 化
+      const mustHide = ['tax_zeigaku_'];
       Array.from(formEl.querySelectorAll('input[name]')).forEach((el) => {
         if (!(el instanceof HTMLInputElement)) return;
         const name = el.getAttribute('name') || '';
-        if (!isTargetName(name)) return;
-        // テーブルセル内にいれば OK。セル外なら隠す。
-        const insideCell = !!el.closest('td');
-        if (!insideCell) {
+        if (!mustHide.some(p => name.startsWith(p))) return;
+        if (!el.closest('td')) {
           el.type = 'hidden';
-          // 表示用クラスは意味がないので除去（誤表示防止）
-          el.classList.remove('bg-light', 'text-end');
-          // readonly は hidden では不要だが付いていても害はないためそのままでも可
+          el.classList.remove('bg-light','text-end');
         }
       });
     })();
@@ -2542,7 +2369,7 @@
 
     const recalcShotokuTaxFromMaster = () => {
       ['prev', 'curr'].forEach((period) => {
-        const taxable = readInt(`bunri_kazeishotoku_sogo_shotoku_${period}`);
+        const taxable = readInt(`tb_sogo_shotoku_${period}`);
         const tax = calculateShotokuTax(taxable);
         const field = `bunri_zeigaku_sogo_shotoku_${period}`;
         writeInt(field, tax);
@@ -2552,12 +2379,12 @@
 
     const recalcBunriZeigakuShotokuAll = () => {
       ['prev', 'curr'].forEach((period) => {
-        const sanTaxable = readInt(`bunri_kazeishotoku_sanrin_shotoku_${period}`);
+        const sanTaxable = readInt(`tb_sanrin_shotoku_${period}`);
         const san = sanTaxable <= 0 ? 0 : calcShotokuTaxByBand(sanTaxable / 5) * 5;
         writeInt(`bunri_zeigaku_sanrin_shotoku_${period}`, san);
         makeReadonlyNumber(`bunri_zeigaku_sanrin_shotoku_${period}`);
 
-        const taTaxable = readInt(`bunri_kazeishotoku_taishoku_shotoku_${period}`);
+        const taTaxable = readInt(`tb_taishoku_shotoku_${period}`);
         const ta = taTaxable <= 0 ? 0 : calcShotokuTaxByBand(taTaxable);
         writeInt(`bunri_zeigaku_taishoku_shotoku_${period}`, ta);
         makeReadonlyNumber(`bunri_zeigaku_taishoku_shotoku_${period}`);
@@ -2582,15 +2409,17 @@
         );
         makeReadonlyNumber(`bunri_zeigaku_choki_shotoku_${period}`);
 
-        const jotoTaxable = readInt(`bunri_kazeishotoku_joto_shotoku_${period}`);
+        const jotoTaxable =
+          readInt(`tb_ippan_kabuteki_joto_shotoku_${period}`) +
+          readInt(`tb_jojo_kabuteki_joto_shotoku_${period}`);
         writeInt(`bunri_zeigaku_joto_shotoku_${period}`, Math.trunc(jotoTaxable * 0.15));
         makeReadonlyNumber(`bunri_zeigaku_joto_shotoku_${period}`);
 
-        const haitoTaxable = readInt(`bunri_kazeishotoku_haito_shotoku_${period}`);
+        const haitoTaxable = readInt(`tb_jojo_kabuteki_haito_shotoku_${period}`);
         writeInt(`bunri_zeigaku_haito_shotoku_${period}`, Math.trunc(haitoTaxable * 0.15));
         makeReadonlyNumber(`bunri_zeigaku_haito_shotoku_${period}`);
 
-        const sakiTaxable = readInt(`bunri_kazeishotoku_sakimono_shotoku_${period}`);
+        const sakiTaxable = readInt(`tb_sakimono_shotoku_${period}`);
         writeInt(`bunri_zeigaku_sakimono_shotoku_${period}`, Math.trunc(sakiTaxable * 0.15));
         makeReadonlyNumber(`bunri_zeigaku_sakimono_shotoku_${period}`);
       });
@@ -2600,7 +2429,7 @@
       ['prev', 'curr'].forEach((period) => {
         writeInt(
           `bunri_zeigaku_sogo_jumin_${period}`,
-          Math.trunc(readInt(`bunri_kazeishotoku_sogo_jumin_${period}`) * 0.10),
+          Math.trunc(readInt(`tb_sogo_jumin_${period}`) * 0.10),
         );
         makeReadonlyNumber(`bunri_zeigaku_sogo_jumin_${period}`);
 
@@ -2629,31 +2458,31 @@
 
         writeInt(
           `bunri_zeigaku_joto_jumin_${period}`,
-          Math.trunc(readInt(`bunri_kazeishotoku_joto_jumin_${period}`) * 0.05),
+          Math.trunc((readInt(`tb_ippan_kabuteki_joto_jumin_${period}`) + readInt(`tb_jojo_kabuteki_joto_jumin_${period}`)) * 0.05),
         );
         makeReadonlyNumber(`bunri_zeigaku_joto_jumin_${period}`);
 
         writeInt(
           `bunri_zeigaku_haito_jumin_${period}`,
-          Math.trunc(readInt(`bunri_kazeishotoku_haito_jumin_${period}`) * 0.05),
+          Math.trunc(readInt(`tb_jojo_kabuteki_haito_jumin_${period}`) * 0.05),
         );
         makeReadonlyNumber(`bunri_zeigaku_haito_jumin_${period}`);
 
         writeInt(
           `bunri_zeigaku_sakimono_jumin_${period}`,
-          Math.trunc(readInt(`bunri_kazeishotoku_sakimono_jumin_${period}`) * 0.05),
+          Math.trunc(readInt(`tb_sakimono_jumin_${period}`) * 0.05),
         );
         makeReadonlyNumber(`bunri_zeigaku_sakimono_jumin_${period}`);
 
         writeInt(
           `bunri_zeigaku_sanrin_jumin_${period}`,
-          Math.trunc(readInt(`bunri_kazeishotoku_sanrin_jumin_${period}`) * 0.10),
+          Math.trunc(readInt(`tb_sanrin_jumin_${period}`) * 0.10),
         );
         makeReadonlyNumber(`bunri_zeigaku_sanrin_jumin_${period}`);
 
         writeInt(
           `bunri_zeigaku_taishoku_jumin_${period}`,
-          Math.trunc(readInt(`bunri_kazeishotoku_taishoku_jumin_${period}`) * 0.10),
+          Math.trunc(readInt(`tb_taishoku_jumin_${period}`) * 0.10),
         );
         makeReadonlyNumber(`bunri_zeigaku_taishoku_jumin_${period}`);
       });
@@ -2670,9 +2499,7 @@
             `bunri_zeigaku_haito_${tax}_${period}`,
             `bunri_zeigaku_sakimono_${tax}_${period}`,
             `bunri_zeigaku_sanrin_${tax}_${period}`,
-            tax === 'jumin'
-              ? `bunri_zeigaku_taishoku_${tax}_${period}`
-              : `bunri_zeigaku_taishoku_${tax}_${period}`,
+            `bunri_zeigaku_taishoku_${tax}_${period}`,
           ];
           const sum = names.reduce((acc, name) => acc + readInt(name), 0);
           const field = `bunri_zeigaku_gokei_${tax}_${period}`;
@@ -2716,7 +2543,7 @@
     const recalcTaxableSogo = () => {
       ['prev', 'curr'].forEach((period) => {
         ['shotoku', 'jumin'].forEach((tax) => {
-          const name = `tax_kazeishotoku_${tax}_${period}`;
+          const name = `tb_sogo_${tax}_${period}`;
           if (bunriFlags[period]) {
             dashify(name);
           } else {
@@ -2766,17 +2593,11 @@
         let sashihiki = readInt(`bunri_sashihiki_gokei_shotoku_${period}`);
         // 下限0 → 千円未満切捨て
         let v = floorToThousands(Math.max(0, sogo - sashihiki));
-        writeInt(`bunri_kazeishotoku_sogo_shotoku_${period}`, v);
-        let el = getInput(`bunri_kazeishotoku_sogo_shotoku_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
 
         sogo = readInt(`bunri_sogo_gokeigaku_jumin_${period}`);
         sashihiki = readInt(`bunri_sashihiki_gokei_jumin_${period}`);
         // 下限0 → 千円未満切捨て
         v = floorToThousands(Math.max(0, sogo - sashihiki));
-        writeInt(`bunri_kazeishotoku_sogo_jumin_${period}`, v);
-        el = getInput(`bunri_kazeishotoku_sogo_jumin_${period}`);
-        if (el) { el.readOnly = true; el.classList.add('bg-light'); }
       });
     };
 
@@ -2802,13 +2623,6 @@
 
           if (tax === 'shotoku') {
             // 所得税の控除配賦順：総合 → 山林 → 退職（千円切捨ては課税所得金額の確定時のみ）
-            // まず分離「表示系」はそのまま（短期/長期/配当/一般・上場株式/先物）
-            write('bunri_kazeishotoku_tanki',     floorToThousandsSigned(tanki));
-            write('bunri_kazeishotoku_choki',     floorToThousandsSigned(choki));
-            write('bunri_kazeishotoku_joto',      floorToThousandsSigned(kabuIppan + kabuJojo));
-            write('bunri_kazeishotoku_haito',     floorToThousandsSigned(haito));
-            write('bunri_kazeishotoku_sakimono',  floorToThousandsSigned(sakimono));
-
             // 総合に充当した後の控除残
             const kojoTotal = read('kojo_gokei');
             const sogoTotal = read('bunri_sogo_gokeigaku');
@@ -2817,12 +2631,10 @@
             // 山林（after_3 と同値の表示値 sanrinA）にまず充当
             const sanrinConsumed = Math.min(residualAfterSogo, Math.max(0, sanrinA));
             const sanrinTaxable  = Math.max(0, sanrinA - residualAfterSogo);
-            write('bunri_kazeishotoku_sanrin', floorToThousandsSigned(sanrinTaxable));
 
             // 残りを退職へ
             const residualAfterSanrin = Math.max(0, residualAfterSogo - sanrinConsumed);
             const taishokuTaxable     = Math.max(0, taishokuA - residualAfterSanrin);
-            write('bunri_kazeishotoku_taishoku', floorToThousandsSigned(taishokuTaxable));
             return;
           }
 
@@ -2844,15 +2656,6 @@
           const sakiAdj    = consume(sakimono);
           const sanrinAdj  = consume(sanrinA);
           const taishokuAdj= consume(taishokuA);
-
-          // ③ 各カテゴリの課税所得（千円未満切捨）を書き戻し
-          write('bunri_kazeishotoku_tanki',    floorToThousandsSigned(tankiAdj));
-          write('bunri_kazeishotoku_choki',    floorToThousandsSigned(chokiAdj));
-          write('bunri_kazeishotoku_haito',    floorToThousandsSigned(haitoAdj));
-          write('bunri_kazeishotoku_joto',     floorToThousandsSigned(kabuIppAdj + kabuJjAdj));
-          write('bunri_kazeishotoku_sakimono', floorToThousandsSigned(sakiAdj));
-          write('bunri_kazeishotoku_sanrin',   floorToThousandsSigned(sanrinAdj));
-          write('bunri_kazeishotoku_taishoku', floorToThousandsSigned(taishokuAdj));
         };
 
         taxTypes.forEach(calcForTax);
@@ -2867,7 +2670,7 @@
           if (bunriFlags?.[period]) {
             value = readInt(`bunri_zeigaku_gokei_${tax}_${period}`);
           } else {
-            const taxable = readInt(`tax_kazeishotoku_${tax}_${period}`);
+            const taxable = readInt(`tb_sogo_${tax}_${period}`);
             if (tax === 'shotoku') {
               value = calcShotokuTaxByBand(taxable);
             } else {
@@ -2957,7 +2760,7 @@
     periods.forEach((period) => {
       taxTypes.forEach((tax) => {
         [
-          `tax_kazeishotoku_${tax}_${period}`,
+          `tb_sogo_${tax}_${period}`,
           `bunri_zeigaku_gokei_${tax}_${period}`,
           `tax_zeigaku_${tax}_${period}`,
           `tax_haito_${tax}_${period}`,
@@ -3035,11 +2838,6 @@
 
     ['prev', 'curr'].forEach((period) => {
       [
-        `bunri_kazeishotoku_sanrin_shotoku_${period}`,
-        `bunri_kazeishotoku_taishoku_shotoku_${period}`,
-        `bunri_kazeishotoku_joto_shotoku_${period}`,
-        `bunri_kazeishotoku_haito_shotoku_${period}`,
-        `bunri_kazeishotoku_sakimono_shotoku_${period}`,
       ].forEach((name) => {
         const input = getInput(name);
         if (input) {
@@ -3050,37 +2848,12 @@
 
     ['prev', 'curr'].forEach((period) => {
       [
-        `bunri_kazeishotoku_sanrin_jumin_${period}`,
-        `bunri_kazeishotoku_taishoku_jumin_${period}`,
-        `bunri_kazeishotoku_joto_jumin_${period}`,
-        `bunri_kazeishotoku_haito_jumin_${period}`,
-        `bunri_kazeishotoku_sakimono_jumin_${period}`,
       ].forEach((name) => {
         const input = getInput(name);
         if (input) {
           input.addEventListener('blur', runFullRecalcChain);
         }
       });
-    });
-
-    ['prev', 'curr'].forEach((period) => {
-      const taxableInput = getInput(`bunri_kazeishotoku_sogo_shotoku_${period}`);
-      if (taxableInput) {
-        taxableInput.addEventListener('blur', () => {
-          recalcShotokuTaxFromMaster();
-          recalcZeigakuGokeiAll();
-        });
-      }
-    });
-
-    ['prev', 'curr'].forEach((period) => {
-      const taxableInput = getInput(`bunri_kazeishotoku_sogo_jumin_${period}`);
-      if (taxableInput) {
-        taxableInput.addEventListener('blur', () => {
-          recalcBunriZeigakuJuminAll();
-          recalcZeigakuGokeiAll();
-        });
-      }
     });
 
     ['prev', 'curr'].forEach((period) => {
@@ -3152,82 +2925,35 @@
 
     // 2) 再計算ボタン押下直前にも強制同期してから送信
     const formEl = document.getElementById('furusato-input-form');
-    // ===== 3桁カンマ維持のまま数値を安全送信する仕組み =====
-    // 送信直前に、表示用input（カンマ付き）の name を外し、
-    // 同名の hidden を生成してカンマ除去数値をPOSTする
+
+    // 3桁カンマを維持したまま、安全に整数をPOSTする
     function materializeHiddenNumericForSubmit(form) {
       const namedInputs = Array.from(form.querySelectorAll('input[name]'))
         .filter(el => el.type === 'text' && el.name && !el.disabled);
       namedInputs.forEach((el) => {
-        // ロック済みは name を外さない（hidden だけを最新rawに同期）
-        if (el.dataset && el.dataset.serverLock === '1') {
-          const raw = String(toInt(el.value));
-          let hidden = form.querySelector(`input[type="hidden"][name="${el.name}"]`);
-          if (!hidden) {
-            hidden = document.createElement('input');
-            hidden.type = 'hidden';
-            hidden.name = el.name;
-            form.appendChild(hidden);
-          }
-          hidden.value = raw;
-          return; // ← name は保持
+        // tb_*由来の只読セルも name を保持したまま hidden にrawを同期
+        const raw = String((() => {
+          const s = String(el.value ?? '').replace(/,/g, '').trim();
+          if (s === '' || s === '-') return '';
+          return (/^-?\d+$/).test(s) ? s : '';
+        })());
+        let hidden = form.querySelector(`input[type="hidden"][name="${el.name}"]`);
+        if (!hidden) {
+          hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = el.name;
+          form.appendChild(hidden);
         }
+        hidden.value = raw;
         const name = el.name;
-        // 既存hiddenのクリーンアップ（重複防止）
-        Array.from(form.querySelectorAll(`input[type="hidden"][name="${name}"]`)).forEach(h => h.remove());
-        const hidden = document.createElement('input');
-        hidden.type = 'hidden';
-        hidden.name = name;
-        hidden.value = String(toInt(el.value));
-        el.removeAttribute('name'); // 表示側はnameを外して見た目はそのまま
-        el.setAttribute('data-name-detached', name); // 送信後の復元用（遷移が走らなくても）
-        form.appendChild(hidden);
       });
     }
-
-    // blur時に3桁カンマ化
-    function attachCommaBlurFormatting(root) {
-      Array.from(root.querySelectorAll('input.js-comma')).forEach((el) => {
-        el.addEventListener('blur', () => {
-          el.value = el.value === '－' ? '－' : formatComma(el.value);
-        });
-      });
-    }
-    attachCommaBlurFormatting(document);
-
-    // 初期表示時に全てカンマ整形（既にカンマ無し数値が入っている場合）
-    Array.from(document.querySelectorAll('input.js-comma[name]')).forEach((el) => {
-      if (el.readOnly) {
-        el.value = el.value === '－' ? '－' : formatComma(el.value);
-      } else {
-        // 入力中のUXのため、空文字は触らない
-        if (String(el.value).trim() !== '') {
-          el.value = formatComma(el.value);
-        }
-      }
-    });
 
     if (formEl) {
       formEl.addEventListener('submit', (e) => {
-        recalcShotokuGokei();
-        recalcKojo();
-        recalcTaxableSogo();
-        recalcBunriSogoMirror();
-        mirrorRetirementToJumin();
-        mirrorSanrinShotokuDisplay();
-        recalcBunriSashihikiGokei();
-        recalcBunriKazeishotokuSogo();
-        recalcShotokuTaxFromMaster();
-        recalcBunriZeigakuShotokuAll();
-        recalcBunriZeigakuJuminAll();
-        recalcZeigakuGokeiAll();
-        recalcTaxPipeline();
-        recalcBunriKazeishotokuGroup();
-        enforceServerLocks();
         materializeHiddenNumericForSubmit(formEl);
-        // 念のため送信直前にも孤立要素を hidden 化
         (function sanitizeOrphanTaxInputsOnSubmit() {
-          const mustBeHiddenPrefixes = ['tax_kazeishotoku_', 'tax_zeigaku_'];
+          const mustBeHiddenPrefixes = ['tax_zeigaku_'];
           const isTargetName = (name) => mustBeHiddenPrefixes.some(pref => name && name.startsWith(pref));
           Array.from(formEl.querySelectorAll('input[name]')).forEach((el) => {
             if (!(el instanceof HTMLInputElement)) return;
@@ -3239,55 +2965,8 @@
             }
           });
         })();
-        // 送信トリガーのボタンを判定（再計算以外でも同期しておくと安全）
-        const submitter = (e.submitter && e.submitter instanceof Element) ? e.submitter : null;
-        const isRecalc = submitter
-          ? (submitter.getAttribute('name') === 'recalc_all' || submitter.dataset.redirectTo === 'input')
-          : false;
-        // 再計算に限らず常に同期しておく（保存でもズレを防止）
-        bulkMirrorNow(kyuyoNenkinShotokuPairs);
-        bulkMirrorNow(kojoMirrorPrevPairs);
       });
     }
-
-    // 収入（金額等）系：所得税→住民税（prev）
-    mirrorOnBlur('syunyu_jigyo_nogyo_shotoku_prev',  'syunyu_jigyo_nogyo_jumin_prev');
-    mirrorOnBlur('shotoku_rishi_shotoku_prev',       'shotoku_rishi_jumin_prev');
-    mirrorOnBlur('syunyu_haito_shotoku_prev',        'syunyu_haito_jumin_prev');
-    mirrorOnBlur('syunyu_kyuyo_shotoku_prev',        'syunyu_kyuyo_jumin_prev');           // 給与
-    mirrorOnBlur('syunyu_zatsu_nenkin_shotoku_prev', 'syunyu_zatsu_nenkin_jumin_prev');    // 公的年金等
-    mirrorOnBlur('syunyu_zatsu_gyomu_shotoku_prev',  'syunyu_zatsu_gyomu_jumin_prev');
-    mirrorOnBlur('syunyu_zatsu_sonota_shotoku_prev', 'syunyu_zatsu_sonota_jumin_prev');
-    // 所得（控除後）系：所得税→住民税（prev）
-    mirrorOnBlur('shotoku_jigyo_nogyo_shotoku_prev',  'shotoku_jigyo_nogyo_jumin_prev');
-    mirrorOnBlur('shotoku_haito_shotoku_prev',        'shotoku_haito_jumin_prev');
-    mirrorOnBlur('shotoku_kyuyo_shotoku_prev',        'shotoku_kyuyo_jumin_prev');         // 給与
-    mirrorOnBlur('shotoku_zatsu_nenkin_shotoku_prev', 'shotoku_zatsu_nenkin_jumin_prev');  // 公的年金等
-    mirrorOnBlur('shotoku_zatsu_gyomu_shotoku_prev',  'shotoku_zatsu_gyomu_jumin_prev');
-    mirrorOnBlur('shotoku_zatsu_sonota_shotoku_prev', 'shotoku_zatsu_sonota_jumin_prev');
-    // 社保・小規模（prev）
-    mirrorOnBlur('kojo_shakaihoken_shotoku_prev',     'kojo_shakaihoken_jumin_prev');
-    mirrorOnBlur('kojo_shokibo_shotoku_prev',         'kojo_shokibo_jumin_prev');
-
-    // 収入（金額等）系：所得税→住民税（curr）
-    mirrorOnBlur('syunyu_jigyo_nogyo_shotoku_curr',  'syunyu_jigyo_nogyo_jumin_curr');
-    mirrorOnBlur('shotoku_rishi_shotoku_curr',       'shotoku_rishi_jumin_curr');
-    mirrorOnBlur('syunyu_haito_shotoku_curr',        'syunyu_haito_jumin_curr');
-    mirrorOnBlur('syunyu_kyuyo_shotoku_curr',        'syunyu_kyuyo_jumin_curr');           // 給与
-    mirrorOnBlur('syunyu_zatsu_nenkin_shotoku_curr', 'syunyu_zatsu_nenkin_jumin_curr');    // 公的年金等
-    mirrorOnBlur('syunyu_zatsu_gyomu_shotoku_curr',  'syunyu_zatsu_gyomu_jumin_curr');
-    mirrorOnBlur('syunyu_zatsu_sonota_shotoku_curr', 'syunyu_zatsu_sonota_jumin_curr');
-
-    // 所得（控除後）系：所得税→住民税（curr）
-    mirrorOnBlur('shotoku_jigyo_nogyo_shotoku_curr',  'shotoku_jigyo_nogyo_jumin_curr');
-    mirrorOnBlur('shotoku_haito_shotoku_curr',        'shotoku_haito_jumin_curr');
-    mirrorOnBlur('shotoku_kyuyo_shotoku_curr',        'shotoku_kyuyo_jumin_curr');         // 給与
-    mirrorOnBlur('shotoku_zatsu_nenkin_shotoku_curr', 'shotoku_zatsu_nenkin_jumin_curr');  // 公的年金等
-    mirrorOnBlur('shotoku_zatsu_gyomu_shotoku_curr',  'shotoku_zatsu_gyomu_jumin_curr');
-    mirrorOnBlur('shotoku_zatsu_sonota_shotoku_curr', 'shotoku_zatsu_sonota_jumin_curr');
-    // 社保・小規模（curr）
-    mirrorOnBlur('kojo_shakaihoken_shotoku_curr',     'kojo_shakaihoken_jumin_curr');
-    mirrorOnBlur('kojo_shokibo_shotoku_curr',         'kojo_shokibo_jumin_curr');
   });
 </script>
 @endpush

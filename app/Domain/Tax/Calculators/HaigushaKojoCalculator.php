@@ -3,33 +3,21 @@
 namespace App\Domain\Tax\Calculators;
 
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Calculators\CommonSumsCalculator;
+use App\Domain\Tax\Calculators\KojoAggregationCalculator;
 
 class HaigushaKojoCalculator implements ProvidesKeys
 {
     public const ID = 'kojo.haigusha';
     public const ORDER = 2300;
     public const ANCHOR = 'deductions';
-    public const BEFORE = [];
-    public const AFTER = [];
+    // 集計(KojoAggregation)より先に実行
+    public const BEFORE = [KojoAggregationCalculator::ID];
+    // 合計所得金額のSoT(CommonSums)確定後に実行
+    public const AFTER = [CommonSumsCalculator::ID];
 
     /** @var string[] */
     private const PERIODS = ['prev', 'curr'];
-
-    /** @var string[] */
-    private const TOTAL_BASE_KEYS = [
-        'shotoku_gokei_shotoku',
-        'bunri_shotoku_tanki_ippan_shotoku',
-        'bunri_shotoku_tanki_keigen_shotoku',
-        'bunri_shotoku_choki_ippan_shotoku',
-        'bunri_shotoku_choki_tokutei_shotoku',
-        'bunri_shotoku_choki_keika_shotoku',
-        'bunri_shotoku_ippan_kabuteki_joto_shotoku',
-        'bunri_shotoku_jojo_kabuteki_joto_shotoku',
-        'bunri_shotoku_jojo_kabuteki_haito_shotoku',
-        'bunri_shotoku_sakimono_shotoku',
-        'bunri_shotoku_sanrin_shotoku',
-        'bunri_shotoku_taishoku_shotoku',
-    ];
 
     private const SPOUSAL_THRESHOLD = 10_000_000;
 
@@ -92,8 +80,13 @@ class HaigushaKojoCalculator implements ProvidesKeys
     {
         $updates = array_fill_keys(self::provides(), 0);
 
+        // 令和7年(=2025年)分以降は配偶者特別控除の起算を 58万円超 に引き上げ
+        $year = (int) ($ctx['master_kihu_year'] ?? $ctx['kihu_year'] ?? 0);
+        $isR7OrLater = $year >= 2025;
+        $spouseStartThreshold = $isR7OrLater ? 580_000 : 480_000;
         foreach (self::PERIODS as $period) {
-            $total = $this->calculateTotal($payload, $period);
+            // 合計所得金額は CommonSums の SoT を参照
+            $total = $this->n($payload[sprintf('sum_for_gokeishotoku_%s', $period)] ?? null);
             $category = $this->normalizeCategory($payload, $period);
 
             [$shotoku, $jumin] = $this->calculateSpousalDeduction($total, $category);
@@ -101,7 +94,7 @@ class HaigushaKojoCalculator implements ProvidesKeys
             $updates[sprintf('kojo_haigusha_jumin_%s', $period)] = $jumin;
 
             $spouseIncome = $this->n($payload[sprintf('kojo_haigusha_tokubetsu_gokeishotoku_%s', $period)] ?? null);
-            [$specialShotoku, $specialJumin] = $this->calculateSpecialDeduction($total, $spouseIncome);
+            [$specialShotoku, $specialJumin] = $this->calculateSpecialDeduction($total, $spouseIncome, $spouseStartThreshold);
             $updates[sprintf('kojo_haigusha_tokubetsu_shotoku_%s', $period)] = $specialShotoku;
             $updates[sprintf('kojo_haigusha_tokubetsu_jumin_%s', $period)] = $specialJumin;
         }
@@ -128,18 +121,17 @@ class HaigushaKojoCalculator implements ProvidesKeys
         };
     }
 
-    private function calculateSpecialDeduction(int $total, int $spouseIncome): array
+    private function calculateSpecialDeduction(int $total, int $spouseIncome, int $startThreshold): array
     {
-        if (
-            $total > self::SPOUSAL_THRESHOLD
-            || $spouseIncome <= 480_000
-            || $spouseIncome > 1_330_000
-        ) {
+        // 納税者1,000万円超は不可／配偶者の起算は年分で可変（48万→58万）／133万円超は不可
+        if ($total > self::SPOUSAL_THRESHOLD || $spouseIncome <= $startThreshold || $spouseIncome > 1_330_000) {
             return [0, 0];
         }
 
         $band = $this->matchValue($total, self::SPECIAL_TOTAL_THRESHOLDS, self::SPECIAL_TOTAL_BANDS);
-        $index = $this->matchValue($spouseIncome, self::SPECIAL_SPOUSE_THRESHOLDS, self::SPECIAL_SPOUSE_INDICES);
+        $thresholds = self::SPECIAL_SPOUSE_THRESHOLDS;
+        $thresholds[0] = $startThreshold + 1; // 「超」なので +1
+        $index = $this->matchValue($spouseIncome, $thresholds, self::SPECIAL_SPOUSE_INDICES);
 
         if ($band === 0 || $index === 0) {
             return [0, 0];
@@ -192,17 +184,6 @@ class HaigushaKojoCalculator implements ProvidesKeys
             'な', '×' => 'なし',
             default => 'なし',
         };
-    }
-
-    private function calculateTotal(array $payload, string $period): int
-    {
-        $total = 0;
-
-        foreach (self::TOTAL_BASE_KEYS as $base) {
-            $total += $this->n($payload[sprintf('%s_%s', $base, $period)] ?? null);
-        }
-
-        return $total;
     }
 
     private function matchValue(int $value, array $thresholds, array $values): int

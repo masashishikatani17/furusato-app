@@ -5,12 +5,22 @@ namespace App\Domain\Tax\Calculators;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use Illuminate\Support\Facades\Log;
 
+use App\Domain\Tax\Calculators\KojoAggregationCalculator;
+use App\Domain\Tax\Calculators\JintekiKojoCalculator;
+use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
+
 class CommonSumsCalculator implements ProvidesKeys
 {
     public const ID = 'common.sums';
-    public const ORDER = 4100;
-    public const BEFORE = [];
-    public const AFTER = [];
+
+    // Sums は控除系より前に実行される（period系は UseCase 側で先に実行されるため AFTER は空）
+    public const ORDER = 3500;
+    public const AFTER  = [];  // ← ここを空にすることが重要（Missing dependencies 対策）
+    public const BEFORE = [
+        JintekiKojoCalculator::ID,
+        HaigushaKojoCalculator::ID,
+        KojoAggregationCalculator::ID,
+    ];
 
     /** @var string[] */
     private const PERIODS = ['prev', 'curr'];
@@ -26,6 +36,8 @@ class CommonSumsCalculator implements ProvidesKeys
             $out[] = sprintf('sum_for_sogoshotoku_%s', $p);
             $out[] = sprintf('sum_for_sogoshotoku_etc_%s', $p);
             $out[] = sprintf('sum_for_pension_bucket_%s', $p);
+            // 追加：UIの「第一表 合計」を A+B に一本化
+            $out[] = sprintf('sum_for_ab_total_%s', $p);
         }
         return $out;
     }

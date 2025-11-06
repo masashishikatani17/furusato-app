@@ -6,6 +6,8 @@ use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
+use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
+use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
 use App\Domain\Tax\Calculators\JintekiKojoCalculator;
@@ -46,32 +48,47 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(PayloadNormalizer::class, PayloadNormalizer::class);
 
+        // 実行順ポリシー（重要）:
+        //  - period系（Bunri*, KojoSeimeiJishin）は UseCase 側で先行実行
+        //  - CommonSums は控除集計（Jinteki/Haigusha/KojoAggregation）より前に置く
+        //  - TaxBaseMirror は控除計算の後で最新結果をミラー
+        //  - CommonTaxableBase/ShotokuTax/JuminTax → Tokurei/BunriMin → Result の順
         $taggedCalculatorClasses = [
+            // 収入→基礎所得化
             KifukinCalculator::class,
             KisoKojoCalculator::class,
             KyuyoNenkinCalculator::class,
+            // 合計系は控除より前に確定（sum_for_* を後段が参照）
+            CommonSumsCalculator::class,
+            // 人的控除・集計（sum_for_* を参照）
             JintekiKojoCalculator::class,
             HaigushaKojoCalculator::class,
             KojoAggregationCalculator::class,
-            CommonSumsCalculator::class,
+            // 表示ミラー（税額・特例の前に最新値を反映）
             TaxBaseMirrorCalculator::class,
+            // 課税ベース/税額は現行の並びのまま（後段で置換予定）
             CommonTaxableBaseCalculator::class,
-            ShotokuTaxCalculator::class,
+            ShotokuTaxCalculator::class,   // ← タイポ修正：Shotoku（u）に
             JuminTaxCalculator::class,
             JuminzeiKifukinCalculator::class,
             SeitotoTokubetsuZeigakuKojoCalculator::class,
             TokureiRateCalculator::class,
+            // 分離の下限税率 → 最終結果
             BunriSeparatedMinRateCalculator::class,
             FurusatoResultCalculator::class,
         ];
 
-        $periodCalculatorClasses = [
+        // period 単位で UseCase 側（applyAutoCalculatedFields）から直接呼ぶ計算器群。
+        // ここに登録しておけばコンテナ解決が確実になります（tag には付けない）。
+        $periodicCalculatorClasses = [
             KojoSeimeiJishinCalculator::class,
+            SogoShotokuNettingCalculator::class,
+            SogoShotokuNettingStagesCalculator::class,
             BunriNettingCalculator::class,
             BunriKabutekiNettingCalculator::class,
         ];
 
-        $calculatorClasses = array_merge($taggedCalculatorClasses, $periodCalculatorClasses);
+        $calculatorClasses = array_merge($taggedCalculatorClasses, $periodicCalculatorClasses);
 
         foreach ($calculatorClasses as $class) {
             $this->app->singleton($class, $class);

@@ -93,6 +93,7 @@ class HaigushaKojoCalculator implements ProvidesKeys
             $updates[sprintf('kojo_haigusha_shotoku_%s', $period)] = $shotoku;
             $updates[sprintf('kojo_haigusha_jumin_%s', $period)] = $jumin;
 
+            // ▼ 配偶者の合計所得金額（入力フィールドを使用）
             $spouseIncome = $this->n($payload[sprintf('kojo_haigusha_tokubetsu_gokeishotoku_%s', $period)] ?? null);
             [$specialShotoku, $specialJumin] = $this->calculateSpecialDeduction($total, $spouseIncome, $spouseStartThreshold);
             $updates[sprintf('kojo_haigusha_tokubetsu_shotoku_%s', $period)] = $specialShotoku;

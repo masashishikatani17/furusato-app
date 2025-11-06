@@ -5,6 +5,10 @@ namespace App\Domain\Tax\Calculators;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use Illuminate\Support\Facades\Log;
 
+use App\Domain\Tax\Calculators\KojoAggregationCalculator;
+use App\Domain\Tax\Calculators\JintekiKojoCalculator;
+use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
+
 class CommonSumsCalculator implements ProvidesKeys
 {
     public const ID = 'common.sums';

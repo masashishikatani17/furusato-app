@@ -36,7 +36,8 @@ class JuminTaxCalculator implements ProvidesKeys
         $updates = array_fill_keys(self::provides(), 0);
 
         foreach (self::PERIODS as $period) {
-            $key = sprintf('tax_kazeishotoku_jumin_%s', $period);
+            // SoT 統一：課税標準は tb_* のみを参照
+            $key = sprintf('tb_sogo_jumin_%s', $period);
             $amount = max(0, $this->n($payload[$key] ?? null));
             $updates[sprintf('tax_zeigaku_jumin_%s', $period)] = (int) ($amount * 0.1);
         }

@@ -25,6 +25,7 @@ final class SeparatedModeMirrorTest extends TestCase
             // 入力：共通合計（CommonSums）
             'sum_for_gokeishotoku_curr' => 1_110_000,
             'sum_for_sogoshotoku_curr' => 1_050_000,
+            'sum_for_ab_total_curr'     => 1_110_000,
             // 入力：bunri_*（上流で確定済みとみなし、そのままミラーされるべき）
             'bunri_sogo_gokeigaku_shotoku_curr' => 650_000,
             'bunri_sogo_gokeigaku_jumin_curr'   => 650_000,
@@ -36,9 +37,8 @@ final class SeparatedModeMirrorTest extends TestCase
 
         $result = $calculator->compute($payload, []);
 
-        // 共通合計のミラー
-        $this->assertSame(1_110_000, $result['shotoku_gokei_curr']);
-        // 総合合計は参考表示として joto_ichiji_* にミラー
+        // 現仕様：第一表合計は sum_for_sogoshotoku_* を採用
+        $this->assertSame(1_050_000, $result['shotoku_gokei_curr']);
         $this->assertSame(1_050_000, $result['shotoku_joto_ichiji_shotoku_curr']);
         $this->assertSame(1_050_000, $result['shotoku_joto_ichiji_jumin_curr']);
         // bunri_* はそのままミラー（再計算なし）
@@ -56,17 +56,19 @@ final class SeparatedModeMirrorTest extends TestCase
         $calculator = new TaxBaseMirrorCalculator();
 
         $payload = [
-            // 共通合計だけ与える（bunri_*, tax_* は与えない）
-            'sum_for_gokeishotoku_prev' => 555_000,
-            'sum_for_sogoshotoku_prev'  => 500_000,
+            // 新仕様: A+B を渡さないと shotoku_gokei_* はミラーされない
+            // （sum_for_gokeishotoku_* だけでは shotoku_gokei_* を起こさない）
+            'sum_for_sogoshotoku_prev' => 500_000,
         ];
 
         $result = $calculator->compute($payload, []);
 
-        // 合計のミラーは行う
-        $this->assertSame(555_000, $result['shotoku_gokei_prev']);
+        // 総合合計は joto_ichiji_* へミラー
         $this->assertSame(500_000, $result['shotoku_joto_ichiji_shotoku_prev']);
         $this->assertSame(500_000, $result['shotoku_joto_ichiji_jumin_prev']);
+        // 現仕様：sum_for_sogoshotoku_* の値は joto_ichiji_* へミラーしつつ、
+        // shotoku_gokei_* も sum_for_sogoshotoku_* を採用する
+        $this->assertSame(500_000, $result['shotoku_gokei_prev']);
         // 未供給の bunri_* / tax_* は生成しない（フォールバック禁止）
         $this->assertArrayNotHasKey('bunri_sogo_gokeigaku_shotoku_prev', $result);
         $this->assertArrayNotHasKey('tax_kazeishotoku_shotoku_prev', $result);

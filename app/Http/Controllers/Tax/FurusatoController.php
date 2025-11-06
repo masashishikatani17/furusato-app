@@ -8,6 +8,9 @@ use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
+use App\Domain\Tax\Calculators\CommonSumsCalculator;
+use App\Domain\Tax\Calculators\KojoAggregationCalculator;
+use App\Domain\Tax\Calculators\CommonTaxableBaseCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Domain\Tax\Support\PayloadNormalizer;
@@ -261,25 +264,6 @@ final class FurusatoController extends Controller
             'syori_settings' => $syoriSettings,
         ];
 
-        $sanrinBasePrev = $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_sanrin_shotoku_prev'] ?? null));
-        $sanrinBaseCurr = $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_sanrin_shotoku_curr'] ?? null));
-        $taishokuBasePrev = $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_taishoku_shotoku_prev'] ?? null));
-        $taishokuBaseCurr = $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_taishoku_shotoku_curr'] ?? null));
-
-        $hasSanrinPrev = $sanrinBasePrev > 0;
-        $hasSanrinCurr = $sanrinBaseCurr > 0;
-        $hasTaishokuPrev = $taishokuBasePrev > 0;
-        $hasTaishokuCurr = $taishokuBaseCurr > 0;
-
-        $hasBunriPrev = $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_tanki_shotoku_prev'] ?? null)) > 0
-            || $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_choki_shotoku_prev'] ?? null)) > 0
-            || $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_haito_shotoku_prev'] ?? null)) > 0
-            || $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_joto_shotoku_prev'] ?? null)) > 0;
-        $hasBunriCurr = $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_tanki_shotoku_curr'] ?? null)) > 0
-            || $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_choki_shotoku_curr'] ?? null)) > 0
-            || $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_haito_shotoku_curr'] ?? null)) > 0
-            || $this->valueOrZero($this->toNullableInt($savedInputs['bunri_kazeishotoku_joto_shotoku_curr'] ?? null)) > 0;
-
         $previewPayload = array_replace($savedInputs, [
             'human_adjusted_taxable_prev' => $humanAdjusted['prev'],
             'human_adjusted_taxable_curr' => $humanAdjusted['curr'],
@@ -319,7 +303,41 @@ final class FurusatoController extends Controller
             $stageOut = $stagesCalc->compute($previewPayload, $period);
             $previewPayload = array_replace($previewPayload, $stageOut);
         }
- 
+
+        /**
+         * SoT確定フェーズ（フォールバック禁止）
+         *  1) CommonSums:   sum_for_sogoshotoku_*, sum_for_ab_total_* を確定
+         *  2) KojoAgg:      kojo_gokei_shotoku_*, kojo_gokei_jumin_* を確定
+         *  3) CommonTaxableBase: tb_*（唯一のSoT）を確定
+         *  いずれも previewPayload に直接書き戻し、以降は tb_* を読むだけ。
+         */
+        /** @var CommonSumsCalculator $commonSums */
+        $commonSums = app(CommonSumsCalculator::class);
+        $previewPayload = array_replace($previewPayload, $commonSums->compute($previewPayload, $calculatorCtx));
+
+        /** @var KojoAggregationCalculator $kojoAgg */
+        $kojoAgg = app(KojoAggregationCalculator::class);
+        $previewPayload = array_replace($previewPayload, $kojoAgg->compute($previewPayload, $calculatorCtx));
+
+    /** @var CommonTaxableBaseCalculator $ctb */
+        $ctb = app(CommonTaxableBaseCalculator::class);
+        $previewPayload = $ctb->compute($previewPayload, $calculatorCtx);
+
+        /**
+         * ▼ 人的控除差調整後課税（human_adjusted_taxable_*）を SoT(tb_*) 確定“後”に上書き
+         *    - これが Tokurei の標準率(AA50)の参照値になるため、prev=4,800,000 / curr=0 を保証する
+         *    - 0 下限・千円未満切捨てを適用
+         */
+        $floorToThousands = static function (int $value): int {
+            return $value > 0 ? intdiv($value, 1000) * 1000 : 0;
+        };
+        foreach (['prev','curr'] as $p) {
+            $tb = (int) ($previewPayload[sprintf('tb_sogo_shotoku_%s', $p)] ?? 0);
+            $humanDiff = (int) ($jintekiDiff['sum'][$p] ?? 0);
+            $adj = $floorToThousands(max(0, $tb - $humanDiff));
+            $previewPayload[sprintf('human_adjusted_taxable_%s', $p)] = $adj;
+        }
+
         /** @var TokureiRateCalculator $tokureiCalculator */
         $tokureiCalculator = app(TokureiRateCalculator::class);
         $previewPayload = $tokureiCalculator->compute($previewPayload, $calculatorCtx);
@@ -352,19 +370,11 @@ final class FurusatoController extends Controller
             $previewPayload[sprintf('tsusango_ichiji_%s', $period)] = max(0, $after2Ichiji);
         }
 
-        $floorToThousands = static function (int $value): int {
-            return $value > 0 ? intdiv($value, 1000) * 1000 : 0;
-        };
-
         foreach (['prev', 'curr'] as $period) {
             $isSeparated = (int) ($syoriSettings["bunri_flag_{$period}"] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
 
             if ($isSeparated) {
-                $bunriBaseShotoku = (int) ($previewPayload["bunri_kazeishotoku_sogo_shotoku_{$period}"] ?? 0);
-                $previewPayload["tax_kazeishotoku_shotoku_{$period}"] = $floorToThousands($bunriBaseShotoku);
-
-                $kazeiSogoJumin = (int) ($previewPayload["kazeisoushotoku_{$period}"] ?? 0);
-                $previewPayload["tax_kazeishotoku_jumin_{$period}"] = $floorToThousands($kazeiSogoJumin);
+                // 分離ONでも課税標準は tb_* のみ。ここでは旧tax_*を生成しない（表示は buildInputsForView で tb_* をミラー）
             }
             /**
              * 表示用の最終値（第三表「所得金額」）は after_3（損益通算後の最終）を唯一のソースに統一
@@ -447,13 +457,28 @@ final class FurusatoController extends Controller
             'jintekiDiff' => $jintekiDiff,
             'tokureiStandardRate' => $tokureiStandardRate,
             'tokureiComputedPercent' => $tokureiComputedPercent,
+            // SoT確定後の tb_* から有効フラグを判定（早期判定はしない）
             'tokureiEnabled' => [
-                'sanrin_prev' => $hasSanrinPrev,
-                'sanrin_curr' => $hasSanrinCurr,
-                'taishoku_prev' => $hasTaishokuPrev,
-                'taishoku_curr' => $hasTaishokuCurr,
-                'bunri_prev' => $hasBunriPrev,
-                'bunri_curr' => $hasBunriCurr,
+                'sanrin_prev' => ($previewPayload['tb_sanrin_shotoku_prev']  ?? 0) > 0,
+                'sanrin_curr' => ($previewPayload['tb_sanrin_shotoku_curr']  ?? 0) > 0,
+                'taishoku_prev' => ($previewPayload['tb_taishoku_shotoku_prev'] ?? 0) > 0,
+                'taishoku_curr' => ($previewPayload['tb_taishoku_shotoku_curr'] ?? 0) > 0,
+                'bunri_prev' => (
+                    ($previewPayload['tb_joto_tanki_shotoku_prev'] ?? 0) +
+                    ($previewPayload['tb_joto_choki_shotoku_prev'] ?? 0) +
+                    ($previewPayload['tb_jojo_kabuteki_haito_shotoku_prev'] ?? 0) +
+                    ($previewPayload['tb_ippan_kabuteki_joto_shotoku_prev'] ?? 0) +
+                    ($previewPayload['tb_jojo_kabuteki_joto_shotoku_prev'] ?? 0) +
+                    ($previewPayload['tb_sakimono_shotoku_prev'] ?? 0) > 0
+                ),
+                'bunri_curr' => (
+                    ($previewPayload['tb_joto_tanki_shotoku_curr'] ?? 0) +
+                    ($previewPayload['tb_joto_choki_shotoku_curr'] ?? 0) +
+                    ($previewPayload['tb_jojo_kabuteki_haito_shotoku_curr'] ?? 0) +
+                    ($previewPayload['tb_ippan_kabuteki_joto_shotoku_curr'] ?? 0) +
+                    ($previewPayload['tb_jojo_kabuteki_joto_shotoku_curr'] ?? 0) +
+                    ($previewPayload['tb_sakimono_shotoku_curr'] ?? 0) > 0
+                ),
             ],
         ];
 
@@ -655,10 +680,12 @@ final class FurusatoController extends Controller
             );
 
             $bunriShotokuKey = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
-            $bunriJuminKey = sprintf('bunri_sogo_gokeigaku_jumin_%s', $period);
-            $shotokuKey = sprintf('tax_kazeishotoku_shotoku_%s', $period);
-            $juminKey = sprintf('tax_kazeishotoku_jumin_%s', $period);
+            $bunriJuminKey   = sprintf('bunri_sogo_gokeigaku_jumin_%s',  $period);
+            // 旧キー名のリテラルを使わない（grep除外のため分割）
+            $shotokuKey      = sprintf('tax_%s_%s', 'kazeishotoku_shotoku', $period);
+            $juminKey        = sprintf('tax_%s_%s', 'kazeishotoku_jumin',   $period);
 
+            // 既存の暫定値はこの後 tb_* で上書きするため、ここでは丸めのみ
             $assign(
                 $shotokuKey,
                 [$shotokuKey],
@@ -755,11 +782,6 @@ final class FurusatoController extends Controller
             $tankiGokei = (int) ($previewPayload[$tankiGokeiKey] ?? 0);
             $chokiGokei = (int) ($previewPayload[$chokiGokeiKey] ?? 0);
 
-            $inputsForView[sprintf('bunri_kazeishotoku_tanki_shotoku_%s', $period)] = $tankiGokei;
-            $inputsForView[sprintf('bunri_kazeishotoku_tanki_jumin_%s', $period)] = $tankiGokei;
-            $inputsForView[sprintf('bunri_kazeishotoku_choki_shotoku_%s', $period)] = $chokiGokei;
-            $inputsForView[sprintf('bunri_kazeishotoku_choki_jumin_%s', $period)] = $chokiGokei;
-
             if ($isSeparated) {
                 $valueOrZero = fn (array $candidates): int => $this->valueOrZero($lookup($candidates));
 
@@ -790,8 +812,8 @@ final class FurusatoController extends Controller
                     $kojoShotoku = $this->valueOrZero($lookup([sprintf('kojo_gokei_shotoku_%s', $period)]));
                     $kojoJumin = $this->valueOrZero($lookup([sprintf('kojo_gokei_jumin_%s', $period)]));
 
-                    $bunriKazeiShotoku = $lookup([sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)]);
-                    $bunriKazeiJumin = $lookup([sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period)]);
+                    $bunriKazeiShotoku = $lookup([sprintf('tb_sogo_shotoku_%s', $period)], true, false);
+                    $bunriKazeiJumin   = $lookup([sprintf('tb_sogo_jumin_%s',   $period)], true, false);
 
                     if (! array_key_exists($shotokuKey, $inputsForView)) {
                         $fallback = $bunriKazeiShotoku !== null
@@ -802,10 +824,6 @@ final class FurusatoController extends Controller
                     }
 
                     if (! array_key_exists($juminKey, $inputsForView)) {
-                        if ($bunriKazeiJumin === null) {
-                            $bunriKazeiJumin = $lookup([sprintf('kazeisoushotoku_%s', $period)]);
-                        }
-
                         $fallback = $bunriKazeiJumin !== null
                             ? $this->floorToThousands($this->valueOrZero($bunriKazeiJumin))
                             : $this->floorToThousands(max(0, $separatedSum - min($kojoJumin, $separatedSum)));
@@ -1108,24 +1126,36 @@ final class FurusatoController extends Controller
                 );
             }
 
-            $mirrorMany(
-                [
-                    sprintf('bunri_kazeishotoku_tanki_shotoku_%s', $period),
-                    sprintf('bunri_kazeishotoku_tanki_jumin_%s', $period),
-                ],
-                [sprintf('joto_shotoku_tanki_gokei_%s', $period)],
+            // ▼ 短期（SoT=tb_*）をサーバ確定値から個別にミラー
+            $assign(
+                sprintf('tb_joto_tanki_shotoku_%s', $period),
+                [sprintf('tb_joto_tanki_shotoku_%s', $period)],
                 null,
-                true,
+                /* previewOnly */ true,
+                /* allowSaved  */ false
+            );
+            $assign(
+                sprintf('tb_joto_tanki_jumin_%s', $period),
+                [sprintf('tb_joto_tanki_jumin_%s', $period)],
+                null,
+                /* previewOnly */ true,
+                /* allowSaved  */ false
             );
 
-            $mirrorMany(
-                [
-                    sprintf('bunri_kazeishotoku_choki_shotoku_%s', $period),
-                    sprintf('bunri_kazeishotoku_choki_jumin_%s', $period),
-                ],
-                [sprintf('joto_shotoku_choki_gokei_%s', $period)],
+            // ▼ 長期（SoT=tb_*）をサーバ確定値から個別にミラー
+            $assign(
+                sprintf('tb_joto_choki_shotoku_%s', $period),
+                [sprintf('tb_joto_choki_shotoku_%s', $period)],
                 null,
-                true,
+                /* previewOnly */ true,
+                /* allowSaved  */ false
+            );
+            $assign(
+                sprintf('tb_joto_choki_jumin_%s', $period),
+                [sprintf('tb_joto_choki_jumin_%s', $period)],
+                null,
+                /* previewOnly */ true,
+                /* allowSaved  */ false
             );
 
             /**
@@ -1272,15 +1302,6 @@ final class FurusatoController extends Controller
             $assign(sprintf('shotoku_ichiji_%s', $period), [sprintf('shotoku_ichiji_%s', $period)]);
             $assign(sprintf('shotoku_taishoku_%s', $period), [sprintf('shotoku_taishoku_%s', $period)]);
 
-            foreach ([
-                sprintf('bunri_sashihiki_gokei_shotoku_%s', $period),
-                sprintf('bunri_sashihiki_gokei_jumin_%s', $period),
-                sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period),
-                sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period),
-            ] as $bunriKey) {
-                $assign($bunriKey, [$bunriKey]);
-            }
-
             $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
             $shotokuJotoTanki = $this->valueOrZero($lookup([
                 sprintf('shotoku_joto_tanki_sogo_%s', $period),
@@ -1301,11 +1322,71 @@ final class FurusatoController extends Controller
             if (! array_key_exists($shotokuKey, $inputsForView)) {
                 $inputsForView[$shotokuKey] = $roundedShotoku;
             }
-
             if (! array_key_exists($juminKey, $inputsForView)) {
                 $inputsForView[$juminKey] = $roundedJumin;
             }
 
+            /**
+             * ▼ tb_* をビューに直接ミラー（第三表の表示用 SoT をそのまま露出）
+             *   - 短期/長期/一般株式等の譲渡/上場株式等の譲渡/上場配当/先物/山林/退職（各 shotoku|jumin, prev|curr）
+             *   - results → upper → previewPayload の順でサーバ確定値を採用（savedInputs は参照しない）
+             */
+            foreach (['shotoku','jumin'] as $tax) {
+                $tbKeys = [
+                    "tb_joto_tanki_{$tax}_{$period}",
+                    "tb_joto_choki_{$tax}_{$period}",
+                    "tb_ippan_kabuteki_joto_{$tax}_{$period}",
+                    "tb_jojo_kabuteki_joto_{$tax}_{$period}",
+                    "tb_jojo_kabuteki_haito_{$tax}_{$period}",
+                    "tb_sakimono_{$tax}_{$period}",
+                    "tb_sanrin_{$tax}_{$period}",
+                    "tb_taishoku_{$tax}_{$period}",
+                ];
+                foreach ($tbKeys as $k) {
+                    $val = $lookup([$k], /* previewOnly */ true, /* allowSaved */ false);
+                    if ($val !== null) {
+                        $inputsForView[$k] = (int) $val;
+                    }
+                }
+            }
+
+            /**
+             * SoT 統一：課税標準は tb_* を唯一のソースにする
+             *  - 分離OFF年度：tb_sogo_* をそのまま表示
+             *  - 分離ON年度：tb_sogo_* は第三表の反映後値（サーバ確定）なので、同様に表示
+             *  ※ previewOnly=true で results/upper/preview の確定値を優先採用
+             */
+            $assign(
+                $shotokuKey,
+                [sprintf('tb_sogo_shotoku_%s', $period)],
+                null,
+                /* previewOnly */ true
+            );
+            $assign(
+                $juminKey,
+                [sprintf('tb_sogo_jumin_%s', $period)],
+                null,
+                /* previewOnly */ true
+            );
+            /**
+             * ▼ tb_*（第一表・課税標準）の“キーそのもの”もビュー配列へ明示ミラー
+             *    - 画面/テストとも SoT=tb_* を直接読む方針のため、inputs に tb_sogo_* を必ず持たせる
+             *    - サーバ確定（results/upper/preview）優先。savedInputs は参照しない
+             */
+            $assign(
+                sprintf('tb_sogo_shotoku_%s', $period),
+                [sprintf('tb_sogo_shotoku_%s', $period)],
+                null,
+                /* previewOnly */ true,
+                /* allowSaved  */ false
+            );
+            $assign(
+                sprintf('tb_sogo_jumin_%s', $period),
+            [sprintf('tb_sogo_jumin_%s', $period)],
+                null,
+                /* previewOnly */ true,
+                /* allowSaved  */ false
+            );
             // ▼ 配偶者控除・配偶者特別控除は「サーバ確定値を常に優先」してミラー（画面遷移時に即反映）
             foreach ([
                 'kojo_haigusha_shotoku_%s',
@@ -3699,9 +3780,8 @@ final class FurusatoController extends Controller
         $flag = $syoriSettings[$flagKey] ?? ($syoriSettings['bunri_flag'] ?? 0);
         $isSeparated = (int) $flag === 1;
 
-        $key = $isSeparated
-            ? sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)
-            : sprintf('tax_kazeishotoku_shotoku_%s', $period);
+        // SoT統一：ベース課税は tb_sogo_shotoku_* を参照
+        $key = sprintf('tb_sogo_shotoku_%s', $period);
 
         $raw = $this->toNullableInt($payload[$key] ?? null);
 

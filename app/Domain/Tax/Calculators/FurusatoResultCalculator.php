@@ -30,12 +30,8 @@ class FurusatoResultCalculator implements ProvidesKeys
         'kojo_kiso',
     ];
 
-    private const SEPARATED_OTHER_BASES = [
-        'bunri_kazeishotoku_choki',
-        'bunri_kazeishotoku_haito',
-        'bunri_kazeishotoku_sakimono',
-        'bunri_kazeishotoku_joto',
-    ];
+    // tb_* SoTに移行：短期以外で最小率判定に用いる科目の識別子
+    private const SEPARATED_OTHER_KINDS = ['choki', 'haito', 'sakimono', 'joto'];
 
     private const FIXED_NINETY_RATE = 0.90;
     private const BUNRI_SHORT_TERM_RATE = 0.59370;
@@ -224,16 +220,9 @@ class FurusatoResultCalculator implements ProvidesKeys
 
     private function taxableBase(array $payload, array $ctx, string $period): ?int
     {
-        $settings = $this->syoriSettings($ctx);
-        $flagKey = sprintf('bunri_flag_%s', $period);
-        $flag = $settings[$flagKey] ?? ($settings['bunri_flag'] ?? 0);
-        $isSeparated = (int) $flag === 1;
-
-        $key = $isSeparated
-            ? sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period)
-            : sprintf('tax_kazeishotoku_shotoku_%s', $period);
-
-        $raw = $this->intOrNull($payload[$key] ?? null);
+        unset($ctx);
+        // SoT統一：常に tb_sogo_shotoku_*
+        $raw = $this->intOrNull($payload[sprintf('tb_sogo_shotoku_%s', $period)] ?? null);
         if ($raw === null) {
             return null;
         }
@@ -309,7 +298,8 @@ class FurusatoResultCalculator implements ProvidesKeys
 
     private function sanrinRate(array $rows, array $payload, string $period): ?float
     {
-        $amount = $this->separatedIncomeAmount($payload, 'bunri_kazeishotoku_sanrin', $period);
+        // tb_sanrin_shotoku_*
+        $amount = $this->intOrNull($payload[sprintf('tb_sanrin_shotoku_%s', $period)] ?? null) ?? 0;
         if ($amount <= 0) {
             return null;
         }
@@ -324,7 +314,8 @@ class FurusatoResultCalculator implements ProvidesKeys
 
     private function taishokuRate(array $rows, array $payload, string $period): ?float
     {
-        $amount = $this->separatedIncomeAmount($payload, 'bunri_kazeishotoku_taishoku', $period);
+        // tb_taishoku_shotoku_*
+        $amount = $this->intOrNull($payload[sprintf('tb_taishoku_shotoku_%s', $period)] ?? null) ?? 0;
         if ($amount <= 0) {
             return null;
         }
@@ -339,18 +330,17 @@ class FurusatoResultCalculator implements ProvidesKeys
 
     private function bunriMinRate(array $payload, string $period): ?float
     {
+        // 短期：tb_joto_tanki_shotoku_*
         $shortAmount = $this->floorToThousands(
-            $this->separatedIncomeAmount($payload, 'bunri_kazeishotoku_tanki', $period)
+            $this->intOrNull($payload[sprintf('tb_joto_tanki_shotoku_%s', $period)] ?? null) ?? 0
         );
 
         if ($shortAmount > 0) {
             return self::BUNRI_SHORT_TERM_RATE;
         }
 
-        foreach (self::SEPARATED_OTHER_BASES as $base) {
-            $amount = $this->floorToThousands(
-                $this->separatedIncomeAmount($payload, $base, $period)
-            );
+        foreach (self::SEPARATED_OTHER_KINDS as $kind) {
+            $amount = $this->floorToThousands($this->fromTb($payload, $kind, $period));
 
             if ($amount > 0) {
                 return self::BUNRI_OTHER_RATE;
@@ -360,19 +350,20 @@ class FurusatoResultCalculator implements ProvidesKeys
         return null;
     }
 
-    private function separatedIncomeAmount(array $payload, string $baseKey, string $period): int
+    /**
+     * tb_* SoT から分離科目金額（所得税側）を取得
+     * kind: choki|haito|sakimono|joto
+     */
+    private function fromTb(array $payload, string $kind, string $period): int
     {
-        $juminKey = sprintf('%s_jumin_%s', $baseKey, $period);
-        $shotokuKey = sprintf('%s_shotoku_%s', $baseKey, $period);
-
-        $jumin = $this->intOrNull($payload[$juminKey] ?? null);
-        if ($jumin !== null && $jumin > 0) {
-            return max(0, $jumin);
-        }
-
-        $shotoku = $this->intOrNull($payload[$shotokuKey] ?? null);
-
-        return $shotoku !== null ? max(0, $shotoku) : 0;
+        $k = fn(string $name) => $this->intOrNull($payload[sprintf('%s_shotoku_%s', $name, $period)] ?? null) ?? 0;
+        return match ($kind) {
+            'choki'    => $k('tb_joto_choki'),
+            'haito'    => $k('tb_jojo_kabuteki_haito'),
+            'sakimono' => $k('tb_sakimono'),
+            'joto'     => $k('tb_ippan_kabuteki_joto') + $k('tb_jojo_kabuteki_joto'),
+            default    => 0,
+        };
     }
 
     private function lowerBoundRate(int $amount, array $rows): ?float

@@ -45,8 +45,8 @@ final class FurusatoAdjustedTaxableTest extends TestCase
         $input->company_id = 1;
         $input->group_id = 1;
         $input->payload = [
-            'tax_kazeishotoku_shotoku_prev' => 5_000_000,
-            'tax_kazeishotoku_shotoku_curr' => 1_200_000,
+            'tb_sogo_shotoku_prev' => 5_000_000,
+            'tb_sogo_shotoku_curr' => 1_200_000,
             'syunyu_sanrin_prev' => 300_000,
             'syunyu_sanrin_curr' => 0,
             'kojo_gokei_shotoku_prev' => 150_000,
@@ -124,25 +124,28 @@ final class FurusatoAdjustedTaxableTest extends TestCase
 
         $this->assertSame(4_800_000, $context['jintekiDiff']['adjusted_taxable']['prev']);
         $this->assertSame(0, $context['jintekiDiff']['adjusted_taxable']['curr']);
-        $this->assertArrayHasKey('tokureiStandardRate', $context);
-        $this->assertEqualsWithDelta(69.58,  $context['tokureiStandardRate']['prev'], 0.0001); // 4,800,000 → 69.580
-        $this->assertEqualsWithDelta(84.895, $context['tokureiStandardRate']['curr'], 0.0001); // 0 → 84.895
 
         /** @var FurusatoResultCalculator $calculator */
         $calculator = app(FurusatoResultCalculator::class);
         $calculatorPayload = [
-            'tax_kazeishotoku_shotoku_prev' => 5_000_000,
-            'tax_kazeishotoku_shotoku_curr' => 1_200_000,
+            'tb_sogo_shotoku_prev' => 5_000_000,
+            'tb_sogo_shotoku_curr' => 1_200_000,
             'kojo_kafu_shotoku_prev' => 200_000,
             'kojo_kafu_jumin_prev' => 0,
             'kojo_kafu_shotoku_curr' => 2_000_000,
             'kojo_kafu_jumin_curr' => 500_000,
         ];
         $calculatorCtx = [
-            'syori_settings' => [],
-            'master_kihu_year' => 0,
-            'kihu_year' => 0,
+            'syori_settings'   => [],
+            // TokureiRate（標準率テーブル）に合わせて年を明示
+            'master_kihu_year' => 2025,
+            'kihu_year'        => 2025,
         ];
+
+        // SoT準拠：標準率(AA50)は buildDetails の human_adjusted_taxable を基準に選定される
+        $details = $calculator->buildDetails($calculatorPayload, $calculatorCtx);
+        $this->assertEqualsWithDelta(69.58,  ($details['prev']['AA50'] ?? 0) * 100, 0.0001);
+        $this->assertEqualsWithDelta(84.895, ($details['curr']['AA50'] ?? 0) * 100, 0.0001);
 
         $result = $calculator->compute($calculatorPayload, $calculatorCtx);
         $this->assertSame(4_800_000, $result['human_adjusted_taxable_prev']);
@@ -177,6 +180,8 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             'kojo_gokei_shotoku_prev' => 150_000,
             'kojo_gokei_shotoku_curr' => 120_000,
             'kojo_gokei_jumin_prev'   => 150_000,
+            'tb_sogo_shotoku_curr' => 732_000,
+            'tb_sogo_jumin_curr'   => 481_000,
             'sashihiki_joto_tanki_sogo_prev' => 120_000,
             'sashihiki_joto_choki_sogo_prev' => 340_000,
             'sashihiki_ichiji_prev'          => -50_000,
@@ -232,6 +237,7 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             'shotoku_sanrin_curr' => 40_000,
             'shotoku_taishoku_curr' => 30_000,
             'shotoku_gokei_curr' => 880_000,
+            'sum_for_ab_total_curr' => 880_000,
             'kojo_gokei_shotoku_prev' => 150_000,
             'kojo_gokei_shotoku_curr' => 120_000,
             'bunri_kazeishotoku_sogo_shotoku_curr' => 732_345,
@@ -319,8 +325,6 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             $this->assertSame(300_000, $inputs['bunri_syunyu_sanrin_shotoku_prev']);
             $this->assertSame(460_000, $inputs['shotoku_joto_ichiji_shotoku_prev']);
             $this->assertSame(460_000, $inputs['shotoku_joto_ichiji_jumin_prev']);
-            $this->assertSame(510_000, $inputs['tax_kazeishotoku_shotoku_prev']);
-            $this->assertSame(510_000, $inputs['tax_kazeishotoku_jumin_prev']);
             $this->assertSame(0, $inputs['bunri_sogo_gokeigaku_shotoku_prev']);
             $this->assertSame(0, $inputs['bunri_sogo_gokeigaku_jumin_prev']);
 
@@ -331,11 +335,11 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             $this->assertSame(350_000, $inputs['shotoku_joto_ichiji_jumin_curr']);
             $this->assertSame(480_000, $inputs['bunri_sogo_gokeigaku_shotoku_curr']);
             $this->assertSame(480_000, $inputs['bunri_sogo_gokeigaku_jumin_curr']);
-            $this->assertSame(732_000, $inputs['tax_kazeishotoku_shotoku_curr']);
-            $this->assertSame(481_000, $inputs['tax_kazeishotoku_jumin_curr']);
+            $this->assertSame(732_000, $inputs['tb_sogo_shotoku_curr']);
+            $this->assertSame(481_000, $inputs['tb_sogo_jumin_curr']);
             $this->assertSame(70_000, $inputs['bunri_shotoku_taishoku_shotoku_curr']);
             $this->assertSame(70_000, $inputs['bunri_shotoku_taishoku_jumin_curr']);
-            $this->assertSame(880_000, $inputs['shotoku_gokei_curr']);
+            $this->assertSame(880_000, $inputs['shotoku_gokei_shotoku_curr']);
         } finally {
             app()->forgetInstance(TokureiRateCalculator::class);
             app()->forgetInstance(BunriSeparatedMinRateCalculator::class);

@@ -42,15 +42,10 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $keys[] = sprintf('shotoku_joto_ichiji_shotoku_%s', $period);
             $keys[] = sprintf('shotoku_joto_ichiji_jumin_%s', $period);
 
-            $keys[] = sprintf('tax_kazeishotoku_shotoku_%s', $period);
-            $keys[] = sprintf('tax_kazeishotoku_jumin_%s', $period);
-
             $keys[] = sprintf('bunri_sogo_gokeigaku_shotoku_%s', $period);
             $keys[] = sprintf('bunri_sogo_gokeigaku_jumin_%s', $period);
             $keys[] = sprintf('bunri_sashihiki_gokei_shotoku_%s', $period);
             $keys[] = sprintf('bunri_sashihiki_gokei_jumin_%s', $period);
-            $keys[] = sprintf('bunri_kazeishotoku_sogo_shotoku_%s', $period);
-            $keys[] = sprintf('bunri_kazeishotoku_sogo_jumin_%s', $period);
 
             $keys[] = sprintf('tokurei_kojo_sanrin_%s', $period);
 
@@ -88,22 +83,17 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
                 }
             }
 
-            // ▼ 第一表の「所得金額の合計額」は A+B を採用（共通 SoT からミラー）
-            $abKey = sprintf('sum_for_ab_total_%s', $period);
-            if (array_key_exists($abKey, $payload)) {
-                $updates[sprintf('shotoku_gokei_%s', $period)] = (int) $payload[$abKey];
-            }
-
-            // ▼ 参考合計（総合課税のみ）が必要なら sum_for_sogoshotoku_* を使う
-            //    既存 shotoku_joto_ichiji_* にミラー（後方互換のため／利用箇所がある場合）
             $sumSogoKey = sprintf('sum_for_sogoshotoku_%s', $period);
             if (array_key_exists($sumSogoKey, $payload)) {
                 $sumSogo = (int) $payload[$sumSogoKey];
+                // 第一表「所得金額の合計額」（表示用合計）は A を採用
+                $updates[sprintf('shotoku_gokei_%s', $period)] = $sumSogo;
+                // 参考合計（後方互換：既存の shotoku_joto_ichiji_* にもミラー）
                 $updates[sprintf('shotoku_joto_ichiji_shotoku_%s', $period)] = $sumSogo;
                 $updates[sprintf('shotoku_joto_ichiji_jumin_%s',  $period)] = $sumSogo;
             }
 
-            // ▼ 課税基礎はこのフェーズでは未置換：何も書かない（= 既存の Shotoku/JuminTax が設定）
+            // ▼ 課税基礎（tb_*）は別Calculatorで確定。ここでは設定しない。
 
             // ▼ bunri_* 系は再計算しない（既に存在すればそのままミラー）
             foreach ([
@@ -111,8 +101,6 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
                 'bunri_sogo_gokeigaku_jumin',
                 'bunri_sashihiki_gokei_shotoku',
                 'bunri_sashihiki_gokei_jumin',
-                'bunri_kazeishotoku_sogo_shotoku',
-                'bunri_kazeishotoku_sogo_jumin',
                 'tokurei_kojo_sanrin',
                 'after_2jitsusan_taishoku',
             ] as $k) {

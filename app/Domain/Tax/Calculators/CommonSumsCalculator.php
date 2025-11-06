@@ -12,14 +12,13 @@ use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
 class CommonSumsCalculator implements ProvidesKeys
 {
     public const ID = 'common.sums';
-
-    // Sums は控除系より前に実行される（period系は UseCase 側で先に実行されるため AFTER は空）
+    // 控除系より前に実行される（period系は UseCase 側で先に実行されるため AFTER は空）
     public const ORDER = 3500;
-    public const AFTER  = [];  // ← ここを空にすることが重要（Missing dependencies 対策）
+    public const AFTER = [];  // Missing dependencies 回避のため空
     public const BEFORE = [
-        JintekiKojoCalculator::ID,
-        HaigushaKojoCalculator::ID,
-        KojoAggregationCalculator::ID,
+        \App\Domain\Tax\Calculators\JintekiKojoCalculator::ID,
+        \App\Domain\Tax\Calculators\HaigushaKojoCalculator::ID,
+        \App\Domain\Tax\Calculators\KojoAggregationCalculator::ID,
     ];
 
     /** @var string[] */
@@ -36,7 +35,7 @@ class CommonSumsCalculator implements ProvidesKeys
             $out[] = sprintf('sum_for_sogoshotoku_%s', $p);
             $out[] = sprintf('sum_for_sogoshotoku_etc_%s', $p);
             $out[] = sprintf('sum_for_pension_bucket_%s', $p);
-            // 追加：UIの「第一表 合計」を A+B に一本化
+            // UI第一表の合計(A+B)もSoTとして保持
             $out[] = sprintf('sum_for_ab_total_%s', $p);
         }
         return $out;
@@ -54,7 +53,7 @@ class CommonSumsCalculator implements ProvidesKeys
             // A_p（総合課税：損益通算後の正値のみ）
             $Ap =
                   max(0, $this->n($payload[sprintf('shotoku_keijo_%s',           $period)] ?? null))
-                + max(0, $this->n($payload[sprintf('shotoku_joto_tanki_%s',      $period)] ?? null))
+                + max(0, $this->n($payload[sprintf('shotoku_joto_tanki_sogo_%s', $period)] ?? null))
                 + max(0, $this->n($payload[sprintf('shotoku_joto_choki_sogo_%s', $period)] ?? null))
                 + max(0, $this->n($payload[sprintf('shotoku_ichiji_%s',          $period)] ?? null));
 
@@ -62,6 +61,9 @@ class CommonSumsCalculator implements ProvidesKeys
             $Bp =
                   max(0, $this->n($payload[sprintf('shotoku_taishoku_%s', $period)] ?? null))
                 + max(0, $this->n($payload[sprintf('shotoku_sanrin_%s',   $period)] ?? null));
+
+            // UI用：第一表の合計(A+B)
+            $payload[sprintf('sum_for_ab_total_%s', $period)] = $Ap + $Bp;
 
             // C_p（分離課税：繰越控除“前”の正値のみ、時点を tsusango_* に統一）
             $Cp =

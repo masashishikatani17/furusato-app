@@ -4,13 +4,16 @@ namespace App\Domain\Tax\Calculators;
 
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Domain\Tax\Calculators\CommonSumsCalculator;
+use App\Domain\Tax\Calculators\KojoAggregationCalculator;
 
 class HaigushaKojoCalculator implements ProvidesKeys
 {
     public const ID = 'kojo.haigusha';
-    public const ORDER = 4200;
-    public const BEFORE = [];
-    // CommonSumsCalculator が sum_for_* を確定してから本Calculatorを実行
+    public const ORDER = 2300;
+    public const ANCHOR = 'deductions';
+    // 集計(KojoAggregation)より先に実行
+    public const BEFORE = [KojoAggregationCalculator::ID];
+    // 合計所得金額のSoT(CommonSums)確定後に実行
     public const AFTER = [CommonSumsCalculator::ID];
 
     /** @var string[] */
@@ -77,13 +80,12 @@ class HaigushaKojoCalculator implements ProvidesKeys
     {
         $updates = array_fill_keys(self::provides(), 0);
 
-        // 令和7年(=2025年)分以降は配偶者特別控除の適用起算を「58万円超」に引上げ
+        // 令和7年(=2025年)分以降は配偶者特別控除の起算を 58万円超 に引き上げ
         $year = (int) ($ctx['master_kihu_year'] ?? $ctx['kihu_year'] ?? 0);
         $isR7OrLater = $year >= 2025;
-        $spouseStartThreshold = $isR7OrLater ? 580_000 : 480_000; // 「超」かどうかは下で判定
-
+        $spouseStartThreshold = $isR7OrLater ? 580_000 : 480_000;
         foreach (self::PERIODS as $period) {
-            // 合計所得金額は CommonSumsCalculator の SoT を参照
+            // 合計所得金額は CommonSums の SoT を参照
             $total = $this->n($payload[sprintf('sum_for_gokeishotoku_%s', $period)] ?? null);
             $category = $this->normalizeCategory($payload, $period);
 
@@ -122,13 +124,12 @@ class HaigushaKojoCalculator implements ProvidesKeys
 
     private function calculateSpecialDeduction(int $total, int $spouseIncome, int $startThreshold): array
     {
-        // 所得者が1,000万円超は適用なし／配偶者合計所得金額が起算以下は「配偶者控除」側で扱う／133万円超は適用なし
+        // 納税者1,000万円超は不可／配偶者の起算は年分で可変（48万→58万）／133万円超は不可
         if ($total > self::SPOUSAL_THRESHOLD || $spouseIncome <= $startThreshold || $spouseIncome > 1_330_000) {
             return [0, 0];
         }
 
         $band = $this->matchValue($total, self::SPECIAL_TOTAL_THRESHOLDS, self::SPECIAL_TOTAL_BANDS);
-        // 先頭の閾値だけ年により可変（48万→58万）。残りの帯は据え置き。
         $thresholds = self::SPECIAL_SPOUSE_THRESHOLDS;
         $thresholds[0] = $startThreshold + 1; // 「超」なので +1
         $index = $this->matchValue($spouseIncome, $thresholds, self::SPECIAL_SPOUSE_INDICES);

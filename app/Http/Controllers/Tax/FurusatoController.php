@@ -7,6 +7,7 @@ use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
+use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Domain\Tax\Support\PayloadNormalizer;
@@ -307,10 +308,22 @@ final class FurusatoController extends Controller
             $previewPayload = array_replace($previewPayload, $netOut);
         }
 
+        /**
+         * 内部通算の直後に「段階通算（第1/2/3次）」を実施して
+         *   after_1/2/3jitsusan_* と shotoku_*（第一表の所得金額）をここで確定させる。
+         *   これにより details 画面の再計算だけで「損益通算後」「1/2」「所得金額」が 0 にならない。
+         */
+        /** @var SogoShotokuNettingStagesCalculator $stagesCalc */
+        $stagesCalc = app(SogoShotokuNettingStagesCalculator::class);
+        foreach (['prev', 'curr'] as $period) {
+            $stageOut = $stagesCalc->compute($previewPayload, $period);
+            $previewPayload = array_replace($previewPayload, $stageOut);
+        }
+ 
         /** @var TokureiRateCalculator $tokureiCalculator */
         $tokureiCalculator = app(TokureiRateCalculator::class);
         $previewPayload = $tokureiCalculator->compute($previewPayload, $calculatorCtx);
-
+ 
         /** @var BunriSeparatedMinRateCalculator $bunriMinCalculator */
         $bunriMinCalculator = app(BunriSeparatedMinRateCalculator::class);
         $previewPayload = $bunriMinCalculator->compute($previewPayload, $calculatorCtx);

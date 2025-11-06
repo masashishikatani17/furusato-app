@@ -3,6 +3,7 @@
 namespace App\Domain\Tax\Calculators;
 
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Calculators\CommonSumsCalculator;
 
 class JintekiKojoCalculator implements ProvidesKeys
 {
@@ -10,7 +11,8 @@ class JintekiKojoCalculator implements ProvidesKeys
     public const ORDER = 2200;
     public const ANCHOR = 'deductions';
     public const BEFORE = [];
-    public const AFTER = [];
+    // 合計所得金額のSoT（CommonSums）確定後に実行
+    public const AFTER = [CommonSumsCalculator::ID];
 
     private const THRESHOLD = 5_000_000;
 
@@ -25,20 +27,20 @@ class JintekiKojoCalculator implements ProvidesKeys
         'roujin_sonota' => 'kojo_fuyo_roujin_sonota_count_%s',
     ];
 
-    /** @var array<string, int> */
+    // 所得税の扶養控除額（No.1180：一般38万／特定63万／老人は「同居老親等」58万・その他48万）
     private const FUYO_SHOTOKU_AMOUNTS = [
-        'ippan' => 380_000,
-        'tokutei' => 630_000,
-        'roujin_doukyo' => 480_000,
-        'roujin_sonota' => 580_000,
+        'ippan'        => 380_000,
+        'tokutei'      => 630_000,
+        'roujin_doukyo'=> 580_000, // ← 同居老親等
+        'roujin_sonota'=> 480_000, // ← 同居でない老人
     ];
 
-    /** @var array<string, int> */
+    // 住民税の扶養控除額（一般33万／特定45万／老人は「同居」45万・その他38万）
     private const FUYO_JUMIN_AMOUNTS = [
-        'ippan' => 330_000,
-        'tokutei' => 450_000,
-        'roujin_doukyo' => 380_000,
-        'roujin_sonota' => 450_000,
+        'ippan'        => 330_000,
+        'tokutei'      => 450_000,
+        'roujin_doukyo'=> 450_000, // ← 同居老親等
+        'roujin_sonota'=> 380_000, // ← 同居でない老人
     ];
 
     /** @var string[] */
@@ -75,23 +77,7 @@ class JintekiKojoCalculator implements ProvidesKeys
         30_000,
         0,
     ];
-
-    /** @var string[] */
-    private const TOTAL_BASE_KEYS = [
-        'shotoku_gokei_shotoku',
-        'bunri_shotoku_tanki_ippan_shotoku',
-        'bunri_shotoku_tanki_keigen_shotoku',
-        'bunri_shotoku_choki_ippan_shotoku',
-        'bunri_shotoku_choki_tokutei_shotoku',
-        'bunri_shotoku_choki_keika_shotoku',
-        'bunri_shotoku_ippan_kabuteki_joto_shotoku',
-        'bunri_shotoku_jojo_kabuteki_joto_shotoku',
-        'bunri_shotoku_jojo_kabuteki_haito_shotoku',
-        'bunri_shotoku_sakimono_shotoku',
-        'bunri_shotoku_sanrin_shotoku',
-        'bunri_shotoku_taishoku_shotoku',
-    ];
-
+    
     private const KAFU_SHOTOKU = 270_000;
     private const KAFU_JUMIN = 260_000;
 
@@ -143,7 +129,8 @@ class JintekiKojoCalculator implements ProvidesKeys
         $updates = array_fill_keys(self::provides(), 0);
 
         foreach (self::PERIODS as $period) {
-            $total = $this->calculateTotal($payload, $period);
+            // 合計所得金額(SoT)で判定
+            $total = $this->n($payload[sprintf('sum_for_gokeishotoku_%s', $period)] ?? null);
 
             if ($this->isApplicable($payload, sprintf('kojo_kafu_applicable_%s', $period)) && $total <= self::THRESHOLD) {
                 $updates[sprintf('kojo_kafu_shotoku_%s', $period)] = self::KAFU_SHOTOKU;
@@ -155,7 +142,10 @@ class JintekiKojoCalculator implements ProvidesKeys
                 $updates[sprintf('kojo_hitorioya_jumin_%s', $period)] = self::HITORIOYA_JUMIN;
             }
 
-            if ($this->isApplicable($payload, sprintf('kojo_kinrogakusei_applicable_%s', $period))) {
+            // 勤労学生控除：合計所得金額の年次要件で最終ガード（R6: ≤750k / R7～: ≤850k）
+            $kinroThreshold = ($kihuYear !== null && $kihuYear >= 2025) ? 850_000 : 750_000;
+            if ($this->isApplicable($payload, sprintf('kojo_kinrogakusei_%s', $period))
+                && $total <= $kinroThreshold) {
                 $updates[sprintf('kojo_kinrogakusei_shotoku_%s', $period)] = self::KINROGAKUSEI_SHOTOKU;
                 $updates[sprintf('kojo_kinrogakusei_jumin_%s', $period)] = self::KINROGAKUSEI_JUMIN;
             }
@@ -202,17 +192,6 @@ class JintekiKojoCalculator implements ProvidesKeys
         }
 
         return array_replace($payload, $updates);
-    }
-
-    private function calculateTotal(array $payload, string $period): int
-    {
-        $total = 0;
-
-        foreach (self::TOTAL_BASE_KEYS as $base) {
-            $total += $this->n($payload[sprintf('%s_%s', $base, $period)] ?? null);
-        }
-
-        return $total;
     }
 
     private function isApplicable(array $payload, string $key): bool

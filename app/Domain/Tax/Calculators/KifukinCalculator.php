@@ -48,6 +48,9 @@ class KifukinCalculator implements ProvidesKeys
             'shotokuzei_kojo_kifukin_curr',
             'juminzei_kojo_kifukin_prev',
             'juminzei_kojo_kifukin_curr',
+            // ▼ 所得控除側で「元本ベース」で実際に使用した寄附額（40%枠との食い合い評価・足切り一体管理に使用）
+            'used_by_income_deduction_prev',
+            'used_by_income_deduction_curr',
         ];
     }
 
@@ -68,22 +71,34 @@ class KifukinCalculator implements ProvidesKeys
 
             if ($oneStop) {
                 $updates[sprintf('shotokuzei_kojo_kifukin_%s', $period)] = 0;
+                // ワンストップ利用でも I は 0 として一貫させる（所得控除は使わない）
+                $updates[sprintf('used_by_income_deduction_%s', $period)] = 0;
                 continue;
             }
 
-            $totalIncome = $this->sumTotalIncome($payload, $period);
+            // ▼ SoT優先：総所得金額等（合算上限の基礎）
+            $sogoEtc = $this->n($payload[sprintf('sum_for_sogoshotoku_etc_%s', $period)] ?? null);
+            $incomeCap40 = intdiv(max($sogoEtc, 0) * 4, 10);
+
+            // ▼ 寄附「元本」内訳（所得控除側で使う可能性のある母集団）
             $baseDonations = $this->sumByKeys($payload, self::DONATION_BASE_KEYS, $period);
-            $furusato = $this->n($payload[sprintf('shotokuzei_shotokukojo_furusato_%s', $period)] ?? 0);
-            $donationSum = $baseDonations + $furusato;
+            $furusato      = $this->n($payload[sprintf('shotokuzei_shotokukojo_furusato_%s', $period)] ?? 0);
+            $donationSum   = $baseDonations + $furusato;
 
             if ($donationSum < 2000) {
-                $updates[sprintf('shotokuzei_kojo_kifukin_%s', $period)] = 0;
+                // 足切り未満でも I は「元本の実使用量＝min(寄附元本合計, 40%枠)」として記録（税額控除側が一体管理するため）
+                $updates[sprintf('used_by_income_deduction_%s', $period)] = min($donationSum, $incomeCap40);
                 continue;
             }
 
-            $incomeCap = intdiv(max($totalIncome, 0) * 4, 10);
-            $allowedBase = min($baseDonations, $incomeCap);
-            $deduction = $allowedBase + $furusato - 2000;
+            // ▼ 所得控除の「元本」側使用量 I（40%枠に対する消費量）…控除額の足切りはここでは考慮しない
+            $usedByIncome = min($donationSum, $incomeCap40);
+            $updates[sprintf('used_by_income_deduction_%s', $period)] = $usedByIncome;
+
+            // ▼ 所得控除額（従来ロジックを維持）：所得控除の枠配分は「基礎寄附(baseDonations)＋ふるさと」を控除額として評価
+            //   - 40%上限は SoT に合わせて sogoEtc を使用
+            $allowedBase = min($baseDonations, $incomeCap40);
+            $deduction   = $allowedBase + $furusato - 2000;
 
             $updates[sprintf('shotokuzei_kojo_kifukin_%s', $period)] = max(0, $deduction);
         }

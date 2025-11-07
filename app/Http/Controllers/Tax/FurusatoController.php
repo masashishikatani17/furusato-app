@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Tax;
 use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
+use App\Domain\Tax\Calculators\ShotokuTaxCalculator;
+use App\Domain\Tax\Calculators\SeitotoTokubetsuZeigakuKojoCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
@@ -322,6 +324,20 @@ final class FurusatoController extends Controller
     /** @var CommonTaxableBaseCalculator $ctb */
         $ctb = app(CommonTaxableBaseCalculator::class);
         $previewPayload = $ctb->compute($previewPayload, $calculatorCtx);
+ 
+        /**
+         * ▼ 所得税額 → 所得税・寄附金税額控除（政党等/NPO/公益）をプレビュー段階で先行適用
+         *    - ShotokuTax:  tb_sogo_shotoku_* を基に tax_zeigaku_shotoku_* を算出
+         *    - Seitoto:     2,000円足切り・40%枠の食い合い・25%上限・最大化配分を行い、
+         *                   tax_credit_shotoku_* / tax_sashihiki_shotoku_* を生成
+         */
+        /** @var ShotokuTaxCalculator $shotokuTax */
+        $shotokuTax = app(ShotokuTaxCalculator::class);
+        $previewPayload = array_replace($previewPayload, $shotokuTax->compute($previewPayload, $calculatorCtx));
+
+        /** @var SeitotoTokubetsuZeigakuKojoCalculator $seitoto */
+        $seitoto = app(SeitotoTokubetsuZeigakuKojoCalculator::class);
+        $previewPayload = $seitoto->compute($previewPayload, $calculatorCtx);
 
         /**
          * ▼ 人的控除差調整後課税（human_adjusted_taxable_*）を SoT(tb_*) 確定“後”に上書き
@@ -1431,7 +1447,30 @@ final class FurusatoController extends Controller
                 }
             }
         }
-        
+
+        /**
+         * ▼ 第一表の表示ミラー（サーバ計算値をそのまま表示）
+         *   - 「政党等寄付金等特別控除」行：tax_seito_shotoku_* ＝ 税額控除“合計”を表示
+         *   - 「差引所得税額」行          ：tax_sashihiki_shotoku_* ＝ サーバ最終差引
+         *   優先度：results.payload → results.upper → previewPayload（savedInputs は参照しない）
+         */
+        foreach (['prev','curr'] as $p) {
+            $assign(
+                sprintf('tax_seito_shotoku_%s', $p),
+                [sprintf('tax_credit_shotoku_total_%s', $p)],
+                null,
+                /* previewOnly */ true,
+                /* allowSaved  */ false
+            );
+            $assign(
+                sprintf('tax_sashihiki_shotoku_%s', $p),
+                [sprintf('tax_sashihiki_shotoku_%s', $p)],
+                null,
+                /* previewOnly */ true,
+                /* allowSaved  */ false
+            );
+        }
+
         /**
          * ▼ 最終ミラー（result → details 表示キー）
          *   - details 側は「差引」「1/2」以外は“サーバ確定値をそのまま表示”

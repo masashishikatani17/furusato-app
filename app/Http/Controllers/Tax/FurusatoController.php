@@ -317,11 +317,20 @@ final class FurusatoController extends Controller
         $commonSums = app(CommonSumsCalculator::class);
         $previewPayload = array_replace($previewPayload, $commonSums->compute($previewPayload, $calculatorCtx));
 
+        /**
+         * ▼ 寄附金「所得控除」を先に確定（shotokuzei_kojo_kifukin_*）
+         *    - この出力を KojoAggregation が合計に取り込む
+         *    - 併せて used_by_income_deduction_* も生成され、後段の Seitoto が参照できる
+         */
+        /** @var \App\Domain\Tax\Calculators\KifukinCalculator $kifukinCalc */
+        $kifukinCalc = app(\App\Domain\Tax\Calculators\KifukinCalculator::class);
+        $previewPayload = array_replace($previewPayload, $kifukinCalc->compute($previewPayload, $calculatorCtx));
+
         /** @var KojoAggregationCalculator $kojoAgg */
         $kojoAgg = app(KojoAggregationCalculator::class);
         $previewPayload = array_replace($previewPayload, $kojoAgg->compute($previewPayload, $calculatorCtx));
 
-    /** @var CommonTaxableBaseCalculator $ctb */
+        /** @var CommonTaxableBaseCalculator $ctb */
         $ctb = app(CommonTaxableBaseCalculator::class);
         $previewPayload = $ctb->compute($previewPayload, $calculatorCtx);
  

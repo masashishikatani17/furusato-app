@@ -9,10 +9,15 @@ class KifukinCalculator implements ProvidesKeys
     public const ID = 'kojo.kifukin';
     public const ORDER = 2000;
     public const ANCHOR = 'deductions';
-    public const BEFORE = [];
-    public const AFTER = [];
+    // 実行順の明示:
+    //  - AFTER:  sum_for_sogoshotoku_etc_* 等の SoT 確定(CommonSums)が先（40%上限の基礎に使う）
+    //  - BEFORE: 本Calculatorが I(used_by_income_deduction_*) を確定した後で、税額控除(Seitoto)が続く
+    public const AFTER  = [CommonSumsCalculator::ID];
+    public const BEFORE = [SeitotoTokubetsuZeigakuKojoCalculator::ID];
 
-    /** @var string[] */
+    /**
+     * @deprecated 現行ロジックでは未使用（将来の総合課税基礎再計算で再利用する可能性あり）。
+     */
     private const TOTAL_KEYS = [
         'shotoku_gokei_shotoku',
         'bunri_shotoku_tanki_ippan_shotoku',
@@ -23,7 +28,6 @@ class KifukinCalculator implements ProvidesKeys
         'bunri_shotoku_ippan_kabuteki_joto_shotoku',
         'bunri_shotoku_jojo_kabuteki_joto_shotoku',
         'bunri_shotoku_jojo_kabuteki_haito_shotoku',
-        'bunri_shotoku_sakimono_shotoku',
         'bunri_shotoku_sanrin_shotoku',
         'bunri_shotoku_taishoku_shotoku',
     ];
@@ -31,7 +35,6 @@ class KifukinCalculator implements ProvidesKeys
     /** @var string[] */
     private const DONATION_BASE_KEYS = [
         'shotokuzei_shotokukojo_kyodobokin_nisseki',
-        'shotokuzei_shotokukojo_seito',
         'shotokuzei_shotokukojo_npo',
         'shotokuzei_shotokukojo_koueki',
         'shotokuzei_shotokukojo_kuni',
@@ -105,20 +108,12 @@ class KifukinCalculator implements ProvidesKeys
 
         return array_replace($payload, $updates);
     }
-
-    private function sumTotalIncome(array $payload, string $period): int
-    {
-        $sum = 0;
-        foreach (self::TOTAL_KEYS as $key) {
-            $field = sprintf('%s_%s', $key, $period);
-            $sum += $this->n($payload[$field] ?? 0);
-        }
-
-        return $sum;
-    }
-
+ 
     /**
-     * @param  string[]  $keys
+     * DONATION_BASE_KEYS に列挙したキー群を合算（元本ベース）
+     *
+     * @param  array<string,mixed> $payload
+     * @param  string[]            $keys
      */
     private function sumByKeys(array $payload, array $keys, string $period): int
     {
@@ -127,7 +122,6 @@ class KifukinCalculator implements ProvidesKeys
             $field = sprintf('%s_%s', $key, $period);
             $sum += $this->n($payload[$field] ?? 0);
         }
-
         return $sum;
     }
 

@@ -199,10 +199,6 @@
                     'shotoku' => 'shotokuzei_kojo_kifukin_%s',
                     'jumin' => 'juminzei_kojo_kifukin_%s',
                 ],
-                'tax_seito' => [
-                    'shotoku' => 'shotokuzei_zeigakukojo_seitoto_tokubetsu_%s',
-                    'jumin' => 'juminzei_zeigakukojo_seitoto_tokubetsu_%s',
-                ],
             ];
             $shotokuRatesForScript = collect($shotokuRates ?? [])->values()->toArray();
             $forceDash = static function (string $base, string $tax, string $period, ?int $kihuYear): bool {
@@ -2681,19 +2677,11 @@
           makeReadonlyNumber(name);
         });
 
-        taxTypes.forEach((tax) => {
-          const zeigaku = readInt(`tax_zeigaku_${tax}_${period}`);
-          const haito = readInt(`tax_haito_${tax}_${period}`);
-          const jutaku = readInt(`tax_jutaku_${tax}_${period}`);
-          const seitoKeyPrefix = tax === 'shotoku'
-            ? 'shotokuzei_zeigakukojo_seitoto_tokubetsu'
-            : 'juminzei_zeigakukojo_seitoto_tokubetsu';
-          const seito = readInt(`${seitoKeyPrefix}_${period}`);
-          const sashihiki = zeigaku - haito - jutaku - seito;
-          const sashihikiName = `tax_sashihiki_${tax}_${period}`;
-          writeInt(sashihikiName, sashihiki);
-          makeReadonlyNumber(sashihikiName);
-        });
+        // 差引税額はサーバ計算値（SeitotoTokubetsuZeigakuKojoCalculator）を表示する。
+        // クライアントでは上書きしない（見た目の整形のみ）。
+        ['shotoku','jumin'].forEach((tax) => {
+          const name = `tax_sashihiki_${tax}_${period}`;
+          make
 
         const kijunShotoku = readInt(`tax_sashihiki_shotoku_${period}`) - readInt(`tax_tokubetsu_R6_shotoku_${period}`);
         writeInt(`tax_kijun_shotoku_${period}`, kijunShotoku);

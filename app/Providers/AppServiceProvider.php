@@ -68,10 +68,12 @@ class AppServiceProvider extends ServiceProvider
             TaxBaseMirrorCalculator::class,
             // 課税ベース/税額は現行の並びのまま（後段で置換予定）
             CommonTaxableBaseCalculator::class,
-            ShotokuTaxCalculator::class,   // ← タイポ修正：Shotoku（u）に
+            ShotokuTaxCalculator::class,
+            // ▼ 所得税額の直後に「所得税・寄附金税額控除」を適用
+            SeitotoTokubetsuZeigakuKojoCalculator::class,
+            // ▼ 住民税はその後に計算
             JuminTaxCalculator::class,
             JuminzeiKifukinCalculator::class,
-            SeitotoTokubetsuZeigakuKojoCalculator::class,
             TokureiRateCalculator::class,
             // 分離の下限税率 → 最終結果
             BunriSeparatedMinRateCalculator::class,

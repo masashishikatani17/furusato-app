@@ -16,10 +16,10 @@
         "laravel/tinker": "^2.10.1",
         "league/flysystem-aws-s3-v3": "^3",
         "livewire/livewire": "^3.6.4",
+        "spatie/laravel-activitylog": "^4.8",
+        "spatie/laravel-csp": "^3.20",
         "spatie/laravel-health": "^1.34",
-        "spatie/laravel-permission": "^6.21",
-        "spatie/laravel-csp": "^3.16",
-        "spatie/laravel-activitylog": "^4.8"
+        "spatie/laravel-permission": "^6.21"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.16",

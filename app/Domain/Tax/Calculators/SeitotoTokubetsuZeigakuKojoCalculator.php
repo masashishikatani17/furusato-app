@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Domain\Tax\Calculators;
+use Illuminate\Support\Facades\Log;
 
 use App\Services\Tax\Contracts\ProvidesKeys;
 
@@ -9,8 +10,11 @@ class SeitotoTokubetsuZeigakuKojoCalculator implements ProvidesKeys
     public const ID = 'credit.seitoto';
     public const ORDER = 6000;
     public const ANCHOR = 'credits';
-    // 所得税額（ShotokuTax）確定後に適用し、住民税計算（JuminTax）より前に置く
-    public const AFTER = [ShotokuTaxCalculator::ID];
+
+    // 実行順の明示:
+    //  - AFTER:  所得税額確定(ShotokuTax) → 寄附金「所得控除」(Kifukin)が I を供給 → 本Calculator
+    //  - BEFORE: 住民税計算(JuminTax)より前に適用（所得税の税額控除）
+    public const AFTER  = [ShotokuTaxCalculator::ID, KifukinCalculator::ID];
     public const BEFORE = [JuminTaxCalculator::ID];
 
     public static function provides(): array
@@ -45,61 +49,60 @@ class SeitotoTokubetsuZeigakuKojoCalculator implements ProvidesKeys
             $donKoueki = $this->n($payload["shotokuzei_zeigakukojo_koueki_{$p}"] ?? null);
             $donSum    = $donSeito + $donNpo + $donKoueki;
 
-            // SoT：総所得金額等（40% 上限の基礎）と 所得税額（25% 上限の基礎）
-            $S = $this->n($payload["sum_for_sogoshotoku_etc_{$p}"] ?? null);   // 総所得金額等
-            $T = $this->n($payload["tax_zeigaku_shotoku_{$p}"]     ?? null);   // 所得税額（控除適用前）
+            // SoT：総所得金額等（40%上限の基礎）
+            $S = $this->n($payload["sum_for_sogoshotoku_etc_{$p}"] ?? null);
+            // T：25%上限の基礎となる「所得税額」。
+            // 現状は ShotokuTax 直後の tax_zeigaku_shotoku_* を用いる。
+            // ※将来、他の“先順位の税額控除”（例：住宅ローン控除 等）を組み込む場合は、
+            //   それら適用後の税額を T に反映する運用とすること。
+            $T = $this->n($payload["tax_zeigaku_shotoku_{$p}"] ?? null);
 
             // 所得控除で使用済みの寄附「元本」I（KifukinCalculator が出力）
             $I = $this->n($payload["used_by_income_deduction_{$p}"] ?? null);
 
-            // 2,000円足切りの一体管理（所得控除側で使った分だけ残りを減らす）
+            // 40% 枠（元本ベース）の残余：税額控除に回せる母集団の上限（I との食い合い）
+            $cap40        = intdiv(max($S, 0) * 4, 10);
+            $capForCredit = max($cap40 - $I, 0);
+
+            // 2,000 円の相殺（安全版）：まず所得控除 I で相殺した残りだけを税額控除側から引く。
+            //  → I = 0 かつ 寄附合計 < 2,000 のときは、税額控除は必ず 0 になる。
             $floorRem = max(2000 - min($I, 2000), 0);
             $donEff   = max($donSum - $floorRem, 0);
 
-            // 「総所得金額等の40%」共通枠の残り（所得控除 I を控除）
-            $cap40          = intdiv(max($S, 0) * 4, 10);
-            $capForCredit   = max($cap40 - $I, 0);
-            $baseTotal      = min($donEff, $capForCredit);  // 税額控除に回せる実効「元本」合計
+            // 税額控除に回せる実効元本（最終）：2,000相殺後 × 40%枠残
+            $baseTotal  = min($donEff, $capForCredit);
 
             // 25% 上限（NPO+公益のみ対象、政党等は別枠）
             $cap25Credit = $this->floor100( (int) floor(max($T, 0) * 0.25) );
 
-            // ――― 最適配分ロジック ―――
-            // 40%カテゴリの元本を cap25 の範囲で最大化（100円単位に対応する 250円刻み）
-            $cap25BaseMax = $this->floorTo( (int) floor($cap25Credit / 0.4), 250); // 0.4×250=100
-            $wantBase40   = min($cap25BaseMax, $baseTotal, $donNpo + $donKoueki);
+            // ――― 25% 上限の厳密適用：「公益 → NPO」優先（No.1263 注4の整理に整合）―――
+            $cap25Rem = $cap25Credit;
+            $baseLeft = $baseTotal;
 
-            // 40%側の配分（高率優先：NPO → 公益）
-            $allocNpo    = min($donNpo,    $wantBase40);
-            $rem40       = $wantBase40 - $allocNpo;
-            $allocKoueki = min($donKoueki, $rem40);
-            $alloc40     = $allocNpo + $allocKoueki;
+            // 1) 公益：元本上限 / baseLeft / 25%上限（金額）を順に当て、100円切捨て
+            $kouekiBaseMax    = min($donKoueki, $baseLeft);
+            $kouekiBaseBy25   = $this->floorTo((int) floor($cap25Rem / 0.4), 250); // 0.4×250=100
+            $allocKoueki      = min($kouekiBaseMax, $kouekiBaseBy25);
+            $credKoueki       = $this->floor100((int) floor($allocKoueki * 0.40));
+            $cap25Rem        -= $credKoueki;
+            $baseLeft        -= $allocKoueki;
 
-            // 残りは 30%（政党等）へ（寄附元本と baseTotal の制約内で）
-            $allocSeito = min($donSeito, max($baseTotal - $alloc40, 0));
+            // 2) NPO：公益控除後の 25% 残余で同様に制限
+            $npoBaseMax       = min($donNpo, max($baseLeft, 0));
+            $npoBaseBy25      = $this->floorTo((int) floor(max($cap25Rem, 0) / 0.4), 250);
+            $allocNpo         = min($npoBaseMax, $npoBaseBy25);
+            $credNpo          = $this->floor100((int) floor($allocNpo * 0.40));
+            $baseLeft        -= $allocNpo;
+
+            // 3) 政党等：25%上限の別枠。残余の実効元本から30%で算定（100円切捨て）
+            $allocSeitoMax    = min($donSeito, max($baseLeft, 0));
+            $credSeito        = $this->floor100((int) floor($allocSeitoMax * 0.30));
 
             // 万一、寄附元本の偏在で baseTotal を使い切れない場合は（まれ）、
             // 40%側寄附が残っていれば政党枠へリバランスできないため、その分は自然に未使用となる。
 
-            // カテゴリ別税額控除（100円未満切捨て）
-            $credNpoRaw    = (int) floor($allocNpo    * 0.40);
-            $credKouRaw    = (int) floor($allocKoueki * 0.40);
-            $credSeitoRaw  = (int) floor($allocSeito  * 0.30);
-
-            $credNpo    = $this->floor100($credNpoRaw);
-            $credKoueki = $this->floor100($credKouRaw);
-
-            // 25% 上限に対する最終調整（NPO+公益のみ、比例按分→各カテゴリで100円切捨て）
-            $sum40 = $credNpo + $credKoueki;
-            if ($sum40 > $cap25Credit) {
-                $ratio = $cap25Credit > 0 ? ($cap25Credit / $sum40) : 0.0;
-                $credNpo    = $this->floor100((int) floor($credNpo * $ratio));
-                $credKoueki = $this->floor100((int) floor($credKoueki * $ratio));
-                $sum40      = $credNpo + $credKoueki; // 再集計（≦ cap25）
-            }
-
-            // 政党等は別枠（上限なし：このレイヤでは T だけが最終的な全体下限に効く）
-            $credSeito = $this->floor100($credSeitoRaw);
+            // ※この順序なら「公益を先に25%へ当て、残りでNPO」を満たし、
+            //   かつ 2,000円の相殺を I + 40%側の元本で一体管理できる。
 
             $credTotal = $credNpo + $credKoueki + $credSeito;
             $taxAfter  = max($T - $credTotal, 0);
@@ -113,6 +116,19 @@ class SeitotoTokubetsuZeigakuKojoCalculator implements ProvidesKeys
         }
 
         return $payload;
+    }
+
+    /**
+     * @param  string[]  $keys
+     */
+    private function sumByKeys(array $payload, array $keys, string $period): int
+    {
+        $sum = 0;
+        foreach ($keys as $key) {
+            $field = sprintf('%s_%s', $key, $period);
+            $sum += $this->n($payload[$field] ?? 0);
+        }
+        return $sum;
     }
 
     // ===== helpers =====

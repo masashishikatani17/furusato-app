@@ -2660,29 +2660,15 @@
 
     const recalcTaxPipeline = () => {
       periods.forEach((period) => {
-        taxTypes.forEach((tax) => {
-          const name = `tax_zeigaku_${tax}_${period}`;
-          let value = 0;
-          if (bunriFlags?.[period]) {
-            value = readInt(`bunri_zeigaku_gokei_${tax}_${period}`);
-          } else {
-            const taxable = readInt(`tb_sogo_${tax}_${period}`);
-            if (tax === 'shotoku') {
-              value = calcShotokuTaxByBand(taxable);
-            } else {
-              value = Math.trunc(taxable * 0.10);
-            }
-          }
-          writeInt(name, value);
-          makeReadonlyNumber(name);
+        // 税額（tax_zeigaku_*）はサーバ値を維持（readonly化のみ）
+        ['shotoku','jumin'].forEach((tax) => {
+          makeReadonlyNumber(`tax_zeigaku_${tax}_${period}`);
+          makeReadonlyNumber(`tax_haito_${tax}_${period}`);
+          makeReadonlyNumber(`tax_jutaku_${tax}_${period}`);
+          makeReadonlyNumber(`tax_sashihiki_${tax}_${period}`); // ← 差引はサーバ計算値
         });
 
-        // 差引税額はサーバ計算値（SeitotoTokubetsuZeigakuKojoCalculator）を表示する。
-        // クライアントでは上書きしない（見た目の整形のみ）。
-        ['shotoku','jumin'].forEach((tax) => {
-          const name = `tax_sashihiki_${tax}_${period}`;
-          make
-
+        // 基準税額・復興・合計（見た目更新のみ）
         const kijunShotoku = readInt(`tax_sashihiki_shotoku_${period}`) - readInt(`tax_tokubetsu_R6_shotoku_${period}`);
         writeInt(`tax_kijun_shotoku_${period}`, kijunShotoku);
         makeReadonlyNumber(`tax_kijun_shotoku_${period}`);
@@ -2695,6 +2681,7 @@
         writeInt(fukkouShotokuName, Math.trunc(kijunShotoku * 0.021));
         makeReadonlyNumber(fukkouShotokuName);
 
+        // 住民側の復興はダッシュ表示（既存仕様）
         writeDashWithHidden(`tax_fukkou_jumin_${period}`);
 
         const gokeiShotoku = readInt(`tax_kijun_shotoku_${period}`) + readInt(`tax_fukkou_shotoku_${period}`);

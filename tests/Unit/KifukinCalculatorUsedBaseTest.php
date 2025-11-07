@@ -21,9 +21,9 @@ final class KifukinCalculatorUsedBaseTest extends TestCase
         $p = [
             'sum_for_sogoshotoku_etc_prev' => 1_000_000,
             // DONATION_BASE_KEYS の代表を2つだけ使う（合計=300,000）
-            'shotokuzei_shotokukojo_seito_prev' => 200_000,
-            'shotokuzei_shotokukojo_npo_prev'   => 100_000,
-            'shotokuzei_shotokukojo_koueki_prev'=> 0,
+            'shotokuzei_shotokukojo_kyodobokin_nisseki_prev' => 200_000,
+            'shotokuzei_shotokukojo_npo_prev'                 => 100_000,
+            'shotokuzei_shotokukojo_koueki_prev'              => 0,
             'shotokuzei_shotokukojo_furusato_prev' => 150_000,
         ];
         $out = $this->calc($p);

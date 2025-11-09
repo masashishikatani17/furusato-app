@@ -3,11 +3,13 @@
 namespace App\Domain\Tax\Calculators;
 
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Calculators\SeitotoTokubetsuZeigakuKojoCalculator;
 
 class KifukinCalculator implements ProvidesKeys
 {
     public const ID = 'kojo.kifukin';
-    public const ORDER = 2000;
+    // 【制度順】フェーズC：所得控除（CommonSums後／税額控除側と協調）
+    public const ORDER = 3300;
     public const ANCHOR = 'deductions';
     // 実行順の明示:
     //  - AFTER:  sum_for_sogoshotoku_etc_* 等の SoT 確定(CommonSums)が先（40%上限の基礎に使う）

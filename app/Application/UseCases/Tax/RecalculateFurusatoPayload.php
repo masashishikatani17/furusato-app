@@ -365,15 +365,6 @@ class RecalculateFurusatoPayload
         $payload = array_replace($payload, $seitotoService->compute($payload));
         $this->assertProvidedKeys($payload, $seitotoService);
 
-        /** @var KojoSeimeiJishinCalculator $seimeiJishinCalculator */
-        $seimeiJishinCalculator = app(KojoSeimeiJishinCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $seimeiJishinCalculator->compute($payload, 'prev'),
-            $seimeiJishinCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $seimeiJishinCalculator);
-
         /** @var DetailsSourceAliasCalculator $detailsAliasCalculator */
         $detailsAliasCalculator = app(DetailsSourceAliasCalculator::class);
         $payload = array_replace(
@@ -392,24 +383,6 @@ class RecalculateFurusatoPayload
         );
         $this->assertProvidedKeys($payload, $sakimonoCalculator);
 
-        /** @var SogoShotokuNettingCalculator $sogoShotokuCalculator */
-        $sogoShotokuCalculator = app(SogoShotokuNettingCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $sogoShotokuCalculator->compute($payload, 'prev'),
-            $sogoShotokuCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $sogoShotokuCalculator);
-
-        /** @var SogoShotokuNettingStagesCalculator $sogoShotokuStagesCalculator */
-        $sogoShotokuStagesCalculator = app(SogoShotokuNettingStagesCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $sogoShotokuStagesCalculator->compute($payload, 'prev'),
-            $sogoShotokuStagesCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $sogoShotokuStagesCalculator);
-
         /** @var BunriNettingCalculator $bunriNettingCalculator */
         $bunriNettingCalculator = app(BunriNettingCalculator::class);
         $payload = array_replace(
@@ -427,6 +400,24 @@ class RecalculateFurusatoPayload
             $bunriKabutekiNettingCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $bunriKabutekiNettingCalculator);
+
+        /** @var SogoShotokuNettingCalculator $sogoShotokuCalculator */
+        $sogoShotokuCalculator = app(SogoShotokuNettingCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $sogoShotokuCalculator->compute($payload, 'prev'),
+            $sogoShotokuCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $sogoShotokuCalculator);
+
+        /** @var SogoShotokuNettingStagesCalculator $sogoShotokuStagesCalculator */
+        $sogoShotokuStagesCalculator = app(SogoShotokuNettingStagesCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $sogoShotokuStagesCalculator->compute($payload, 'prev'),
+            $sogoShotokuStagesCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $sogoShotokuStagesCalculator);
 
         /** @var ResultToDetailsAliasCalculator $resultToDetailsAliasCalculator */
         $resultToDetailsAliasCalculator = app(ResultToDetailsAliasCalculator::class);

@@ -20,6 +20,7 @@ use App\Domain\Tax\Calculators\CommonSumsCalculator;
 use App\Domain\Tax\Calculators\CommonTaxableBaseCalculator;
 use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
+use App\Domain\Tax\Calculators\SakimonoCalculator;
 use App\Domain\Tax\Calculators\SeitotoTokubetsuZeigakuKojoCalculator;
 use App\Domain\Tax\Calculators\ShotokuTaxCalculator;
 use App\Domain\Tax\Calculators\TaxBaseMirrorCalculator;
@@ -48,42 +49,64 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(PayloadNormalizer::class, PayloadNormalizer::class);
 
-        // 実行順ポリシー（重要）:
-        //  - period系（Bunri*, KojoSeimeiJishin）は UseCase 側で先行実行
-        //  - CommonSums は控除集計（Jinteki/Haigusha/KojoAggregation）より前に置く
-        //  - TaxBaseMirror は控除計算の後で最新結果をミラー
-        //  - CommonTaxableBase/ShotokuTax/JuminTax → Tokurei/BunriMin → Result の順
+        // 実行順
+        //  1) details→alias（UseCase 側）
+        //  2) 個別“所得”化（period系：KyuyoNenkin, Sakimono, Bunri/Sogo Netting は UseCase 側で先行）
+        //  3) 合計 SoT（CommonSums）
+        //  4) 控除（Jinteki/Haigusha/KojoSeimeiJishin/Kiso/Kifukin → KojoAggregation）
+        //  5) 課税標準/税額/特例（CommonTaxableBase → ShotokuTax → Seitoto → JuminTax → Tokurei → BunriMin → JuminzeiKifukin）
+        //  6) 最終表示（FurusatoResult → TaxBaseMirror）
         $taggedCalculatorClasses = [
-            // 収入→基礎所得化
-            KifukinCalculator::class,
-            KisoKojoCalculator::class,
-            KyuyoNenkinCalculator::class,
-            // 合計系は控除より前に確定（sum_for_* を後段が参照）
+            // 3) 合計 SoT
             CommonSumsCalculator::class,
-            // 人的控除・集計（sum_for_* を参照）
+            // 4) 所得控除（CommonSums に依存）
             JintekiKojoCalculator::class,
             HaigushaKojoCalculator::class,
+            KojoSeimeiJishinCalculator::class,
+            KisoKojoCalculator::class,
+            KifukinCalculator::class,
             KojoAggregationCalculator::class,
-            // 表示ミラー（税額・特例の前に最新値を反映）
-            TaxBaseMirrorCalculator::class,
-            // 課税ベース/税額は現行の並びのまま（後段で置換予定）
+            // 5) 課税標準→税額→特例
             CommonTaxableBaseCalculator::class,
             ShotokuTaxCalculator::class,
-            // ▼ 所得税額の直後に「所得税・寄附金税額控除」を適用
             SeitotoTokubetsuZeigakuKojoCalculator::class,
-            // ▼ 住民税はその後に計算
             JuminTaxCalculator::class,
             JuminzeiKifukinCalculator::class,
             TokureiRateCalculator::class,
-            // 分離の下限税率 → 最終結果
             BunriSeparatedMinRateCalculator::class,
+            JuminzeiKifukinCalculator::class,
+            // 6) 最終表示
             FurusatoResultCalculator::class,
+            TaxBaseMirrorCalculator::class,
         ];
+        
+        /**
+         * Root fix: Calculator ID（各クラスの ::ID）をキーにユニーク化する。
+         * - 同一クラスの二重登録
+         * - 異なるクラスだが ::ID が衝突
+         * をここで排除し、RecalculateFurusatoPayload へは
+         * 「ID一意」の配列だけを渡す。
+         */
+        $uniqueById = static function (array $classes): array {
+            $seen = [];
+            $out  = [];
+            foreach ($classes as $class) {
+                // クラス側に ID が無ければクラス名で代用（保険）
+                $id = \defined($class.'::ID') ? $class::ID : $class;
+                if (isset($seen[$id])) {
+                    continue; // ★ 先勝ち：最初に並んだものが正
+                }
+                $seen[$id] = true;
+                $out[] = $class;
+            }
+            return $out;
+        };
+        $taggedCalculatorClasses = $uniqueById($taggedCalculatorClasses);
 
-        // period 単位で UseCase 側（applyAutoCalculatedFields）から直接呼ぶ計算器群。
-        // ここに登録しておけばコンテナ解決が確実になります（tag には付けない）。
+        // period 単位（UseCase側で直接実行。tagには付けない）
         $periodicCalculatorClasses = [
-            KojoSeimeiJishinCalculator::class,
+            KyuyoNenkinCalculator::class,
+            SakimonoCalculator::class,
             SogoShotokuNettingCalculator::class,
             SogoShotokuNettingStagesCalculator::class,
             BunriNettingCalculator::class,
@@ -100,8 +123,10 @@ class AppServiceProvider extends ServiceProvider
 
         // RecalculateFurusatoPayload には「通常Calculator（tagged）」のみを注入する。
         // period系（prev/curr引数をとるCalculator）は、UseCase側のperiodループで個別に実行される前提。
-        $this->app->bind(RecalculateFurusatoPayload::class, function ($app) use ($taggedCalculatorClasses) {
-            $calculators = array_map(static fn (string $class) => $app->make($class), $taggedCalculatorClasses);
+        $this->app->bind(RecalculateFurusatoPayload::class, function ($app) use ($taggedCalculatorClasses, $uniqueById) {
+            // 保険：ここでも ID でユニーク化（将来の編集ミスに強くする）
+            $byId = $uniqueById($taggedCalculatorClasses);
+            $calculators = \array_map(static fn (string $class) => $app->make($class), $byId);
 
             return new RecalculateFurusatoPayload(
                 $app->make(PayloadNormalizer::class),

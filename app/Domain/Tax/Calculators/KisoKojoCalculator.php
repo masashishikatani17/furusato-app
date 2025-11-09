@@ -3,30 +3,22 @@
 namespace App\Domain\Tax\Calculators;
 
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Calculators\CommonSumsCalculator;
+use App\Domain\Tax\Calculators\KojoAggregationCalculator;
 
 class KisoKojoCalculator implements ProvidesKeys
 {
     public const ID = 'kojo.kiso';
-    public const ORDER = 2100;
+    // 【制度順】フェーズC：基礎控除（CommonSums後→Aggregation前）
+    public const ORDER = 3230;
     public const ANCHOR = 'deductions';
-    public const BEFORE = [];
-    public const AFTER = [];
+    public const AFTER  = [CommonSumsCalculator::ID];
+    public const BEFORE = [KojoAggregationCalculator::ID];
 
-    /** @var string[] */
-    private const TOTAL_KEYS = [
-        'shotoku_gokei_shotoku',
-        'bunri_shotoku_tanki_ippan_shotoku',
-        'bunri_shotoku_tanki_keigen_shotoku',
-        'bunri_shotoku_choki_ippan_shotoku',
-        'bunri_shotoku_choki_tokutei_shotoku',
-        'bunri_shotoku_choki_keika_shotoku',
-        'bunri_shotoku_ippan_kabuteki_joto_shotoku',
-        'bunri_shotoku_jojo_kabuteki_joto_shotoku',
-        'bunri_shotoku_jojo_kabuteki_haito_shotoku',
-        'bunri_shotoku_sakimono_shotoku',
-        'bunri_shotoku_sanrin_shotoku',
-        'bunri_shotoku_taishoku_shotoku',
-    ];
+    // ★ 所得税：2025年改訂前（prev 用）／改訂後（curr 用）
+    //   - 2025データ: prev=改訂前、curr=改訂後
+    //   - 2026年以降: prev/curr とも改訂後
+    //   - 2024年以前: prev/curr とも改訂前（後方互換）
 
     private const SHOTOKU_2025_PREV_THRESHOLDS = [0, 24_000_001, 24_500_001, 25_000_001];
     private const SHOTOKU_2025_PREV_VALUES = [480_000, 320_000, 160_000, 0];
@@ -80,45 +72,41 @@ class KisoKojoCalculator implements ProvidesKeys
     {
         $kihuYear = isset($ctx['kihu_year']) ? (int) $ctx['kihu_year'] : 0;
 
-        $totals = [];
-        foreach (['prev', 'curr'] as $period) {
-            $totals[$period] = $this->sumTotalIncome($payload, $period);
-        }
+        // SoT：合計所得金額（CommonSums）
+        $totalPrev = $this->n($payload['sum_for_gokeishotoku_prev'] ?? null);
+        $totalCurr = $this->n($payload['sum_for_gokeishotoku_curr'] ?? null);
 
-        $shotokuPrevThresholds = self::SHOTOKU_2025_PREV_THRESHOLDS;
-        $shotokuPrevValues = self::SHOTOKU_2025_PREV_VALUES;
-        $shotokuCurrThresholds = self::SHOTOKU_2025_CURR_THRESHOLDS;
-        $shotokuCurrValues = self::SHOTOKU_2025_CURR_VALUES;
+        // 所得税（prev/curr）に使うテーブルを年次で決定
+        //  2025: prev=改訂前 / curr=改訂後
+        //  2026+: prev&curr=改訂後
+        //  2024-: prev&curr=改訂前（後方互換）
+        $useCurrTableForPrev = ($kihuYear >= 2026);
+        $useCurrTableForCurr = ($kihuYear >= 2025);
 
-        if ($kihuYear >= 2026) {
-            $shotokuPrevThresholds = self::SHOTOKU_2025_CURR_THRESHOLDS;
-            $shotokuPrevValues = self::SHOTOKU_2025_CURR_VALUES;
-        }
+        // prev
+        $shotokuPrevThresholds = $useCurrTableForPrev
+            ? self::SHOTOKU_2025_CURR_THRESHOLDS
+            : self::SHOTOKU_2025_PREV_THRESHOLDS;
+        $shotokuPrevValues = $useCurrTableForPrev
+            ? self::SHOTOKU_2025_CURR_VALUES
+            : self::SHOTOKU_2025_PREV_VALUES;
 
-        if ($kihuYear >= 2026) {
-            $shotokuCurrThresholds = self::SHOTOKU_2025_CURR_THRESHOLDS;
-            $shotokuCurrValues = self::SHOTOKU_2025_CURR_VALUES;
-        }
+        // curr
+        $shotokuCurrThresholds = $useCurrTableForCurr
+            ? self::SHOTOKU_2025_CURR_THRESHOLDS
+            : self::SHOTOKU_2025_PREV_THRESHOLDS;
+        $shotokuCurrValues = $useCurrTableForCurr
+            ? self::SHOTOKU_2025_CURR_VALUES
+            : self::SHOTOKU_2025_PREV_VALUES;
 
         $updates = [
-            'shotokuzei_kojo_kiso_prev' => $this->matchIndex($totals['prev'], $shotokuPrevThresholds, $shotokuPrevValues),
-            'shotokuzei_kojo_kiso_curr' => $this->matchIndex($totals['curr'], $shotokuCurrThresholds, $shotokuCurrValues),
-            'juminzei_kojo_kiso_prev' => $this->matchIndex($totals['prev'], self::JUMIN_THRESHOLDS, self::JUMIN_VALUES),
-            'juminzei_kojo_kiso_curr' => $this->matchIndex($totals['curr'], self::JUMIN_THRESHOLDS, self::JUMIN_VALUES),
+            'shotokuzei_kojo_kiso_prev' => $this->matchIndex($totalPrev, $shotokuPrevThresholds, $shotokuPrevValues),
+            'shotokuzei_kojo_kiso_curr' => $this->matchIndex($totalCurr, $shotokuCurrThresholds, $shotokuCurrValues),
+            'juminzei_kojo_kiso_prev'   => $this->matchIndex($totalPrev, self::JUMIN_THRESHOLDS, self::JUMIN_VALUES),
+            'juminzei_kojo_kiso_curr'   => $this->matchIndex($totalCurr, self::JUMIN_THRESHOLDS, self::JUMIN_VALUES),
         ];
 
         return array_replace($payload, $updates);
-    }
-
-    private function sumTotalIncome(array $payload, string $period): int
-    {
-        $sum = 0;
-        foreach (self::TOTAL_KEYS as $key) {
-            $field = sprintf('%s_%s', $key, $period);
-            $sum += $this->n($payload[$field] ?? 0);
-        }
-
-        return $sum;
     }
 
     /**

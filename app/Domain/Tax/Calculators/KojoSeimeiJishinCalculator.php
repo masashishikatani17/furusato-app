@@ -3,14 +3,19 @@
 namespace App\Domain\Tax\Calculators;
 
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Calculators\CommonSumsCalculator;
+use App\Domain\Tax\Calculators\KojoAggregationCalculator;
 
 class KojoSeimeiJishinCalculator implements ProvidesKeys
 {
     public const ID = 'kojo.seimei_jishin';
-    public const ORDER = 2050;
+    // 【制度順】フェーズC：CommonSums後→KojoAggregation前
+    public const ORDER = 3220;
     public const ANCHOR = 'deductions';
-    public const BEFORE = [];
-    public const AFTER = [];
+    // 合計系である CommonSums の後に動かす（制度上、所得控除は合計確定後）
+    public const AFTER  = [CommonSumsCalculator::ID];
+    // 控除合算（KojoAggregation）より前に動かす
+    public const BEFORE = [KojoAggregationCalculator::ID];
 
     private const SHOTOKU_SEIMEI_TOTAL_CAP = 120_000;
     private const JUMIN_SEIMEI_TOTAL_CAP = 70_000;
@@ -69,68 +74,65 @@ class KojoSeimeiJishinCalculator implements ProvidesKeys
     }
 
     /**
-     * @param  array<string, mixed>  $payload
-     * @param  string  $period
-     * @return array<string, mixed>
+     * 通常Calculatorとして ctx を受け取り、prev/curr を内部ループで確定する
+     * @param  array<string,mixed> $payload
+     * @param  array<string,mixed> $ctx
+     * @return array<string,mixed>
      */
-    public function compute(array $payload, string $period): array
+    public function compute(array $payload, array $ctx): array
     {
-        if (! in_array($period, ['prev', 'curr'], true)) {
-            return [];
+        unset($ctx);
+        $updates = [];
+        foreach (['prev','curr'] as $period) {
+            $newGeneral = $this->n($payload[sprintf('kojo_seimei_shin_%s', $period)] ?? null);
+            $oldGeneral = $this->n($payload[sprintf('kojo_seimei_kyu_%s', $period)] ?? null);
+            $newNenkin  = $this->n($payload[sprintf('kojo_seimei_nenkin_shin_%s', $period)] ?? null);
+            $oldNenkin  = $this->n($payload[sprintf('kojo_seimei_nenkin_kyu_%s', $period)] ?? null);
+            $kaigo      = $this->n($payload[sprintf('kojo_seimei_kaigo_iryo_%s', $period)] ?? null);
+            $eq         = $this->n($payload[sprintf('kojo_jishin_%s', $period)] ?? null);
+            $oldEq      = $this->n($payload[sprintf('kojo_kyuchoki_songai_%s', $period)] ?? null);
+
+            $shotokuGeneral = $this->calculateShotokuSeimeiGeneral($newGeneral, $oldGeneral);
+            $shotokuNenkin  = $this->calculateShotokuSeimeiGeneral($newNenkin, $oldNenkin);
+            $shotokuKaigo   = $this->calculateShotokuSeimeiNew($kaigo);
+            $shotokuTotal   = min(self::SHOTOKU_SEIMEI_TOTAL_CAP, $shotokuGeneral + $shotokuNenkin + $shotokuKaigo);
+
+            $juminGeneral = $this->calculateJuminSeimeiCombined($newGeneral, $oldGeneral);
+            $juminNenkin  = $this->calculateJuminSeimeiCombined($newNenkin, $oldNenkin);
+            $juminKaigo   = $this->calculateJuminSeimeiNew($kaigo);
+            $juminTotal   = min(self::JUMIN_SEIMEI_TOTAL_CAP, $juminGeneral + $juminNenkin + $juminKaigo);
+
+            $shotokuEq        = $this->calculateShotokuJishinEq($eq);
+            $shotokuOld       = $this->calculateShotokuJishinOld($oldEq);
+            $shotokuJishinTot = min(self::SHOTOKU_JISHIN_TOTAL_CAP, $shotokuEq + $shotokuOld);
+
+            $juminEq        = $this->calculateJuminJishinEq($eq);
+            $juminOld       = $this->calculateJuminJishinOld($oldEq);
+            $juminJishinTot = min(self::JUMIN_JISHIN_TOTAL_CAP, $juminEq + $juminOld);
+
+            $updates[sprintf('shotokuzei_kojo_seimei_ippan_%s', $period)] = $shotokuGeneral;
+            $updates[sprintf('shotokuzei_kojo_seimei_nenkin_%s', $period)] = $shotokuNenkin;
+            $updates[sprintf('shotokuzei_kojo_seimei_kaigo_%s', $period)] = $shotokuKaigo;
+            $updates[sprintf('shotokuzei_kojo_seimei_gokei_%s', $period)] = $shotokuTotal;
+            $updates[sprintf('kojo_seimei_shotoku_%s', $period)] = $shotokuTotal;
+
+            $updates[sprintf('juminzei_kojo_seimei_ippan_%s', $period)] = $juminGeneral;
+            $updates[sprintf('juminzei_kojo_seimei_nenkin_%s', $period)] = $juminNenkin;
+            $updates[sprintf('juminzei_kojo_seimei_kaigo_%s', $period)] = $juminKaigo;
+            $updates[sprintf('juminzei_kojo_seimei_gokei_%s', $period)] = $juminTotal;
+            $updates[sprintf('kojo_seimei_jumin_%s', $period)] = $juminTotal;
+
+            $updates[sprintf('shotokuzei_kojo_jishin_eq_%s', $period)] = $shotokuEq;
+            $updates[sprintf('shotokuzei_kojo_jishin_old_%s', $period)] = $shotokuOld;
+            $updates[sprintf('shotokuzei_kojo_jishin_gokei_%s', $period)] = $shotokuJishinTot;
+            $updates[sprintf('kojo_jishin_shotoku_%s', $period)] = $shotokuJishinTot;
+
+            $updates[sprintf('juminzei_kojo_jishin_eq_%s', $period)] = $juminEq;
+            $updates[sprintf('juminzei_kojo_jishin_old_%s', $period)] = $juminOld;
+            $updates[sprintf('juminzei_kojo_jishin_gokei_%s', $period)] = $juminJishinTot;
+            $updates[sprintf('kojo_jishin_jumin_%s', $period)] = $juminJishinTot;
         }
-
-        $newGeneral = $this->n($payload[sprintf('kojo_seimei_shin_%s', $period)] ?? null);
-        $oldGeneral = $this->n($payload[sprintf('kojo_seimei_kyu_%s', $period)] ?? null);
-        $newNenkin = $this->n($payload[sprintf('kojo_seimei_nenkin_shin_%s', $period)] ?? null);
-        $oldNenkin = $this->n($payload[sprintf('kojo_seimei_nenkin_kyu_%s', $period)] ?? null);
-        $kaigo = $this->n($payload[sprintf('kojo_seimei_kaigo_iryo_%s', $period)] ?? null);
-        $eq = $this->n($payload[sprintf('kojo_jishin_%s', $period)] ?? null);
-        $oldEq = $this->n($payload[sprintf('kojo_kyuchoki_songai_%s', $period)] ?? null);
-
-        $shotokuGeneral = $this->calculateShotokuSeimeiGeneral($newGeneral, $oldGeneral);
-        $shotokuNenkin = $this->calculateShotokuSeimeiGeneral($newNenkin, $oldNenkin);
-        $shotokuKaigo = $this->calculateShotokuSeimeiNew($kaigo);
-        $shotokuTotal = min(
-            self::SHOTOKU_SEIMEI_TOTAL_CAP,
-            $shotokuGeneral + $shotokuNenkin + $shotokuKaigo
-        );
-
-        $juminGeneral = $this->calculateJuminSeimeiCombined($newGeneral, $oldGeneral);
-        $juminNenkin = $this->calculateJuminSeimeiCombined($newNenkin, $oldNenkin);
-        $juminKaigo = $this->calculateJuminSeimeiNew($kaigo);
-        $juminTotal = min(
-            self::JUMIN_SEIMEI_TOTAL_CAP,
-            $juminGeneral + $juminNenkin + $juminKaigo
-        );
-
-        $shotokuEq = $this->calculateShotokuJishinEq($eq);
-        $shotokuOld = $this->calculateShotokuJishinOld($oldEq);
-        $shotokuJishinTotal = min(self::SHOTOKU_JISHIN_TOTAL_CAP, max($shotokuEq, $shotokuOld));
-
-        $juminEq = $this->calculateJuminJishinEq($eq);
-        $juminOld = $this->calculateJuminJishinOld($oldEq);
-        $juminJishinTotal = min(self::JUMIN_JISHIN_TOTAL_CAP, $juminEq + $juminOld);
-
-        return [
-            sprintf('shotokuzei_kojo_seimei_ippan_%s', $period) => $shotokuGeneral,
-            sprintf('shotokuzei_kojo_seimei_nenkin_%s', $period) => $shotokuNenkin,
-            sprintf('shotokuzei_kojo_seimei_kaigo_%s', $period) => $shotokuKaigo,
-            sprintf('shotokuzei_kojo_seimei_gokei_%s', $period) => $shotokuTotal,
-            sprintf('kojo_seimei_shotoku_%s', $period) => $shotokuTotal,
-            sprintf('juminzei_kojo_seimei_ippan_%s', $period) => $juminGeneral,
-            sprintf('juminzei_kojo_seimei_nenkin_%s', $period) => $juminNenkin,
-            sprintf('juminzei_kojo_seimei_kaigo_%s', $period) => $juminKaigo,
-            sprintf('juminzei_kojo_seimei_gokei_%s', $period) => $juminTotal,
-            sprintf('kojo_seimei_jumin_%s', $period) => $juminTotal,
-            sprintf('shotokuzei_kojo_jishin_eq_%s', $period) => $shotokuEq,
-            sprintf('shotokuzei_kojo_jishin_old_%s', $period) => $shotokuOld,
-            sprintf('shotokuzei_kojo_jishin_gokei_%s', $period) => $shotokuJishinTotal,
-            sprintf('kojo_jishin_shotoku_%s', $period) => $shotokuJishinTotal,
-            sprintf('juminzei_kojo_jishin_eq_%s', $period) => $juminEq,
-            sprintf('juminzei_kojo_jishin_old_%s', $period) => $juminOld,
-            sprintf('juminzei_kojo_jishin_gokei_%s', $period) => $juminJishinTotal,
-            sprintf('kojo_jishin_jumin_%s', $period) => $juminJishinTotal,
-        ];
+        return array_replace($payload, $updates);
     }
 
     private function calculateShotokuSeimeiGeneral(int $newAmount, int $oldAmount): int

@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Log;
 class CommonTaxableBaseCalculator implements ProvidesKeys
 {
     public const ID = 'common.taxable.base';
-    public const ORDER = 5050;
+    // 【制度順】フェーズD：課税標準SoT(tb_*)の確定（控除集計後→税額等の前）
+    public const ORDER = 5000;
     // 本Calculatorの出力(tb_*)を参照して税額や住民税控除を計算させる
     public const BEFORE = [
         ShotokuTaxCalculator::ID,

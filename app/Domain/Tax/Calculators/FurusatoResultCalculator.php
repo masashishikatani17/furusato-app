@@ -8,7 +8,8 @@ use App\Services\Tax\Contracts\ProvidesKeys;
 class FurusatoResultCalculator implements ProvidesKeys
 {
     public const ID = 'results.furusato';
-    public const ORDER = 9000;
+    // 【制度順】フェーズE：最終結果（率・控除確定後、Mirrorの前）
+    public const ORDER = 9800;
     public const ANCHOR = 'results';
     public const BEFORE = [];
     public const AFTER = [

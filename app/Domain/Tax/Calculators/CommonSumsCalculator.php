@@ -12,13 +12,13 @@ use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
 class CommonSumsCalculator implements ProvidesKeys
 {
     public const ID = 'common.sums';
-    // 控除系より前に実行される（period系は UseCase 側で先に実行されるため AFTER は空）
-    public const ORDER = 3500;
+    // 【制度順】フェーズB：合計SoT確定（K/N等 period系の後、控除系の前）
+    public const ORDER = 2000;
     public const AFTER = [];  // Missing dependencies 回避のため空
     public const BEFORE = [
-        \App\Domain\Tax\Calculators\JintekiKojoCalculator::ID,
-        \App\Domain\Tax\Calculators\HaigushaKojoCalculator::ID,
-        \App\Domain\Tax\Calculators\KojoAggregationCalculator::ID,
+        JintekiKojoCalculator::ID,
+        HaigushaKojoCalculator::ID,
+        KojoAggregationCalculator::ID,
     ];
 
     /** @var string[] */
@@ -34,7 +34,6 @@ class CommonSumsCalculator implements ProvidesKeys
             $out[] = sprintf('sum_for_gokeishotoku_%s', $p);
             $out[] = sprintf('sum_for_sogoshotoku_%s', $p);
             $out[] = sprintf('sum_for_sogoshotoku_etc_%s', $p);
-            $out[] = sprintf('sum_for_pension_bucket_%s', $p);
             // UI第一表の合計(A+B)もSoTとして保持
             $out[] = sprintf('sum_for_ab_total_%s', $p);
         }
@@ -103,21 +102,7 @@ class CommonSumsCalculator implements ProvidesKeys
             $sogoshotokuEtc = $sumSogo + $Bp + $Cafter;
             $payload[sprintf('sum_for_sogoshotoku_etc_%s', $period)] = $sogoshotokuEtc;
 
-            // ===== 4) 年金バケット用：年金“以外”の外側合計(代理) =====
-            // v1互換のまま（本ターンは合計所得金額のみ厳密化）
-            $suffix = '_' . $period;
-            $exclude = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
-            $bucketOther = 0;
-            foreach ($payload as $k => $v) {
-                if (!is_string($k)) continue;
-                if (!str_starts_with($k, 'shotoku_')) continue;
-                if (!str_ends_with($k, $suffix)) continue;
-                if ($k === $exclude) continue;
-                $bucketOther += $this->n($v);
-            }
-            $payload[sprintf('sum_for_pension_bucket_%s', $period)] = $bucketOther;
-
-            // ===== 5) Δログ（debug時のみ） =====
+            // ===== 4) Δログ（debug時のみ） =====
             if (config('app.debug')) {
                 // 既存 shotoku_gokei_* が存在する場合のみ比較（監視用）
                 $existingGokei = $this->intOrNull($payload[sprintf('shotoku_gokei_%s', $period)] ?? null);

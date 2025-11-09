@@ -8,7 +8,8 @@ use App\Domain\Tax\Calculators\CommonSumsCalculator;
 class JintekiKojoCalculator implements ProvidesKeys
 {
     public const ID = 'kojo.jinteki';
-    public const ORDER = 2200;
+    // 【制度順】フェーズC：合計SoT(CommonSums)確定後の人的控除
+    public const ORDER = 3200;
     public const ANCHOR = 'deductions';
     public const BEFORE = [];
     // 合計所得金額のSoT（CommonSums）確定後に実行

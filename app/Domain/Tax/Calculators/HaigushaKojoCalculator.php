@@ -9,7 +9,8 @@ use App\Domain\Tax\Calculators\KojoAggregationCalculator;
 class HaigushaKojoCalculator implements ProvidesKeys
 {
     public const ID = 'kojo.haigusha';
-    public const ORDER = 2300;
+    // 【制度順】フェーズC：合計SoT(CommonSums)確定後の配偶者控除
+    public const ORDER = 3210;
     public const ANCHOR = 'deductions';
     // 集計(KojoAggregation)より先に実行
     public const BEFORE = [KojoAggregationCalculator::ID];

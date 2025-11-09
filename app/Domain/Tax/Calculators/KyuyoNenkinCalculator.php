@@ -9,7 +9,8 @@ use DateTimeInterface;
 class KyuyoNenkinCalculator implements ProvidesKeys
 {
     public const ID = 'kyuyo.nenkin';
-    public const ORDER = 2120;
+    // 【制度順】フェーズA：入力正規化後に給与・雑（年金/業務/その他）をSoT化
+    public const ORDER = 1100;
     public const BEFORE = [];
     public const AFTER = [];
 
@@ -68,14 +69,13 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $nenkinIncomeKey = sprintf('zatsu_nenkin_syunyu_%s', $period);
             $nenkinIncome    = $this->clampIncome($payload[$nenkinIncomeKey] ?? null);
 
-            // ▼ 年金バケット判定だけは新キー(sum_for_pension_bucket_*)を優先使用（v1要件）
-            $bucketOther = $this->n($payload[sprintf('sum_for_pension_bucket_%s', $period)] ?? null);
+            // ▼ 年金バケット判定：K/Nが唯一SoT（CommonSumsのバケットは撤去）
             $shotokuOther = $this->sumOtherIncome($working, 'shotoku_', sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period), $period);
             $juminOther   = $this->sumOtherIncome($working, 'jumin_',   sprintf('jumin_zatsu_nenkin_jumin_%s',     $period), $period);
 
             $isSenior = $this->isSenior($birthDate, $year);
-            $shotokuResult = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $bucketOther > 0 ? $bucketOther : $shotokuOther);
-            $juminResult   = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $bucketOther > 0 ? $bucketOther : $juminOther);
+            $shotokuResult = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $shotokuOther);
+            $juminResult   = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $juminOther);
 
             $shotokuNenkinKey = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
             $juminNenkinKey = sprintf('jumin_zatsu_nenkin_jumin_%s', $period);

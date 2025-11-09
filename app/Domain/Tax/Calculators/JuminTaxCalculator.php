@@ -7,7 +7,8 @@ use App\Services\Tax\Contracts\ProvidesKeys;
 class JuminTaxCalculator implements ProvidesKeys
 {
     public const ID = 'tax.jumin';
-    public const ORDER = 5100;
+    // 【制度順】フェーズD：住民税額（所得税額の後）
+    public const ORDER = 5200;
     public const ANCHOR = 'tax';
     public const BEFORE = [];
     public const AFTER = [ShotokuTaxCalculator::ID];

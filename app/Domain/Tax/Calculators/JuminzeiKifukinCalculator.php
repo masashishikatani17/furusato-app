@@ -4,15 +4,22 @@ namespace App\Domain\Tax\Calculators;
 
 use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Calculators\KojoAggregationCalculator;
+use App\Domain\Tax\Calculators\CommonTaxableBaseCalculator;
+use App\Domain\Tax\Calculators\TokureiRateCalculator;
+use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 
 final class JuminzeiKifukinCalculator implements ProvidesKeys
 {
     public const ID    = 'kojo.kifukin.jumin';
-    public const ORDER = 4050;
+    // 【制度順】フェーズD：住民税の寄附税額控除（tb_*確定・率確定の後）
+    public const ORDER = 5300;
     public const BEFORE = [];
     public const AFTER  = [
-        \App\Domain\Tax\Calculators\KojoAggregationCalculator::ID,
-        \App\Domain\Tax\Calculators\TokureiRateCalculator::ID,
+        KojoAggregationCalculator::ID,
+        CommonTaxableBaseCalculator::ID,
+        TokureiRateCalculator::ID,
+        BunriSeparatedMinRateCalculator::ID,
     ];
 
     /** @var string[] */

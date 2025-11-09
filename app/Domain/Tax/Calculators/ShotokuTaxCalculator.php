@@ -8,7 +8,8 @@ use App\Services\Tax\Contracts\ProvidesKeys;
 class ShotokuTaxCalculator implements ProvidesKeys
 {
     public const ID = 'tax.shotoku';
-    public const ORDER = 5000;
+    // 【制度順】フェーズD：所得税額（tb_*の後）
+    public const ORDER = 5100;
     public const ANCHOR = 'tax';
     public const BEFORE = [];
     public const AFTER = [KojoAggregationCalculator::ID];

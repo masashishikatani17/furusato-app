@@ -7,7 +7,8 @@ use App\Services\Tax\Contracts\ProvidesKeys;
 class BunriSeparatedMinRateCalculator implements ProvidesKeys
 {
     public const ID = 'bunri.minrate';
-    public const ORDER = 7100;
+    // 【制度順】フェーズD：分離に基づく最小率（Tokurei率決定後）
+    public const ORDER = 5410;
     public const ANCHOR = 'credits';
     public const BEFORE = [];
     public const AFTER = [TokureiRateCalculator::ID];

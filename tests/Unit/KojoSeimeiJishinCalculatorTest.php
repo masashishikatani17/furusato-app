@@ -16,7 +16,7 @@ class KojoSeimeiJishinCalculatorTest extends TestCase
             'kojo_seimei_kyu_prev' => 100_000,
         ];
 
-        $result = $calculator->compute($payload, 'prev');
+        $result = $calculator->compute($payload, []);
 
         $this->assertSame(50_000, $result['shotokuzei_kojo_seimei_ippan_prev']);
     }
@@ -33,7 +33,7 @@ class KojoSeimeiJishinCalculatorTest extends TestCase
             'kojo_seimei_kaigo_iryo_prev' => 46_000,
         ];
 
-        $result = $calculator->compute($payload, 'prev');
+        $result = $calculator->compute($payload, []);
 
         $this->assertSame(120_000, $result['shotokuzei_kojo_seimei_gokei_prev']);
         $this->assertSame(120_000, $result['kojo_seimei_shotoku_prev']);
@@ -48,7 +48,7 @@ class KojoSeimeiJishinCalculatorTest extends TestCase
             'kojo_seimei_kyu_prev' => 1_000,
         ];
 
-        $result = $calculator->compute($payload, 'prev');
+        $result = $calculator->compute($payload, []);
 
         $this->assertSame(23_000, $result['juminzei_kojo_seimei_ippan_prev']);
     }
@@ -64,7 +64,7 @@ class KojoSeimeiJishinCalculatorTest extends TestCase
             'kojo_seimei_kaigo_iryo_prev' => 46_000,
         ];
 
-        $result = $calculator->compute($payload, 'prev');
+        $result = $calculator->compute($payload, []);
 
         $this->assertSame(70_000, $result['juminzei_kojo_seimei_gokei_prev']);
         $this->assertSame(70_000, $result['kojo_seimei_jumin_prev']);
@@ -81,7 +81,7 @@ class KojoSeimeiJishinCalculatorTest extends TestCase
             'kojo_seimei_nenkin_kyu_prev' => 30_000,
         ];
 
-        $result = $calculator->compute($payload, 'prev');
+        $result = $calculator->compute($payload, []);
 
         $this->assertSame(40_000, $result['shotokuzei_kojo_seimei_ippan_prev']);
         $this->assertSame(40_000, $result['shotokuzei_kojo_seimei_nenkin_prev']);
@@ -102,7 +102,7 @@ class KojoSeimeiJishinCalculatorTest extends TestCase
             'kojo_kyuchoki_songai_prev' => 30_000,
         ];
 
-        $result = $calculator->compute($payload, 'prev');
+        $result = $calculator->compute($payload, []);
 
         $this->assertSame(50_000, $result['shotokuzei_kojo_jishin_eq_prev']);
         $this->assertSame(15_000, $result['shotokuzei_kojo_jishin_old_prev']);

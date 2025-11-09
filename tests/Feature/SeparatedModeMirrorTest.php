@@ -39,8 +39,9 @@ final class SeparatedModeMirrorTest extends TestCase
 
         // 現仕様：第一表合計は sum_for_sogoshotoku_* を採用
         $this->assertSame(1_050_000, $result['shotoku_gokei_curr']);
-        $this->assertSame(1_050_000, $result['shotoku_joto_ichiji_shotoku_curr']);
-        $this->assertSame(1_050_000, $result['shotoku_joto_ichiji_jumin_curr']);
+        // 新仕様：TaxBaseMirror は既存の最終キーのみミラーする。joto_ichiji_* は自動合成しない
+        $this->assertArrayNotHasKey('shotoku_joto_ichiji_shotoku_curr', $result);
+        $this->assertArrayNotHasKey('shotoku_joto_ichiji_jumin_curr', $result);
         // bunri_* はそのままミラー（再計算なし）
         $this->assertSame(650_000, $result['bunri_sogo_gokeigaku_shotoku_curr']);
         $this->assertSame(650_000, $result['bunri_sogo_gokeigaku_jumin_curr']);
@@ -63,11 +64,10 @@ final class SeparatedModeMirrorTest extends TestCase
 
         $result = $calculator->compute($payload, []);
 
-        // 総合合計は joto_ichiji_* へミラー
-        $this->assertSame(500_000, $result['shotoku_joto_ichiji_shotoku_prev']);
-        $this->assertSame(500_000, $result['shotoku_joto_ichiji_jumin_prev']);
-        // 現仕様：sum_for_sogoshotoku_* の値は joto_ichiji_* へミラーしつつ、
-        // shotoku_gokei_* も sum_for_sogoshotoku_* を採用する
+        // 新仕様：joto_ichiji_* は存在しないデータを勝手に補完しない（フォールバック禁止）
+        $this->assertArrayNotHasKey('shotoku_joto_ichiji_shotoku_prev', $result);
+        $this->assertArrayNotHasKey('shotoku_joto_ichiji_jumin_prev', $result);
+        // 総合（A）は sum_for_sogoshotoku_* を shotoku_gokei_* にミラー
         $this->assertSame(500_000, $result['shotoku_gokei_prev']);
         // 未供給の bunri_* / tax_* は生成しない（フォールバック禁止）
         $this->assertArrayNotHasKey('bunri_sogo_gokeigaku_shotoku_prev', $result);

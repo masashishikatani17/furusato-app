@@ -3,20 +3,40 @@
 namespace App\Domain\Tax\Calculators;
 
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Calculators\CommonSumsCalculator;
+use App\Domain\Tax\Calculators\JintekiKojoCalculator;
+use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
+use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
+use App\Domain\Tax\Calculators\CommonTaxableBaseCalculator;
+use App\Domain\Tax\Calculators\ShotokuTaxCalculator;
+use App\Domain\Tax\Calculators\SeitotoTokubetsuZeigakuKojoCalculator;
+use App\Domain\Tax\Calculators\JuminTaxCalculator;
+use App\Domain\Tax\Calculators\JuminzeiKifukinCalculator;
+use App\Domain\Tax\Calculators\TokureiRateCalculator;
+use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
+use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 
 class TaxBaseMirrorCalculator implements ProvidesKeys
 {
     public const ID = 'tax.base.mirror';
-    public const ORDER = 5050;
+    // 【制度順】フェーズE：最終ミラー（最後に実行）
+    public const ORDER = 9990;
     public const ANCHOR = 'tax';
-    public const BEFORE = [
-        ShotokuTaxCalculator::ID,
-        JuminTaxCalculator::ID,
-    ];
+    public const BEFORE = []; // ミラーは最後に走らせたいので BEFORE は空
     public const AFTER = [
+        CommonSumsCalculator::ID,
+        JintekiKojoCalculator::ID,
+        HaigushaKojoCalculator::ID,
+        KojoSeimeiJishinCalculator::ID,
+        CommonTaxableBaseCalculator::ID,
+        ShotokuTaxCalculator::ID,
+        SeitotoTokubetsuZeigakuKojoCalculator::ID,
+        JuminTaxCalculator::ID,
         JuminzeiKifukinCalculator::ID,
+        TokureiRateCalculator::ID,
+        BunriSeparatedMinRateCalculator::ID,
+        FurusatoResultCalculator::ID,
     ];
-
     private const PERIODS = ['prev', 'curr'];
 
     /**
@@ -86,11 +106,8 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
             $sumSogoKey = sprintf('sum_for_sogoshotoku_%s', $period);
             if (array_key_exists($sumSogoKey, $payload)) {
                 $sumSogo = (int) $payload[$sumSogoKey];
-                // 第一表「所得金額の合計額」（表示用合計）は A を採用
+                // 第一表「所得金額の合計額」（表示用合計）は A（総所得金額）を採用
                 $updates[sprintf('shotoku_gokei_%s', $period)] = $sumSogo;
-                // 参考合計（後方互換：既存の shotoku_joto_ichiji_* にもミラー）
-                $updates[sprintf('shotoku_joto_ichiji_shotoku_%s', $period)] = $sumSogo;
-                $updates[sprintf('shotoku_joto_ichiji_jumin_%s',  $period)] = $sumSogo;
             }
 
             // ▼ 課税基礎（tb_*）は別Calculatorで確定。ここでは設定しない。

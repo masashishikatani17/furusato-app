@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Log;
 class TokureiRateCalculator implements ProvidesKeys
 {
     public const ID = 'tokurei.bundle';
-    public const ORDER = 7000;
+    // 【制度順】フェーズD：標準/90%/山林1/5/退職の率（税額の後）
+    public const ORDER = 5400;
     public const ANCHOR = 'credits';
     public const BEFORE = [];
     public const AFTER = [JuminTaxCalculator::ID];

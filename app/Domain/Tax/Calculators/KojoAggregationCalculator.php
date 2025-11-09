@@ -7,7 +7,8 @@ use App\Services\Tax\Contracts\ProvidesKeys;
 class KojoAggregationCalculator implements ProvidesKeys
 {
     public const ID = 'kojo.aggregate';
-    public const ORDER = 4000;
+    // 【制度順】フェーズC：控除集計（各控除の後）
+    public const ORDER = 3900;
     public const ANCHOR = 'deductions';
     public const BEFORE = [];
     public const AFTER = [

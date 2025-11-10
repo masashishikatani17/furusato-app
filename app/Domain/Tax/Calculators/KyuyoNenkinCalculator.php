@@ -27,7 +27,8 @@ class KyuyoNenkinCalculator implements ProvidesKeys
         foreach (self::PERIODS as $period) {
             // 給与（所得）
             $keys[] = sprintf('shotoku_kyuyo_shotoku_%s', $period);
-            $keys[] = sprintf('jumin_kyuyo_jumin_%s',   $period);
+            // 住民税側キー命名を統一（shotoku_kyuyo_jumin_*）
+            $keys[] = sprintf('shotoku_kyuyo_jumin_%s',   $period);
             // 雑・公的年金（所得）
             $keys[] = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
             $keys[] = sprintf('jumin_zatsu_nenkin_jumin_%s',     $period);
@@ -37,6 +38,13 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             // 雑・その他（所得）
             $keys[] = sprintf('shotoku_zatsu_sonota_shotoku_%s', $period);
             $keys[] = sprintf('jumin_zatsu_sonota_jumin_%s',     $period);
+            // ▼ 出力：所得金額調整控除の算出額（可視化・検証用）
+            // 子育て・介護（850万超）の調整額
+            $keys[] = sprintf('kyuyo_chosei_childcare_shotoku_%s', $period);
+            $keys[] = sprintf('kyuyo_chosei_childcare_jumin_%s',   $period);
+            // 給与＋年金「双方有り」の調整額
+            $keys[] = sprintf('kyuyo_chosei_both_shotoku_%s', $period);
+            $keys[] = sprintf('kyuyo_chosei_both_jumin_%s',   $period);
         }
         return $keys;
     }
@@ -61,7 +69,7 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $kyuyoAmount = $this->calculateKyuyoShotoku($kyuyoIncome, $year);
 
             $shotokuKyuyoKey = sprintf('shotoku_kyuyo_shotoku_%s', $period);
-            $juminKyuyoKey = sprintf('jumin_kyuyo_jumin_%s', $period);
+            $juminKyuyoKey  = sprintf('shotoku_kyuyo_jumin_%s', $period);
             $updates[$shotokuKyuyoKey] = $kyuyoAmount;
             $updates[$juminKyuyoKey] = $kyuyoAmount;
             $working[$shotokuKyuyoKey] = $kyuyoAmount;
@@ -164,6 +172,52 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $updates[sprintf('jumin_zatsu_nenkin_jumin_%s',     $period)] = $juminNenkin;
             $working[sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period)] = $shotokuNenkin;
             $working[sprintf('jumin_zatsu_nenkin_jumin_%s',     $period)] = $juminNenkin;
+
+            // ===== 所得金額調整控除（制度上は“所得控除”）を給与所得へ適用 =====
+            // 1) 子育て・介護世帯向け（年収850万超かつチェックON）
+            $childcareFlag = $this->n($payload[sprintf('kyuyo_chosei_applicable_%s', $period)] ?? 0) === 1;
+            $childcareAdj  = 0;
+            if ($childcareFlag) {
+                // { min(給与収入, 10,000,000) − 8,500,000 } × 10% （負→0）
+                $cappedIncome = min($kyuyoIncome, 10_000_000);
+                $excess = $cappedIncome - 8_500_000;
+                if ($excess > 0) {
+                    $childcareAdj = (int) floor($excess * 0.10);
+                }
+            }
+            // 給与所得から控除（下限0）
+            if ($childcareAdj > 0) {
+                $newShotokuKyuyo = max(0, ($updates[$shotokuKyuyoKey] ?? 0) - $childcareAdj);
+                $newJuminKyuyo   = max(0, ($updates[$juminKyuyoKey]   ?? 0) - $childcareAdj);
+                $updates[$shotokuKyuyoKey] = $newShotokuKyuyo;
+                $updates[$juminKyuyoKey]   = $newJuminKyuyo;
+                $working[$shotokuKyuyoKey] = $newShotokuKyuyo;
+                $working[$juminKyuyoKey]   = $newJuminKyuyo;
+            }
+            $updates[sprintf('kyuyo_chosei_childcare_shotoku_%s', $period)] = $childcareAdj;
+            $updates[sprintf('kyuyo_chosei_childcare_jumin_%s',   $period)] = $childcareAdj;
+
+            // 2) 給与＋年金“双方有り”の調整控除
+            // 控除額 = max( min(給与所得,10万円) + min(年金雑所得,10万円) − 10万円 , 0 )
+            $bothAdj = 0;
+            $salaryForBoth = $updates[$shotokuKyuyoKey] ?? 0;      // 現在の給与“所得”金額
+            $pensionForBoth = $updates[sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period)] ?? 0; // 年金“所得”金額
+            $bothAdjBase = min($salaryForBoth, 100_000) + min($pensionForBoth, 100_000) - 100_000;
+            if ($bothAdjBase > 0) {
+                $bothAdj = (int) $bothAdjBase;
+            }
+            if ($bothAdj > 0) {
+                // 実務上は「所得金額調整控除」として合計所得から控除されますが、
+                // 第一表整合のため、ここでは給与所得から控除（下限0）して出力します。
+                $newShotokuKyuyo = max(0, ($updates[$shotokuKyuyoKey] ?? 0) - $bothAdj);
+                $newJuminKyuyo   = max(0, ($updates[$juminKyuyoKey]   ?? 0) - $bothAdj);
+                $updates[$shotokuKyuyoKey] = $newShotokuKyuyo;
+                $updates[$juminKyuyoKey]   = $newJuminKyuyo;
+                $working[$shotokuKyuyoKey] = $newShotokuKyuyo;
+                $working[$juminKyuyoKey]   = $newJuminKyuyo;
+            }
+            $updates[sprintf('kyuyo_chosei_both_shotoku_%s', $period)] = $bothAdj;
+            $updates[sprintf('kyuyo_chosei_both_jumin_%s',   $period)] = $bothAdj;
         }
 
         return array_replace($payload, $updates);

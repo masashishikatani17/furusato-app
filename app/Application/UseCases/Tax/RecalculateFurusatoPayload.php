@@ -11,6 +11,7 @@ use App\Domain\Tax\Calculators\ResultToDetailsAliasCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Calculators\SakimonoCalculator;
+use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
 use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Models\Data;
 use App\Models\FurusatoInput;
@@ -400,6 +401,17 @@ class RecalculateFurusatoPayload
             $bunriKabutekiNettingCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $bunriKabutekiNettingCalculator);
+
+        /** KyuyoNenkin：Sakimono／Bunri 後に実行して、OTP（年金以外の合計）で年金雑所得を確定 */
+        /** @var KyuyoNenkinCalculator $kyuyoNenkinCalculator */
+        $kyuyoNenkinCalculator = app(KyuyoNenkinCalculator::class);
+        $knCtx = [
+            'kihu_year'        => (int)($data->kihu_year ?? 0),
+            'guest_birth_date' => $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null),
+            'data'             => $data,
+        ];
+        $payload = $kyuyoNenkinCalculator->compute($payload, $knCtx);
+        $this->assertProvidedKeys($payload, $kyuyoNenkinCalculator);
 
         /** @var SogoShotokuNettingCalculator $sogoShotokuCalculator */
         $sogoShotokuCalculator = app(SogoShotokuNettingCalculator::class);

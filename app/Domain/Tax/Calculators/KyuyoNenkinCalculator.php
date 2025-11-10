@@ -4,13 +4,15 @@ namespace App\Domain\Tax\Calculators;
 
 use App\Models\Data;
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Calculators\Support\JotoIchijiNetting;
+use App\Domain\Tax\Calculators\Support\NettingHelpers;
 use DateTimeInterface;
 
 class KyuyoNenkinCalculator implements ProvidesKeys
 {
     public const ID = 'kyuyo.nenkin';
-    // 【制度順】フェーズA：入力正規化後に給与・雑（年金/業務/その他）をSoT化
-    public const ORDER = 1100;
+    // 【制度順】Sakimono／Bunri後に実行（OTPで年金雑を確定）。Sogo/Stagesより前
+    public const ORDER = 1150;
     public const BEFORE = [];
     public const AFTER = [];
 
@@ -65,24 +67,11 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $working[$shotokuKyuyoKey] = $kyuyoAmount;
             $working[$juminKyuyoKey] = $kyuyoAmount;
 
-            // ▼ 雑（公的年金等）：detailsの「zatsu_nenkin_syunyu_*」を収入として読み、所得控除適用後の所得を算出
+            // ▼ 雑（公的年金等）：収入のみ保持（所得＝収入−控除はこの後の OTP で最終確定）
             $nenkinIncomeKey = sprintf('zatsu_nenkin_syunyu_%s', $period);
             $nenkinIncome    = $this->clampIncome($payload[$nenkinIncomeKey] ?? null);
 
-            // ▼ 年金バケット判定：K/Nが唯一SoT（CommonSumsのバケットは撤去）
-            $shotokuOther = $this->sumOtherIncome($working, 'shotoku_', sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period), $period);
-            $juminOther   = $this->sumOtherIncome($working, 'jumin_',   sprintf('jumin_zatsu_nenkin_jumin_%s',     $period), $period);
-
-            $isSenior = $this->isSenior($birthDate, $year);
-            $shotokuResult = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $shotokuOther);
-            $juminResult   = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $juminOther);
-
-            $shotokuNenkinKey = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
-            $juminNenkinKey = sprintf('jumin_zatsu_nenkin_jumin_%s', $period);
-            $updates[$shotokuNenkinKey] = $shotokuResult;
-            $updates[$juminNenkinKey] = $juminResult;
-            $working[$shotokuNenkinKey] = $shotokuResult;
-            $working[$juminNenkinKey] = $juminResult;
+            // （年金の所得確定は本ブロック末尾：影通算→OTP→控除表）
 
             // ▼ 雑（業務）：所得＝max(0, 収入−支払) を税目共通でミラー
             $gyomuInc = $this->clampIncome($payload[sprintf('zatsu_gyomu_syunyu_%s',   $period)] ?? null);
@@ -101,6 +90,80 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $updates[sprintf('jumin_zatsu_sonota_jumin_%s',     $period)] = $sonotaShotoku;
             $working[sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)] = $sonotaShotoku;
             $working[sprintf('jumin_zatsu_sonota_jumin_%s',     $period)] = $sonotaShotoku;
+
+            // ===== ここから「影通算」→ OTP → 年金雑所得 =====
+            // 1) 経常（年金除外）：v2の正値合算ルールに合わせて構築
+            $econNoPension =
+                  max(0, $working[sprintf('shotoku_kyuyo_shotoku_%s', $period)] ?? 0)
+                + max(0, $working[sprintf('shotoku_jigyo_eigyo_shotoku_%s', $period)] ?? 0)
+                + max(0, $working[sprintf('shotoku_jigyo_nogyo_shotoku_%s', $period)] ?? 0)
+                + max(0, $working[sprintf('shotoku_fudosan_shotoku_%s', $period)] ?? 0)
+                + max(0, $this->n($working[sprintf('shotoku_rishi_%s', $period)] ?? 0))
+                + max(0, $working[sprintf('shotoku_haito_shotoku_%s', $period)] ?? 0)
+                + max(0, $working[sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)] ?? 0)
+                + max(0, $working[sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)] ?? 0);
+            // ※ shotoku_zatsu_nenkin_shotoku_* はここに含めない
+
+            // 2) 短期・長期・一時（影）：Details／ResultToDetails にある差引ベースを使い JotoIchijiNetting を走らせる
+            $ji = JotoIchijiNetting::compute(
+                $this->n($payload[sprintf('sashihiki_joto_tanki_sogo_%s', $period)] ?? 0),
+                $this->n($payload[sprintf('sashihiki_joto_choki_sogo_%s', $period)] ?? 0),
+                $this->n($payload[sprintf('sashihiki_ichiji_%s',         $period)] ?? 0),
+            );
+            $short1  = (int)($ji['after_joto_ichiji_tousan_joto_tanki'] ?? 0);
+            $long1   = (int)($ji['after_joto_ichiji_tousan_joto_choki_sogo'] ?? 0);
+            $ichiji1 = (int)($ji['after_joto_ichiji_tousan_ichiji'] ?? 0);
+
+            // 3) 山林の第1次（影）
+            $forest1 = max(
+                0,
+                (int)floor((float)$this->n($payload[sprintf('sashihiki_sanrin_%s', $period)] ?? 0))
+                - (int)floor((float)$this->n($payload[sprintf('tokubetsukojo_sanrin_%s', $period)] ?? 0))
+            );
+
+            // 4) 第2次通算（影）：forest→long→short→econ
+            [$econ2, $short2, $long2, $forest2, $ichiji2] =
+                NettingHelpers::netWithForest($econNoPension, $short1, $long1, $forest1, $ichiji1);
+
+            // 5) 第3次通算（影）：退職（long→short→econ→forest）
+            $retireInput = max(0, $this->n($payload[sprintf('bunri_shotoku_taishoku_shotoku_%s', $period)] ?? 0));
+            [$econ3, $short3, $long3, $forest3, $ichiji3, $retire3] =
+                NettingHelpers::netWithRetirement($econ2, $short2, $long2, $forest2, $ichiji2, $retireInput);
+
+            // 6) 影の所得金額化（A’＋B）
+            $aPrime =
+                  max(0, $econ3)
+                + max(0, $short3)
+                + max(0, (int)floor($long3 / 2))
+                + max(0, (int)floor($ichiji3 / 2));
+            $bPart = max(0, $forest3) + max(0, $retire3);
+
+            // 7) C_pre（Sakimono／Bunri 後：CommonSums v2 と同じ採り方）
+            $cPre = 0;
+            // 短・長 … after_2（= tsusango 相当）の正値合計
+            foreach (['tanki_ippan','tanki_keigen','choki_ippan','choki_tokutei','choki_keika'] as $row) {
+                $cPre += max(0, $this->n($payload[sprintf('after_2jitsusan_%s_%s', $row, $period)] ?? 0));
+            }
+            // 上場（R2D で tsusango_jojo_* にミラーされる元）… shotoku_after_kurikoshi_jojo_*
+            $cPre += max(0, $this->n($payload[sprintf('shotoku_after_kurikoshi_jojo_joto_%s',  $period)] ?? 0));
+            $cPre += max(0, $this->n($payload[sprintf('shotoku_after_kurikoshi_jojo_haito_%s', $period)] ?? 0));
+            // 一般の譲渡（繰越控除無し＝pre相当）… shotoku_after_kurikoshi_ippan_joto_*
+            $cPre += max(0, $this->n($payload[sprintf('shotoku_after_kurikoshi_ippan_joto_%s', $period)] ?? 0));
+            // 先物（繰越前）… shotoku_sakimono_*
+            $cPre += max(0, $this->n($payload[sprintf('shotoku_sakimono_%s', $period)] ?? 0));
+
+            // 8) OTP（年金以外の合計）＝ A’ + B + C_pre
+            $otp = $aPrime + $bPart + $cPre;
+
+            // 9) 年金雑所得の確定（shotoku／jumin 同一ロジック）
+            $isSenior = $this->isSenior($birthDate, $year);
+            $shotokuNenkin = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $otp);
+            $juminNenkin   = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $otp);
+
+            $updates[sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period)] = $shotokuNenkin;
+            $updates[sprintf('jumin_zatsu_nenkin_jumin_%s',     $period)] = $juminNenkin;
+            $working[sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period)] = $shotokuNenkin;
+            $working[sprintf('jumin_zatsu_nenkin_jumin_%s',     $period)] = $juminNenkin;
         }
 
         return array_replace($payload, $updates);
@@ -324,36 +387,5 @@ class KyuyoNenkinCalculator implements ProvidesKeys
         }
 
         return max(0, $year);
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     */
-    private function sumOtherIncome(array $payload, string $prefix, string $excludeKey, string $period): int
-    {
-        $total = 0;
-        $suffix = '_' . $period;
-
-        foreach ($payload as $key => $value) {
-            if (! is_string($key)) {
-                continue;
-            }
-
-            if (! str_starts_with($key, $prefix)) {
-                continue;
-            }
-
-            if (! str_ends_with($key, $suffix)) {
-                continue;
-            }
-
-            if ($key === $excludeKey) {
-                continue;
-            }
-
-            $total += $this->n($value);
-        }
-
-        return $total;
     }
 }

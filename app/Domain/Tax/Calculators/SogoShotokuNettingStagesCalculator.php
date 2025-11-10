@@ -3,6 +3,7 @@
 namespace App\Domain\Tax\Calculators;
 
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Calculators\Support\NettingHelpers;
 
 class SogoShotokuNettingStagesCalculator implements ProvidesKeys
 {
@@ -147,7 +148,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         $tokubetsuRaw = $this->fvalue($payload, sprintf('tokubetsukojo_sanrin_%s', $period));
         $after1Forest = (int) max(0, floor($sashihikiRaw) - floor($tokubetsuRaw));
 
-        [$after2Econ, $after2Short, $after2Long, $after2Forest, $after2Ichiji] = $this->netWithForest(
+        [$after2Econ, $after2Short, $after2Long, $after2Forest, $after2Ichiji] = NettingHelpers::netWithForest(
             $after1Econ,
             $after1Short,
             $after1Long,
@@ -180,26 +181,12 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             $outputs = array_replace($outputs, $bunriNettingOutputs);
         }
 
-        // 第3次通算
-        $retire = (int) $after2Retire;
-
-        $retirePos = (int) max(0, $retire);
-        $longNeg3 = (int) max(0, -$after2Long);
-        $shortNeg3 = (int) max(0, -$after2Short);
-        $econNeg3 = (int) max(0, -$after2Econ);
-        $forestNeg3 = (int) max(0, -$after2Forest);
-
-        $useLong3 = (int) min($retirePos, $longNeg3);
-        $useShort3 = (int) min($retirePos - $useLong3, $shortNeg3);
-        $useEcon3 = (int) min($retirePos - $useLong3 - $useShort3, $econNeg3);
-        $useForest3 = (int) min($retirePos - $useLong3 - $useShort3 - $useEcon3, $forestNeg3);
-
-        $after3Econ = (int) ($after2Econ + $useEcon3);
-        $after3Short = (int) ($after2Short + $useShort3);
-        $after3Long = (int) ($after2Long + $useLong3);
-        $after3Ichiji = (int) $after2Ichiji;
-        $after3Forest = (int) ($after2Forest + $useForest3);
-        $after3Retire = (int) ($retire - ($useLong3 + $useShort3 + $useEcon3 + $useForest3));
+        // 第3次通算（NettingHelpers へ委譲）
+        [$after3Econ, $after3Short, $after3Long, $after3Forest, $after3Ichiji, $after3Retire] =
+            NettingHelpers::netWithRetirement(
+                (int)$after2Econ, (int)$after2Short, (int)$after2Long,
+                (int)$after2Forest, (int)$after2Ichiji, (int)$after2Retire
+            );
 
         $shotokuKeijo = $after3Econ;
         $shotokuJotoTanki = $after3Short;
@@ -237,86 +224,6 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
         }
 
         return $outputs;
-    }
-
-    /**
-     * @return array{0:int,1:int,2:int,3:int,4:int}
-     */
-    private function netWithForest(int $econ, int $short, int $long, int $forest, int $ichiji): array
-    {
-        $econAfter = $econ;
-        $shortAfter = $short;
-        $longAfter = $long;
-        $forestAfter = $forest;
-        $ichijiAfter = $ichiji;
-
-        if ($forestAfter >= 0) {
-            $use = min($forestAfter, max(0, -$longAfter));
-            $forestAfter -= $use;
-            $longAfter += $use;
-
-            $use = min($forestAfter, max(0, -$shortAfter));
-            $forestAfter -= $use;
-            $shortAfter += $use;
-
-            $use = min($forestAfter, max(0, -$econAfter));
-            $forestAfter -= $use;
-            $econAfter += $use;
-        } else {
-            $need = max(0, -$forestAfter);
-
-            $use = min(max(0, $econAfter), $need);
-            $econAfter -= $use;
-            $forestAfter += $use;
-            $need = max(0, -$forestAfter);
-
-            $use = min(max(0, $shortAfter), $need);
-            $shortAfter -= $use;
-            $forestAfter += $use;
-            $need = max(0, -$forestAfter);
-
-            $use = min(max(0, $longAfter), $need);
-            $longAfter -= $use;
-            $forestAfter += $use;
-            $need = max(0, -$forestAfter);
-
-            $use = min($ichijiAfter, $need);
-            $ichijiAfter -= $use;
-            $forestAfter += $use;
-        }
-
-        return [$econAfter, $shortAfter, $longAfter, $forestAfter, $ichijiAfter];
-    }
-
-    /**
-     * @return array{0:int,1:int,2:int,3:int,4:int,5:int}
-     */
-    private function netWithRetirement(int $econ, int $short, int $long, int $forest, int $ichiji, int $retire): array
-    {
-        $econAfter = $econ;
-        $shortAfter = $short;
-        $longAfter = $long;
-        $forestAfter = $forest;
-        $ichijiAfter = $ichiji;
-        $retireAfter = $retire;
-
-        $use = min($retireAfter, max(0, -$longAfter));
-        $retireAfter -= $use;
-        $longAfter += $use;
-
-        $use = min($retireAfter, max(0, -$shortAfter));
-        $retireAfter -= $use;
-        $shortAfter += $use;
-
-        $use = min($retireAfter, max(0, -$econAfter));
-        $retireAfter -= $use;
-        $econAfter += $use;
-
-        $use = min($retireAfter, max(0, -$forestAfter));
-        $retireAfter -= $use;
-        $forestAfter += $use;
-
-        return [$econAfter, $shortAfter, $longAfter, $forestAfter, $ichijiAfter, $retireAfter];
     }
 
     private function value(array $payload, string $key): int

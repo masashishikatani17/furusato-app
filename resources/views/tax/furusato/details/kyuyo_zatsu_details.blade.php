@@ -71,6 +71,8 @@
       <input type="hidden" name="origin_subtab" value="{{ $originSubtab }}">
       <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
       <input type="hidden" name="recalc_all" value="1">
+    <!-- 再計算の遷移先制御: 0=第一表へ、1=この内訳に留まる -->
+    <input type="hidden" name="stay_on_details" value="0">
       <input type="hidden" name="kyuyo_chosei_applicable_prev" value="{{ $prevChecked ? 1 : 0 }}">
       <input type="hidden" name="kyuyo_chosei_applicable_curr" value="{{ $currChecked ? 1 : 0 }}">
 
@@ -228,9 +230,16 @@
       </div>
 
       <div class="text-end">
-        <a href="{{ route('furusato.input', ['data_id' => $dataId, 'tab' => 'input', 'subtab' => 'sogo']) }}#shotoku_row_kyuyo"
-           class="btn-base-blue">戻 る</a>
-        <button type="submit" class="btn-base-green">再計算</button>
+        <!-- 戻る: 再計算+保存して第一表へ（redirect_to=input を明示） -->
+        <button type="submit"
+                class="btn-base-blue"
+                name="redirect_to"
+                value="input"
+                onclick="this.form.stay_on_details.value='0';">戻 る</button>
+        <!-- 再計算: 再計算+保存して内訳に留まる -->
+        <button type="submit"
+                class="btn-base-green"
+                onclick="this.form.stay_on_details.value='1';">再計算</button>
       </div>
     </form>
   </div>

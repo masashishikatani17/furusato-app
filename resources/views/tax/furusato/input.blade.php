@@ -227,7 +227,21 @@
                 'syunyu_ichiji'     => true,
             ];
 
-            $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides, $kihuYear, $forceDash, $mirrorFromDetailsBases) {
+            // ▼ server-only（old() を通さず inputs のみを描画・常時 readonly・POSTは抑止）に固定する base
+            //   - 収入（第一表・上段）：kyuyo / zatsu_{nenkin|gyomu|sonota} は details の鏡像（表示専用）
+            //   - 所得（第一表・下段）：KyuyoNenkinCalculator の SoT（表示専用）
+            $serverOnlyBases = [
+              'syunyu_kyuyo'         => true,
+              'syunyu_zatsu_nenkin'  => true,
+              'syunyu_zatsu_gyomu'   => true,
+              'syunyu_zatsu_sonota'  => true,
+              'shotoku_kyuyo'        => true,
+              'shotoku_zatsu_nenkin' => true,
+              'shotoku_zatsu_gyomu'  => true,
+              'shotoku_zatsu_sonota' => true,
+            ];
+
+            $renderInputs = static function (string $base) use ($inputs, $readonlyBases, $kojoFieldOverrides, $kihuYear, $forceDash, $mirrorFromDetailsBases, $serverOnlyBases) {
                 $html = '';
                 foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                     foreach ($periods as $period) {
@@ -237,11 +251,15 @@
                             str_starts_with($base, 'bunri_syunyu_') ||
                             str_starts_with($base, 'bunri_shotoku_') ||
                             str_starts_with($base, 'tb_');
-                        // 分離・第三表は server 計算値のみ表示（old()は採用しない）
-                        $value = $isBunriThird ? ($inputs[$name] ?? null) : old($name, $inputs[$name] ?? null);
+                        // 分離・第三表 または server-only base は server 計算値のみ表示（old()は採用しない）
+                        if ($isBunriThird || isset($serverOnlyBases[$base])) {
+                          $value = $inputs[$name] ?? null;
+                        } else {
+                          $value = old($name, $inputs[$name] ?? null);
+                        }
                         // data-server-raw 用にカンマ除去した整数文字列を用意
                         $valueRaw = null;
-                        if ($isBunriThird) {
+                        if ($isBunriThird || isset($serverOnlyBases[$base])) {
                             $v = $value;
                             if ($v !== null && $v !== '') {
                                 $v = preg_replace('/,/', '', (string)$v);
@@ -291,6 +309,8 @@
                                 'tax_haito',
                                 'tax_jutaku',
                             ];
+                            // server-only は住民税側も常時 readonly
+                            if (isset($serverOnlyBases[$base])) $isReadonly = true;
                             $editableR6 = $base === 'tax_tokubetsu_R6'
                                 && $period === 'prev'
                                 && (int) ($kihuYear ?? 0) === 2025;
@@ -304,6 +324,8 @@
                             }
                         } else {
                             $isReadonly = isset($readonlyBases[$base]);
+                            // server-only は所得税側も常時 readonly
+                            if (isset($serverOnlyBases[$base])) $isReadonly = true;
                         }
 
                         if ($isForceDash) {
@@ -314,9 +336,10 @@
                             if ($isReadonly) {
                                 $class .= ' bg-light';
                             }
-                            // 分離・第三表は data-server-lock＋（可能なら）data-server-raw を付与
-                            $lockAttr = $isBunriThird ? ' data-server-lock="1"' : '';
-                            $rawAttr  = ($isBunriThird && $valueRaw !== null) ? ' data-server-raw="' . e($valueRaw) . '"' : '';
+                            // 分離・第三表／server-only は data-server-lock＋（可能なら）data-server-raw を付与
+                            $isLocked = $isBunriThird || isset($serverOnlyBases[$base]);
+                            $lockAttr = $isLocked ? ' data-server-lock="1"' : '';
+                            $rawAttr  = ($isLocked && $valueRaw !== null) ? ' data-server-raw="' . e($valueRaw) . '"' : '';
                             $html .= '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . $lockAttr . $rawAttr . '></td>';
                         }
                     }
@@ -2905,7 +2928,17 @@
     function materializeHiddenNumericForSubmit(form) {
       const namedInputs = Array.from(form.querySelectorAll('input[name]'))
         .filter(el => el.type === 'text' && el.name && !el.disabled);
+      // ▼ server-only（details→input鏡像／K/N SoT）の8ベースは POST に乗せない（hidden複製を作らない）
+      const blockPrefixes = [
+        'syunyu_kyuyo_', 'syunyu_zatsu_nenkin_', 'syunyu_zatsu_gyomu_', 'syunyu_zatsu_sonota_',
+        'shotoku_kyuyo_', 'shotoku_zatsu_nenkin_', 'shotoku_zatsu_gyomu_', 'shotoku_zatsu_sonota_'
+      ];
       namedInputs.forEach((el) => {
+        const nm = String(el.name || '');
+        // data-server-lock 明示 or 8ベースのいずれかなら送信抑止
+        if ((el.dataset && el.dataset.serverLock === '1') || blockPrefixes.some(p => nm.startsWith(p))) {
+          return;
+        }
         // tb_*由来の只読セルも name を保持したまま hidden にrawを同期
         const raw = String((() => {
           const s = String(el.value ?? '').replace(/,/g, '').trim();

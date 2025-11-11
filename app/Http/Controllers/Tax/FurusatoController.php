@@ -13,6 +13,7 @@ use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Calculators\CommonSumsCalculator;
 use App\Domain\Tax\Calculators\KojoAggregationCalculator;
 use App\Domain\Tax\Calculators\CommonTaxableBaseCalculator;
+use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Domain\Tax\Support\PayloadNormalizer;
@@ -270,6 +271,26 @@ final class FurusatoController extends Controller
             'human_adjusted_taxable_prev' => $humanAdjusted['prev'],
             'human_adjusted_taxable_curr' => $humanAdjusted['curr'],
         ]);
+
+        /**
+         * ▼KyuyoNenkinCalculator を index/calc ルートでも実行する
+         *    - UseCase 側では保存時に実行済みだが、画面再表示（index/calc）でも
+         *      「details 収入 → 給与・雑の所得」確定値を previewPayload に生成しておく。
+         *    - これにより buildInputsForView が previewOnly のままでも
+         *      shotoku_kyuyo_* / shotoku_zatsu_* が確実に反映される。
+         */
+        /** @var KyuyoNenkinCalculator $knCalc */
+        $knCalc = app(KyuyoNenkinCalculator::class);
+        $knCtx = [
+            'kihu_year'        => $calculatorYear,
+            'guest_birth_date' => $this->normalizeBirthDateForContext($data?->guest?->birth_date ?? null),
+            'data'             => $data,
+        ];
+        // details 側の kyuyo_syunyu_*/zatsu_*_syunyu_* を基に給与/雑の「所得」を確定
+        $previewPayload = array_replace(
+            $previewPayload,
+            $knCalc->compute($previewPayload, $knCtx)
+        );
 
         foreach (['prev', 'curr'] as $periodKey) {
             $tsusanmaeKeijo =
@@ -633,22 +654,23 @@ final class FurusatoController extends Controller
 
         // ▼ details（kyuyo/zatsu）→ 第一表 収入ミラー（税目共通・readonly表示用）
         foreach (['prev','curr'] as $p) {
-            $v = $this->toNullableInt($previewPayload["kyuyo_syunyu_{$p}"] ?? $savedInputs["kyuyo_syunyu_{$p}"] ?? null);
+            // 探索・フォールバック禁止：previewPayload のみ採用
+            $v = $this->toNullableInt($previewPayload["kyuyo_syunyu_{$p}"] ?? null);
             if ($v !== null) {
                 $inputsForView["syunyu_kyuyo_shotoku_{$p}"] = $v;
                 $inputsForView["syunyu_kyuyo_jumin_{$p}"]   = $v;
             }
-            $v = $this->toNullableInt($previewPayload["zatsu_nenkin_syunyu_{$p}"] ?? $savedInputs["zatsu_nenkin_syunyu_{$p}"] ?? null);
+            $v = $this->toNullableInt($previewPayload["zatsu_nenkin_syunyu_{$p}"] ?? null);
             if ($v !== null) {
                 $inputsForView["syunyu_zatsu_nenkin_shotoku_{$p}"] = $v;
                 $inputsForView["syunyu_zatsu_nenkin_jumin_{$p}"]   = $v;
             }
-            $v = $this->toNullableInt($previewPayload["zatsu_gyomu_syunyu_{$p}"] ?? $savedInputs["zatsu_gyomu_syunyu_{$p}"] ?? null);
+            $v = $this->toNullableInt($previewPayload["zatsu_gyomu_syunyu_{$p}"] ?? null);
             if ($v !== null) {
                 $inputsForView["syunyu_zatsu_gyomu_shotoku_{$p}"] = $v;
                 $inputsForView["syunyu_zatsu_gyomu_jumin_{$p}"]   = $v;
             }
-            $v = $this->toNullableInt($previewPayload["zatsu_sonota_syunyu_{$p}"] ?? $savedInputs["zatsu_sonota_syunyu_{$p}"] ?? null);
+            $v = $this->toNullableInt($previewPayload["zatsu_sonota_syunyu_{$p}"] ?? null);
             if ($v !== null) {
                 $inputsForView["syunyu_zatsu_sonota_shotoku_{$p}"] = $v;
                 $inputsForView["syunyu_zatsu_sonota_jumin_{$p}"]   = $v;
@@ -1327,6 +1349,40 @@ final class FurusatoController extends Controller
             $assign(sprintf('shotoku_ichiji_%s', $period), [sprintf('shotoku_ichiji_%s', $period)]);
             $assign(sprintf('shotoku_taishoku_%s', $period), [sprintf('shotoku_taishoku_%s', $period)]);
 
+            /**
+             * ▼ 雑（業務／その他）の「所得」セルをサーバ確定SoTで第一表へミラー
+             *   - SoT: KyuyoNenkinCalculator が出力する
+             *       ・shotoku_zatsu_gyomu_shotoku_*, shotoku_zatsu_gyomu_jumin_*
+             *       ・shotoku_zatsu_sonota_shotoku_*, shotoku_zatsu_sonota_jumin_*
+             *   - previewOnly=true で results/upper/preview を優先採用
+             */
+            foreach (['shotoku','jumin'] as $tax) {
+                $assign(
+                    sprintf('shotoku_zatsu_gyomu_%s_%s', $tax, $period),
+                    [sprintf('shotoku_zatsu_gyomu_%s_%s', $tax, $period)],
+                    null,
+                    /* previewOnly */ true
+                );
+                $assign(
+                    sprintf('shotoku_zatsu_sonota_%s_%s', $tax, $period),
+                    [sprintf('shotoku_zatsu_sonota_%s_%s', $tax, $period)],
+                    null,
+                    /* previewOnly */ true
+                );
+                // ▼ 給与・年金の「所得」も server-only で 1対1 ミラー（探索・フォールバックなし）
+                $assign(
+                    sprintf('shotoku_kyuyo_%s_%s', $tax, $period),
+                    [sprintf('shotoku_kyuyo_%s_%s', $tax, $period)],
+                    null,
+                    /* previewOnly */ true,  /* allowSaved */ 
+                );
+                $assign(
+                    sprintf('shotoku_zatsu_nenkin_%s_%s', $tax, $period),
+                    [sprintf('shotoku_zatsu_nenkin_%s_%s', $tax, $period)],
+                    null,
+                    /* previewOnly */ true
+                );
+            }
             $shotokuKeijo = $this->valueOrZero($lookup([sprintf('shotoku_keijo_%s', $period)]));
             $shotokuJotoTanki = $this->valueOrZero($lookup([
                 sprintf('shotoku_joto_tanki_sogo_%s', $period),
@@ -2003,7 +2059,24 @@ final class FurusatoController extends Controller
             }
         }
 
-        // 再計算 & 保存（表示確定値はサーバ側 Calculator を採用）
+        // 「戻る/再計算」いずれも recalc_all=1 で来る前提（hidden）
+        if ((int) $req->input('recalc_all') === 1) {
+            \Log::info('[details:kyuyo_zatsu] recompute & redirect');
+            // 画面に残るときはフラッシュ結果を出さない（他detailsと同じ扱い）
+            $stay = $req->boolean('stay_on_details');
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $payload,
+                ['should_flash_results' => !$stay],
+                $recalculateUseCase
+            );
+            // stay=true: 内訳に留まる / stay=false: 第一表へ戻る
+            $goto = $stay ? 'kyuyo_zatsu' : (string) $req->input('redirect_to', 'input');
+            return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+        }
+
+        // 非recalc_all投稿（想定外ルート）は従来どおり保存→第一表へ
         $this->runRecalculationPipeline(
             $req,
             $data,
@@ -2011,10 +2084,8 @@ final class FurusatoController extends Controller
             ['should_flash_results' => true],
             $recalculateUseCase
         );
-
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
-        $query = $this->buildReturnQuery($req);
-
+        $query  = $this->buildReturnQuery($req);
         return $this->redirectToInputWithAnchor($data, $anchor ?: 'shotoku_row_kyuyo', '保存しました', $query);
     }
 

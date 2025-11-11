@@ -31,13 +31,13 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $keys[] = sprintf('shotoku_kyuyo_jumin_%s',   $period);
             // 雑・公的年金（所得）
             $keys[] = sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period);
-            $keys[] = sprintf('jumin_zatsu_nenkin_jumin_%s',     $period);
+            $keys[] = sprintf('shotoku_zatsu_nenkin_jumin_%s',   $period);
             // 雑・業務（所得）
-            $keys[] = sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period);
-            $keys[] = sprintf('jumin_zatsu_gyomu_jumin_%s',     $period);
+            $keys[] = sprintf('shotoku_zatsu_gyomu_shotoku_%s',  $period);
+            $keys[] = sprintf('shotoku_zatsu_gyomu_jumin_%s',    $period);
             // 雑・その他（所得）
             $keys[] = sprintf('shotoku_zatsu_sonota_shotoku_%s', $period);
-            $keys[] = sprintf('jumin_zatsu_sonota_jumin_%s',     $period);
+            $keys[] = sprintf('shotoku_zatsu_sonota_jumin_%s',   $period);
             // ▼ 出力：所得金額調整控除の算出額（可視化・検証用）
             // 子育て・介護（850万超）の調整額
             $keys[] = sprintf('kyuyo_chosei_childcare_shotoku_%s', $period);
@@ -86,18 +86,18 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $gyomuPay = $this->clampIncome($payload[sprintf('zatsu_gyomu_shiharai_%s', $period)] ?? null);
             $gyomuShotoku = max(0, $gyomuInc - $gyomuPay);
             $updates[sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)] = $gyomuShotoku;
-            $updates[sprintf('jumin_zatsu_gyomu_jumin_%s',     $period)] = $gyomuShotoku;
+            $updates[sprintf('shotoku_zatsu_gyomu_jumin_%s',   $period)] = $gyomuShotoku;
             $working[sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)] = $gyomuShotoku;
-            $working[sprintf('jumin_zatsu_gyomu_jumin_%s',     $period)] = $gyomuShotoku;
+            $working[sprintf('shotoku_zatsu_gyomu_jumin_%s',   $period)] = $gyomuShotoku;
 
             // ▼ 雑（その他）：所得＝max(0, 収入−支払) を税目共通でミラー
             $sonotaInc = $this->clampIncome($payload[sprintf('zatsu_sonota_syunyu_%s',   $period)] ?? null);
             $sonotaPay = $this->clampIncome($payload[sprintf('zatsu_sonota_shiharai_%s', $period)] ?? null);
             $sonotaShotoku = max(0, $sonotaInc - $sonotaPay);
             $updates[sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)] = $sonotaShotoku;
-            $updates[sprintf('jumin_zatsu_sonota_jumin_%s',     $period)] = $sonotaShotoku;
+            $updates[sprintf('shotoku_zatsu_sonota_jumin_%s',   $period)] = $sonotaShotoku;
             $working[sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)] = $sonotaShotoku;
-            $working[sprintf('jumin_zatsu_sonota_jumin_%s',     $period)] = $sonotaShotoku;
+            $working[sprintf('shotoku_zatsu_sonota_jumin_%s',   $period)] = $sonotaShotoku;
 
             // ===== ここから「影通算」→ OTP → 年金雑所得 =====
             // 1) 経常（年金除外）：v2の正値合算ルールに合わせて構築
@@ -169,9 +169,9 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             $juminNenkin   = $this->calculateNenkinShotoku($nenkinIncome, $isSenior, $otp);
 
             $updates[sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period)] = $shotokuNenkin;
-            $updates[sprintf('jumin_zatsu_nenkin_jumin_%s',     $period)] = $juminNenkin;
+            $updates[sprintf('shotoku_zatsu_nenkin_jumin_%s',   $period)] = $juminNenkin;
             $working[sprintf('shotoku_zatsu_nenkin_shotoku_%s', $period)] = $shotokuNenkin;
-            $working[sprintf('jumin_zatsu_nenkin_jumin_%s',     $period)] = $juminNenkin;
+            $working[sprintf('shotoku_zatsu_nenkin_jumin_%s',   $period)] = $juminNenkin;
 
             // ===== 所得金額調整控除（制度上は“所得控除”）を給与所得へ適用 =====
             // 1) 子育て・介護世帯向け（年収850万超かつチェックON）

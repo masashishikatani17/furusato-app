@@ -24,50 +24,46 @@
         </thead>
         <tbody>
           @php
-            $formatRatio = static fn (?float $value): string => $value === null ? '' : rtrim(rtrim(number_format($value, 3), '0'), '.');
-            $categoryCounts = $rates->groupBy('category')->map->count();
-            $subcategoryCounts = $rates->groupBy(fn ($rate) => $rate->category.'|'.($rate->sub_category ?? ''))->map->count();
-            $renderedCategories = [];
-            $renderedSubCategories = [];
+            $formatRatio = static fn (?float $v) => $v === null ? '' : rtrim(rtrim(number_format($v, 3), '0'), '.');
+            $categoryCounts     = $rates->groupBy('category')->map->count();
+            $subcategoryCounts  = $rates->groupBy(fn ($r) => $r->category.'|'.($r->sub_category ?? ''))->map->count();
+            $doneCat = []; $doneSub = [];
           @endphp
-          @foreach ($rates as $rate)
+          @foreach ($rates as $r)
             <tr>
-              @php
-                $categoryKey = $rate->category;
-                $subKey = $rate->category.'|'.($rate->sub_category ?? '');
-              @endphp
-              @if(($categoryCounts[$categoryKey] ?? 0) > 1)
-                @if(empty($renderedCategories[$categoryKey]))
-                  <th class="text-center" rowspan="{{ $categoryCounts[$categoryKey] }}">{{ $rate->category }}</th>
-                  @php $renderedCategories[$categoryKey] = true; @endphp
+              @php $cat=$r->category; $sub=$r->sub_category; $subKey=$cat.'|'.($sub??''); @endphp
+              @if(($categoryCounts[$cat] ?? 0) > 1)
+                @if(empty($doneCat[$cat]))
+                  <th class="text-center" rowspan="{{ $categoryCounts[$cat] }}">{{ $cat }}</th>
+                  @php $doneCat[$cat]=true; @endphp
                 @endif
-                @if($rate->sub_category !== null && $rate->sub_category !== '')
+                @if($sub)
                   @if(($subcategoryCounts[$subKey] ?? 0) > 1)
-                    @if(empty($renderedSubCategories[$subKey]))
-                      <th class="text-center th-ddd" rowspan="{{ $subcategoryCounts[$subKey] }}">{{ $rate->sub_category }}</th>
-                      @php $renderedSubCategories[$subKey] = true; @endphp
+                    @if(empty($doneSub[$subKey]))
+                      <th class="text-center th-ddd" rowspan="{{ $subcategoryCounts[$subKey] }}">{{ $sub }}</th>
+                      @php $doneSub[$subKey]=true; @endphp
                     @endif
                   @else
-                    <th class="text-center th-ddd">{{ $rate->sub_category }}</th>
+                    <th class="text-center th-ddd">{{ $sub }}</th>
                   @endif
                 @else
                   @if(($subcategoryCounts[$subKey] ?? 0) > 1)
-                    @if(empty($renderedSubCategories[$subKey]))
+                    @if(empty($doneSub[$subKey]))
                       <th class="text-start" rowspan="{{ $subcategoryCounts[$subKey] }}"></th>
-                      @php $renderedSubCategories[$subKey] = true; @endphp
+                      @php $doneSub[$subKey]=true; @endphp
                     @endif
                   @else
                     <th class="text-start"></th>
                   @endif
                 @endif
               @else
-                <th class="text-start" colspan="2">{{ $rate->category }}</th>
+                <th class="text-start" colspan="2">{{ $cat }}</th>
               @endif
-              <td class="text-end">{{ $formatRatio($rate->city_specified) }}</td>
-              <td class="text-end">{{ $formatRatio($rate->pref_specified) }}</td>
-              <td class="text-end">{{ $formatRatio($rate->city_non_specified) }}</td>
-              <td class="text-end">{{ $formatRatio($rate->pref_non_specified) }}</td>
-              <td class="text-start">{{ $rate->remark }}</td>
+              <td class="text-end">{{ $formatRatio($r->city_specified) }}</td>
+              <td class="text-end">{{ $formatRatio($r->pref_specified) }}</td>
+              <td class="text-end">{{ $formatRatio($r->city_non_specified) }}</td>
+              <td class="text-end">{{ $formatRatio($r->pref_non_specified) }}</td>
+              <td class="text-start">{{ $r->remark }}</td>
             </tr>
           @endforeach
         </tbody>

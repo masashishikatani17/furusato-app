@@ -844,16 +844,21 @@
                   <td class="text-center align-middle"></td>
                   {!! $renderInputs('tax_haito') !!}
                 </tr>
-                <tr>
+                <tr id="tax_jutaku" data-anchor>
                   <th colspan="3" class="text-start align-middle ps-1">住宅借入金等特別控除</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>
-                  <td class="text-center align-middle"></td>
+                  <td class="text-center align-middle">
+                    <button type="button"
+                            class="btn-base-green js-open-details"
+                            data-redirect-to="kojo_tokubetsu_jutaku_loan"
+                            data-origin-anchor="tax_jutaku">内訳</button>
+                  </td>
                   {!! $renderInputs('tax_jutaku') !!}
                 </tr>
                 <tr>
-                  <th colspan="3" class="text-start align-middle ps-1e">政党等寄付金等特別控除</th>
+                  <th colspan="3" class="text-start align-middle ps-1">政党等寄付金等特別控除</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn btn-link btn-sm px-0">HELP</button>
                   </td>

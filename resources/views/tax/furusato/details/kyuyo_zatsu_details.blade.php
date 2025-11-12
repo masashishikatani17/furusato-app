@@ -19,8 +19,8 @@
 @endpush
 @php
   $inputs = $out['inputs'] ?? [];
-  $value = static fn(string $key) => old($key, $inputs[$key] ?? null);
-  $isChecked = static fn(string $key): bool => (int) old($key, $inputs[$key] ?? 0) === 1;
+  $value = static fn(string $key, $fallback=null) => $inputs[$key] ?? $fallback;
+  $isCheckedByInputs = static fn(string $key): bool => (int)($inputs[$key] ?? 0) === 1;
   $normalizeInt = static function ($raw): ?int {
       if ($raw === null || $raw === '') {
           return null;
@@ -41,8 +41,8 @@
   $currIncome = $normalizeInt($value('kyuyo_syunyu_curr')) ?? 0;
   $prevAllow = $prevIncome > 8_500_000;
   $currAllow = $currIncome > 8_500_000;
-  $prevChecked = $prevAllow && $isChecked('kyuyo_chosei_applicable_prev');
-  $currChecked = $currAllow && $isChecked('kyuyo_chosei_applicable_curr');
+  $prevChecked = $prevAllow && $isCheckedByInputs('kyuyo_chosei_applicable_prev');
+  $currChecked = $currAllow && $isCheckedByInputs('kyuyo_chosei_applicable_curr');
   $originSubtabRaw = request()->input('origin_subtab', 'sogo');
   $originSubtab = is_string($originSubtabRaw) ? preg_replace('/[^A-Za-z0-9_-]/', '', $originSubtabRaw) : '';
   if ($originSubtab === '') {
@@ -71,8 +71,8 @@
       <input type="hidden" name="origin_subtab" value="{{ $originSubtab }}">
       <input type="hidden" name="origin_anchor" value="{{ $originAnchor }}">
       <input type="hidden" name="recalc_all" value="1">
-    <!-- 再計算の遷移先制御: 0=第一表へ、1=この内訳に留まる -->
-    <input type="hidden" name="stay_on_details" value="0">
+      <!-- 再計算の遷移先制御: 0=第一表へ、1=この内訳に留まる -->
+      <input type="hidden" name="stay_on_details" value="0">
       <input type="hidden" name="kyuyo_chosei_applicable_prev" value="{{ $prevChecked ? 1 : 0 }}">
       <input type="hidden" name="kyuyo_chosei_applicable_curr" value="{{ $currChecked ? 1 : 0 }}">
 
@@ -101,13 +101,13 @@
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="kyuyo_syunyu_prev"
-                       value="{{ $value('kyuyo_syunyu_prev') }}">
+                       value="{{ $value('kyuyo_syunyu_prev','') }}">
               </td>
               <td>
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="kyuyo_syunyu_curr"
-                       value="{{ $value('kyuyo_syunyu_curr') }}">
+                       value="{{ $value('kyuyo_syunyu_curr','') }}">
               </td>
             </tr>
             <tr>
@@ -154,13 +154,13 @@
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="zatsu_nenkin_syunyu_prev"
-                       value="{{ $value('zatsu_nenkin_syunyu_prev') }}">
+                       value="{{ $value('zatsu_nenkin_syunyu_prev','') }}">
               </td>
               <td>
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="zatsu_nenkin_syunyu_curr"
-                       value="{{ $value('zatsu_nenkin_syunyu_curr') }}">
+                       value="{{ $value('zatsu_nenkin_syunyu_curr','') }}">
               </td>
             </tr>
             <tr>
@@ -170,13 +170,13 @@
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="zatsu_gyomu_syunyu_prev"
-                       value="{{ $value('zatsu_gyomu_syunyu_prev') }}">
+                       value="{{ $value('zatsu_gyomu_syunyu_prev','') }}">
               </td>
               <td>
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="zatsu_gyomu_syunyu_curr"
-                       value="{{ $value('zatsu_gyomu_syunyu_curr') }}">
+                       value="{{ $value('zatsu_gyomu_syunyu_curr','') }}">
               </td>
             </tr>
             <tr>
@@ -185,13 +185,13 @@
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="zatsu_gyomu_shiharai_prev"
-                       value="{{ $value('zatsu_gyomu_shiharai_prev') }}">
+                       value="{{ $value('zatsu_gyomu_shiharai_prev','') }}">
               </td>
               <td>
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="zatsu_gyomu_shiharai_curr"
-                       value="{{ $value('zatsu_gyomu_shiharai_curr') }}">
+                       value="{{ $value('zatsu_gyomu_shiharai_curr','') }}">
               </td>
             </tr>
             <tr>
@@ -201,13 +201,13 @@
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="zatsu_sonota_syunyu_prev"
-                       value="{{ $value('zatsu_sonota_syunyu_prev') }}">
+                       value="{{ $value('zatsu_sonota_syunyu_prev','') }}">
               </td>
               <td>
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="zatsu_sonota_syunyu_curr"
-                       value="{{ $value('zatsu_sonota_syunyu_curr') }}">
+                       value="{{ $value('zatsu_sonota_syunyu_curr','') }}">
               </td>
             </tr>
             <tr>
@@ -216,13 +216,13 @@
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="zatsu_sonota_shiharai_prev"
-                       value="{{ $value('zatsu_sonota_shiharai_prev') }}">
+                       value="{{ $value('zatsu_sonota_shiharai_prev','') }}">
               </td>
               <td>
                 <input type="text" inputmode="numeric" autocomplete="off"
                        class="form-control text-end"
                        data-format="comma-int" data-name="zatsu_sonota_shiharai_curr"
-                       value="{{ $value('zatsu_sonota_shiharai_curr') }}">
+                       value="{{ $value('zatsu_sonota_shiharai_curr','') }}">
               </td>
             </tr>
           </tbody>

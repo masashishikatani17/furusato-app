@@ -21,24 +21,27 @@ final class FurusatoMasterDefaults
 
     public static function jumin(): array
     {
+        // 2025年デフォルト：総合/分離(短期:一般・軽減, 長期:一般/特定(以下/超)/軽課(以下/超), 上場/一般株/配当/先物/山林/退職)
+        // 調整控除・基本控除・特例控除の基準率も明示（読み取り専用）
         return [
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 10, 'category' => '総合', 'sub_category' => null, 'city_specified' => 8.000, 'pref_specified' => 2.000, 'city_non_specified' => 6.000, 'pref_non_specified' => 4.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 20, 'category' => '短期譲渡', 'sub_category' => '一般', 'city_specified' => 7.200, 'pref_specified' => 1.800, 'city_non_specified' => 5.400, 'pref_non_specified' => 3.600, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 30, 'category' => '短期譲渡', 'sub_category' => '軽減', 'city_specified' => 4.000, 'pref_specified' => 1.000, 'city_non_specified' => 3.000, 'pref_non_specified' => 2.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 40, 'category' => '長期譲渡', 'sub_category' => '一般', 'city_specified' => 4.000, 'pref_specified' => 1.000, 'city_non_specified' => 3.000, 'pref_non_specified' => 2.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 50, 'category' => '長期譲渡', 'sub_category' => '特定', 'city_specified' => 3.200, 'pref_specified' => 0.800, 'city_non_specified' => 2.400, 'pref_non_specified' => 1.600, 'remark' => '2,000万円以下の部分'],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 60, 'category' => '長期譲渡', 'sub_category' => '特定', 'city_specified' => 4.000, 'pref_specified' => 1.000, 'city_non_specified' => 3.000, 'pref_non_specified' => 2.000, 'remark' => '2,000万円超の部分'],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 70, 'category' => '長期譲渡', 'sub_category' => '軽課', 'city_specified' => 3.200, 'pref_specified' => 0.800, 'city_non_specified' => 2.400, 'pref_non_specified' => 1.600, 'remark' => '6,000万円以下の部分'],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 80, 'category' => '長期譲渡', 'sub_category' => '軽課', 'city_specified' => 4.000, 'pref_specified' => 1.000, 'city_non_specified' => 3.000, 'pref_non_specified' => 2.000, 'remark' => '6,000万円超の部分'],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 90, 'category' => '一般株式等の譲渡', 'sub_category' => null, 'city_specified' => 4.000, 'pref_specified' => 1.000, 'city_non_specified' => 3.000, 'pref_non_specified' => 2.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 100, 'category' => '上場株式等の譲渡', 'sub_category' => null, 'city_specified' => 4.000, 'pref_specified' => 1.000, 'city_non_specified' => 3.000, 'pref_non_specified' => 2.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 110, 'category' => '上場株式等の配当等', 'sub_category' => null, 'city_specified' => 4.000, 'pref_specified' => 1.000, 'city_non_specified' => 3.000, 'pref_non_specified' => 2.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 120, 'category' => '先物取引', 'sub_category' => null, 'city_specified' => 4.000, 'pref_specified' => 1.000, 'city_non_specified' => 3.000, 'pref_non_specified' => 2.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 130, 'category' => '山林', 'sub_category' => null, 'city_specified' => 8.000, 'pref_specified' => 2.000, 'city_non_specified' => 6.000, 'pref_non_specified' => 4.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 140, 'category' => '退職', 'sub_category' => null, 'city_specified' => 8.000, 'pref_specified' => 2.000, 'city_non_specified' => 6.000, 'pref_non_specified' => 4.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 150, 'category' => '調整控除', 'sub_category' => null, 'city_specified' => 4.000, 'pref_specified' => 1.000, 'city_non_specified' => 3.000, 'pref_non_specified' => 2.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 160, 'category' => '基本控除', 'sub_category' => null, 'city_specified' => 8.000, 'pref_specified' => 2.000, 'city_non_specified' => 6.000, 'pref_non_specified' => 4.000, 'remark' => null],
-            ['year' => self::DEFAULT_YEAR, 'company_id' => null, 'sort' => 170, 'category' => '特例控除', 'sub_category' => null, 'city_specified' => 0.800, 'pref_specified' => 0.200, 'city_non_specified' => 0.600, 'pref_non_specified' => 0.400, 'remark' => null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>10,  'category'=>'総合','sub_category'=>null,'city_specified'=>8.000,'pref_specified'=>2.000,'city_non_specified'=>6.000,'pref_non_specified'=>4.000,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>20,  'category'=>'短期譲渡','sub_category'=>'一般','city_specified'=>7.200,'pref_specified'=>1.800,'city_non_specified'=>5.400,'pref_non_specified'=>3.600,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>30,  'category'=>'短期譲渡','sub_category'=>'軽減','city_specified'=>4.000,'pref_specified'=>1.000,'city_non_specified'=>3.000,'pref_non_specified'=>2.000,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>40,  'category'=>'長期譲渡','sub_category'=>'一般','city_specified'=>4.000,'pref_specified'=>1.000,'city_non_specified'=>3.000,'pref_non_specified'=>2.000,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>50,  'category'=>'長期譲渡','sub_category'=>'特定','city_specified'=>3.200,'pref_specified'=>0.800,'city_non_specified'=>2.400,'pref_non_specified'=>1.600,'remark'=>'2,000万円以下の部分'],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>60,  'category'=>'長期譲渡','sub_category'=>'特定','city_specified'=>4.000,'pref_specified'=>1.000,'city_non_specified'=>3.000,'pref_non_specified'=>2.000,'remark'=>'2,000万円超の部分'],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>70,  'category'=>'長期譲渡','sub_category'=>'軽課','city_specified'=>3.200,'pref_specified'=>0.800,'city_non_specified'=>2.400,'pref_non_specified'=>1.600,'remark'=>'6,000万円以下の部分'],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>80,  'category'=>'長期譲渡','sub_category'=>'軽課','city_specified'=>4.000,'pref_specified'=>1.000,'city_non_specified'=>3.000,'pref_non_specified'=>2.000,'remark'=>'6,000万円超の部分'],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>90,  'category'=>'一般株式等の譲渡','sub_category'=>null,'city_specified'=>4.000,'pref_specified'=>1.000,'city_non_specified'=>3.000,'pref_non_specified'=>2.000,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>100, 'category'=>'上場株式等の譲渡','sub_category'=>null,'city_specified'=>4.000,'pref_specified'=>1.000,'city_non_specified'=>3.000,'pref_non_specified'=>2.000,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>110, 'category'=>'上場株式等の配当等','sub_category'=>null,'city_specified'=>4.000,'pref_specified'=>1.000,'city_non_specified'=>3.000,'pref_non_specified'=>2.000,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>120, 'category'=>'先物取引','sub_category'=>null,'city_specified'=>4.000,'pref_specified'=>1.000,'city_non_specified'=>3.000,'pref_non_specified'=>2.000,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>130, 'category'=>'山林','sub_category'=>null,'city_specified'=>8.000,'pref_specified'=>2.000,'city_non_specified'=>6.000,'pref_non_specified'=>4.000,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>140, 'category'=>'退職','sub_category'=>null,'city_specified'=>8.000,'pref_specified'=>2.000,'city_non_specified'=>6.000,'pref_non_specified'=>4.000,'remark'=>null],
+            // 調整・基本・特例（表示用の基準率）
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>150, 'category'=>'調整控除','sub_category'=>null,'city_specified'=>4.000,'pref_specified'=>1.000,'city_non_specified'=>3.000,'pref_non_specified'=>2.000,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>160, 'category'=>'基本控除','sub_category'=>null,'city_specified'=>8.000,'pref_specified'=>2.000,'city_non_specified'=>6.000,'pref_non_specified'=>4.000,'remark'=>null],
+            ['year' => self::DEFAULT_YEAR,'company_id'=>null,'sort'=>170, 'category'=>'特例控除','sub_category'=>null,'city_specified'=>0.800,'pref_specified'=>0.200,'city_non_specified'=>0.600,'pref_non_specified'=>0.400,'remark'=>null],
         ];
     }
 

@@ -11,8 +11,10 @@ use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
 use App\Domain\Tax\Calculators\JintekiKojoCalculator;
+use App\Domain\Tax\Calculators\JuminJutakuLoanCreditCalculator;
 use App\Domain\Tax\Calculators\JuminzeiKifukinCalculator;
 use App\Domain\Tax\Calculators\JuminTaxCalculator;
+use App\Domain\Tax\Calculators\JutakuLoanCreditCalculator;
 use App\Domain\Tax\Calculators\KifukinCalculator;
 use App\Domain\Tax\Calculators\KisoKojoCalculator;
 use App\Domain\Tax\Calculators\KojoAggregationCalculator;
@@ -69,8 +71,10 @@ class AppServiceProvider extends ServiceProvider
             // 5) 課税標準→税額→特例
             CommonTaxableBaseCalculator::class,
             ShotokuTaxCalculator::class,
+            JutakuLoanCreditCalculator::class,
             SeitotoTokubetsuZeigakuKojoCalculator::class,
             JuminTaxCalculator::class,
+            JuminJutakuLoanCreditCalculator::class,
             JuminzeiKifukinCalculator::class,
             TokureiRateCalculator::class,
             BunriSeparatedMinRateCalculator::class,

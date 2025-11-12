@@ -267,7 +267,18 @@ final class FurusatoController extends Controller
             'syori_settings' => $syoriSettings,
         ];
 
-        $previewPayload = array_replace($savedInputs, [
+        // ▼ KyuyoNenkin を index/calc 再描画時にも走らせ、details由来の収入→所得を確定
+        /** @var KyuyoNenkinCalculator $knCalc */
+        $knCalc = app(KyuyoNenkinCalculator::class);
+        $knCtx = [
+            'kihu_year'        => $calculatorYear,
+            'guest_birth_date' => $this->normalizeBirthDateForContext($data?->guest?->birth_date ?? null),
+            'data'             => $data,
+        ];
+        $seed = array_replace([], $savedInputs);
+        $seed = array_replace($seed, $knCalc->compute($seed, $knCtx));
+
+        $previewPayload = array_replace($seed, [
             'human_adjusted_taxable_prev' => $humanAdjusted['prev'],
             'human_adjusted_taxable_curr' => $humanAdjusted['curr'],
         ]);
@@ -355,6 +366,17 @@ final class FurusatoController extends Controller
         $ctb = app(CommonTaxableBaseCalculator::class);
         $previewPayload = $ctb->compute($previewPayload, $calculatorCtx);
  
+        /**
+         * ▼ 住宅借入金等特別控除（住民税側上限）用の「（所得税の）課税総所得金額等」を SoT(tb_*)から合成
+         *   rtax_taxable_total_* = tb_sogo_shotoku_* + tb_sanrin_shotoku_* + tb_taishoku_shotoku_* （各0下限）
+         *   - ここでは画面表示用に previewPayload へ注入（保存時も Recalculate 経由で毎回再生成）
+         */
+        foreach (['prev','curr'] as $p) {
+            $sogo     = max(0, (int)($previewPayload["tb_sogo_shotoku_{$p}"]     ?? 0));
+            $sanrin   = max(0, (int)($previewPayload["tb_sanrin_shotoku_{$p}"]   ?? 0));
+            $taishoku = max(0, (int)($previewPayload["tb_taishoku_shotoku_{$p}"] ?? 0));
+            $previewPayload["rtax_taxable_total_{$p}"] = $sogo + $sanrin + $taishoku;
+        }
         /**
          * ▼ 所得税額 → 所得税・寄附金税額控除（政党等/NPO/公益）をプレビュー段階で先行適用
          *    - ShotokuTax:  tb_sogo_shotoku_* を基に tax_zeigaku_shotoku_* を算出
@@ -563,7 +585,129 @@ final class FurusatoController extends Controller
 
         return $context;
     }
+ 
+    /**
+     * 住宅借入金等特別控除 内訳（表示）
+     */
+    public function kojoTokubetsuJutakuLoanDetails(Request $req)
+    {
+        $data = $this->resolveAuthorizedDataOrFail($req);
+        $kihuYear   = $data->kihu_year ? (int) $data->kihu_year : null;
+        $warekiPrev = $kihuYear ? $this->toWarekiYear($kihuYear - 1) : '前年';
+        $warekiCurr = $kihuYear ? $this->toWarekiYear($kihuYear)     : '当年';
+        $payload    = $this->getFurusatoInputPayload($data);
 
+        // tb_* が未生成のケースでも 0 下限で安全に合成
+        foreach (['prev','curr'] as $p) {
+            $sogo     = max(0, (int)($payload["tb_sogo_shotoku_{$p}"]     ?? 0));
+            $sanrin   = max(0, (int)($payload["tb_sanrin_shotoku_{$p}"]   ?? 0));
+            $taishoku = max(0, (int)($payload["tb_taishoku_shotoku_{$p}"] ?? 0));
+            $payload["rtax_taxable_total_{$p}"] = $sogo + $sanrin + $taishoku;
+            // 住民税：プルダウン（5 / 7）の選択に応じて絶対上限を決定
+            $ratePct  = in_array((int)($payload["rtax_income_rate_percent_{$p}"] ?? 5), [5,7], true)
+                        ? (int)$payload["rtax_income_rate_percent_{$p}"] : 5;
+            $hardCap  = $ratePct === 7 ? 136_500 : 97_500;
+            $byIncome = (int) floor($payload["rtax_taxable_total_{$p}"] * ($ratePct / 100.0));
+            // 表示欄（readonly）：min(課税総所得金額等×率, 絶対上限)
+            $payload["rtax_income_rate_percent_{$p}"] = $ratePct;
+            $payload["rtax_carry_cap_{$p}"] = min($byIncome, $hardCap);
+        }
+
+        return view('tax.furusato.details.kojo_tokubetsu_jutaku_loan', [
+            'dataId'     => $data->id,
+            'kihuYear'   => $kihuYear,
+            'warekiPrev' => $warekiPrev,
+            'warekiCurr' => $warekiCurr,
+            'out'        => ['inputs' => $payload],
+        ]);
+    }
+
+    /**
+     * 住宅借入金等特別控除 内訳（保存→再計算）
+     */
+    public function saveKojoTokubetsuJutakuLoanDetails(
+        Request $req,
+        RecalculateFurusatoPayload $recalculateUseCase
+    ): RedirectResponse {
+        $data = $this->resolveAuthorizedDataOrFail($req, 'update');
+
+        // 入力キー定義
+        $fields = [
+            'itax_borrow_cap_prev','itax_borrow_cap_curr',
+            'itax_year_end_balance_prev','itax_year_end_balance_curr',
+            'itax_credit_rate_percent_prev','itax_credit_rate_percent_curr',
+            'rtax_income_rate_percent_prev','rtax_income_rate_percent_curr',
+            // readonly 表示値（受信値は無視するが、存在していてもエラーにしない）
+            'rtax_carry_cap_prev','rtax_carry_cap_curr',
+        ];
+
+        // バリデーション（％は0～100を許容、金額は0以上）
+        $rules = [
+            'itax_borrow_cap_prev'           => ['bail','nullable','integer','min:0','max:5000000000'],
+            'itax_borrow_cap_curr'           => ['bail','nullable','integer','min:0','max:5000000000'],
+            'itax_year_end_balance_prev'     => ['bail','nullable','integer','min:0','max:5000000000'],
+            'itax_year_end_balance_curr'     => ['bail','nullable','integer','min:0','max:5000000000'],
+            'itax_credit_rate_percent_prev'  => ['bail','nullable','numeric','min:0','max:100','regex:/^\d{1,2}(\.\d)?$/'],
+            'itax_credit_rate_percent_curr'  => ['bail','nullable','numeric','min:0','max:100','regex:/^\d{1,2}(\.\d)?$/'],
+            'rtax_income_rate_percent_prev'  => ['bail','nullable','in:5,7'],
+            'rtax_income_rate_percent_curr'  => ['bail','nullable','in:5,7'],
+            'rtax_carry_cap_prev'            => ['bail','nullable','integer','min:0'],
+            'rtax_carry_cap_curr'            => ['bail','nullable','integer','min:0'],
+        ];
+
+        // 画面の数値（カンマ等）を整数・数値へ正規化
+        $this->normalizeIntegerFieldsFromRequest($req, [
+            'itax_borrow_cap_prev','itax_borrow_cap_curr',
+            'itax_year_end_balance_prev','itax_year_end_balance_curr',
+            'rtax_carry_cap_prev','rtax_carry_cap_curr',
+        ]);
+        // ％は normalizeIntegerFields は使わず raw 数値を許容
+        $validated = \Validator::make($req->only($fields), $rules)->validate();
+
+        $payload = [];
+        foreach ($fields as $k) {
+            $v = $validated[$k] ?? $req->input($k);
+            if (in_array($k, ['itax_credit_rate_percent_prev','itax_credit_rate_percent_curr'], true)) {
+                // ★ 未入力時は 0.7 を採用／小数1位へ丸めて保存
+                $num = ($v === null || $v === '') ? 0.7 : (float)str_replace([',',' '], '', (string)$v);
+                $payload[$k] = number_format(round($num, 1), 1, '.', '');
+                continue;
+            }
+            $payload[$k] = is_numeric($v) ? (string)$v : ($v === null ? null : (string)$v);
+        }
+
+        // 再計算（結果タブは開かない＝他detailsと同じ挙動）
+        $this->runRecalculationPipeline(
+            $req,
+            $data,
+            $payload,
+            ['should_flash_results' => false],
+            $recalculateUseCase,
+        );
+
+        // ▼ 再計算直後のDBペイロードを取得して「控除限度額（住民税：min(所得×率, 絶対上限)）」を確定させて保存
+        $record = \App\Models\FurusatoInput::query()->where('data_id', $data->id)->first();
+        $stored = is_array($record?->payload) ? $record->payload : [];
+        foreach (['prev','curr'] as $p) {
+            $sogo     = max(0, (int)($stored["tb_sogo_shotoku_{$p}"]     ?? 0));
+            $sanrin   = max(0, (int)($stored["tb_sanrin_shotoku_{$p}"]   ?? 0));
+            $taishoku = max(0, (int)($stored["tb_taishoku_shotoku_{$p}"] ?? 0));
+            $stored["rtax_taxable_total_{$p}"] = $sogo + $sanrin + $taishoku;
+            $ratePctI = in_array((int)($payload["rtax_income_rate_percent_{$p}"] ?? ($stored["rtax_income_rate_percent_{$p}"] ?? 5)), [5,7], true)
+                        ? (int)($payload["rtax_income_rate_percent_{$p}"] ?? $stored["rtax_income_rate_percent_{$p}"]) : 5;
+            $hardCap  = $ratePctI === 7 ? 136_500 : 97_500;
+            $byIncome = (int) floor($stored["rtax_taxable_total_{$p}"] * ($ratePctI / 100.0));
+            $stored["rtax_income_rate_percent_{$p}"] = $ratePctI;
+            $stored["rtax_carry_cap_{$p}"] = min($byIncome, $hardCap); // 表示専用
+        }
+        if ($record) {
+            $record->payload = $stored;
+            $record->save();
+        }
+        // ボタンの redirect_to をそのまま採用（戻る＝input／再計算＝kojo_tokubetsu_jutaku_loan）
+        $goto = (string) $req->input('redirect_to', $req->boolean('stay_on_details') ? 'kojo_tokubetsu_jutaku_loan' : 'input');
+        return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
+    }
     /**
      * @param  array<string, mixed>  $savedInputs
      * @param  array<string, mixed>  $previewPayload
@@ -2076,14 +2220,25 @@ final class FurusatoController extends Controller
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
-        // 非recalc_all投稿（想定外ルート）は従来どおり保存→第一表へ
-        $this->runRecalculationPipeline(
-            $req,
-            $data,
-            $payload,
-            ['should_flash_results' => true],
-            $recalculateUseCase
-        );
+        // ▼ 「戻る/再計算」いずれも recalc_all=1 を前提に、stay_on_details で遷移先を切替
+        if ((int)$req->input('recalc_all') === 1) {
+            \Log.log('[details:kyuyo_zatsu] recompute & redirect');
+            $stay = $req->boolean('stay_on_details'); // true: 内訳に留まる / false: 第一表に戻る
+            $this->runRecalculationPipeline(
+                $req,
+                $data,
+                $payload,
+                ['should_flash_results' => !$stay],
+                $recalculateUseCase
+            );
+            $goto = $stay ? 'kyuyo_zatsu' : (string)$req->input('y_redirect_to', 'input');
+            $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
+            $query  = $this->buildReturnQuery($req);
+            return $this->redirectToInputWithAnchor($data, $anchor ?: 'shotoku_row_kyuyo', '再計算が完了しました', $stay ? $this->buildReturnQuery($req) : $query);
+        }
+
+        // フォールバック（非想定ルート）
+        $this->runRecalculationPipeline($req, $data, $payload, ['should_flash_results'=>true], $recalculateUseCase);
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
         $query  = $this->buildReturnQuery($req);
         return $this->redirectToInputWithAnchor($data, $anchor ?: 'shotoku_row_kyuyo', '保存しました', $query);
@@ -3595,6 +3750,8 @@ final class FurusatoController extends Controller
                 return redirect()->route('furusato.details.bunri_sakimono', array_merge($routeParams, $originQuery))->with('success', $message);
             case 'bunri_sanrin':
                 return redirect()->route('furusato.details.bunri_sanrin', array_merge($routeParams, $originQuery))->with('success', $message);
+            case 'kojo_tokubetsu_jutaku_loan':
+                return redirect()->route('furusato.details.kojo_tokubetsu_jutaku_loan', array_merge($routeParams, $originQuery))->with('success', $message);
             case 'input':
             case '':
             default:

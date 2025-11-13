@@ -298,45 +298,6 @@
                                required>
                   </div>
                 </div>
-                <div>
-                  <h1>○均等割・その他税額</h1>
-                  <div class="mt-1 mb-1 ms-3">
-                    <label class="form-label">都道府県 均等割</label>
-                    <input type="text"
-                           class="form-control suji7 comma floor integer_comma"
-                           inputmode="decimal"
-                           autocomplete="off"
-                           enterkeyhint="done"
-                           name="pref_equal_share_{{ $key }}"
-                           value="{{ $period['pref_equal_share'] }}"
-                           required>
-                           円
-                  </div>
-                  <div class="mb-1 ms-3">
-                    <label class="form-label">市区町村 均等割</label>
-                    <input type="text"
-                           class="form-control suji7 comma floor integer_comma"
-                           inputmode="decimal"
-                           autocomplete="off"
-                           enterkeyhint="done"
-                           name="muni_equal_share_{{ $key }}" 
-                           value="{{ $period['muni_equal_share'] }}"
-                           required>
-                           円
-                  </div>
-                  <div class="mb-1 ms-3">
-                    <label class="form-label">その他の税額</label>
-                    <input type="text"
-                           class="form-control suji7 comma floor integer_comma"
-                           inputmode="decimal"
-                           autocomplete="off"
-                           enterkeyhint="done"
-                           name="other_taxes_amount_{{ $key }}"
-                           value="{{ $period['other_taxes_amount'] }}"
-                           required>
-                           円
-                  </div>
-                </div>
               </div>
             </div>
           </div>

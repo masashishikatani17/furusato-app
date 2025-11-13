@@ -181,6 +181,7 @@ Route::middleware(['auth'])->prefix('furusato')->group(function () {
     Route::get('/master', [FurusatoController::class, 'master'])->name('furusato.master');
     Route::get('/master/shotoku_master', [FurusatoController::class, 'shotokuMaster'])->name('furusato.master.shotoku');
     Route::get('/master/jumin_master', [FurusatoController::class, 'juminMaster'])->name('furusato.master.jumin');
+    Route::post('/master/jumin_master/save', [FurusatoController::class, 'juminMasterSave'])->name('furusato.master.jumin.save');
     Route::get('/master/tokurei_master', [FurusatoController::class, 'tokureiMaster'])->name('furusato.master.tokurei');
     Route::get('/master/shinkokutokurei_master', [FurusatoController::class, 'shinkokutokureiMaster'])->name('furusato.master.shinkokutokurei');
     Route::get('/syori', [FurusatoController::class, 'syoriIndex'])->name('furusato.syori');

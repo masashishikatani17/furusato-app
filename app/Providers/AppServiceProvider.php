@@ -30,6 +30,7 @@ use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Domain\Tax\Providers\MasterProvider;
 use App\Domain\Tax\Support\PayloadNormalizer;
+use App\Services\Tax\FurusatoMasterService;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\URL;
@@ -47,7 +48,8 @@ class AppServiceProvider extends ServiceProvider
             return new Filesystem();
         });
 
-        $this->app->singleton(MasterProviderContract::class, MasterProvider::class);
+        // MasterProviderContract は常に FurusatoMasterService を解決
+        $this->app->singleton(MasterProviderContract::class, FurusatoMasterService::class);
 
         $this->app->singleton(PayloadNormalizer::class, PayloadNormalizer::class);
 

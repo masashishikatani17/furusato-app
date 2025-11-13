@@ -25,8 +25,10 @@ use App\Models\FurusatoInput;
 use App\Models\FurusatoResult;
 use App\Models\FurusatoSyoriSetting;
 use App\Services\Tax\FurusatoMasterService;
+use App\Services\Tax\FurusatoMasterDefaults;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
@@ -262,9 +264,9 @@ final class FurusatoController extends Controller
         $calculatorYear = (int) ($kihuYear ?? self::MASTER_KIHU_YEAR);
         $calculatorCtx = [
             'master_kihu_year' => self::MASTER_KIHU_YEAR,
-            'kihu_year' => $calculatorYear,
-            'company_id' => $companyId,
-            'syori_settings' => $syoriSettings,
+            'kihu_year'        => $calculatorYear,
+            'company_id'       => $companyId,
+            'data_id'          => $data?->id,
         ];
 
         // ▼ KyuyoNenkin を index/calc 再描画時にも走らせ、details由来の収入→所得を確定
@@ -3059,13 +3061,148 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveCompanyScopedDataOrFail($request);
         $companyId = $request->user()?->company_id;
-        
+        $year = (int) ($data->kihu_year ?: self::MASTER_KIHU_YEAR);
+
+        $rates = $masterService->getJuminRates($year, $companyId, $data->id);
+
+        // FurusatoInput.payload から均等割・その他税額を取得（無ければデフォルト）
+        $inputPayload = \App\Models\FurusatoInput::query()
+            ->where('data_id', $data->id)
+            ->value('payload');
+        $inputPayload = is_array($inputPayload) ? $inputPayload : [];
+
+        $equal = [
+            'pref_equal_share_prev'   => (int) ($inputPayload['jumin_pref_equal_share_prev']   ?? 1500),
+            'pref_equal_share_curr'   => (int) ($inputPayload['jumin_pref_equal_share_curr']   ?? 1500),
+            'muni_equal_share_prev'   => (int) ($inputPayload['jumin_muni_equal_share_prev']   ?? 3500),
+            'muni_equal_share_curr'   => (int) ($inputPayload['jumin_muni_equal_share_curr']   ?? 3500),
+            'other_taxes_prev'        => (int) ($inputPayload['jumin_other_taxes_amount_prev'] ?? 0),
+            'other_taxes_curr'        => (int) ($inputPayload['jumin_other_taxes_amount_curr'] ?? 0),
+        ];
+
         return view('tax.furusato.master.jumin_master', [
             'dataId' => $data->id,
-            'rates' => $masterService->getJuminRates(self::MASTER_KIHU_YEAR, $companyId),
+            'rates'  => $rates,
+            'equal'  => $equal,
         ]);
     }
 
+    /**
+     * 住民税率マスター保存（編集UIのPOST先）
+     */
+    public function juminMasterSave(
+        Request $request,
+        RecalculateFurusatoPayload $recalculateUseCase
+    ): RedirectResponse
+    {
+        // ★ data_id ごとの JSON 保存に切り替え（jumin_rates テーブルは使わない）
+        $data = $this->resolveCompanyScopedDataOrFail($request, 'update');
+        $year = (int) ($data->kihu_year ?: FurusatoMasterDefaults::DEFAULT_YEAR);
+
+        // 受領フォーマット：
+        // rates[n][sort category sub_category city_specified pref_specified city_non_specified pref_non_specified]
+        $rows = (array) $request->input('rates', []);
+
+        $normalized = [];
+
+        foreach ($rows as $i => $row) {
+            if (!is_array($row)) {
+                $row = [];
+            }
+
+            $category = trim((string) ($row['category'] ?? ''));
+            // name="rates[...]" を持たない行や category 未指定行はスキップ
+            if ($category === '') {
+                continue;
+            }
+
+            $subCategory = ($row['sub_category'] ?? '') === '' ? null : trim((string) $row['sub_category']);
+            $sort        = (int) ($row['sort'] ?? (10 * ($i + 1)));
+
+            // ★ レイアウト系（year/category/sub/sort）は必ず保存するが、
+            //    率カラムは「入力されたものだけ」保存（空欄は Defaults を使う）
+            $record = [
+                'year'         => $year,
+                'company_id'   => null,
+                'sort'         => $sort,
+                'category'     => $category,
+                'sub_category' => $subCategory,
+                // remark は編集不可なのでここでは保存しない（Defaults 側を採用）
+            ];
+
+            // 4 率：空欄は「キー自体を持たない」→ Defaults にフォールバック
+            foreach (['city_specified','pref_specified','city_non_specified','pref_non_specified'] as $k) {
+                $v = $row[$k] ?? null;
+                if ($v === '' || $v === null) {
+                    // 入力なし → キーを作らない（初期値採用）
+                    continue;
+                }
+                $sv = is_string($v) ? str_replace([',',' '], '', $v) : $v;
+                if (! is_numeric($sv)) {
+                    throw ValidationException::withMessages([
+                        "rates.$i.$k" => '数値を入力してください（空欄＝初期値を使用、0 を入力した場合のみ 0% として保存）。',
+                    ]);
+                }
+                // ★ 0 と入力された場合は 0.000 として保存される
+                $record[$k] = round((float) $sv, 3);
+            }
+
+            $normalized[] = $record;
+        }
+
+        // sort 昇順に並べ替え（念のため）
+        usort($normalized, static fn (array $a, array $b) => ($a['sort'] <=> $b['sort']));
+
+        // 均等割・その他税額の取り出し（整数化）
+        $equalRaw = (array) $request->input('jumin', []);
+
+        $toInt = function ($value, int $default): int {
+            if ($value === null || $value === '') {
+                return $default;
+            }
+            $s = preg_replace('/[^\d]/', '', (string) $value);
+            if ($s === '') {
+                return $default;
+            }
+            return (int) $s;
+        };
+
+        $equal = [
+            'jumin_pref_equal_share_prev'   => $toInt($equalRaw['pref_equal_share_prev']   ?? null, 1500),
+            'jumin_pref_equal_share_curr'   => $toInt($equalRaw['pref_equal_share_curr']   ?? null, 1500),
+            'jumin_muni_equal_share_prev'   => $toInt($equalRaw['muni_equal_share_prev']   ?? null, 3500),
+            'jumin_muni_equal_share_curr'   => $toInt($equalRaw['muni_equal_share_curr']   ?? null, 3500),
+            'jumin_other_taxes_amount_prev' => $toInt($equalRaw['other_taxes_prev']        ?? null, 0),
+            'jumin_other_taxes_amount_curr' => $toInt($equalRaw['other_taxes_curr']        ?? null, 0),
+        ];
+
+        // FurusatoInput.payload に jumin_master ＋ 均等割・その他 を保存
+        FurusatoInput::unguarded(function () use ($data, $normalized, $equal): void {
+            /** @var FurusatoInput $record */
+            $record = FurusatoInput::firstOrNew(['data_id' => $data->id]);
+
+            $payload = is_array($record->payload) ? $record->payload : [];
+
+            $payload['jumin_master'] = $normalized;
+
+            foreach ($equal as $k => $v) {
+                $payload[$k] = $v;
+            }
+
+            $record->payload    = $payload;
+            $record->company_id = $data->company_id;
+            $record->group_id   = $data->group_id;
+            $record->save();
+        });
+
+        // 保存後に「当該 data_id を再計算」してから遷移（新レートを即反映）
+        $this->performFullRecalculation($request, $data, [], $recalculateUseCase);
+
+        // 画面遷移：「戻る」＝ マスター（親）へ戻る
+        return redirect()
+            ->route('furusato.master', ['data_id' => $data->id])
+            ->with('success', '住民税率マスターを保存し、再計算しました');
+    }
     public function tokureiMaster(Request $request, FurusatoMasterService $masterService)
     {
         $data = $this->resolveCompanyScopedDataOrFail($request);
@@ -3698,6 +3835,7 @@ final class FurusatoController extends Controller
         $ctx = array_merge(
             [
                 'guest_birth_date' => $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null),
+                'data_id'          => $data->id,
             ],
             $ctx,
         );
@@ -3998,11 +4136,32 @@ final class FurusatoController extends Controller
 
     private function getSyoriSettings(int $dataId): array
     {
-        $payload = FurusatoSyoriSetting::query()
+        // 元の syori 設定（無ければデフォルト）
+        $raw = FurusatoSyoriSetting::query()
             ->where('data_id', $dataId)
             ->value('payload');
 
-        return is_array($payload) ? $payload : [];
+        $settings = is_array($raw)
+            ? array_replace($this->syoriDefaultPayload(), $raw)
+            : $this->syoriDefaultPayload();
+
+        // 標準レート等を適用（既存ロジック）
+        $settings = $this->applyStandardRates($settings);
+
+        // jumin_master 側の均等割・その他を上書き（SoT を jumin_master に寄せる）
+        $inputPayload = \App\Models\FurusatoInput::query()
+            ->where('data_id', $dataId)
+            ->value('payload');
+        $inputPayload = is_array($inputPayload) ? $inputPayload : [];
+
+        $settings['pref_equal_share_prev']   = (int) ($inputPayload['jumin_pref_equal_share_prev']   ?? $settings['pref_equal_share_prev']);
+        $settings['pref_equal_share_curr']   = (int) ($inputPayload['jumin_pref_equal_share_curr']   ?? $settings['pref_equal_share_curr']);
+        $settings['muni_equal_share_prev']   = (int) ($inputPayload['jumin_muni_equal_share_prev']   ?? $settings['muni_equal_share_prev']);
+        $settings['muni_equal_share_curr']   = (int) ($inputPayload['jumin_muni_equal_share_curr']   ?? $settings['muni_equal_share_curr']);
+        $settings['other_taxes_amount_prev'] = (int) ($inputPayload['jumin_other_taxes_amount_prev'] ?? $settings['other_taxes_amount_prev']);
+        $settings['other_taxes_amount_curr'] = (int) ($inputPayload['jumin_other_taxes_amount_curr'] ?? $settings['other_taxes_amount_curr']);
+
+        return $settings;
     }
 
     /**

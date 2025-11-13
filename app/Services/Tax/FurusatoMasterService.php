@@ -2,11 +2,15 @@
 
 namespace App\Services\Tax;
 
+use App\Domain\Tax\Contracts\MasterProviderContract;
 use Illuminate\Support\Collection;
+use App\Models\FurusatoInput;
+use App\Services\Tax\FurusatoMasterDefaults;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Arr;
 
-class FurusatoMasterService
+class FurusatoMasterService implements MasterProviderContract
 {
     private const CACHE_TTL = 300; // seconds
 
@@ -57,21 +61,88 @@ class FurusatoMasterService
             ->map(static fn (array $rate): object => (object) $rate);
     }
 
-    public function getJuminRates(int $year, ?int $companyId = null): Collection
+    /**
+     * 住民税率マスター
+     *
+     * 優先順位：
+     *   1) data_id ごとの FurusatoInput.payload.jumin_master
+     *   2) FurusatoMasterDefaults::jumin()（year が一致する行）
+     *
+     * companyId / 既存 jumin_rates テーブルは本画面では利用しない。
+     */
+    public function getJuminRates(int $year, ?int $companyId = null, ?int $dataId = null): Collection
     {
-        return $this->rememberRates('jumin', 'jumin_rates', $year, $companyId, [FurusatoMasterDefaults::class, 'jumin'])
-            ->map(static function (array $rate): array {
-                return [
-                    'category' => $rate['category'],
-                    'sub_category' => $rate['sub_category'],
-                    'city_specified' => (float) $rate['city_specified'],
-                    'pref_specified' => (float) $rate['pref_specified'],
-                    'city_non_specified' => (float) $rate['city_non_specified'],
-                    'pref_non_specified' => (float) $rate['pref_non_specified'],
-                    'remark' => $rate['remark'],
-                ];
-            })
-            ->map(static fn (array $rate): object => (object) $rate);
+        // ★ まずは 2025 Defaults を年で絞り込む
+        $defaultsAll = FurusatoMasterDefaults::jumin();
+        $defaultRows = array_values(array_filter($defaultsAll, static function (array $row) use ($year): bool {
+            return isset($row['year']) && (int) $row['year'] === $year;
+        }));
+
+        // もし year 一致が無ければ、全行を採用（フォールバック）
+        if ($defaultRows === []) {
+            $defaultRows = $defaultsAll;
+        }
+
+        // data_id ごとの JSON（jumin_master）があれば「上書き値」として扱う
+        $savedBySort = [];
+
+        if ($dataId !== null) {
+            $payload = FurusatoInput::query()
+                ->where('data_id', $dataId)
+                ->value('payload');
+
+            if (is_array($payload) && isset($payload['jumin_master']) && is_array($payload['jumin_master'])) {
+                foreach ($payload['jumin_master'] as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    $sort = (int) ($row['sort'] ?? 0);
+                    if ($sort === 0) {
+                        continue;
+                    }
+                    $savedBySort[$sort] = $row;
+                }
+            }
+        }
+
+        // ★ Defaults をベースに「必要なセルだけ JSON の値で上書き」して返す
+        $merged = [];
+
+        foreach ($defaultRows as $defaultRow) {
+            $sort     = (int)   ($defaultRow['sort']     ?? 0);
+            $category = (string)($defaultRow['category'] ?? '');
+
+            $saved = $savedBySort[$sort] ?? null;
+
+            // 調整・基本・特例は常に Defaults のまま（編集不可）
+            $useSaved = $saved !== null
+                && ! in_array($category, ['調整控除', '基本控除', '特例控除'], true);
+
+            $valueFor = static function (string $key, array $defaultRow, ?array $savedRow) {
+                if ($savedRow !== null && array_key_exists($key, $savedRow)) {
+                    // 0 も有効値として尊重
+                    return (float) $savedRow[$key];
+                }
+                return (float) ($defaultRow[$key] ?? 0.0);
+            };
+
+            $merged[] = (object) [
+                'year'               => $year,
+                'company_id'         => null,
+                'sort'               => $sort,
+                'category'           => $category,
+                'sub_category'       => $defaultRow['sub_category']       ?? null,
+                // ★ 率：JSON に値があればそれを優先／無ければ Defaults
+                'city_specified'     => $valueFor('city_specified',     $defaultRow, $useSaved ? $saved : null),
+                'pref_specified'     => $valueFor('pref_specified',     $defaultRow, $useSaved ? $saved : null),
+                'city_non_specified' => $valueFor('city_non_specified', $defaultRow, $useSaved ? $saved : null),
+                'pref_non_specified' => $valueFor('pref_non_specified', $defaultRow, $useSaved ? $saved : null),
+                // ★ 備考は常に Defaults のものをそのまま表示（編集不可）
+                'remark'             => $defaultRow['remark'] ?? null,
+            ];
+        }
+
+        return collect($merged)->sortBy('sort')->values();
     }
 
     public function getTokureiRates(int $year, ?int $companyId = null): Collection
@@ -209,4 +280,134 @@ class FurusatoMasterService
 
         return sprintf('%s||%s', $template['label'], $template['text']);
     }
+ 
+    /**
+     * 住民税率マスターを年×会社スコープで一括保存（upsert）。
+     * rows: [
+     *   ['id'?,'sort','category','sub_category', 'city_specified','pref_specified','city_non_specified','pref_non_specified','remark']
+     * ]
+     */
+    public function saveJuminRates(int $year, ?int $companyId, array $rows): void
+    {
+        $table = 'jumin_rates';
+        // 0/空文字はNULLへ、数値は小数3桁に正規化
+        $norm = static function ($v): ?float {
+            if ($v === null) return null;
+            // 全角→半角、カンマ・空白除去
+            if (is_string($v)) {
+                $v = mb_convert_kana($v, 'as', 'UTF-8'); // 全角記号/数字→半角
+                $v = str_replace([',',' '], '', $v);
+                $v = trim($v);
+            }
+            if ($v === '' || $v === '－' || $v === '-') return null;
+            if (!is_numeric($v)) return null;
+            return round((float)$v, 3);
+        };
+
+        DB::transaction(function () use ($rows, $year, $companyId, $table, $norm) {
+            foreach ($rows as $row) {
+                $category     = trim((string)($row['category'] ?? ''));
+                // 表記ゆれ吸収：UI/既定で「総合」「総合課税」の両方があり得る
+                if ($category === '総合') {
+                    $category = '総合課税';
+                }
+                $subCategory  = ($row['sub_category'] ?? '') === '' ? null : trim((string)$row['sub_category']);
+                $sort         = (int)($row['sort'] ?? 0);
+
+                // 共通マスター（company_id NULL）の“同キー”最新行（<= year）を取得（新規INSERT時の補完に使用）
+                $baseRow = DB::table($table)
+                    ->whereNull('company_id')
+                    ->where('category', $category)
+                    ->where(function ($q) use ($subCategory) {
+                        if ($subCategory === null) {
+                            $q->whereNull('sub_category');
+                        } else {
+                            $q->where('sub_category', $subCategory);
+                        }
+                    })
+                    ->where('year', '<=', $year)
+                    ->orderBy('year', 'desc')
+                    ->orderBy('sort')
+                    ->first();
+                // POST された sort が 0（既定値不明）の場合は、既定行の sort を採用
+                if ($sort === 0 && $baseRow) {
+                    $sort = (int)$baseRow->sort;
+                }
+                // まず受信値を正規化
+                $incoming = [
+                    'year'                => $year,
+                    'company_id'          => $companyId,
+                    'sort'                => $sort,
+                    'category'            => $category,
+                    'sub_category'        => $subCategory,
+                    'city_specified'      => $norm(Arr::get($row, 'city_specified')),
+                    'pref_specified'      => $norm(Arr::get($row, 'pref_specified')),
+                    'city_non_specified'  => $norm(Arr::get($row, 'city_non_specified')),
+                    'pref_non_specified'  => $norm(Arr::get($row, 'pref_non_specified')),
+                    'remark'              => $baseRow->remark ?? null,
+                ];
+                // 新規行ガード：4率すべて未入力（null）で remark も空 → 何もしない（INSERTしない）
+                $allRatesNull =
+                    $incoming['city_specified']     === null &&
+                    $incoming['pref_specified']     === null &&
+                    $incoming['city_non_specified'] === null &&
+                    $incoming['pref_non_specified'] === null;
+
+                // 既存行の取得（id優先 → 一意キー近似）
+                $existing = null;
+                // id一致（年/会社も一致）の場合はそれを更新
+                if (!empty($row['id'])) {
+                    $hit = DB::table($table)->where('id', (int)$row['id'])->first();
+                    if ($hit && (int)$hit->year === (int)$year && (int)($hit->company_id ?? 0) === (int)($companyId ?? 0)) {
+                        $existing = $hit;
+                    }
+                }
+                if (!$existing) {
+                    $where = [
+                        'year'        => $year,
+                        'company_id'  => $companyId,
+                        'category'    => $category,
+                        'sub_category'=> $subCategory,
+                        'sort'        => $sort,
+                    ];
+                    $existing = DB::table($table)->where($where)->first();
+                }
+
+                // 「空欄は現状維持」：入力が null の列は、既存値を温存
+                $payload = $incoming;
+                if ($existing) {
+                    foreach (['city_specified','pref_specified','city_non_specified','pref_non_specified','remark'] as $col) {
+                        if ($payload[$col] === null) {
+                            $payload[$col] = $existing->$col; // keep old
+                        }
+                    }
+                    DB::table($table)->where('id', $existing->id)->update($payload);
+                } else {
+                    // 新規行：いずれかの率が入力されている場合のみ INSERT
+                    if (!$allRatesNull) {
+                        // 未入力の列は共通マスターの値で自動補完（NOT NULL 制約を満たす）
+                        foreach (['city_specified','pref_specified','city_non_specified','pref_non_specified'] as $col) {
+                            if ($payload[$col] === null && $baseRow) {
+                                $payload[$col] = (float)$baseRow->$col;
+                            }
+                        }
+                        // それでも null が残る（共通マスターにも該当が無い）場合は挿入をスキップ
+                        if (
+                            $payload['city_specified']     === null ||
+                            $payload['pref_specified']     === null ||
+                            $payload['city_non_specified'] === null ||
+                            $payload['pref_non_specified'] === null
+                        ) {
+                            continue; // 不完全な行はINSERTしない
+                        }
+                        DB::table($table)->insert($payload);
+                    }
+                    // 全nullならスキップ（INSERTしない）
+                }
+            }
+        });
+        // キャッシュを素直にクリア（年×会社）
+        Cache::forget(sprintf('furusato_master:jumin:%d:%s', $year, $companyId ?? 'default'));
+    }
+    
 }

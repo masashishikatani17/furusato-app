@@ -93,9 +93,12 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
         $companyId = isset($ctx['company_id']) && $ctx['company_id'] !== ''
             ? (int) $ctx['company_id']
             : null;
-
+        // data_id ごとの住民税率マスターを参照するためのキー
+        $dataId = isset($ctx['data_id']) && $ctx['data_id'] !== ''
+            ? (int) $ctx['data_id']
+            : null;
         $rateRows = $year > 0
-            ? $this->buildJuminRateRows($year, $companyId)
+            ? $this->buildJuminRateRows($year, $companyId, $dataId)
             : [];
         $shinkokuRateRows = $year > 0
             ? $this->buildShinkokutokureiRateRows($year, $companyId)
@@ -385,9 +388,9 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function buildJuminRateRows(int $year, ?int $companyId): array
+    private function buildJuminRateRows(int $year, ?int $companyId, ?int $dataId): array
     {
-        $collection = $this->masterProvider->getJuminRates($year, $companyId);
+        $collection = $this->masterProvider->getJuminRates($year, $companyId, $dataId);
 
         $rows = [];
         foreach ($collection as $row) {

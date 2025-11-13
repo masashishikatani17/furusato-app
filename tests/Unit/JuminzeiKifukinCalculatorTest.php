@@ -17,7 +17,7 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
                 return Collection::make();
             }
 
-            public function getJuminRates(int $year, ?int $companyId = null): Collection
+            public function getJuminRates(int $year, ?int $companyId = null, ?int $dataId = null): Collection
             {
                 return Collection::make([
                     (object) [
@@ -46,7 +46,7 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
                 return Collection::make();
             }
 
-            public function getShinkokutokureiRates(int $year, ?int $companyId = null): Collection
+            public function getShinkokutokureiRates(int $year, ?int $companyId = null, ?int $dataId = null): Collection
             {
                 return Collection::make();
             }
@@ -86,7 +86,7 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
                 return Collection::make();
             }
 
-            public function getJuminRates(int $year, ?int $companyId = null): Collection
+            public function getJuminRates(int $year, ?int $companyId = null, ?int $dataId = null): Collection
             {
                 return Collection::make([
                     (object) [
@@ -115,7 +115,7 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
                 return Collection::make();
             }
 
-            public function getShinkokutokureiRates(int $year, ?int $companyId = null): Collection
+            public function getShinkokutokureiRates(int $year, ?int $companyId = null, ?int $dataId = null): Collection
             {
                 return Collection::make();
             }
@@ -156,7 +156,7 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
                 return Collection::make();
             }
 
-            public function getJuminRates(int $year, ?int $companyId = null): Collection
+            public function getJuminRates(int $year, ?int $companyId = null, ?int $dataId = null): Collection
             {
                 return Collection::make([
                     (object) [
@@ -185,7 +185,7 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
                 return Collection::make();
             }
 
-            public function getShinkokutokureiRates(int $year, ?int $companyId = null): Collection
+            public function getShinkokutokureiRates(int $year, ?int $companyId = null, ?int $dataId = null): Collection
             {
                 return Collection::make([
                     (object) [

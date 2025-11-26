@@ -101,15 +101,16 @@ class KyuyoNenkinCalculator implements ProvidesKeys
 
             // ===== ここから「影通算」→ OTP → 年金雑所得 =====
             // 1) 経常（年金除外）：v2の正値合算ルールに合わせて構築
+            //    payload 由来の値にはカンマ付き文字列等が混ざるため、必ず n() で数値化してから合算する
             $econNoPension =
-                  max(0, $working[sprintf('shotoku_kyuyo_shotoku_%s', $period)] ?? 0)
-                + max(0, $working[sprintf('shotoku_jigyo_eigyo_shotoku_%s', $period)] ?? 0)
-                + max(0, $working[sprintf('shotoku_jigyo_nogyo_shotoku_%s', $period)] ?? 0)
-                + max(0, $working[sprintf('shotoku_fudosan_shotoku_%s', $period)] ?? 0)
+                  max(0, $this->n($working[sprintf('shotoku_kyuyo_shotoku_%s', $period)] ?? 0))
+                + max(0, $this->n($working[sprintf('shotoku_jigyo_eigyo_shotoku_%s', $period)] ?? 0))
+                + max(0, $this->n($working[sprintf('shotoku_jigyo_nogyo_shotoku_%s', $period)] ?? 0))
+                + max(0, $this->n($working[sprintf('shotoku_fudosan_shotoku_%s', $period)] ?? 0))
                 + max(0, $this->n($working[sprintf('shotoku_rishi_%s', $period)] ?? 0))
-                + max(0, $working[sprintf('shotoku_haito_shotoku_%s', $period)] ?? 0)
-                + max(0, $working[sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)] ?? 0)
-                + max(0, $working[sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)] ?? 0);
+                + max(0, $this->n($working[sprintf('shotoku_haito_shotoku_%s', $period)] ?? 0))
+                + max(0, $this->n($working[sprintf('shotoku_zatsu_gyomu_shotoku_%s', $period)] ?? 0))
+                + max(0, $this->n($working[sprintf('shotoku_zatsu_sonota_shotoku_%s', $period)] ?? 0));
             // ※ shotoku_zatsu_nenkin_shotoku_* はここに含めない
 
             // 2) 短期・長期・一時（影）：Details／ResultToDetails にある差引ベースを使い JotoIchijiNetting を走らせる

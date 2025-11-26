@@ -13,7 +13,6 @@ use App\Domain\Tax\Calculators\SeitotoTokubetsuZeigakuKojoCalculator;
 use App\Domain\Tax\Calculators\JuminTaxCalculator;
 use App\Domain\Tax\Calculators\JuminzeiKifukinCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
-use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 
 class TaxBaseMirrorCalculator implements ProvidesKeys
@@ -34,7 +33,6 @@ class TaxBaseMirrorCalculator implements ProvidesKeys
         JuminTaxCalculator::ID,
         JuminzeiKifukinCalculator::ID,
         TokureiRateCalculator::ID,
-        BunriSeparatedMinRateCalculator::ID,
         FurusatoResultCalculator::ID,
     ];
     private const PERIODS = ['prev', 'curr'];

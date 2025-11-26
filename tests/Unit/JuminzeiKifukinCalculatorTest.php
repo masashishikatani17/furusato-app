@@ -59,6 +59,10 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
             'kojo_gokei_jumin_prev' => 0,
             'juminzei_zeigakukojo_pref_furusato_prev' => 40_000,
             'juminzei_zeigakukojo_muni_furusato_prev' => 60_000,
+            // 新仕様：30%ガードは所得税側「総所得金額等」を母数とする。
+            // このケースでは所得税の総所得金額等＝300,000 とみなし、
+            // 30%ガード（90,000）で寄附100,000が制限される（=旧仕様と同じ挙動）ように設定する。
+            'rtax_taxable_total_prev' => 300_000,
             'tokurei_rate_final_prev' => 69.58,
         ];
 
@@ -202,6 +206,13 @@ final class JuminzeiKifukinCalculatorTest extends TestCase
             'tb_sogo_jumin_prev' => 30_000_000,
             'kojo_gokei_jumin_prev' => 0,
             'juminzei_zeigakukojo_furusato_prev' => 100_000,
+            // 新仕様：30%ガードの母数は所得税側「総所得金額等」。
+            // ガードによる制限を避けるため、十分大きな値を設定する。
+            'rtax_taxable_total_prev' => 1_000_000,
+            // 新仕様：20% cap の母数は「調整控除後所得割額（退職除外後）」。
+            // capTotal が tokurei_kojo_* を上回るように、適当な大きさを設定する。
+            'choseigo_shotokuwari_capbase_pref_prev' => 200_000,
+            'choseigo_shotokuwari_capbase_muni_prev' => 200_000,
             'tokurei_rate_final_prev' => 80.0,
         ];
 

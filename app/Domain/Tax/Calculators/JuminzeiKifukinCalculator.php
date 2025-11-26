@@ -7,7 +7,6 @@ use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Domain\Tax\Calculators\KojoAggregationCalculator;
 use App\Domain\Tax\Calculators\CommonTaxableBaseCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
-use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 
 final class JuminzeiKifukinCalculator implements ProvidesKeys
 {
@@ -19,7 +18,6 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
         KojoAggregationCalculator::ID,
         CommonTaxableBaseCalculator::ID,
         TokureiRateCalculator::ID,
-        BunriSeparatedMinRateCalculator::ID,
     ];
 
     /** @var string[] */
@@ -188,79 +186,27 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $prefApplied = $this->resolveAppliedRate($settings, $payload, 'pref', $period);
             $muniApplied = $this->resolveAppliedRate($settings, $payload, 'muni', $period);
             $shitei = $this->resolveFlag($settings, $payload, 'shitei_toshi_flag', $period);
+            // ▼ 調整控除前／控除額／控除後の所得割額は JuminTaxCalculator が算出した SoT を参照する
+            $prefBeforeKey = sprintf('chosei_mae_shotokuwari_pref_%s', $period);
+            $muniBeforeKey = sprintf('chosei_mae_shotokuwari_muni_%s', $period);
+            $prefKojoKey   = sprintf('chosei_kojo_pref_%s', $period);
+            $muniKojoKey   = sprintf('chosei_kojo_muni_%s', $period);
+            $prefAfterKey  = sprintf('choseigo_shotokuwari_pref_%s', $period);
+            $muniAfterKey  = sprintf('choseigo_shotokuwari_muni_%s', $period);
 
-            $out[sprintf('chosei_mae_shotokuwari_pref_%s', $period)] = $this->calculateChoseiMae(
-                $rateRows,
-                $payload,
-                $period,
-                $kazeisoushotoku,
-                $prefApplied,
-                $shitei,
-                'pref'
-            );
+            $prefBefore = $this->n($payload[$prefBeforeKey] ?? null);
+            $muniBefore = $this->n($payload[$muniBeforeKey] ?? null);
+            $prefKojo   = $this->n($payload[$prefKojoKey]   ?? null);
+            $muniKojo   = $this->n($payload[$muniKojoKey]   ?? null);
+            $prefAfter  = $this->n($payload[$prefAfterKey] ?? null);
+            $muniAfter  = $this->n($payload[$muniAfterKey] ?? null);
 
-            $out[sprintf('chosei_mae_shotokuwari_muni_%s', $period)] = $this->calculateChoseiMae(
-                $rateRows,
-                $payload,
-                $period,
-                $kazeisoushotoku,
-                $muniApplied,
-                $shitei,
-                'city'
-            );
-
-            // ▼ 上限等の判定で使う「合計所得の基礎」は tb_*（住民税側）で一元化
-            $guardedTotal =
-                $this->n($payload[sprintf('tb_sogo_jumin_%s', $period)] ?? null) +
-                $this->n($payload[sprintf('tb_joto_tanki_jumin_%s', $period)] ?? null) +
-                $this->n($payload[sprintf('tb_joto_choki_jumin_%s', $period)] ?? null) +
-                // 一般・上場の譲渡は和で評価
-                $this->n($payload[sprintf('tb_ippan_kabuteki_joto_jumin_%s', $period)] ?? null) +
-                $this->n($payload[sprintf('tb_jojo_kabuteki_joto_jumin_%s', $period)] ?? null) +
-                $this->n($payload[sprintf('tb_jojo_kabuteki_haito_jumin_%s', $period)] ?? null) +
-                $this->n($payload[sprintf('tb_sakimono_jumin_%s', $period)] ?? null) +
-                $this->n($payload[sprintf('tb_sanrin_jumin_%s', $period)] ?? null) +
-                $this->n($payload[sprintf('tb_taishoku_jumin_%s', $period)] ?? null);
-            $baseTotal = 0;
-
-            if ($guardedTotal <= 25_000_000 && $kazeisoushotoku > 0) {
-                $humanDiffSum = $this->n($payload[sprintf('human_diff_sum_%s', $period)] ?? null);
-                $humanDiffKiso = $this->n($payload[sprintf('human_diff_kiso_%s', $period)] ?? null);
-
-                $baseValue = $humanDiffSum - $humanDiffKiso + 50_000;
-
-                if ($kazeisoushotoku <= 2_000_000) {
-                    $baseValue = max(min($baseValue, $kazeisoushotoku), 0);
-                    $baseTotal = $this->mulRate($baseValue, 0.05);
-                } else {
-                    $baseValue = max($baseValue - ($kazeisoushotoku - 2_000_000), 0);
-                    $baseTotal = max($this->mulRate($baseValue, 0.05), 2_500);
-                }
-            }
-
-            $prefKey = sprintf('chosei_kojo_pref_%s', $period);
-            $muniKey = sprintf('chosei_kojo_muni_%s', $period);
-
-            if ($baseTotal === 0) {
-                $prefKojo = 0;
-                $muniKojo = 0;
-            } else {
-                $prefRatio = $shitei ? 0.2 : 0.4;
-                $prefKojo = $this->mulRate($baseTotal, $prefRatio);
-                $muniKojo = max($baseTotal - $prefKojo, 0);
-            }
-
-            $out[$prefKey] = $prefKojo;
-            $out[$muniKey] = $muniKojo;
-
-            $prefAfterKey = sprintf('choseigo_shotokuwari_pref_%s', $period);
-            $muniAfterKey = sprintf('choseigo_shotokuwari_muni_%s', $period);
-
-            $prefBefore = $out[sprintf('chosei_mae_shotokuwari_pref_%s', $period)] ?? 0;
-            $muniBefore = $out[sprintf('chosei_mae_shotokuwari_muni_%s', $period)] ?? 0;
-
-            $out[$prefAfterKey] = $prefBefore - $prefKojo;
-            $out[$muniAfterKey] = $muniBefore - $muniKojo;
+            $out[$prefBeforeKey] = $prefBefore;
+            $out[$muniBeforeKey] = $muniBefore;
+            $out[$prefKojoKey]   = $prefKojo;
+            $out[$muniKojoKey]   = $muniKojo;
+            $out[$prefAfterKey]  = $prefAfter;
+            $out[$muniAfterKey]  = $muniAfter;
 
             $kihonPrefKey = sprintf('kihon_kojo_pref_%s', $period);
             $kihonMuniKey = sprintf('kihon_kojo_muni_%s', $period);
@@ -268,10 +214,12 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $kihonPrefRate = $this->juminRate($rateRows, '基本控除', null, $shitei, 'pref');
             $kihonMuniRate = $this->juminRate($rateRows, '基本控除', null, $shitei, 'city');
 
+            // ▼ 30%ガード：所得税側の「総所得金額等」を母数にする
             $eligibleKifu = 0;
             if ($out[sprintf('kifu_gaku_%s', $period)] > 2_000) {
-                $guardedCap = $this->mulRate($guardedTotal, 0.3);
-                $limit = min($out[sprintf('kifu_gaku_%s', $period)], $guardedCap);
+                $incomeTotal = $this->shotokuTaxableTotal($payload, $period);
+                $guardedCap  = $this->mulRate($incomeTotal, 0.3);
+                $limit       = min($out[sprintf('kifu_gaku_%s', $period)], $guardedCap);
                 $eligibleKifu = max($limit - 2_000, 0);
             }
 
@@ -310,13 +258,27 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
                 ? $this->applyThousandRate($tokureiBaseAfterRate, $tokureiMuniRate)
                 : 0;
 
-            $prefAfter = max($out[$prefAfterKey], 0);
-            $muniAfter = max($out[$muniAfterKey], 0);
+            // ▼ 20%上限：退職除外後の cap 母数（JuminTax 側の capbase_*）を使って合計20%を算出し、pref/muniに按分
+            $capbasePref = $this->n($payload[sprintf('choseigo_shotokuwari_capbase_pref_%s', $period)] ?? null);
+            $capbaseMuni = $this->n($payload[sprintf('choseigo_shotokuwari_capbase_muni_%s', $period)] ?? null);
+            $capBaseSum  = $capbasePref + $capbaseMuni;
 
             $shotokuwari20PrefKey = sprintf('shotokuwari20_pref_%s', $period);
             $shotokuwari20MuniKey = sprintf('shotokuwari20_muni_%s', $period);
-            $shotokuwari20Pref = (int) floor($prefAfter * 0.2);
-            $shotokuwari20Muni = (int) floor($muniAfter * 0.2);
+
+            if ($capBaseSum > 0) {
+                $capTotal = (int) floor($capBaseSum * 0.2);
+                // 案A：pref/muni への按分は capbase の比率で行う
+                $prefRatio = $capbasePref / $capBaseSum;
+                $capPref   = (int) floor($capTotal * $prefRatio);
+                $capMuni   = $capTotal - $capPref;
+            } else {
+                $capPref = 0;
+                $capMuni = 0;
+            }
+
+            $shotokuwari20Pref = $capPref;
+            $shotokuwari20Muni = $capMuni;
 
             $out[$shotokuwari20PrefKey] = $shotokuwari20Pref;
             $out[$shotokuwari20MuniKey] = $shotokuwari20Muni;
@@ -504,88 +466,6 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
     /**
      * @param  array<int, array<string, mixed>>  $rates
      */
-    private function calculateChoseiMae(
-        array $rates,
-        array $payload,
-        string $period,
-        int $kazeisoushotoku,
-        float $baseRate,
-        bool $shitei,
-        string $target
-    ): int {
-        $total = $this->mulRate($kazeisoushotoku, $baseRate);
-
-        $total += $this->mulRate(
-            $this->n($payload[sprintf('bunri_shotoku_tanki_ippan_shotoku_%s', $period)] ?? null),
-            $this->juminRate($rates, '短期譲渡', '一般', $shitei, $target)
-        );
-
-        $total += $this->mulRate(
-            $this->n($payload[sprintf('bunri_shotoku_tanki_keigen_shotoku_%s', $period)] ?? null),
-            $this->juminRate($rates, '短期譲渡', '軽減', $shitei, $target)
-        );
-
-        $total += $this->mulRate(
-            $this->n($payload[sprintf('bunri_shotoku_choki_ippan_shotoku_%s', $period)] ?? null),
-            $this->juminRate($rates, '長期譲渡', '一般', $shitei, $target)
-        );
-
-        $tokutei = $this->n($payload[sprintf('bunri_shotoku_choki_tokutei_shotoku_%s', $period)] ?? null);
-        $total += $this->mulRate(
-            min($tokutei, 20_000_000),
-            $this->juminRate($rates, '長期譲渡', '特定', $shitei, $target, '以下')
-        );
-        $total += $this->mulRate(
-            max($tokutei - 20_000_000, 0),
-            $this->juminRate($rates, '長期譲渡', '特定', $shitei, $target, '超')
-        );
-
-        $keika = $this->n($payload[sprintf('bunri_shotoku_choki_keika_shotoku_%s', $period)] ?? null);
-        $total += $this->mulRate(
-            min($keika, 60_000_000),
-            $this->juminRate($rates, '長期譲渡', '軽課', $shitei, $target, '以下')
-        );
-        $total += $this->mulRate(
-            max($keika - 60_000_000, 0),
-            $this->juminRate($rates, '長期譲渡', '軽課', $shitei, $target, '超')
-        );
-
-        $total += $this->mulRate(
-            $this->n($payload[sprintf('bunri_shotoku_ippan_kabuteki_joto_shotoku_%s', $period)] ?? null),
-            $this->juminRate($rates, '一般株式等の譲渡', null, $shitei, $target)
-        );
-
-        $total += $this->mulRate(
-            $this->n($payload[sprintf('bunri_shotoku_jojo_kabuteki_joto_shotoku_%s', $period)] ?? null),
-            $this->juminRate($rates, '上場株式等の譲渡', null, $shitei, $target)
-        );
-
-        $total += $this->mulRate(
-            $this->n($payload[sprintf('bunri_shotoku_jojo_kabuteki_haito_shotoku_%s', $period)] ?? null),
-            $this->juminRate($rates, '上場株式等の配当等', null, $shitei, $target)
-        );
-
-        $total += $this->mulRate(
-            $this->n($payload[sprintf('bunri_shotoku_sakimono_shotoku_%s', $period)] ?? null),
-            $this->juminRate($rates, '先物取引', null, $shitei, $target)
-        );
-
-        $total += $this->mulRate(
-            $this->n($payload[sprintf('bunri_shotoku_sanrin_shotoku_%s', $period)] ?? null),
-            $this->juminRate($rates, '山林', null, $shitei, $target)
-        );
-
-        $total += $this->mulRate(
-            $this->n($payload[sprintf('bunri_shotoku_taishoku_shotoku_%s', $period)] ?? null),
-            $this->juminRate($rates, '退職', null, $shitei, $target)
-        );
-
-        return $total;
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $rates
-     */
     private function juminRate(
         array $rates,
         string $category,
@@ -696,5 +576,24 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
         $thousand = (int) (ceil($abs / 1000) * 1000);
 
         return -$thousand;
+    }
+
+    /**
+     * 寄附金30%ガード用の「総所得金額等」。
+     * rtax_taxable_total_* があればそれを優先し、無ければ tb_*_shotoku の合計から算出。
+     */
+    private function shotokuTaxableTotal(array $payload, string $period): int
+    {
+        $key = sprintf('rtax_taxable_total_%s', $period);
+        $direct = $this->n($payload[$key] ?? null);
+        if ($direct > 0) {
+            return $direct;
+        }
+
+        $sogo     = max(0, $this->n($payload[sprintf('tb_sogo_shotoku_%s',     $period)] ?? null));
+        $sanrin   = max(0, $this->n($payload[sprintf('tb_sanrin_shotoku_%s',   $period)] ?? null));
+        $taishoku = max(0, $this->n($payload[sprintf('tb_taishoku_shotoku_%s', $period)] ?? null));
+
+        return $sogo + $sanrin + $taishoku;
     }
 }

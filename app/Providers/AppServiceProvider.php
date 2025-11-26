@@ -5,12 +5,12 @@ namespace App\Providers;
 use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
-use App\Domain\Tax\Calculators\BunriSeparatedMinRateCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Calculators\HaigushaKojoCalculator;
 use App\Domain\Tax\Calculators\JintekiKojoCalculator;
+use App\Domain\Tax\Calculators\JintekiKojoDiffCalculator;
 use App\Domain\Tax\Calculators\JuminJutakuLoanCreditCalculator;
 use App\Domain\Tax\Calculators\JuminzeiKifukinCalculator;
 use App\Domain\Tax\Calculators\JuminTaxCalculator;
@@ -68,6 +68,7 @@ class AppServiceProvider extends ServiceProvider
             HaigushaKojoCalculator::class,
             KojoSeimeiJishinCalculator::class,
             KisoKojoCalculator::class,
+            JintekiKojoDiffCalculator::class,
             KifukinCalculator::class,
             KojoAggregationCalculator::class,
             // 5) 課税標準→税額→特例
@@ -79,13 +80,12 @@ class AppServiceProvider extends ServiceProvider
             JuminJutakuLoanCreditCalculator::class,
             JuminzeiKifukinCalculator::class,
             TokureiRateCalculator::class,
-            BunriSeparatedMinRateCalculator::class,
             JuminzeiKifukinCalculator::class,
             // 6) 最終表示
             FurusatoResultCalculator::class,
             TaxBaseMirrorCalculator::class,
         ];
-        
+\Log::info('[PIPE ORDER]', array_map(fn($c)=>defined("$c::ID")?$c::ID:$c, $taggedCalculatorClasses));
         /**
          * Root fix: Calculator ID（各クラスの ::ID）をキーにユニーク化する。
          * - 同一クラスの二重登録

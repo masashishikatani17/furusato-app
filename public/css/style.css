@@ -692,8 +692,75 @@ select.bg-light[readonly] {
           margin: 0;
         }
         
+        /* ▼ select版フォームコントロールのベース */
+        .form-select {
+          font-size: 13px;
+          height: 22px;
+          line-height: 1.2;
+          display: inline-block;
+          border-radius: 5px;
+          border: 1px solid #d0d0d0;
+          box-sizing: border-box;
+          padding: 0 18px 0 4px;      /* 左4px, 右は▼矢印ぶんを多めに */
+          background-color: #fff;
         
-                
+          /* ブラウザのデフォルトUIを殺して自前スタイル優先 */
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+        
+          /* ▼ 右側の▼マーク（必要なければ消してOK） */
+          background-image: linear-gradient(45deg, transparent 50%, #666 50%),
+                            linear-gradient(135deg, #666 50%, transparent 50%);
+          background-position: right 8px center, right 4px center;
+          background-size: 6px 6px, 6px 6px;
+          background-repeat: no-repeat;
+        }
+        
+        /* 高さをさらに詰めたいときのコンパクト版 */
+        .form-select-compact {
+          padding-top: 1px !important;
+          padding-bottom: 1px !important;
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+          height: calc(1em + 4px) !important;
+        }
+        
+        /* ▼ 数値8桁くらいが入る select 幅（フォーム単体用） */
+        .sel4 {
+          width: 60px !important;   /* suji8 と合わせたいなら 100px */
+          height: 22px;
+          line-height: 1.2;
+        }
+        
+        .sel8 {
+          width: 100px !important;   /* suji8 と合わせたいなら 100px */
+          height: 22px;
+          line-height: 1.2;
+        }
+        
+        .input-group .form-select.sel8 {
+          flex: 0 0 auto !important;
+          width: 100px !important;
+          height: 22px;
+          line-height: 1.2;
+        }
+        
+        /* ▼ 数値9桁くらいが入る select 幅 */
+        .sel9 {
+          width: 110px !important;   /* suji9 と合わせる */
+          height: 22px;
+          line-height: 1.2;
+        }
+        
+        .input-group .form-select.sel9 {
+          flex: 0 0 auto !important;
+          width: 110px !important;
+          height: 22px;
+          line-height: 1.2;
+        }
+        
+        
         .kana2 {
             font-size: 13px;
             margin: auto;

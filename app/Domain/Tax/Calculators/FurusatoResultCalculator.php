@@ -4,6 +4,7 @@ namespace App\Domain\Tax\Calculators;
 
 use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Calculators\TokureiRateCalculator;
 
 class FurusatoResultCalculator implements ProvidesKeys
 {
@@ -14,7 +15,6 @@ class FurusatoResultCalculator implements ProvidesKeys
     public const BEFORE = [];
     public const AFTER = [
         TokureiRateCalculator::ID,
-        BunriSeparatedMinRateCalculator::ID,
     ];
 
     private const PERIODS = ['prev', 'curr'];

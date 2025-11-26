@@ -1602,8 +1602,16 @@
       const v = Number(s); return Number.isFinite(v) ? Math.trunc(v) : 0;
     })());
     document.querySelectorAll('input.js-comma[name]').forEach(el => {
-      if (String(el.value).trim() !== '' && el.readOnly) el.value = fmt(el.value);
-      el.addEventListener('blur', () => { if (el.value !== '－') el.value = fmt(el.value); });
+      const raw = String(el.value).trim();
+      // 初期表示時：数値らしいものだけ3桁カンマを付与（「－」や空欄はそのまま）
+      if (
+        raw !== '' &&
+        raw !== '－' &&
+        /^-?[\d,]+$/.test(raw)
+      ) {
+        el.value = fmt(raw);
+      }
+      el.addEventListener('blur', () => { if (el.value !== '－' && el.value !== '') el.value = fmt(el.value); });
     });
     // SoTで上書きされる課税標準/分離課税標準は編集不可（tb_* のみ）
     const lockPrefixes = [

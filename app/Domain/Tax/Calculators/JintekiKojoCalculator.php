@@ -133,18 +133,33 @@ class JintekiKojoCalculator implements ProvidesKeys
             // 合計所得金額(SoT)で判定
             $total = $this->n($payload[sprintf('sum_for_gokeishotoku_%s', $period)] ?? null);
 
-            if ($this->isApplicable($payload, sprintf('kojo_kafu_applicable_%s', $period)) && $total <= self::THRESHOLD) {
-                $updates[sprintf('kojo_kafu_shotoku_%s', $period)] = self::KAFU_SHOTOKU;
-                $updates[sprintf('kojo_kafu_jumin_%s', $period)] = self::KAFU_JUMIN;
+            // 寡婦控除・ひとり親控除：同一年度での重複適用を防ぐ
+            //  - 制度上、寡婦控除とひとり親控除は併用不可。
+            //  - 両方の要件を満たす場合は、ひとり親控除のみを適用する。
+            $kafuApplicable      = $this->isApplicable($payload, sprintf('kojo_kafu_applicable_%s', $period));
+            $hitorioyaApplicable = $this->isApplicable($payload, sprintf('kojo_hitorioya_applicable_%s', $period));
+
+            if ($total <= self::THRESHOLD) {
+                if ($hitorioyaApplicable) {
+                    // ひとり親控除を優先適用
+                    $updates[sprintf('kojo_hitorioya_shotoku_%s', $period)] = self::HITORIOYA_SHOTOKU;
+                    $updates[sprintf('kojo_hitorioya_jumin_%s', $period)]   = self::HITORIOYA_JUMIN;
+                    // 寡婦控除はこの場合適用しない（0 のまま）
+                } elseif ($kafuApplicable) {
+                    // ひとり親に該当しない場合のみ、寡婦控除を適用
+                    $updates[sprintf('kojo_kafu_shotoku_%s', $period)] = self::KAFU_SHOTOKU;
+                    $updates[sprintf('kojo_kafu_jumin_%s', $period)]   = self::KAFU_JUMIN;
+                }
             }
 
-            if ($this->isApplicable($payload, sprintf('kojo_hitorioya_applicable_%s', $period)) && $total <= self::THRESHOLD) {
-                $updates[sprintf('kojo_hitorioya_shotoku_%s', $period)] = self::HITORIOYA_SHOTOKU;
-                $updates[sprintf('kojo_hitorioya_jumin_%s', $period)] = self::HITORIOYA_JUMIN;
+            // 勤労学生控除：periodごとに対象年を判定して閾値を切り替え（R6: ≤750k / R7～: ≤850k）
+            //   - prev:  対象年 = kihu_year - 1
+            //   - curr: 対象年 = kihu_year
+            $targetYear = null;
+            if ($kihuYear !== null) {
+                $targetYear = ($period === 'prev') ? $kihuYear - 1 : $kihuYear;
             }
-
-            // 勤労学生控除：合計所得金額の年次要件で最終ガード（R6: ≤750k / R7～: ≤850k）
-            $kinroThreshold = ($kihuYear !== null && $kihuYear >= 2025) ? 850_000 : 750_000;
+            $kinroThreshold = ($targetYear !== null && $targetYear >= 2025) ? 850_000 : 750_000;
             if ($this->isApplicable($payload, sprintf('kojo_kinrogakusei_%s', $period))
                 && $total <= $kinroThreshold) {
                 $updates[sprintf('kojo_kinrogakusei_shotoku_%s', $period)] = self::KINROGAKUSEI_SHOTOKU;

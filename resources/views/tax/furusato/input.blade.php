@@ -394,6 +394,13 @@
 
                 return '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($display) . '" readonly data-server-lock="1" data-server-raw="' . e((string) $raw) . '"></td>';
             };
+            // shotoku_gokei_* 等「クライアント再計算可能」な readonly 表示用
+            $renderReadonlyInput = static function (string $name, int $raw, string $class = 'form-control form-control-compact-05 text-end js-comma bg-light') use ($normalizeInt): string {
+                $raw = $normalizeInt($raw);
+                $display = number_format($raw);
+
+                return '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($display) . '" readonly></td>';
+            };
             $syunyuRowspan = 11;
             $shotokuRowspan = 11;
             $kojoRowspan = 18;
@@ -642,7 +649,8 @@
                         foreach ($periods as $period) {
                             $name = sprintf('shotoku_gokei_%s_%s', $tax, $period);
                             $raw = $normalizeInt($inputs[$name] ?? 0);
-                            echo $renderServerLockedInput($name, $raw, 'form-control form-control-compact-05-compact-05 text-end js-comma bg-light');
+                            // shotoku_gokei_* はクライアント側で常に再計算するため lock は付けない
+                            echo $renderReadonlyInput($name, $raw, 'form-control form-control-compact-05-compact-05 text-end js-comma bg-light');
                         }
                     }
                   @endphp
@@ -1602,16 +1610,11 @@
       const v = Number(s); return Number.isFinite(v) ? Math.trunc(v) : 0;
     })());
     document.querySelectorAll('input.js-comma[name]').forEach(el => {
-      const raw = String(el.value).trim();
-      // 初期表示時：数値らしいものだけ3桁カンマを付与（「－」や空欄はそのまま）
-      if (
-        raw !== '' &&
-        raw !== '－' &&
-        /^-?[\d,]+$/.test(raw)
-      ) {
-        el.value = fmt(raw);
+      // 初期表示時も、値が入っていれば必ずカンマ整形（'－' は除外）
+      if (String(el.value).trim() !== '' && el.value !== '－') {
+        el.value = fmt(el.value);
       }
-      el.addEventListener('blur', () => { if (el.value !== '－' && el.value !== '') el.value = fmt(el.value); });
+      el.addEventListener('blur', () => { if (el.value !== '－') el.value = fmt(el.value); });
     });
     // SoTで上書きされる課税標準/分離課税標準は編集不可（tb_* のみ）
     const lockPrefixes = [
@@ -2035,18 +2038,6 @@
       prev: (Number(@json($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0)) === 1),
       curr: (Number(@json($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0)) === 1),
     };
-    const shotokuGokeiBases = [
-      'shotoku_jigyo_eigyo',
-      'shotoku_jigyo_nogyo',
-      'shotoku_fudosan',
-      'shotoku_rishi',
-      'shotoku_haito',
-      'shotoku_kyuyo',
-      'shotoku_zatsu_nenkin',
-      'shotoku_zatsu_gyomu',
-      'shotoku_zatsu_sonota',
-      'shotoku_joto_ichiji',
-    ];
     const kojoShokeiBases = [
       'kojo_shakaihoken',
       'kojo_shokibo',
@@ -2541,19 +2532,6 @@
       });
     };
 
-    const recalcShotokuGokei = () => {
-      taxTypes.forEach((tax) => {
-        periods.forEach((period) => {
-          let sum = 0;
-          shotokuGokeiBases.forEach((base) => {
-            const name = `${base}_${tax}_${period}`;
-            sum += readInt(name);
-          });
-          writeInt(`shotoku_gokei_${tax}_${period}`, sum);
-        });
-      });
-    };
-
     const recalcKojo = () => {
       taxTypes.forEach((tax) => {
         periods.forEach((period) => {
@@ -2573,18 +2551,34 @@
     };
 
     const recalcTaxableSogo = () => {
+      // tb_sogo_* は「1セル＝表示用input(js-comma)＋hidden(name付き)」を前提とし、
+      //   ・分離あり → 表示："－"／hidden: 空
+      //   ・分離なし → 表示：計算値／hidden: 生値
       ['prev', 'curr'].forEach((period) => {
         ['shotoku', 'jumin'].forEach((tax) => {
-          const name = `tb_sogo_${tax}_${period}`;
+          const name   = `tb_sogo_${tax}_${period}`;        // hidden 側 name
+          const hidden = getInput(name);
+          const td     = hidden ? hidden.closest('td') : null;
+          const disp   = td
+            ? (td.querySelector('input.js-comma') || td.querySelector('input[type="text"]'))
+            : null;
+
+          if (!hidden || !disp) {
+            return;
+          }
+
           if (bunriFlags[period]) {
-            dashify(name);
+            // 分離課税あり：第一表の課税所得は「－」表示
+            disp.value   = '－';
+            hidden.value = '';
           } else {
             const g = readInt(`shotoku_gokei_${tax}_${period}`);
             const k = readInt(`kojo_gokei_${tax}_${period}`);
             const raw = g - k;
             // 下限0 → 千円未満切捨て
             const floored = floorToThousands(Math.max(0, raw));
-            undashifySetNumber(name, floored);
+            disp.value    = formatComma(floored);
+            hidden.value  = String(floored);
           }
         });
       });
@@ -2730,7 +2724,6 @@
     };
 
     const runFullRecalcChain = () => {
-      recalcShotokuGokei();
       recalcKojo();
       recalcTaxableSogo();
       recalcBunriSogoMirror();
@@ -2790,18 +2783,6 @@
       taxTypes.forEach((tax) => {
         periods.forEach((period) => {
           const input = getInput(resolveKojoFieldName(base, tax, period));
-          if (input) {
-            input.addEventListener('blur', runFullRecalcChain);
-          }
-        });
-      });
-    });
-
-    shotokuGokeiBases.forEach((base) => {
-      taxTypes.forEach((tax) => {
-        periods.forEach((period) => {
-          const name = `${base}_${tax}_${period}`;
-          const input = getInput(name);
           if (input) {
             input.addEventListener('blur', runFullRecalcChain);
           }
@@ -2925,14 +2906,52 @@
       ['kojo_shokibo_shotoku_prev',    'kojo_shokibo_jumin_prev'],
     ];
 
+    // 事業（農業）・利子・配当も「常に住民税側へミラー」する
+    const jigyoNogyoShotokuPairs = [
+      // 収入（事業・農業）
+      ['syunyu_jigyo_nogyo_shotoku_prev',   'syunyu_jigyo_nogyo_jumin_prev'],
+      ['syunyu_jigyo_nogyo_shotoku_curr',   'syunyu_jigyo_nogyo_jumin_curr'],
+      // 所得（事業・農業）
+      ['shotoku_jigyo_nogyo_shotoku_prev',  'shotoku_jigyo_nogyo_jumin_prev'],
+      ['shotoku_jigyo_nogyo_shotoku_curr',  'shotoku_jigyo_nogyo_jumin_curr'],
+    ];
+
+    const rishiHaitoShotokuPairs = [
+      // 利子：所得のみ（収入行は第一表にない）
+      ['shotoku_rishi_shotoku_prev',        'shotoku_rishi_jumin_prev'],
+      ['shotoku_rishi_shotoku_curr',        'shotoku_rishi_jumin_curr'],
+      // 配当：収入＋所得
+      ['syunyu_haito_shotoku_prev',         'syunyu_haito_jumin_prev'],
+      ['syunyu_haito_shotoku_curr',         'syunyu_haito_jumin_curr'],
+      ['shotoku_haito_shotoku_prev',        'shotoku_haito_jumin_prev'],
+      ['shotoku_haito_shotoku_curr',        'shotoku_haito_jumin_curr'],
+    ];
+
     // 1) 画面読み込み直後にも強制同期（サーバ再計算後の再描画でも反映）
     bulkMirrorNow(kyuyoNenkinShotokuPairs);
     bulkMirrorNow(kojoMirrorPrevPairs);
+    bulkMirrorNow(jigyoNogyoShotokuPairs);
+    bulkMirrorNow(rishiHaitoShotokuPairs);
+    // 2) blur 時にも「所得税 → 住民税」へ自動コピー（給与・年金・農業・利子・配当）
+    const mirrorPairsForBlur = [
+      ...kyuyoNenkinShotokuPairs,
+      ...jigyoNogyoShotokuPairs,
+      ...rishiHaitoShotokuPairs,
+    ];
+    mirrorPairsForBlur.forEach(([srcName, dstName]) => mirrorOnBlur(srcName, dstName));
+
     // ロック再適用
     enforceServerLocks();
-    // 社保・小規模の住民税側は常に読み取り専用で表示固定
-    ['kojo_shakaihoken_jumin_prev','kojo_shakaihoken_jumin_curr','kojo_shokibo_jumin_prev','kojo_shokibo_jumin_curr']
-      .forEach(makeReadonlyNumber);
+    // 社保・小規模＋農業・利子・配当の住民税側は常に読み取り専用で表示固定
+    [
+      'kojo_shakaihoken_jumin_prev','kojo_shakaihoken_jumin_curr',
+      'kojo_shokibo_jumin_prev','kojo_shokibo_jumin_curr',
+      'syunyu_jigyo_nogyo_jumin_prev','syunyu_jigyo_nogyo_jumin_curr',
+      'shotoku_jigyo_nogyo_jumin_prev','shotoku_jigyo_nogyo_jumin_curr',
+      'shotoku_rishi_jumin_prev','shotoku_rishi_jumin_curr',
+      'syunyu_haito_jumin_prev','syunyu_haito_jumin_curr',
+      'shotoku_haito_jumin_prev','shotoku_haito_jumin_curr',
+    ].forEach(makeReadonlyNumber);
 
     // 2) 再計算ボタン押下直前にも強制同期してから送信
     const formEl = document.getElementById('furusato-input-form');

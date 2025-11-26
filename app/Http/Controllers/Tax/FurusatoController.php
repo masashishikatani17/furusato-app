@@ -2823,7 +2823,118 @@ final class FurusatoController extends Controller
             $rules[$field] = ['bail', 'nullable', 'in:ippan,roujin,none'];
         }
 
-        $validated = Validator::make($req->only(array_keys($rules)), $rules)->validate();
+        // ▼ 画面入力のバリデーション
+        //   - 合計所得金額5,000,000円超時の寡婦／ひとり親控除
+        //   - 合計所得金額10,000,000円超時の配偶者控除・配偶者特別控除
+        //   - 勤労学生控除の年次要件（75万円／85万円）のチェック
+        $validator = Validator::make($req->only(array_keys($rules)), $rules);
+
+        $validator->after(function ($v) use ($data, $req) {
+            // 合計所得金額（sum_for_gokeishotoku_*）は CommonSumsCalculator の SoT。
+            // 人的控除内訳の入力では、この値と対象年を見て
+            //  - 寡婦／ひとり親控除（5,000,000円以下）
+            //  - 配偶者控除／配偶者特別控除（10,000,000円以下＋配偶者所得ゾーン）
+            //  - 勤労学生控除（75万円／85万円） を判定する。
+            $payload  = $this->getFurusatoInputPayload($data);
+            $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
+
+            foreach (['prev', 'curr'] as $period) {
+                $sumKey = sprintf('sum_for_gokeishotoku_%s', $period);
+                $total  = isset($payload[$sumKey]) ? (int) $payload[$sumKey] : 0;
+
+                // 対象年（prev: kihu_year-1 / curr: kihu_year）
+                $targetYear = null;
+                if ($kihuYear !== null) {
+                    $targetYear = ($period === 'prev') ? $kihuYear - 1 : $kihuYear;
+                }
+
+                // 1) 寡婦控除・ひとり親控除：合計所得金額が 5,000,000 円超なら適用不可
+                if ($total > 5_000_000) {
+                    $kafuKey      = sprintf('kojo_kafu_applicable_%s', $period);
+                    $hitorioyaKey = sprintf('kojo_hitorioya_applicable_%s', $period);
+                    $kafuVal      = $req->input($kafuKey);
+                    $hitorioyaVal = $req->input($hitorioyaKey);
+
+                    if ($kafuVal === '〇') {
+                        $v->errors()->add(
+                            $kafuKey,
+                            '合計所得金額が500万円を超えるため、この年分について寡婦控除は適用できません。'
+                        );
+                    }
+                    if ($hitorioyaVal === '〇') {
+                        $v->errors()->add(
+                            $hitorioyaKey,
+                            '合計所得金額が500万円を超えるため、この年分についてひとり親控除は適用できません。'
+                        );
+                    }
+                }
+
+                // 2) 勤労学生控除：対象年ごとに 75万円 / 85万円 を閾値として判定
+                if ($targetYear !== null) {
+                    $kinroThreshold = ($targetYear >= 2025) ? 850_000 : 750_000;
+                    $kinroKey       = sprintf('kojo_kinrogakusei_applicable_%s', $period);
+                    $kinroVal       = $req->input($kinroKey);
+
+                    if ($kinroVal === '〇' && $total > $kinroThreshold) {
+                        $man = ($kinroThreshold === 850_000) ? '85万円' : '75万円';
+                        $v->errors()->add(
+                            $kinroKey,
+                            "合計所得金額が{$man}を超えるため、この年分について勤労学生控除は適用できません。"
+                        );
+                    }
+                }
+
+                // 3) 配偶者控除・配偶者特別控除
+                $haigushaCategoryKey = sprintf('kojo_haigusha_category_%s', $period);
+                $haigushaCategoryVal = (string) $req->input($haigushaCategoryKey, '');
+                $spouseIncomeKey     = sprintf('kojo_haigusha_tokubetsu_gokeishotoku_%s', $period);
+                $spouseIncomeRaw     = $req->input($spouseIncomeKey);
+                $spouseIncome        = $this->toNullableInt($spouseIncomeRaw) ?? 0;
+
+                // 3-1) 本人合計所得金額が 10,000,000 円超なら配偶者控除・配偶者特別控除ともに適用不可
+                if ($total > 10_000_000) {
+                    if ($haigushaCategoryVal !== 'none') {
+                        $v->errors()->add(
+                            $haigushaCategoryKey,
+                            '合計所得金額が1,000万円を超えるため、この年分について配偶者控除は適用できません。'
+                        );
+                    }
+                    if ($spouseIncome > 0) {
+                        $v->errors()->add(
+                            $spouseIncomeKey,
+                            '合計所得金額が1,000万円を超えるため、この年分について配偶者特別控除は適用できません。'
+                        );
+                    }
+                    // 本人が1,000万円超のときは配偶者関連の他のチェックは不要
+                    continue;
+                }
+
+                // 3-2) 本人合計所得金額が 10,000,000 円以下のときのみ、配偶者側の所得ゾーンをチェック
+                if ($targetYear !== null && $spouseIncome > 0) {
+                    // 配偶者特別控除の起算点：2024年分までは48万円超、2025年分以降は58万円超
+                    $startThreshold = ($targetYear >= 2025) ? 580_000 : 480_000;
+
+                    // 133万円超は配偶者特別控除の対象外
+                    if ($spouseIncome > 1_330_000) {
+                        $v->errors()->add(
+                            $spouseIncomeKey,
+                            '配偶者の合計所得金額が133万円を超えているため、この年分について配偶者特別控除は適用できません。'
+                        );
+                    }
+
+                    // 「配偶者控除ゾーン（S ≤ 閾値）」なのに配偶者区分が none のまま → エラー
+                    if ($spouseIncome <= $startThreshold && $haigushaCategoryVal === 'none') {
+                        $man = ($startThreshold === 580_000) ? '58' : '48';
+                        $v->errors()->add(
+                            $spouseIncomeKey,
+                            "この年分の配偶者の合計所得金額は{$man}万円以下のため、配偶者特別控除ではなく配偶者控除の対象です。"
+                        );
+                    }
+                }
+            }
+        });
+
+        $validated = $validator->validate();
 
         $payload = [];
 

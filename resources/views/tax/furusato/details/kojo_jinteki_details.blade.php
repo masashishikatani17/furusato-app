@@ -66,7 +66,10 @@
                     <option value="×" @selected($kafuCurr === '×')>×</option>
                   </select>
                 </td>
-                <td class="remarks-col">&nbsp;</td>
+                <td class="remarks-col text-start ps-1">
+                  ※ひとり親控除と寡婦控除は重複適用できません。<br>
+                  両方の要件を満たす場合は、ひとり親控除のみ適用されます。
+                </td>
               </tr>
               <tr>
                 <th colspan="3" class="text-start ps-1">ひとり親控除</th>
@@ -84,7 +87,6 @@
                     <option value="×" @selected($hitorioyaCurr === '×')>×</option>
                   </select>
                 </td>
-                <td class="remarks-col">&nbsp;</td>
               </tr>
               <tr>
                 <th colspan="3" class="text-start ps-1">勤労学生控除</th>
@@ -479,6 +481,57 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
   }
+
+  // ===== 寡婦控除・ひとり親控除のUI制御（同一年度で両方「〇」とならないようにする）=====
+  (function enforceKafuHitorioyaExclusivity() {
+    /**
+     * ルール：
+     *  - 同じ period（prev/curr）について、寡婦控除とひとり親控除が同時に「〇」とならないようにする。
+     *  - 優先順位は「ひとり親控除」＞「寡婦控除」。
+     *    - 初期状態で両方「〇」の場合 → 寡婦控除側を「×」に強制補正。
+     *    - ひとり親控除側を後から「〇」にした場合 → 寡婦控除側を自動で「×」にする。
+     *    - 寡婦控除側を後から「〇」にした場合でも、ひとり親控除が既に「〇」なら寡婦側を「×」に戻す。
+     */
+    const pairs = [
+      {
+        kafu:      document.querySelector('select[name="kojo_kafu_applicable_prev"]'),
+        hitorioya: document.querySelector('select[name="kojo_hitorioya_applicable_prev"]'),
+      },
+      {
+        kafu:      document.querySelector('select[name="kojo_kafu_applicable_curr"]'),
+        hitorioya: document.querySelector('select[name="kojo_hitorioya_applicable_curr"]'),
+      },
+    ];
+
+    pairs.forEach(({ kafu, hitorioya }) => {
+      if (!kafu || !hitorioya) return;
+
+      const normalizeInitial = () => {
+        if (kafu.value === '〇' && hitorioya.value === '〇') {
+          // 優先順位：ひとり親控除を残し、寡婦控除は「×」へ補正
+          kafu.value = '×';
+        }
+      };
+
+      const onKafuChange = () => {
+        if (kafu.value === '〇' && hitorioya.value === '〇') {
+          // ひとり親控除が既に〇なら、寡婦控除側を戻す（ひとり親優先）
+          kafu.value = '×';
+        }
+      };
+
+      const onHitorioyaChange = () => {
+        if (hitorioya.value === '〇' && kafu.value === '〇') {
+          // ひとり親控除を〇にしたら、寡婦控除は自動的に×へ
+          kafu.value = '×';
+        }
+      };
+
+      normalizeInitial();
+      kafu.addEventListener('change', onKafuChange);
+      hitorioya.addEventListener('change', onHitorioyaChange);
+    });
+  })();
 });
 </script>
 @endpush

@@ -81,11 +81,19 @@ class HaigushaKojoCalculator implements ProvidesKeys
     {
         $updates = array_fill_keys(self::provides(), 0);
 
-        // 令和7年(=2025年)分以降は配偶者特別控除の起算を 58万円超 に引き上げ
-        $year = (int) ($ctx['master_kihu_year'] ?? $ctx['kihu_year'] ?? 0);
-        $isR7OrLater = $year >= 2025;
-        $spouseStartThreshold = $isR7OrLater ? 580_000 : 480_000;
+        // 令和7年(=2025年)分以降は「対象年」が2025年以降の分のみ
+        // 配偶者特別控除の起算を 58万円超 に引き上げる。
+        //   - prev:  対象年 = kihu_year - 1
+        //   - curr: 対象年 = kihu_year
+        $baseYear = (int) ($ctx['master_kihu_year'] ?? $ctx['kihu_year'] ?? 0);
         foreach (self::PERIODS as $period) {
+            $targetYear = null;
+            if ($baseYear > 0) {
+                $targetYear = ($period === 'prev') ? $baseYear - 1 : $baseYear;
+            }
+            // 2024年分までは48万円超、2025年分以降は58万円超
+            $spouseStartThreshold = ($targetYear !== null && $targetYear >= 2025) ? 580_000 : 480_000;
+
             // 合計所得金額は CommonSums の SoT を参照
             $total = $this->n($payload[sprintf('sum_for_gokeishotoku_%s', $period)] ?? null);
             $category = $this->normalizeCategory($payload, $period);

@@ -160,58 +160,65 @@
               </tbody>
             </table>
           </div>
-      
-          <div class="table-responsive">
-            <table class="table-base table-bordered align-middle text-start ms-2">
-                <tr>
-                  <th rowspan="4" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
-                  <th colspan="4" class="th-ccc">{{ $warekiPrevLabel }}</th>
-                  <th colspan="4" class="th-ccc">{{ $warekiCurrLabel }}</th>
-                </tr>
-                <tr>
-                  <th colspan="2" rowspan="2">所得税</th>
-                  <th colspan="2">住民税</th>
-                  <th colspan="2" rowspan="2">所得税</th>
-                  <th colspan="2">住民税</th>
-                </tr>
-                <tr>
-                  <th>都道府県</th>
-                  <th>市区町村</th>
-                  <th>都道府県</th>
-                  <th>市区町村</th>
-                </tr>
-                <tr>
-                  <th class="th-ddd">所得控除</th>
-                  <th class="th-ddd">税額控除</th>
-                  <th class="th-ddd">税額控除</th>
-                  <th class="th-ddd">税額控除</th>
-                  <th class="th-ddd">所得控除</th>
-                  <th class="th-ddd">税額控除</th>
-                  <th class="th-ddd">税額控除</th>
-                  <th class="th-ddd">税額控除</th>
-                </tr>
-              <tbody>
-                @foreach ($categories as $key => $label)
-                  <tr>
-                    <th scope="row" class="text-start">{{ $label }}</th>
-                    @foreach ($columns as $column)
-                      @php($field = $makeField($column['base'], $key, $column['period']))
-                      <td class="text-center align-middle">{{ $referenceSymbols[$field] ?? '' }}</td>
-                    @endforeach
-                  </tr>
-                @endforeach
-              </tbody>
-            </table>
-          </div>
-      <img src="{{ asset('storage/images/kifu.jpg') }}" alt="…">
-          <p class="p-small">(※) 都道府県、市区町村が条例で指定したものに限る。</p>
+          <div class="row align-items-start">
+            {{-- 左：テーブル --}}
+              <div class="col-md-8">
+                <div class="table-responsive">
+                  <table class="table-base table-bordered align-middle text-start ms-2">
+                      <tr>
+                        <th rowspan="4" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
+                        <th colspan="4" class="th-ccc">{{ $warekiPrevLabel }}</th>
+                        <th colspan="4" class="th-ccc">{{ $warekiCurrLabel }}</th>
+                      </tr>
+                      <tr>
+                        <th colspan="2" rowspan="2">所得税</th>
+                        <th colspan="2">住民税</th>
+                        <th colspan="2" rowspan="2">所得税</th>
+                        <th colspan="2">住民税</th>
+                      </tr>
+                      <tr>
+                        <th>都道府県</th>
+                        <th>市区町村</th>
+                        <th>都道府県</th>
+                        <th>市区町村</th>
+                      </tr>
+                      <tr>
+                        <th class="th-ddd">所得控除</th>
+                        <th class="th-ddd">税額控除</th>
+                        <th class="th-ddd">税額控除</th>
+                        <th class="th-ddd">税額控除</th>
+                        <th class="th-ddd">所得控除</th>
+                        <th class="th-ddd">税額控除</th>
+                        <th class="th-ddd">税額控除</th>
+                        <th class="th-ddd">税額控除</th>
+                      </tr>
+                    <tbody>
+                      @foreach ($categories as $key => $label)
+                        <tr>
+                          <th scope="row" class="text-start">{{ $label }}</th>
+                          @foreach ($columns as $column)
+                            @php($field = $makeField($column['base'], $key, $column['period']))
+                            <td class="text-center align-middle">{{ $referenceSymbols[$field] ?? '' }}</td>
+                          @endforeach
+                        </tr>
+                      @endforeach
+                    </tbody>
+                  </table>
+                </div>
+            </div>
+            {{-- 右：画像＋注記 --}}
+            <div class="col-md-4 text-center text-md-start">
+                <img src="{{ asset('storage/images/kifu.jpg') }}" alt="…">
+                    <p class="p-small">(※) 都道府県、市区町村が条例で指定したものに限る。</p>
+　　　　　　</div>
+　　　　　</div>
           <hr>
             <div class="text-end me-2 mb-2">
-            <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
-            <button type="submit"
-                    class="btn-base-green ms-2"
-                    id="btn-recalc"
-                    data-disable-on-submit>再計算</button>
+                <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
+                <button type="submit"
+                        class="btn-base-green ms-2"
+                           id="btn-recalc"
+                        data-disable-on-submit>再計算</button>
             </div>
         </form>
     </div>    

@@ -56,7 +56,7 @@
   $warekiPrev = $warekiPrev ?? '前年';
   $warekiCurr = $warekiCurr ?? '当年';
 @endphp
-<div class="container-blue mt-2" style="width: 980px;">
+<div class="container-blue mt-2" style="width: 750px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
@@ -86,7 +86,7 @@
         </div>
       @endif
 
-      <hb class="mb-2 ms-20">給与所得</hb>
+      <hb class="mb-2 ms-10">給与所得</hb>
       <div class="table-responsive mb-2">
         <table class="table-base table-bordered align-middle text-center">
           <tbody>
@@ -139,7 +139,7 @@
         ・特別障害者である同一生計配偶者または扶養親族がいる
       </div>
 
-      <hb class="mb-2 ms-20">雑所得（公的年金等・業務・その他）</hb>
+      <hb class="mb-2 ms-10">雑所得（公的年金等・業務・その他）</hb>
       <div class="table-responsive mb-3">
         <table class="table-base table-bordered align-middle text-center">
           <tbody>
@@ -229,7 +229,7 @@
         </table>
       </div>
 
-      <div class="text-end">
+      <div class="text-end me-2 mb-2">
         <!-- 戻る: 再計算+保存して第一表へ（redirect_to=input を明示） -->
         <button type="submit"
                 class="btn-base-blue"

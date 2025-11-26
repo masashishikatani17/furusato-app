@@ -66,6 +66,17 @@ class JutakuLoanCreditCalculator implements ProvidesKeys
             $out["tax_jutaku_shotoku_{$p}"]       = $applied;
             $out["tax_after_jutaku_shotoku_{$p}"] = $afterTax;
             $out["itax_unapplied_{$p}"]           = max(0, $unapplied);
+            
+\Log::info('[ITAX JUTAKU]', [
+    'p'          => $p,
+    'cap'        => $cap,
+    'bal'        => $bal,
+    'rateP(%)'   => $rateP,
+    'theoretical'=> $theoretical,
+    'baseTax'    => $baseTax,
+    'applied'    => $applied,
+    'unapplied'  => $out["itax_unapplied_{$p}"],
+]);
         }
 
         return array_replace($payload, $out);

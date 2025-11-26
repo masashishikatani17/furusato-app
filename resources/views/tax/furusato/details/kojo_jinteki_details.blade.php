@@ -54,14 +54,14 @@
                 </td>
                 <td>
                   @php($kafuPrev = old('kojo_kafu_applicable_prev', $inputs['kojo_kafu_applicable_prev'] ?? null))
-                  <select name="kojo_kafu_applicable_prev" class="form-select kana3" style="height:30px" aria-label="{{ $warekiPrevLabel }}の寡婦控除の適用状況">
+                  <select name="kojo_kafu_applicable_prev" class="form-select sel4" aria-label="{{ $warekiPrevLabel }}の寡婦控除の適用状況">
                     <option value="〇" @selected($kafuPrev === '〇')>〇</option>
                     <option value="×" @selected($kafuPrev === '×')>×</option>
                   </select>
                 </td>
                 <td>
                   @php($kafuCurr = old('kojo_kafu_applicable_curr', $inputs['kojo_kafu_applicable_curr'] ?? null))
-                  <select name="kojo_kafu_applicable_curr" class="form-select kana3" style="height:30px" aria-label="{{ $warekiCurrLabel }}の寡婦控除の適用状況">
+                  <select name="kojo_kafu_applicable_curr" class="form-select sel4" aria-label="{{ $warekiCurrLabel }}の寡婦控除の適用状況">
                     <option value="〇" @selected($kafuCurr === '〇')>〇</option>
                     <option value="×" @selected($kafuCurr === '×')>×</option>
                   </select>
@@ -72,14 +72,14 @@
                 <th colspan="3" class="text-start ps-1">ひとり親控除</th>
                 <td>
                   @php($hitorioyaPrev = old('kojo_hitorioya_applicable_prev', $inputs['kojo_hitorioya_applicable_prev'] ?? null))
-                  <select name="kojo_hitorioya_applicable_prev" class="form-select kana3" style="height:30px" aria-label="{{ $warekiPrevLabel }}のひとり親控除の適用状況">
+                  <select name="kojo_hitorioya_applicable_prev" class="form-select sel4" aria-label="{{ $warekiPrevLabel }}のひとり親控除の適用状況">
                     <option value="〇" @selected($hitorioyaPrev === '〇')>〇</option>
                     <option value="×" @selected($hitorioyaPrev === '×')>×</option>
                   </select>
                 </td>
                 <td>
                   @php($hitorioyaCurr = old('kojo_hitorioya_applicable_curr', $inputs['kojo_hitorioya_applicable_curr'] ?? null))
-                  <select name="kojo_hitorioya_applicable_curr" class="form-select kana3" style="height:30px" aria-label="{{ $warekiCurrLabel }}のひとり親控除の適用状況">
+                  <select name="kojo_hitorioya_applicable_curr" class="form-select sel4" aria-label="{{ $warekiCurrLabel }}のひとり親控除の適用状況">
                     <option value="〇" @selected($hitorioyaCurr === '〇')>〇</option>
                     <option value="×" @selected($hitorioyaCurr === '×')>×</option>
                   </select>
@@ -95,14 +95,14 @@
                 </td>
                 <td>
                   @php($kinroPrev = old('kojo_kinrogakusei_applicable_prev', $inputs['kojo_kinrogakusei_applicable_prev'] ?? null))
-                  <select name="kojo_kinrogakusei_applicable_prev" class="form-select kana3" style="height:30px" aria-label="{{ $warekiPrevLabel }}の勤労学生控除の適用状況">
+                  <select name="kojo_kinrogakusei_applicable_prev" class="form-select sel4" aria-label="{{ $warekiPrevLabel }}の勤労学生控除の適用状況">
                     <option value="〇" @selected($kinroPrev === '〇')>〇</option>
                     <option value="×" @selected($kinroPrev === '×')>×</option>
                   </select>
                 </td>
                 <td>
                   @php($kinroCurr = old('kojo_kinrogakusei_applicable_curr', $inputs['kojo_kinrogakusei_applicable_curr'] ?? null))
-                  <select name="kojo_kinrogakusei_applicable_curr" class="form-select kana3" style="height:30px" aria-label="{{ $warekiCurrLabel }}の勤労学生控除の適用状況">
+                  <select name="kojo_kinrogakusei_applicable_curr" class="form-select sel4" aria-label="{{ $warekiCurrLabel }}の勤労学生控除の適用状況">
                     <option value="〇" @selected($kinroCurr === '〇')>〇</option>
                     <option value="×" @selected($kinroCurr === '×')>×</option>
                   </select>

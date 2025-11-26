@@ -378,6 +378,14 @@ final class FurusatoController extends Controller
             $sanrin   = max(0, (int)($previewPayload["tb_sanrin_shotoku_{$p}"]   ?? 0));
             $taishoku = max(0, (int)($previewPayload["tb_taishoku_shotoku_{$p}"] ?? 0));
             $previewPayload["rtax_taxable_total_{$p}"] = $sogo + $sanrin + $taishoku;
+            // 🔎 確認ログ：課税総所得金額等の合成結果（index/calc 再描画時点）
+            \Log::info('[CTX rtax]', [
+                'p'        => $p,
+                'tb_sogo'  => $sogo,
+                'tb_sanrin'=> $sanrin,
+                'tb_taishoku'=> $taishoku,
+                'rtax_total'=> $previewPayload["rtax_taxable_total_{$p}"],
+            ]);
         }
         /**
          * ▼ 所得税額 → 所得税・寄附金税額控除（政党等/NPO/公益）をプレビュー段階で先行適用
@@ -606,13 +614,26 @@ final class FurusatoController extends Controller
             $taishoku = max(0, (int)($payload["tb_taishoku_shotoku_{$p}"] ?? 0));
             $payload["rtax_taxable_total_{$p}"] = $sogo + $sanrin + $taishoku;
             // 住民税：プルダウン（5 / 7）の選択に応じて絶対上限を決定
-            $ratePct  = in_array((int)($payload["rtax_income_rate_percent_{$p}"] ?? 5), [5,7], true)
-                        ? (int)$payload["rtax_income_rate_percent_{$p}"] : 5;
+            // payload にキーが存在しない初回表示時もあるため、
+            // いったんローカル変数に取り出し 5 / 7 以外は 5 に矯正する。
+            $rateInput = $payload["rtax_income_rate_percent_{$p}"] ?? 5;
+            $ratePct   = in_array((int) $rateInput, [5, 7], true)
+                        ? (int) $rateInput
+                        : 5;
             $hardCap  = $ratePct === 7 ? 136_500 : 97_500;
             $byIncome = (int) floor($payload["rtax_taxable_total_{$p}"] * ($ratePct / 100.0));
             // 表示欄（readonly）：min(課税総所得金額等×率, 絶対上限)
             $payload["rtax_income_rate_percent_{$p}"] = $ratePct;
             $payload["rtax_carry_cap_{$p}"] = min($byIncome, $hardCap);
+            // 🔎 確認ログ：GET表示時の住民税側パラメータ
+            \Log::info('[DETAILS GET rtax]', [
+                'p'        => $p,
+                'rtax_total'=> $payload["rtax_taxable_total_{$p}"],
+                'rate'     => $ratePct,
+                'capByInc' => $byIncome,
+                'hardCap'  => $hardCap,
+                'carryCap' => $payload["rtax_carry_cap_{$p}"],
+            ]);
         }
 
         return view('tax.furusato.details.kojo_tokubetsu_jutaku_loan', [
@@ -701,6 +722,15 @@ final class FurusatoController extends Controller
             $byIncome = (int) floor($stored["rtax_taxable_total_{$p}"] * ($ratePctI / 100.0));
             $stored["rtax_income_rate_percent_{$p}"] = $ratePctI;
             $stored["rtax_carry_cap_{$p}"] = min($byIncome, $hardCap); // 表示専用
+            // 🔎 確認ログ：POST保存時の住民税側パラメータ
+            \Log::info('[DETAILS POST rtax]', [
+                'p'        => $p,
+                'rtax_total'=> $stored["rtax_taxable_total_{$p}"],
+                'rate'     => $ratePctI,
+                'capByInc' => $byIncome,
+                'hardCap'  => $hardCap,
+                'carryCap' => $stored["rtax_carry_cap_{$p}"],
+            ]);
         }
         if ($record) {
             $record->payload = $stored;

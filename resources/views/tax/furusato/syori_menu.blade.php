@@ -259,45 +259,6 @@
                     </div>
                   </div>
                 </div>
-                <div class="mb-4">
-                  <h1>○所得割の税率</h1>
-                  <div class="mb-1 ms-3">
-                    <label class="form-label">都道府県（標準）</label>
-                    <input type="text"
-                           class="form-control suji4 pref-standard-rate"
-                           value="{{ number_format((float) $prefStandard * 100, 2, '.', '') }}"
-                           readonly>
-                  </div>
-                  <div class="mb-1 ms-3">
-                    <label class="form-label">市区町村（標準）</label>
-                    <input type="text"
-                           class="form-control suji4 muni-standard-rate"
-                           value="{{ number_format((float) $muniStandard * 100, 2, '.', '') }}"
-                           readonly>
-                  </div>
-                  <div class="mb-1 ms-3">
-                      <label class="form-label">都道府県（適用）</label>
-                        <input type="text"
-                               class="form-control suji4 pref-applied-rate"
-                               inputmode="decimal"
-                               autocomplete="off"
-                               enterkeyhint="done"
-                               name="pref_applied_rate_{{ $key }}"
-                               value="{{ number_format($period['pref_applied_rate'] * 100, 2, '.', '') }}"
-                               required>
-                  </div>
-                  <div class="mb-1 ms-3">
-                      <label class="form-label">市区町村（適用）</label>
-                        <input type="text"
-                               class="form-control suji4 muni-applied-rate"
-                               inputmode="decimal"
-                               autocomplete="off"
-                               enterkeyhint="done"
-                               name="muni_applied_rate_{{ $key }}"
-                               value="{{ number_format($period['muni_applied_rate'] * 100, 2, '.', '') }}"
-                               required>
-                  </div>
-                </div>
               </div>
             </div>
           </div>

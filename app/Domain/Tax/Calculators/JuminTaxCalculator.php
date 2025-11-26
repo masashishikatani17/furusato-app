@@ -3,6 +3,7 @@
 namespace App\Domain\Tax\Calculators;
 
 use App\Services\Tax\Contracts\ProvidesKeys;
+use App\Domain\Tax\Contracts\MasterProviderContract;
 
 class JuminTaxCalculator implements ProvidesKeys
 {
@@ -16,12 +17,42 @@ class JuminTaxCalculator implements ProvidesKeys
     /** @var string[] */
     private const PERIODS = ['prev', 'curr'];
 
+    public function __construct(private readonly MasterProviderContract $masterProvider)
+    {
+    }
+
     /**
      * @return array<int, string>
      */
     public static function provides(): array
     {
         return [
+            // 合計課税所得金額（調整控除・Tokurei用）
+            'jumin_kazeishotoku_total_prev',
+            'jumin_kazeishotoku_total_curr',
+            // 調整控除前の所得割額（都道府県・市区町村）
+            'chosei_mae_shotokuwari_pref_prev',
+            'chosei_mae_shotokuwari_pref_curr',
+            'chosei_mae_shotokuwari_muni_prev',
+            'chosei_mae_shotokuwari_muni_curr',
+            // 調整控除額（都道府県・市区町村・合計）
+            'chosei_kojo_pref_prev',
+            'chosei_kojo_pref_curr',
+            'chosei_kojo_muni_prev',
+            'chosei_kojo_muni_curr',
+            'jumin_choseikojo_total_prev',
+            'jumin_choseikojo_total_curr',
+            // 調整控除後の所得割額（都道府県・市区町村）
+            'choseigo_shotokuwari_pref_prev',
+            'choseigo_shotokuwari_pref_curr',
+            'choseigo_shotokuwari_muni_prev',
+            'choseigo_shotokuwari_muni_curr',
+            // 20%cap の母数（退職分を除外した後の所得割額ベース）
+            'choseigo_shotokuwari_capbase_pref_prev',
+            'choseigo_shotokuwari_capbase_pref_curr',
+            'choseigo_shotokuwari_capbase_muni_prev',
+            'choseigo_shotokuwari_capbase_muni_curr',
+            // 住民税（所得割）の算出税額（市＋県）
             'tax_zeigaku_jumin_prev',
             'tax_zeigaku_jumin_curr',
         ];
@@ -36,14 +67,200 @@ class JuminTaxCalculator implements ProvidesKeys
     {
         $updates = array_fill_keys(self::provides(), 0);
 
+        $settings  = is_array($ctx['syori_settings'] ?? null) ? $ctx['syori_settings'] : [];
+        $year      = isset($ctx['master_kihu_year']) ? (int) $ctx['master_kihu_year'] : 0;
+        $companyId = isset($ctx['company_id']) && $ctx['company_id'] !== ''
+            ? (int) $ctx['company_id']
+            : null;
+        $dataId    = isset($ctx['data_id']) && $ctx['data_id'] !== ''
+            ? (int) $ctx['data_id']
+            : null;
+
+        // 住民税率マスタ（jumin_master.blade で編集される値）
+        $rateRows = $year > 0
+            ? $this->buildJuminRateRows($year, $companyId, $dataId)
+            : [];
+
         foreach (self::PERIODS as $period) {
-            // SoT 統一：課税標準は tb_* のみを参照
-            $key = sprintf('tb_sogo_jumin_%s', $period);
-            $amount = max(0, $this->n($payload[$key] ?? null));
-            $updates[sprintf('tax_zeigaku_jumin_%s', $period)] = (int) ($amount * 0.1);
+            // ===== 1) 合計課税所得金額（住民税側）tb_sogo_jumin + tb_sanrin_jumin + tb_taishoku_jumin =====
+            $sogo   = $this->n($payload[sprintf('tb_sogo_jumin_%s',   $period)] ?? null);
+            $sanrin = $this->n($payload[sprintf('tb_sanrin_jumin_%s', $period)] ?? null);
+            $taishoku = $this->n($payload[sprintf('tb_taishoku_jumin_%s', $period)] ?? null);
+
+            $totalTaxable = max(0, $sogo) + max(0, $sanrin) + max(0, $taishoku);
+            $updates[sprintf('jumin_kazeishotoku_total_%s', $period)] = $totalTaxable;
+
+            // ===== 2) 調整控除前の所得割額（都道府県・市区町村）=====
+            // ベースは tb_sogo_jumin（総合）とする（山林・退職は個別の扱いが必要なため）
+            $kazeiSogo = max(0, $sogo);
+
+            $shitei = $this->resolveFlag($settings, $payload, 'shitei_toshi_flag', $period);
+
+            // 総合課税の住民税率を jumin_master から取得（カテゴリ '総合課税'）
+            $prefRate = $this->juminRate($rateRows, '総合課税', null, $shitei, 'pref'); // 0.04, 0.02 等
+            $muniRate = $this->juminRate($rateRows, '総合課税', null, $shitei, 'city');
+
+            $beforePref = $this->mulRate($kazeiSogo, $prefRate);
+            $beforeMuni = $this->mulRate($kazeiSogo, $muniRate);
+
+            $updates[sprintf('chosei_mae_shotokuwari_pref_%s', $period)] = $beforePref;
+            $updates[sprintf('chosei_mae_shotokuwari_muni_%s', $period)] = $beforeMuni;
+
+            // ===== 3) 合計所得金額（調整控除の適用判定用） =====
+            $gokeiKey = sprintf('sum_for_gokeishotoku_%s', $period);
+            $sumGokei = $this->n($payload[$gokeiKey] ?? null);
+
+            // ===== 4) 人的控除額の差の合計額（human_diff_sum_*） =====
+            $humanDiff = $this->n($payload[sprintf('human_diff_sum_%s', $period)] ?? null);
+
+            // ===== 5) 調整控除額（合計） A_total =====
+            $A_total = 0;
+
+            if ($sumGokei <= 25_000_000 && $totalTaxable > 0 && $humanDiff > 0) {
+                if ($totalTaxable <= 2_000_000) {
+                    $base = min($humanDiff, $totalTaxable);
+                    $A_total = $this->mulRate($base, 0.05);
+                } else {
+                    $base = $humanDiff - ($totalTaxable - 2_000_000);
+                    $base = max($base, 0);
+                    $A_total = $this->mulRate($base, 0.05);
+                    if ($A_total > 0 && $A_total < 2_500) {
+                        $A_total = 2_500;
+                    }
+                }
+            }
+
+            $updates[sprintf('jumin_choseikojo_total_%s', $period)] = $A_total;
+
+            // 都道府県／市区町村への按分（指定都市 2:8, 非指定 4:6）
+            if ($A_total === 0) {
+                $prefKojo = 0;
+                $muniKojo = 0;
+            } else {
+                $prefRatio = $shitei ? 0.2 : 0.4;
+                $prefKojo  = $this->mulRate($A_total, $prefRatio);
+                $muniKojo  = max($A_total - $prefKojo, 0);
+            }
+
+            $updates[sprintf('chosei_kojo_pref_%s', $period)] = $prefKojo;
+            $updates[sprintf('chosei_kojo_muni_%s', $period)] = $muniKojo;
+
+            // ===== 6) 調整控除後所得割額 =====
+            $afterPref = max($beforePref - $prefKojo, 0);
+            $afterMuni = max($beforeMuni - $muniKojo, 0);
+
+            $updates[sprintf('choseigo_shotokuwari_pref_%s', $period)] = $afterPref;
+            $updates[sprintf('choseigo_shotokuwari_muni_%s', $period)] = $afterMuni;
+            // 現時点では退職分は JuminTax では扱っていないため、
+            // cap 用母数（退職除外後）は「調整控除後所得割額」と同一とする。
+            // 将来 tb_taishoku_jumin_* を含めるようになったら、ここで退職分を控除する。
+            $updates[sprintf('choseigo_shotokuwari_capbase_pref_%s', $period)] = $afterPref;
+            $updates[sprintf('choseigo_shotokuwari_capbase_muni_%s', $period)] = $afterMuni;
+            // ===== 7) 住民税（所得割）の算出税額（pref+muni 合計）=====
+            $updates[sprintf('tax_zeigaku_jumin_%s', $period)] = $afterPref + $afterMuni;
         }
 
         return array_replace($payload, $updates);
+    }
+
+    /**
+     * jumin_master から住民税率マスタを取得。
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildJuminRateRows(int $year, ?int $companyId, ?int $dataId): array
+    {
+        $collection = $this->masterProvider->getJuminRates($year, $companyId, $dataId);
+
+        $rows = [];
+        foreach ($collection as $row) {
+            $rows[] = [
+                'category' => isset($row->category) ? (string) $row->category : '',
+                'sub_category' => isset($row->sub_category) && $row->sub_category !== ''
+                    ? (string) $row->sub_category
+                    : null,
+                'remark' => isset($row->remark) && $row->remark !== '' ? (string) $row->remark : null,
+                'pref_specified' => isset($row->pref_specified) ? (float) $row->pref_specified : 0.0,
+                'pref_non_specified' => isset($row->pref_non_specified) ? (float) $row->pref_non_specified : 0.0,
+                'city_specified' => isset($row->city_specified) ? (float) $row->city_specified : 0.0,
+                'city_non_specified' => isset($row->city_non_specified) ? (float) $row->city_non_specified : 0.0,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * 住民税率（総合課税・基本控除・特例控除など）を取得。
+     *
+     * 総合課税等の税率カテゴリでは 0.08, 0.06 のように「率」を返す。
+     * 基本控除・特例控除ではマスタに書かれた値をそのまま（8, 6, 0.8 等）返す。
+     *
+     * @param  array<int, array<string, mixed>>  $rates
+     */
+    private function juminRate(
+        array $rates,
+        string $category,
+        ?string $subCategory,
+        bool $shitei,
+        string $target,
+        ?string $remarkContains = null
+    ): float {
+        foreach ($rates as $rate) {
+            if (($rate['category'] ?? '') !== $category) {
+                continue;
+            }
+
+            $sub = $rate['sub_category'] ?? null;
+            if ($sub !== $subCategory) {
+                continue;
+            }
+
+            if ($remarkContains !== null) {
+                $remark = (string) ($rate['remark'] ?? '');
+                if ($remark === '' || ! str_contains($remark, $remarkContains)) {
+                    continue;
+                }
+            }
+
+            $value = $shitei
+                ? ($target === 'pref' ? $rate['pref_specified'] : $rate['city_specified'])
+                : ($target === 'pref' ? $rate['pref_non_specified'] : $rate['city_non_specified']);
+
+            $numeric = (float) $value;
+
+            if ($category === '特例控除' || $category === '基本控除') {
+                // これらは jumin_master 上の値をそのまま使う（％表記）
+                return $numeric;
+            }
+
+            // 総合課税など通常の税率は 〇％ → 率(0.xx) に変換
+            return $numeric / 100.0;
+        }
+
+        return 0.0;
+    }
+
+    private function resolveFlag(array $settings, array $payload, string $baseKey, string $period): bool
+    {
+        $keys = [
+            sprintf('%s_%s', $baseKey, $period),
+            $baseKey,
+        ];
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $settings)) {
+                return $this->n($settings[$key]) === 1;
+            }
+        }
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $payload)) {
+                return $this->n($payload[$key]) === 1;
+            }
+        }
+
+        return false;
     }
 
     private function n(mixed $value): int
@@ -57,5 +274,14 @@ class JuminTaxCalculator implements ProvidesKeys
         }
 
         return is_numeric($value) ? (int) floor((float) $value) : 0;
+    }
+
+    private function mulRate(int $amount, float $rate): int
+    {
+        if ($rate === 0.0 || $amount === 0) {
+            return 0;
+        }
+
+        return (int) floor($amount * $rate);
     }
 }

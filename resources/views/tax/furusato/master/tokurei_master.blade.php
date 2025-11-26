@@ -1,6 +1,6 @@
 @extends('layouts.min')
 @section('content')
-<div class="container-grey mt-2" style="width: 1000px;">
+<div class="container-grey mt-2" style="width: 700px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop_m.jpg') }}" alt="…">
     <hb class="mb-0 mt-2">特例控除マスター</hb>

@@ -1,7 +1,7 @@
 <!-- views/tax/furusato/details/kojo_jinteki_details.blade.php -->
 @extends('layouts.min')
 
-@section('title', '生命・地震保険料控除（内訳）')
+@section('title', '内訳ー人的控除')
 
 @section('content')
 @php

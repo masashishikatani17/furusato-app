@@ -1,7 +1,7 @@
 <!-- resources/views/tax/furusato/details/kyuyo_zatsu_details.blade.php -->
 @extends('layouts.min')
 
-@section('title', '給与・雑所得 内訳')
+@section('title', '内訳ー給与・雑所得')
 
 @section('content')
 @push('styles')

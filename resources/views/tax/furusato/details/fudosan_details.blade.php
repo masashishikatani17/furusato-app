@@ -1,7 +1,7 @@
 <!-- views/tax/furusato/details/fudosan_details.blade.php -->
 @extends('layouts.min')
 
-@section('title', '不動産（内訳）')
+@section('title', '内訳ー不動産')
 
 @section('content')
 @php

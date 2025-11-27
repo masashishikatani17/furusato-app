@@ -1,7 +1,7 @@
 <!-- views/tax/furusato/details/jigyo_eigyo_details.blade.php -->
 @extends('layouts.min')
 
-@section('title', '事業・営業等（内訳）')
+@section('title', '内訳ー事業・営業等')
 
 @section('content')
 @php

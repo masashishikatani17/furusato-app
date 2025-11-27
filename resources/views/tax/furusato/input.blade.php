@@ -16,7 +16,28 @@
     [data-anchor] {
       scroll-margin-top: var(--restore-scroll-offset, 80px);
     }
-    
+
+    /* 第一表・第三表：ヘッダー固定＋ボディのみ縦スクロール */
+    .furusato-table-scroll {
+      max-height: 720px;         /* 必要に応じて 500〜600px で微調整 */
+      overflow-y: auto;
+    }
+    .furusato-table-scroll table {
+      margin-bottom: 0;          /* スクロール内で余白を詰める */
+    }
+    /* ヘッダー1行目（項目／所得税／住民税）を最上部に固定 */
+    .furusato-table-scroll thead tr:first-child th {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+    }
+    /* ヘッダー2行目（令和6年／令和7年…）はそのすぐ下に固定
+       height="30px" 相当なので top:30px にしている */
+    .furusato-table-scroll thead tr:nth-child(2) th {
+      position: sticky;
+      top: 30px;
+      z-index: 3;
+    }   
     
   </style>
 @endpush
@@ -62,7 +83,8 @@
                   name="redirect_to"
                   value="master">マスター</button>
           <button type="submit"
-                  class="btn-base-green"
+                  id="furusato-recalc-button"
+                  class="btn-base-green d-none"
                   name="recalc_all"
                   value="1"
                   data-disable-on-submit
@@ -336,8 +358,8 @@
                             if ($isReadonly) {
                                 $class .= ' bg-light';
                             }
-                            // 分離・第三表／server-only は data-server-lock＋（可能なら）data-server-raw を付与
-                            $isLocked = $isBunriThird || isset($serverOnlyBases[$base]);
+                        // 分離・第三表／server-only は data-server-lock＋（可能なら）data-server-raw を付与
+                        $isLocked = $isBunriThird || isset($serverOnlyBases[$base]);
                             $lockAttr = $isLocked ? ' data-server-lock="1"' : '';
                             $rawAttr  = ($isLocked && $valueRaw !== null) ? ' data-server-raw="' . e($valueRaw) . '"' : '';
                             $html .= '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . $lockAttr . $rawAttr . '></td>';
@@ -410,8 +432,9 @@
           @php ob_start(); @endphp
         <div>
           <hb class="card-title mb-3">確定申告書(総合課税) 第一表</hb>
-          <div class="table-responsive">
+          <div class="table-responsive furusato-table-scroll">
             <table class="table table-base table-compact-05 align-middle">
+              <thead>
                 <tr>
                   <th rowspan="2" colspan="6" class="th-ccc">項  目</th>
                   <th colspan="2" style="height:30px;" class="th-ccc">所得税</th>
@@ -423,7 +446,7 @@
                   <th>{{ $warekiPrevLabel }}</th>
                   <th>{{ $warekiCurrLabel }}</th>
                 </tr>
-              
+              </thead>
               <tbody>
                 <tr id="syunyu_row_jigyo_eigyo" data-anchor>
                   <th scope="rowgroup" rowspan="{{ $syunyuRowspan }}" class="text-center align-middle th-ccc">収入金額等</th>
@@ -949,7 +972,7 @@
               <div class="tab-pane fade {{ $bunriShown }}" id="pane-bunri" role="tabpanel" aria-labelledby="tab-bunri">
                 <div>
                   <hb class="card-title mb-3">確定申告書(分離課税) 第三表</hb>
-                  <div class="table-responsive">
+                  <div class="table-responsive furusato-table-scroll">
                     <table class="table table-base table-compact-05 align-middle">
                       <thead class="table-light text-center align-middle">
                         <tr style="height:30px;">
@@ -2263,6 +2286,73 @@
 
       Array.from(form.querySelectorAll(`input[type="hidden"][name="${name}"]`)).forEach((node) => node.remove());
     }
+ 
+    // 第三表のセルを「－」表示にし、POST 対象から外すためのヘルパー
+    function dashifyInput(el) {
+      if (!el) return;
+      if (el.dataset && el.dataset.bunriDashed === '1') return;
+
+      if (el.dataset) {
+        el.dataset.bunriDashed = '1';
+        // server-lock されているセルは enforceServerLocks の対象から外す
+        if (el.dataset.serverLock === '1') {
+          el.dataset.serverLockDashed = '1';
+        }
+      }
+
+      el.value = '－';
+      el.readOnly = true;
+      el.classList.add('bg-light', 'text-center');
+      el.classList.remove('text-end');
+      if (el.name) {
+        el.removeAttribute('name');
+      }
+    }
+
+    // 第三表 1 セル（1 期間分の td）を「－」にし、name を外す
+    function dashifyBunriCellForPeriod(td, period) {
+      if (!td) return;
+      const suffix = `_${period}`;
+
+      // まず、このセルにぶら下がる name 付き input（text/hidden）を処理
+      const namedInputs = td.querySelectorAll(`input[name$="${suffix}"]`);
+      namedInputs.forEach((input) => {
+        if (input.type === 'hidden') {
+          // hidden は name を外すだけ（POST 抑止）
+          input.removeAttribute('name');
+          return;
+        }
+        // text 等は「－」表示にして name を外す
+        dashifyInput(input);
+      });
+
+      // 集約表示専用の text（name を持たない display 用）も「－」にする
+      const displayTexts = td.querySelectorAll('input[type="text"]');
+      displayTexts.forEach((input) => {
+        // すでに上のループで処理したもの（name を持っていて suffix が付くもの）はスキップ
+        if (input.name && input.name.endsWith(suffix)) return;
+        dashifyInput(input);
+      });
+    }
+
+    // 分離なし年の第三表列（prev/curr）をまるごと「－」にする
+    const dashBunriColumnsForDisabledPeriods = () => {
+      const pane = document.getElementById('pane-bunri');
+      if (!pane) return;
+      ['prev', 'curr'].forEach((period) => {
+        // 分離課税を採用している年はそのまま
+        if (bunriFlags[period]) return;
+        const suffix = `_${period}`;
+        // 当該 period の name を持つ input から、その列の td を特定
+        const inputs = pane.querySelectorAll(`input[name$="${suffix}"]`);
+        const tds = new Set();
+        inputs.forEach((el) => {
+          const td = el.closest('td');
+          if (td) tds.add(td);
+        });
+        tds.forEach((td) => dashifyBunriCellForPeriod(td, period));
+      });
+    };
 
     function mirrorRetirementToJumin() {
       ['prev', 'curr'].forEach((period) => {
@@ -2392,6 +2482,8 @@
 
     const recalcShotokuTaxFromMaster = () => {
       ['prev', 'curr'].forEach((period) => {
+        if (!bunriFlags[period]) return;
+        
         const taxable = readInt(`tb_sogo_shotoku_${period}`);
         const tax = calculateShotokuTax(taxable);
         const field = `bunri_zeigaku_sogo_shotoku_${period}`;
@@ -2402,6 +2494,8 @@
 
     const recalcBunriZeigakuShotokuAll = () => {
       ['prev', 'curr'].forEach((period) => {
+      
+        if (!bunriFlags[period]) return;
         const sanTaxable = readInt(`tb_sanrin_shotoku_${period}`);
         const san = sanTaxable <= 0 ? 0 : calcShotokuTaxByBand(sanTaxable / 5) * 5;
         writeInt(`bunri_zeigaku_sanrin_shotoku_${period}`, san);
@@ -2450,6 +2544,7 @@
 
     const recalcBunriZeigakuJuminAll = () => {
       ['prev', 'curr'].forEach((period) => {
+        if (!bunriFlags[period]) return;
         writeInt(
           `bunri_zeigaku_sogo_jumin_${period}`,
           Math.trunc(readInt(`tb_sogo_jumin_${period}`) * 0.10),
@@ -2552,8 +2647,8 @@
 
     const recalcTaxableSogo = () => {
       // tb_sogo_* は「1セル＝表示用input(js-comma)＋hidden(name付き)」を前提とし、
-      //   ・分離あり → 表示："－"／hidden: 空
-      //   ・分離なし → 表示：計算値／hidden: 生値
+      //   ・内部(hidden) には常に計算値を保持
+      //   ・分離あり年度は表示だけ「－」にする
       ['prev', 'curr'].forEach((period) => {
         ['shotoku', 'jumin'].forEach((tax) => {
           const name   = `tb_sogo_${tax}_${period}`;        // hidden 側 name
@@ -2567,18 +2662,18 @@
             return;
           }
 
+          const g = readInt(`shotoku_gokei_${tax}_${period}`);
+          const k = readInt(`kojo_gokei_${tax}_${period}`);
+          const raw = g - k;
+          // 下限0 → 千円未満切捨て
+          const floored = floorToThousands(Math.max(0, raw));
+          hidden.value = String(floored);
+
           if (bunriFlags[period]) {
-            // 分離課税あり：第一表の課税所得は「－」表示
-            disp.value   = '－';
-            hidden.value = '';
+            // 分離課税あり：内部値は保持しつつ、表示だけ「－」
+            disp.value = '－';
           } else {
-            const g = readInt(`shotoku_gokei_${tax}_${period}`);
-            const k = readInt(`kojo_gokei_${tax}_${period}`);
-            const raw = g - k;
-            // 下限0 → 千円未満切捨て
-            const floored = floorToThousands(Math.max(0, raw));
-            disp.value    = formatComma(floored);
-            hidden.value  = String(floored);
+            disp.value = formatComma(floored);
           }
         });
       });
@@ -2597,6 +2692,7 @@
 
     const recalcBunriSashihikiGokei = () => {
       ['prev', 'curr'].forEach((period) => {
+        if (!bunriFlags[period]) return;
         let a = readInt(`kojo_gokei_shotoku_${period}`);
         let b = readInt(`bunri_sogo_gokeigaku_shotoku_${period}`);
         let v = Math.min(a, b);
@@ -2629,6 +2725,7 @@
 
     const recalcBunriKazeishotokuGroup = () => {
       periods.forEach((period) => {
+        if (!bunriFlags[period]) return;
         const calcForTax = (tax) => {
           const read = (base) => readInt(`${base}_${tax}_${period}`);
           const write = (base, value) => {
@@ -2693,7 +2790,6 @@
         // 税額（tax_zeigaku_*）はサーバ値を維持（readonly化のみ）
         ['shotoku','jumin'].forEach((tax) => {
           makeReadonlyNumber(`tax_zeigaku_${tax}_${period}`);
-          makeReadonlyNumber(`tax_haito_${tax}_${period}`);
           makeReadonlyNumber(`tax_jutaku_${tax}_${period}`);
           makeReadonlyNumber(`tax_sashihiki_${tax}_${period}`); // ← 差引はサーバ計算値
         });
@@ -2738,6 +2834,7 @@
       recalcTaxPipeline();
       recalcBunriKazeishotokuGroup();
       enforceServerLocks();
+      dashBunriColumnsForDisabledPeriods();
     };
 
     // blur 時に所得税→住民税へ値をコピーするヘルパ
@@ -2867,6 +2964,7 @@
     recalcZeigakuGokeiAll();
     recalcTaxPipeline();
     mirrorRetirementToJumin();
+    dashBunriColumnsForDisabledPeriods();
     // ============================
     // 再計算時・初期表示時にも
     // 「給与」「公的年金等」の所得税→住民税を強制同期
@@ -2956,6 +3054,58 @@
     // 2) 再計算ボタン押下直前にも強制同期してから送信
     const formEl = document.getElementById('furusato-input-form');
 
+    // ============================
+    // 入力値の変更検知 → 再計算ボタン表示制御
+    // ============================
+    (function setupRecalcButtonDirtyWatcher () {
+      const recalcButton = document.getElementById('furusato-recalc-button');
+      if (!formEl || !recalcButton) {
+        return;
+      }
+
+      const normalizeForCompare = (v) => String(v ?? '').replace(/,/g, '').trim();
+
+      // ユーザーが編集可能な input のみ監視
+      const watchedInputs = Array.from(
+        formEl.querySelectorAll('input[name]')
+      ).filter((el) => {
+        if (!(el instanceof HTMLInputElement)) return false;
+        if (el.type !== 'text' && el.type !== 'number') return false;
+        if (el.readOnly) return false;
+        if (el.disabled) return false;
+        if (el.dataset && el.dataset.serverLock === '1') return false;
+        return true;
+      });
+
+      // ページ表示直後の値を「最新（サーバ計算済み）」として保持
+      watchedInputs.forEach((el) => {
+        el.dataset.initialValue = normalizeForCompare(el.value);
+      });
+
+      const updateRecalcVisibility = () => {
+        const isDirty = watchedInputs.some((el) => {
+          const initial = el.dataset.initialValue ?? '';
+          const current = normalizeForCompare(el.value);
+          return initial !== current;
+        });
+        if (isDirty) {
+          recalcButton.classList.remove('d-none');
+        } else {
+          recalcButton.classList.add('d-none');
+        }
+      };
+
+      // 初期状態：サーバ値＝最新とみなして非表示
+      recalcButton.classList.add('d-none');
+
+      // 値が変わったら dirty 判定を更新
+      watchedInputs.forEach((el) => {
+        ['input', 'change', 'blur'].forEach((ev) => {
+          el.addEventListener(ev, updateRecalcVisibility);
+        });
+      });
+    })();
+
     // 3桁カンマを維持したまま、安全に整数をPOSTする
     function materializeHiddenNumericForSubmit(form) {
       const namedInputs = Array.from(form.querySelectorAll('input[name]'))
@@ -3010,4 +3160,3 @@
   });
 </script>
 @endpush
-

@@ -1,7 +1,7 @@
 <!-- resources/views/tax/furusato/details/joto_ichiji_details.blade.php -->
 @extends('layouts.min')
 
-@section('title', '総合譲渡・一時（内訳）')
+@section('title', '内訳ー総合譲渡・一時')
 
 @section('content')
 @php

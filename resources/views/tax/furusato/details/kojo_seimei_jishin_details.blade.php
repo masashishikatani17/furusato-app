@@ -1,7 +1,7 @@
 <!-- views/tax/furusato/details/kojo_seimei_jishin_details.blade.php -->
 @extends('layouts.min')
 
-@section('title', '内訳－生命・地震')
+@section('title', '内訳ー生命保険料・地震保険料')
 
 @section('content')
 @php

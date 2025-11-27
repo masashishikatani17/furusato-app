@@ -1,6 +1,6 @@
 @extends('layouts.min')
 
-@section('title', '住宅借入金等特別控除の内訳')
+@section('title', '内訳ー住宅借入金等特別控除')
 
 @section('content')
 @php

@@ -1,7 +1,7 @@
 <!-- views/tax/furusato/details/kifukin_details.blade.php-->
 @extends('layouts.min')
 
-@section('title', '寄付金控除の内訳')
+@section('title', '内訳ー 寄付金控除')
 
 @section('content')
 @php

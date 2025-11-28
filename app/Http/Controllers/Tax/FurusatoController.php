@@ -146,6 +146,9 @@ final class FurusatoController extends Controller
 
         unset($context['savedInputs']);
 
+        // Kmax（理論上限額）を計算してビューに渡す
+        $context['kmax'] = $this->buildKmaxContext($context);
+
         return view('tax.furusato.input', $context);
     }
 
@@ -169,7 +172,10 @@ final class FurusatoController extends Controller
         $context['out'] = ['inputs' => array_replace($baseInputs, $dto->toArray())];
         unset($context['outInputs']);
         unset($context['savedInputs']);
-        
+
+        // Kmax（理論上限額）を計算してビューに渡す
+        $context['kmax'] = $this->buildKmaxContext($context);
+
         return view('tax.furusato.input', $context);
     }
 
@@ -691,7 +697,7 @@ final class FurusatoController extends Controller
         foreach ($fields as $k) {
             $v = $validated[$k] ?? $req->input($k);
             if (in_array($k, ['itax_credit_rate_percent_prev','itax_credit_rate_percent_curr'], true)) {
-                // ★ 未入力時は 0.7 を採用／小数1位へ丸めて保存
+                // 未入力時は 0.7 を採用／小数1位へ丸めて保存
                 $num = ($v === null || $v === '') ? 0.7 : (float)str_replace([',',' '], '', (string)$v);
                 $payload[$k] = number_format(round($num, 1), 1, '.', '');
                 continue;
@@ -2252,23 +2258,6 @@ final class FurusatoController extends Controller
             return $this->redirectAfterGoto($req, $data, $goto, '再計算が完了しました');
         }
 
-        // ▼ 「戻る/再計算」いずれも recalc_all=1 を前提に、stay_on_details で遷移先を切替
-        if ((int)$req->input('recalc_all') === 1) {
-            \Log.log('[details:kyuyo_zatsu] recompute & redirect');
-            $stay = $req->boolean('stay_on_details'); // true: 内訳に留まる / false: 第一表に戻る
-            $this->runRecalculationPipeline(
-                $req,
-                $data,
-                $payload,
-                ['should_flash_results' => !$stay],
-                $recalculateUseCase
-            );
-            $goto = $stay ? 'kyuyo_zatsu' : (string)$req->input('y_redirect_to', 'input');
-            $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
-            $query  = $this->buildReturnQuery($req);
-            return $this->redirectToInputWithAnchor($data, $anchor ?: 'shotoku_row_kyuyo', '再計算が完了しました', $stay ? $this->buildReturnQuery($req) : $query);
-        }
-
         // フォールバック（非想定ルート）
         $this->runRecalculationPipeline($req, $data, $payload, ['should_flash_results'=>true], $recalculateUseCase);
         $anchor = $this->sanitizeOriginAnchor($req->input('origin_anchor'));
@@ -3236,7 +3225,7 @@ final class FurusatoController extends Controller
         RecalculateFurusatoPayload $recalculateUseCase
     ): RedirectResponse
     {
-        // ★ data_id ごとの JSON 保存に切り替え（jumin_rates テーブルは使わない）
+        // data_id ごとの JSON 保存に切り替え（jumin_rates テーブルは使わない）
         $data = $this->resolveCompanyScopedDataOrFail($request, 'update');
         $year = (int) ($data->kihu_year ?: FurusatoMasterDefaults::DEFAULT_YEAR);
 
@@ -3260,7 +3249,7 @@ final class FurusatoController extends Controller
             $subCategory = ($row['sub_category'] ?? '') === '' ? null : trim((string) $row['sub_category']);
             $sort        = (int) ($row['sort'] ?? (10 * ($i + 1)));
 
-            // ★ レイアウト系（year/category/sub/sort）は必ず保存するが、
+            // レイアウト系（year/category/sub/sort）は必ず保存するが、
             //    率カラムは「入力されたものだけ」保存（空欄は Defaults を使う）
             $record = [
                 'year'         => $year,
@@ -3284,7 +3273,7 @@ final class FurusatoController extends Controller
                         "rates.$i.$k" => '数値を入力してください（空欄＝初期値を使用、0 を入力した場合のみ 0% として保存）。',
                     ]);
                 }
-                // ★ 0 と入力された場合は 0.000 として保存される
+                // 0 と入力された場合は 0.000 として保存される
                 $record[$k] = round((float) $sv, 3);
             }
 
@@ -4569,5 +4558,111 @@ final class FurusatoController extends Controller
             }
         }
         return $payload;
+    }
+    
+    /**
+     * ふるさと納税の理論上限額 Kmax を算出する。
+     *
+     * 前提：
+     *  - $payload には各 Calculator が出力した SoT がそのまま入っていること
+     *    (sum_for_sogoshotoku_etc_curr / tb_sogo_shotoku_curr / kifu_gaku_curr など)
+     *
+     * @param  array<string,mixed>  $payload
+     * @return array<string,mixed>
+     */
+    private function buildKmaxContext(array $payload): array
+    {
+        // 整数正規化（カンマ付き文字列も許容）
+        $n = static function ($v): int {
+            if ($v === null || $v === '') return 0;
+            if (is_string($v)) {
+                $v = str_replace([',', ' '], '', $v);
+            }
+            return is_numeric($v) ? (int) floor((float) $v) : 0;
+        };
+
+        // float 正規化
+        $f = static function ($v): float {
+            if ($v === null || $v === '') return 0.0;
+            if (is_string($v)) {
+                $v = str_replace([',', ' '], '', $v);
+            }
+            return is_numeric($v) ? (float) $v : 0.0;
+        };
+
+        // ---- 1) ベース指標 S40 / S30 / R ----
+        // 所得税側：総所得金額等 S40 = sum_for_sogoshotoku_etc_curr
+        $S40 = $n($payload['sum_for_sogoshotoku_etc_curr'] ?? null);
+
+        // 住民税側：S30 = tb_sogo_shotoku_curr + tb_sanrin_shotoku_curr + tb_taishoku_shotoku_curr
+        $S30 = max(
+            0,
+            $n($payload['tb_sogo_shotoku_curr'] ?? null)
+            + $n($payload['tb_sanrin_shotoku_curr'] ?? null)
+            + $n($payload['tb_taishoku_shotoku_curr'] ?? null)
+        );
+
+        // 調整控除後所得割額ベース R = capbase_pref + capbase_muni
+        $R = $n($payload['choseigo_shotokuwari_capbase_pref_curr'] ?? null)
+           + $n($payload['choseigo_shotokuwari_capbase_muni_curr'] ?? null);
+
+        // ---- 2) 特例控除最終率 α ----
+        $alphaPercent = $f($payload['tokurei_rate_final_curr'] ?? null); // 単位：%
+        $alpha = $alphaPercent > 0.0 ? $alphaPercent / 100.0 : 0.0;      // 0〜1
+
+        // ---- 3) 寄附金合計 D_total / ふるさと D_furu / その他 D_other ----
+        $DTotal = $n($payload['kifu_gaku_curr'] ?? null);          // 住民税側の寄附金合計
+        $DFuru  = $n($payload['furusato_kifu_gaku_curr'] ?? null); // うち ふるさと納税分
+        $DOther = max(0, $DTotal - $DFuru);                        // ふるさと以外
+
+        // ---- 4) Kmax(40)：所得税 40% 上限 ----
+        $k40 = max(0, (int) floor(0.4 * $S40) - $DOther);
+
+        // ---- 5) Kmax(30)：住民税 30% ガード ----
+        $k30 = max(0, (int) floor(0.3 * $S30) - $DOther);
+
+        // ---- 6) Kmax(20)：住民税所得割 20% 上限 ----
+        $k20 = null;
+        if ($R > 0 && $alpha > 0.0) {
+            $k20 = (int) floor(0.2 * $R / $alpha + 2000);
+        }
+
+        // ---- 7) 最終 Kmax & binding constraint ----
+        $candidates = [
+            '40' => $k40,
+            '30' => $k30,
+        ];
+        if ($k20 !== null) {
+            $candidates['20'] = $k20;
+        }
+
+        $binding = null;
+        $kmax = null;
+        foreach ($candidates as $key => $val) {
+            if ($kmax === null || $val < $kmax) {
+                $kmax = $val;
+                $binding = $key;
+            }
+        }
+
+        $remaining = $kmax !== null ? max(0, $kmax - $DFuru) : null;
+
+        return [
+            'S40'           => $S40,
+            'S30'           => $S30,
+            'R'             => $R,
+            'alpha_percent' => $alphaPercent,
+
+            'D_total'       => $DTotal,
+            'D_furu'        => $DFuru,
+            'D_other'       => $DOther,
+
+            'kmax_40'       => $k40,
+            'kmax_30'       => $k30,
+            'kmax_20'       => $k20,
+            'kmax'          => $kmax,
+            'binding'       => $binding,
+            'remaining'     => $remaining,
+        ];
     }
 }

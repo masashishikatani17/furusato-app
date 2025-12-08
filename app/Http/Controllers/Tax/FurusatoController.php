@@ -15,6 +15,7 @@ use App\Domain\Tax\Calculators\KojoAggregationCalculator;
 use App\Domain\Tax\Calculators\CommonTaxableBaseCalculator;
 use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
 use App\Domain\Tax\Services\FurusatoCalcService;
+use App\Domain\Tax\Factory\SyoriSettingsFactory;
 use App\Domain\Tax\Support\FurusatoMasterSheet;
 use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Http\Controllers\Controller;
@@ -44,6 +45,21 @@ final class FurusatoController extends Controller
         'bunri_shotoku_choki_tokutei_shotoku_curr',
         'bunri_shotoku_choki_keika_shotoku_prev',
         'bunri_shotoku_choki_keika_shotoku_curr',
+    ];
+
+    /**
+     * 第三表（分離課税・退職）でユーザーが直接入力する収入金額／所得金額（SoT）として扱うフィールド群。
+     * - bunri_syunyu_taishoku_shotoku_{prev,curr}
+     * - bunri_shotoku_taishoku_shotoku_{prev,curr}
+     *
+     * これらは input.blade 側で data-server-lock を付けずに編集可能とし、
+     * FurusatoInput.payload 経由で RecalculateFurusatoPayload に渡して下流の Calculator で利用する。
+     */
+    private const BUNRI_TAISHOKU_MANUAL_FIELDS = [
+        'bunri_syunyu_taishoku_shotoku_prev',
+        'bunri_syunyu_taishoku_shotoku_curr',
+        'bunri_shotoku_taishoku_shotoku_prev',
+        'bunri_shotoku_taishoku_shotoku_curr',
     ];
 
     private const FUDOSAN_LABEL_FIELDS = [
@@ -146,8 +162,14 @@ final class FurusatoController extends Controller
 
         unset($context['savedInputs']);
 
-        // Kmax（理論上限額）を計算してビューに渡す
-        $context['kmax'] = $this->buildKmaxContext($context);
+        // 既存の本番計算結果から Kmax（理論上限額）を構築
+        if (isset($context['results']) && is_array($context['results'])) {
+            // Kmax は常に results（本番計算結果）の SoT から計算する
+            $context['kmax'] = $this->buildKmaxFromResults($context['results']);
+        } else {
+            // SoT が取得できない場合は Kmax を計算しない
+            $context['kmax'] = null;
+        }
 
         return view('tax.furusato.input', $context);
     }
@@ -173,10 +195,43 @@ final class FurusatoController extends Controller
         unset($context['outInputs']);
         unset($context['savedInputs']);
 
-        // Kmax（理論上限額）を計算してビューに渡す
-        $context['kmax'] = $this->buildKmaxContext($context);
+        // 再計算後の本番計算結果から Kmax（理論上限額）を構築
+        if (isset($context['results']) && is_array($context['results'])) {
+            // POST（再計算）時も、Kmax は常に results ベース
+            $context['kmax'] = $this->buildKmaxFromResults($context['results']);
+        } else {
+            // 本番計算結果が取得できない場合は Kmax は計算しない
+            $context['kmax'] = null;
+        }
 
         return view('tax.furusato.input', $context);
+    }
+
+
+    /**
+     * 本番計算結果（results）から Kmax 用の SoT を取り出して buildKmaxContext に渡す。
+     *
+     * - SoT を保持する payload / upper が無い場合は null を返す。
+     * - details や画面コンテキスト全体を直接渡さないための「入口」をここに統一する。
+     */
+    private function buildKmaxFromResults(?array $results): ?array
+    {
+        if (empty($results) || !is_array($results)) {
+            return null;
+        }
+
+        // SoT が入っている候補を優先順で拾う
+        // 実装によって payload / upper どちら側に積んでいるか違うと思うので、
+        // ここでは「payload → upper」の順に探す。
+        $payload = $results['payload'] ?? $results['upper'] ?? null;
+
+        if (!is_array($payload)) {
+            // SoT 相当の配列が無い場合は Kmax を計算しない
+            return null;
+        }
+
+        // 実際の Kmax 計算ロジックは buildKmaxContext() に一本化
+        return $this->buildKmaxContext($payload);
     }
 
     private function resolveBunriFlag(?int $dataId): int
@@ -1817,6 +1872,25 @@ final class FurusatoController extends Controller
             }
         }
 
+        /**
+         * ▼ 最終安全網：
+         *   KyuyoNenkinCalculator が確定した「雑所得（その他）」の所得金額
+         *   (shotoku_zatsu_sonota_*_*) が、上の合成処理の途中で
+         *   上書き・取りこぼしされるケースを防ぐため、
+         *   previewPayload の SoT で第一表表示用 inputs を強制的に上書きする。
+         */
+        foreach (['prev', 'curr'] as $period) {
+            foreach (['shotoku', 'jumin'] as $tax) {
+                $key = sprintf('shotoku_zatsu_sonota_%s_%s', $tax, $period);
+                if (array_key_exists($key, $previewPayload)) {
+                    $val = $this->toNullableInt($previewPayload[$key]);
+                    if ($val !== null) {
+                        $inputsForView[$key] = $val;
+                    }
+                }
+            }
+        }
+
         return $inputsForView;
     }
 
@@ -1903,7 +1977,11 @@ final class FurusatoController extends Controller
                 'recalc_all',
             ]);
 
-            $this->normalizeIntegerFieldsFromRequest($request, self::BUNRI_CHOKI_SHOTOKU_FIELDS);
+            // 分離長期所得（tokutei/keika）＋退職（第三表手入力分）の整数正規化
+            $this->normalizeIntegerFieldsFromRequest(
+                $request,
+                array_merge(self::BUNRI_CHOKI_SHOTOKU_FIELDS, self::BUNRI_TAISHOKU_MANUAL_FIELDS)
+            );
             $this->validateBunriChokiShotokuInputs($request);
 
             $this->performFullRecalculation($request, $data, $updates, $recalculateUseCase);
@@ -1926,7 +2004,11 @@ final class FurusatoController extends Controller
             'origin_anchor',
             'recalc_all',
         ]);
-        $this->normalizeIntegerFieldsFromRequest($request, self::BUNRI_CHOKI_SHOTOKU_FIELDS);
+        // 分離長期所得（tokutei/keika）＋退職（第三表手入力分）の整数正規化
+        $this->normalizeIntegerFieldsFromRequest(
+            $request,
+            array_merge(self::BUNRI_CHOKI_SHOTOKU_FIELDS, self::BUNRI_TAISHOKU_MANUAL_FIELDS)
+        );
         $this->validateBunriChokiShotokuInputs($request);
         $goto = (string) $request->input('redirect_to', '');
         $shouldShowResult = $request->boolean('show_result') || $goto === '' || $goto === 'input';
@@ -3059,18 +3141,15 @@ final class FurusatoController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
 
-        $setting = FurusatoSyoriSetting::query()->where('data_id', $data->id)->first();
-        $payload = $this->syoriDefaultPayload();
+        /** @var SyoriSettingsFactory $syoriFactory */
+        $syoriFactory = app(SyoriSettingsFactory::class);
 
-        if ($setting && is_array($setting->payload)) {
-            $payload = array_replace($payload, array_intersect_key($setting->payload, $payload));
-        }
-
-        $payload = $this->applyStandardRates($payload);
+        // syori_menu 画面用の設定（jumin_master の均等割・その他も反映済み）
+        $settings = $syoriFactory->buildMenuPayload($data);
 
         return view('tax.furusato.syori_menu', [
-            'dataId' => $data->id,
-            'settings' => $payload,
+            'dataId'   => $data->id,
+            'settings' => $settings,
         ]);
     }
 
@@ -3082,10 +3161,12 @@ final class FurusatoController extends Controller
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
         $validated = $request->validated();
 
-        // 画面は百分率（0〜100）で送ってくるため、小数（0.00〜1.00）へ正規化
-        $payload = array_intersect_key($validated, $this->syoriDefaultPayload());
-        $payload = $this->normalizePercentAppliedRates($payload);
-        $payload = $this->applyStandardRates($payload);
+        /** @var SyoriSettingsFactory $syoriFactory */
+        $syoriFactory = app(SyoriSettingsFactory::class);
+
+        // 画面は百分率（0〜100）で送ってくるため、小数（0.00〜1.00）へ正規化しつつ
+        // デフォルト値や標準税率も含めてドメイン側で組み立てる
+        $payload = $syoriFactory->buildPayloadForSave($validated);
 
         $userId = (int) auth()->id();
 
@@ -3410,13 +3491,16 @@ final class FurusatoController extends Controller
 
     private function validateBunriChokiShotokuInputs(Request $request): void
     {
-        if (self::BUNRI_CHOKI_SHOTOKU_FIELDS === []) {
+        // 分離長期（tokutei/keika）＋退職（第三表手入力分）をまとめて整数バリデーション
+        $fields = array_merge(self::BUNRI_CHOKI_SHOTOKU_FIELDS, self::BUNRI_TAISHOKU_MANUAL_FIELDS);
+
+        if ($fields === []) {
             return;
         }
 
-        $rules = array_fill_keys(self::BUNRI_CHOKI_SHOTOKU_FIELDS, ['bail', 'nullable', 'integer']);
+        $rules = array_fill_keys($fields, ['bail', 'nullable', 'integer']);
 
-        Validator::make($request->only(self::BUNRI_CHOKI_SHOTOKU_FIELDS), $rules)->validate();
+        Validator::make($request->only($fields), $rules)->validate();
     }
 
     /**
@@ -4266,32 +4350,23 @@ final class FurusatoController extends Controller
 
     private function getSyoriSettings(int $dataId): array
     {
-        // 元の syori 設定（無ければデフォルト）
-        $raw = FurusatoSyoriSetting::query()
-            ->where('data_id', $dataId)
-            ->value('payload');
+        /** @var SyoriSettingsFactory $syoriFactory */
+        $syoriFactory = app(SyoriSettingsFactory::class);
 
-        $settings = is_array($raw)
-            ? array_replace($this->syoriDefaultPayload(), $raw)
-            : $this->syoriDefaultPayload();
+        // data_id が無い場合は処理設定なし
+        if ($dataId === null) {
+            return [];
+        }
 
-        // 標準レート等を適用（既存ロジック）
-        $settings = $this->applyStandardRates($settings);
+        // Data モデルを lookup してから Factory の Data ベース API を呼び出す
+        $data = \App\Models\Data::find($dataId);
 
-        // jumin_master 側の均等割・その他を上書き（SoT を jumin_master に寄せる）
-        $inputPayload = \App\Models\FurusatoInput::query()
-            ->where('data_id', $dataId)
-            ->value('payload');
-        $inputPayload = is_array($inputPayload) ? $inputPayload : [];
+        if (! $data) {
+            return [];
+        }
 
-        $settings['pref_equal_share_prev']   = (int) ($inputPayload['jumin_pref_equal_share_prev']   ?? $settings['pref_equal_share_prev']);
-        $settings['pref_equal_share_curr']   = (int) ($inputPayload['jumin_pref_equal_share_curr']   ?? $settings['pref_equal_share_curr']);
-        $settings['muni_equal_share_prev']   = (int) ($inputPayload['jumin_muni_equal_share_prev']   ?? $settings['muni_equal_share_prev']);
-        $settings['muni_equal_share_curr']   = (int) ($inputPayload['jumin_muni_equal_share_curr']   ?? $settings['muni_equal_share_curr']);
-        $settings['other_taxes_amount_prev'] = (int) ($inputPayload['jumin_other_taxes_amount_prev'] ?? $settings['other_taxes_amount_prev']);
-        $settings['other_taxes_amount_curr'] = (int) ($inputPayload['jumin_other_taxes_amount_curr'] ?? $settings['other_taxes_amount_curr']);
-
-        return $settings;
+        // data_id ごとの処理設定（syori_menu + jumin_master の値を統合した有効設定）
+        return $syoriFactory->buildInitial($data);
     }
 
     /**
@@ -4410,135 +4485,6 @@ final class FurusatoController extends Controller
         }
 
         return $data;
-    }
-    private function syoriDefaultPayload(): array
-    {
-        return [
-            'detail_mode_prev' => 1,
-            'detail_mode_curr' => 1,
-            'bunri_flag_prev' => 0,
-            'bunri_flag_curr' => 0,
-            'one_stop_flag_prev' => 1,
-            'one_stop_flag_curr' => 1,
-            'shitei_toshi_flag_prev' => 0,
-            'shitei_toshi_flag_curr' => 0,
-            'pref_standard_rate' => 0.04,
-            'muni_standard_rate' => 0.06,
-            'pref_applied_rate_prev' => 0.04,
-            'pref_applied_rate_curr' => 0.04,
-            'muni_applied_rate_prev' => 0.06,
-            'muni_applied_rate_curr' => 0.06,
-            'pref_equal_share_prev' => 1500,
-            'pref_equal_share_curr' => 1500,
-            'muni_equal_share_prev' => 3500,
-            'muni_equal_share_curr' => 3500,
-            'other_taxes_amount_prev' => 0,
-            'other_taxes_amount_curr' => 0,
-            // Legacy keys for backward compatibility
-            'detail_mode' => 1,
-            'bunri_flag' => 0,
-            'one_stop_flag' => 1,
-            'shitei_toshi_flag' => 0,
-            'pref_applied_rate' => 0.04,
-            'muni_applied_rate' => 0.06,
-            'pref_equal_share' => 1500,
-            'muni_equal_share' => 3500,
-            'other_taxes_amount' => 0,
-        ];
-    }
-
-    private function applyStandardRates(array $payload): array
-    {
-        $detailPrev = (int) ($payload['detail_mode_prev'] ?? $payload['detail_mode'] ?? 1);
-        $detailCurr = (int) ($payload['detail_mode_curr'] ?? $payload['detail_mode'] ?? $detailPrev);
-
-        $bunriPrev = (int) ($payload['bunri_flag_prev'] ?? $payload['bunri_flag'] ?? 0);
-        $bunriCurr = (int) ($payload['bunri_flag_curr'] ?? $payload['bunri_flag'] ?? $bunriPrev);
-
-        $oneStopPrev = (int) ($payload['one_stop_flag_prev'] ?? $payload['one_stop_flag'] ?? 1);
-        $oneStopCurr = (int) ($payload['one_stop_flag_curr'] ?? $payload['one_stop_flag'] ?? $oneStopPrev);
-
-        $shiteiPrev = (int) ($payload['shitei_toshi_flag_prev'] ?? $payload['shitei_toshi_flag'] ?? 0);
-        $shiteiCurr = (int) ($payload['shitei_toshi_flag_curr'] ?? $payload['shitei_toshi_flag'] ?? $shiteiPrev);
-        $shiteiForStandard = $shiteiCurr;
-
-        if ($shiteiForStandard === 1) {
-            $prefStandard = 0.02;
-            $muniStandard = 0.08;
-        } else {
-            $prefStandard = 0.04;
-            $muniStandard = 0.06;
-        }
-
-        $prefAppliedPrev = $payload['pref_applied_rate_prev'] ?? $payload['pref_applied_rate'] ?? null;
-        if ($prefAppliedPrev === null) {
-            $prefAppliedPrev = $prefStandard;
-        }
-
-        $prefAppliedCurr = $payload['pref_applied_rate_curr'] ?? $payload['pref_applied_rate'] ?? null;
-        if ($prefAppliedCurr === null) {
-            $prefAppliedCurr = $prefAppliedPrev;
-        }
-
-        $muniAppliedPrev = $payload['muni_applied_rate_prev'] ?? $payload['muni_applied_rate'] ?? null;
-        if ($muniAppliedPrev === null) {
-            $muniAppliedPrev = $muniStandard;
-        }
-
-        $muniAppliedCurr = $payload['muni_applied_rate_curr'] ?? $payload['muni_applied_rate'] ?? null;
-        if ($muniAppliedCurr === null) {
-            $muniAppliedCurr = $muniAppliedPrev;
-        }
-
-        $prefEqualPrev = (int) ($payload['pref_equal_share_prev'] ?? $payload['pref_equal_share'] ?? 1500);
-        $prefEqualCurr = (int) ($payload['pref_equal_share_curr'] ?? $payload['pref_equal_share'] ?? $prefEqualPrev);
-
-        $muniEqualPrev = (int) ($payload['muni_equal_share_prev'] ?? $payload['muni_equal_share'] ?? 3500);
-        $muniEqualCurr = (int) ($payload['muni_equal_share_curr'] ?? $payload['muni_equal_share'] ?? $muniEqualPrev);
-
-        $otherTaxesPrev = (int) ($payload['other_taxes_amount_prev'] ?? $payload['other_taxes_amount'] ?? 0);
-        $otherTaxesCurr = (int) ($payload['other_taxes_amount_curr'] ?? $payload['other_taxes_amount'] ?? $otherTaxesPrev);
-
-        $payload['pref_standard_rate'] = (float) $prefStandard;
-        $payload['muni_standard_rate'] = (float) $muniStandard;
-
-        $payload['detail_mode_prev'] = $detailPrev;
-        $payload['detail_mode_curr'] = $detailCurr;
-        $payload['detail_mode'] = $detailPrev;
-
-        $payload['bunri_flag_prev'] = $bunriPrev;
-        $payload['bunri_flag_curr'] = $bunriCurr;
-        $payload['bunri_flag'] = $bunriPrev;
-
-        $payload['one_stop_flag_prev'] = $oneStopPrev;
-        $payload['one_stop_flag_curr'] = $oneStopCurr;
-        $payload['one_stop_flag'] = $oneStopPrev;
-
-        $payload['shitei_toshi_flag_prev'] = $shiteiPrev;
-        $payload['shitei_toshi_flag_curr'] = $shiteiCurr;
-        $payload['shitei_toshi_flag'] = $shiteiPrev;
-
-        $payload['pref_applied_rate_prev'] = (float) $prefAppliedPrev;
-        $payload['pref_applied_rate_curr'] = (float) $prefAppliedCurr;
-        $payload['pref_applied_rate'] = (float) $prefAppliedPrev;
-
-        $payload['muni_applied_rate_prev'] = (float) $muniAppliedPrev;
-        $payload['muni_applied_rate_curr'] = (float) $muniAppliedCurr;
-        $payload['muni_applied_rate'] = (float) $muniAppliedPrev;
-
-        $payload['pref_equal_share_prev'] = $prefEqualPrev;
-        $payload['pref_equal_share_curr'] = $prefEqualCurr;
-        $payload['pref_equal_share'] = $prefEqualPrev;
-
-        $payload['muni_equal_share_prev'] = $muniEqualPrev;
-        $payload['muni_equal_share_curr'] = $muniEqualCurr;
-        $payload['muni_equal_share'] = $muniEqualPrev;
-
-        $payload['other_taxes_amount_prev'] = $otherTaxesPrev;
-        $payload['other_taxes_amount_curr'] = $otherTaxesCurr;
-        $payload['other_taxes_amount'] = $otherTaxesPrev;
-
-        return $payload;
     }
 
     /**

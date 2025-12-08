@@ -124,9 +124,8 @@
   };
   $readonlyValue = static function (string $key, $fallback = null) use ($inputs, $syoriSettings): string {
       $value = old($key, $inputs[$key] ?? $fallback);
-      // ▼ tsusango_（損益通算「後」）は仕様として 0 下限
-      //    ここで 0 未満を 0 に矯正しておくと、表示も POST も常に 0 以上となり min:0 に合致
-      $isTsusango = str_starts_with($key, 'tsusango_');
+      // ▼ 一時所得(tsusango_ichiji_*) だけは 0 未満を許容しない（0 下限）
+      $isTsusangoIchiji = str_starts_with($key, 'tsusango_ichiji_');
       if ($value === null || $value === '') {
           return '';
       }
@@ -178,7 +177,8 @@
 
       $number = (int) $normalized;
 
-      if ($isTsusango && $number < 0) {
+      // 一時所得だけマイナス禁止、それ以外の tsusango_*（短期・長期など）はマイナスもそのまま表示
+      if ($isTsusangoIchiji && $number < 0) {
           $number = 0;
       }
 
@@ -900,14 +900,21 @@
                 </td>
               </tr>
               <tr>
+              <tr>
                 <th class="text-start ps-1" colspan="3">一時</th>
                 <td colspan="2" class="text-center">⇒</td>
+                @php
+                  // 一時所得の「差引金額」＝収入－必要経費（0未満は0）をその場で再計算
+                  $syunyuIchiji  = (int)($inputs['syunyu_ichiji_' . $suffix] ?? 0);
+                  $keihiIchiji   = (int)($inputs['keihi_ichiji_'  . $suffix] ?? 0);
+                  $sashihikiIchiji = max(0, $syunyuIchiji - $keihiIchiji);
+                @endphp
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="tsusango_ichiji_{{ $suffix }}"
                          class="form-control form-control-compact-05 text-end bg-light"
-                         value="{{ $readonlyValue('tsusango_ichiji_' . $suffix) }}">
+                         value="{{ number_format($sashihikiIchiji) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"

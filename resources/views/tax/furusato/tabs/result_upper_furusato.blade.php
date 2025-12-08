@@ -32,13 +32,13 @@
 <div class="container-blue mt-2">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-    <h0 class="mb-0 mt-2">ふるさと納税の理論上限額（Kmax）</h0>
+    <h0 class="mb-0 mt-2">ふるさと納税の理論上限額</h0>
   </div>
 
   <div class="card-body">
     @if ($Kmax === null)
       <p class="text-danger">
-        Kmax を算出するために必要な所得情報または寄附金情報が不足しているため、<br>
+        ふるさと納税上限額を算出するために必要な所得情報または寄附金情報が不足しているため、<br>
         現時点では理論上限額を表示できません。
       </p>
     @endif
@@ -48,30 +48,31 @@
     <div class="table-responsive mb-3">
       <table class="table-base table-bordered align-middle text-start">
         <tr>
-          <th style="width:260px;">項目</th>
-          <th style="width:220px;" class="text-end">金額／率</th>
+          <th style="width:180px;">項目</th>
+          <th style="width:150px;" class="text-end">金額／率</th>
           <th>定義・備考</th>
         </tr>
         <tr>
           <td>所得税の総所得金額等</td>
           <td class="text-end">{{ $fmtYen($S40) }}</td>
-          <td>
+          <td class="text-start align-middle ps-1">
             所得税の計算に用いる「総所得金額等」です。<br>
-            総合課税の所得に加え、山林所得・退職所得・分離課税の所得などを合計した金額です。
+            総合課税の所得に加え、山林所得・退職所得・分離課税の所得などを合計した金額です。<br>
+            所得税側の上限判定で用いるベースの所得額になります。
           </td>
         </tr>
         <tr>
-          <td>総所得＋退職＋山林</td>
+          <td>住民税の総所得金額等</td>
           <td class="text-end">{{ $fmtYen($S30) }}</td>
-          <td>
+          <td class="text-start align-middle ps-1">
             住民税の計算に用いる「総所得」「山林所得」「退職所得」を合計した金額です。<br>
-            住民税側の上限判定で用いるベースの所得額（S₃₀）になります。
+            住民税側の上限判定で用いるベースの所得額になります。
           </td>
         </tr>
         <tr>
           <td>調整控除後所得割額のベース</td>
           <td class="text-end">{{ $fmtYen($R) }}</td>
-          <td>
+          <td class="text-start align-middle ps-1">
             調整控除適用後の、都道府県民税・市区町村民税の「所得割額」の合計です。<br>
             住民税所得割の 20％ルール の判定に使うベース金額です。
           </td>
@@ -81,22 +82,22 @@
           <td class="text-end">
             {{ $alphaPercent !== null && $alphaPercent > 0 ? $fmtPercent($alphaPercent) : '－' }}
           </td>
-          <td>ふるさと納税による特例控除の最終的な割合です。復興特別所得税や山林・退職等の要素を加味した実効率に相当します。</td>
+          <td class="text-start align-middle ps-1">ふるさと納税による特例控除の最終的な割合です。復興特別所得税や山林・退職等の要素を加味した実効率に相当します。</td>
         </tr>
         <tr>
           <td>今年の寄附金合計</td>
           <td class="text-end">{{ $fmtYen($DTotal) }}</td>
-          <td>今年 1 年間に支払った寄附金の合計額です（ふるさと納税と、それ以外の寄附をすべて含みます）。</td>
+          <td class="text-start align-middle ps-1">今年 1 年間に支払った寄附金の合計額です（ふるさと納税と、それ以外の寄附をすべて含みます）。</td>
         </tr>
         <tr>
           <td>うち ふるさと納税額</td>
           <td class="text-end">{{ $fmtYen($DFuru) }}</td>
-          <td>上記のうち、ふるさと納税として支払った寄附金額です。</td>
+          <td class="text-start align-middle ps-1">上記のうち、ふるさと納税として支払った寄附金額です。</td>
         </tr>
         <tr>
-          <td>ふるさと以外の寄附額</td>
+          <td>ふるさと納税以外の寄附額</td>
           <td class="text-end">{{ $fmtYen($DOther) }}</td>
-          <td>今年の寄附金合計から、ふるさと納税分を差し引いた「ふるさと納税以外の寄附金額」です。</td>
+          <td class="text-start align-middle ps-1">今年の寄附金合計から、ふるさと納税分を差し引いた「ふるさと納税以外の寄附金額」です。</td>
         </tr>
       </table>
     </div>
@@ -220,7 +221,7 @@
       </p>
       <p class="mb-0">
         すでに入力されているふるさと納税額：{{ $fmtYen($DFuru) }}<br>
-        ⇒ <strong>追加で寄附可能な上限（残り余力）＝ {{ $fmtYen($remaining) }}</strong>
+        ⇒ <strong>追加で寄附可能な上限＝ {{ $fmtYen($remaining) }}</strong>
       </p>
     @endif
 

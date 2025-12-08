@@ -4,6 +4,7 @@ namespace App\Application\UseCases\Tax;
 
 use App\Domain\Tax\Calculators\DetailsSourceAliasCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
+use App\Domain\Tax\Factory\SyoriSettingsFactory;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
@@ -16,7 +17,6 @@ use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Models\Data;
 use App\Models\FurusatoInput;
 use App\Models\FurusatoResult;
-use App\Models\FurusatoSyoriSetting;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use Illuminate\Support\Facades\Log;
@@ -34,6 +34,7 @@ class RecalculateFurusatoPayload
         private readonly PayloadNormalizer $normalizer,
         iterable $calculators,
         private readonly FurusatoResultCalculator $resultCalculator,
+        private readonly SyoriSettingsFactory $syoriSettingsFactory,
     ) {
         $this->calculators = $this->sortCalculators($calculators);
     }
@@ -157,8 +158,8 @@ class RecalculateFurusatoPayload
             $current = is_array($record->payload) ? $record->payload : [];
             $current = $this->normalizer->normalize($current);
             $merged = array_replace($current, $updates);
-
-            $syoriSettings = $this->getSyoriSettings($data->id);
+            // syori_settings は Factory から Data 単位で構築
+            $syoriSettings = $this->syoriSettingsFactory->buildInitial($data);
 
             $payload = $this->applyAutoCalculatedFields($data, $merged, $syoriSettings);
 
@@ -341,10 +342,17 @@ class RecalculateFurusatoPayload
      */
     private function buildContext(Data $data, array $ctx): array
     {
+        // モデルそのものも渡す（各 Calculator から guest, kihu_year 等を参照するケース向け）
         $ctx['data'] = $data;
+
+        // jumin_master を data_id 単位で切り替える Calculator 向けに明示しておく
+        // （コントローラ側で ctx['data_id'] を渡していなくても安全になる）
+        $ctx['data_id'] = $data->id !== null ? (int) $data->id : null;
+
         $ctx['kihu_year'] = isset($data->kihu_year) ? (int) $data->kihu_year : 0;
         $ctx['master_kihu_year'] = self::MASTER_KIHU_YEAR;
         $ctx['company_id'] = $data->company_id !== null ? (int) $data->company_id : null;
+
         if (! isset($ctx['syori_settings']) || ! is_array($ctx['syori_settings'])) {
             $ctx['syori_settings'] = [];
         }
@@ -491,155 +499,5 @@ class RecalculateFurusatoPayload
         $existing = session()->get('warning');
         $combined = $existing ? $existing . PHP_EOL . $message : $message;
         session()->flash('warning', $combined);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getSyoriSettings(int $dataId): array
-    {
-        $payload = FurusatoSyoriSetting::query()
-            ->where('data_id', $dataId)
-            ->value('payload');
-
-        $default = $this->syoriDefaultPayload();
-
-        if (is_array($payload)) {
-            $payload = array_replace($default, array_intersect_key($payload, $default));
-        } else {
-            $payload = $default;
-        }
-
-        return $this->applyStandardRates($payload);
-    }
-
-    private function syoriDefaultPayload(): array
-    {
-        return [
-            'detail_mode_prev' => 1,
-            'detail_mode_curr' => 1,
-            'bunri_flag_prev' => 0,
-            'bunri_flag_curr' => 0,
-            'one_stop_flag_prev' => 1,
-            'one_stop_flag_curr' => 1,
-            'shitei_toshi_flag_prev' => 0,
-            'shitei_toshi_flag_curr' => 0,
-            'pref_standard_rate' => 0.04,
-            'muni_standard_rate' => 0.06,
-            'pref_applied_rate_prev' => 0.04,
-            'pref_applied_rate_curr' => 0.04,
-            'muni_applied_rate_prev' => 0.06,
-            'muni_applied_rate_curr' => 0.06,
-            'pref_equal_share_prev' => 1500,
-            'pref_equal_share_curr' => 1500,
-            'muni_equal_share_prev' => 3500,
-            'muni_equal_share_curr' => 3500,
-            'other_taxes_amount_prev' => 0,
-            'other_taxes_amount_curr' => 0,
-            // Legacy keys for backward compatibility
-            'detail_mode' => 1,
-            'bunri_flag' => 0,
-            'one_stop_flag' => 1,
-            'shitei_toshi_flag' => 0,
-            'pref_applied_rate' => 0.04,
-            'muni_applied_rate' => 0.06,
-            'pref_equal_share' => 1500,
-            'muni_equal_share' => 3500,
-            'other_taxes_amount' => 0,
-        ];
-    }
-
-    private function applyStandardRates(array $payload): array
-    {
-        $detailPrev = (int) ($payload['detail_mode_prev'] ?? $payload['detail_mode'] ?? 1);
-        $detailCurr = (int) ($payload['detail_mode_curr'] ?? $payload['detail_mode'] ?? $detailPrev);
-
-        $bunriPrev = (int) ($payload['bunri_flag_prev'] ?? $payload['bunri_flag'] ?? 0);
-        $bunriCurr = (int) ($payload['bunri_flag_curr'] ?? $payload['bunri_flag'] ?? $bunriPrev);
-
-        $oneStopPrev = (int) ($payload['one_stop_flag_prev'] ?? $payload['one_stop_flag'] ?? 1);
-        $oneStopCurr = (int) ($payload['one_stop_flag_curr'] ?? $payload['one_stop_flag'] ?? $oneStopPrev);
-
-        $shiteiPrev = (int) ($payload['shitei_toshi_flag_prev'] ?? $payload['shitei_toshi_flag'] ?? 0);
-        $shiteiCurr = (int) ($payload['shitei_toshi_flag_curr'] ?? $payload['shitei_toshi_flag'] ?? $shiteiPrev);
-        $shiteiForStandard = $shiteiCurr;
-
-        if ($shiteiForStandard === 1) {
-            $prefStandard = 0.02;
-            $muniStandard = 0.08;
-        } else {
-            $prefStandard = 0.04;
-            $muniStandard = 0.06;
-        }
-
-        $prefAppliedPrev = $payload['pref_applied_rate_prev'] ?? $payload['pref_applied_rate'] ?? null;
-        if ($prefAppliedPrev === null) {
-            $prefAppliedPrev = $prefStandard;
-        }
-
-        $prefAppliedCurr = $payload['pref_applied_rate_curr'] ?? $payload['pref_applied_rate'] ?? null;
-        if ($prefAppliedCurr === null) {
-            $prefAppliedCurr = $prefAppliedPrev;
-        }
-
-        $muniAppliedPrev = $payload['muni_applied_rate_prev'] ?? $payload['muni_applied_rate'] ?? null;
-        if ($muniAppliedPrev === null) {
-            $muniAppliedPrev = $muniStandard;
-        }
-
-        $muniAppliedCurr = $payload['muni_applied_rate_curr'] ?? $payload['muni_applied_rate'] ?? null;
-        if ($muniAppliedCurr === null) {
-            $muniAppliedCurr = $muniAppliedPrev;
-        }
-
-        $prefEqualPrev = (int) ($payload['pref_equal_share_prev'] ?? $payload['pref_equal_share'] ?? 1500);
-        $prefEqualCurr = (int) ($payload['pref_equal_share_curr'] ?? $payload['pref_equal_share'] ?? $prefEqualPrev);
-
-        $muniEqualPrev = (int) ($payload['muni_equal_share_prev'] ?? $payload['muni_equal_share'] ?? 3500);
-        $muniEqualCurr = (int) ($payload['muni_equal_share_curr'] ?? $payload['muni_equal_share'] ?? $muniEqualPrev);
-
-        $otherTaxesPrev = (int) ($payload['other_taxes_amount_prev'] ?? $payload['other_taxes_amount'] ?? 0);
-        $otherTaxesCurr = (int) ($payload['other_taxes_amount_curr'] ?? $payload['other_taxes_amount'] ?? $otherTaxesPrev);
-
-        $payload['pref_standard_rate'] = (float) $prefStandard;
-        $payload['muni_standard_rate'] = (float) $muniStandard;
-
-        $payload['detail_mode_prev'] = $detailPrev;
-        $payload['detail_mode_curr'] = $detailCurr;
-        $payload['detail_mode'] = $detailPrev;
-
-        $payload['bunri_flag_prev'] = $bunriPrev;
-        $payload['bunri_flag_curr'] = $bunriCurr;
-        $payload['bunri_flag'] = $bunriPrev;
-
-        $payload['one_stop_flag_prev'] = $oneStopPrev;
-        $payload['one_stop_flag_curr'] = $oneStopCurr;
-        $payload['one_stop_flag'] = $oneStopPrev;
-
-        $payload['shitei_toshi_flag_prev'] = $shiteiPrev;
-        $payload['shitei_toshi_flag_curr'] = $shiteiCurr;
-        $payload['shitei_toshi_flag'] = $shiteiPrev;
-
-        $payload['pref_applied_rate_prev'] = (float) $prefAppliedPrev;
-        $payload['pref_applied_rate_curr'] = (float) $prefAppliedCurr;
-        $payload['pref_applied_rate'] = (float) $prefAppliedPrev;
-
-        $payload['muni_applied_rate_prev'] = (float) $muniAppliedPrev;
-        $payload['muni_applied_rate_curr'] = (float) $muniAppliedCurr;
-        $payload['muni_applied_rate'] = (float) $muniAppliedPrev;
-
-        $payload['pref_equal_share_prev'] = $prefEqualPrev;
-        $payload['pref_equal_share_curr'] = $prefEqualCurr;
-        $payload['pref_equal_share'] = $prefEqualPrev;
-
-        $payload['muni_equal_share_prev'] = $muniEqualPrev;
-        $payload['muni_equal_share_curr'] = $muniEqualCurr;
-        $payload['muni_equal_share'] = $muniEqualPrev;
-
-        $payload['other_taxes_amount_prev'] = $otherTaxesPrev;
-        $payload['other_taxes_amount_curr'] = $otherTaxesCurr;
-        $payload['other_taxes_amount'] = $otherTaxesPrev;
-
-        return $payload;
     }
 }

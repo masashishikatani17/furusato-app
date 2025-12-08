@@ -118,15 +118,27 @@ class JuminTaxCalculator implements ProvidesKeys
 
             if ($sumGokei <= 25_000_000 && $totalTaxable > 0 && $humanDiff > 0) {
                 if ($totalTaxable <= 2_000_000) {
+                    // (1) 合計課税所得金額が 200 万円以下
+                    //     min(人的控除差の合計額, 合計課税所得金額) × 5%
                     $base = min($humanDiff, $totalTaxable);
-                    $A_total = $this->mulRate($base, 0.05);
-                } else {
-                    $base = $humanDiff - ($totalTaxable - 2_000_000);
-                    $base = max($base, 0);
-                    $A_total = $this->mulRate($base, 0.05);
-                    if ($A_total > 0 && $A_total < 2_500) {
-                        $A_total = 2_500;
+                    if ($base > 0) {
+                        $A_total = $this->mulRate($base, 0.05);
                     }
+                } else {
+                    // (2) 合計課税所得金額が 200 万円超
+                    //     {人的控除差の合計額 − (合計課税所得金額 − 200 万円)}
+                    //     が 5 万円を下回る場合には 5 万円として 5% を乗じる。
+                    $rawBase = $humanDiff - ($totalTaxable - 2_000_000);
+                    // 法令上「5万円を下回る場合には5万円」とされているため、
+                    // 差がマイナスであっても 5 万円フロアを適用する。
+                    $base = max($rawBase, 50_000);
+                    $A_total = $this->mulRate($base, 0.05);
+                }
+
+                // 調整控除額は「調整控除前所得割額（市＋県）」を超えない
+                $maxDeductible = max(0, $beforePref + $beforeMuni);
+                if ($A_total > $maxDeductible) {
+                    $A_total = $maxDeductible;
                 }
             }
 
@@ -206,8 +218,15 @@ class JuminTaxCalculator implements ProvidesKeys
         string $target,
         ?string $remarkContains = null
     ): float {
+        // 「総合」と「総合課税」がマスタ上で混在しうるため、
+        // '総合課税' 指定時は '総合' も同一カテゴリとして扱う
+        $categoryAlts = $category === '総合課税'
+            ? ['総合課税', '総合']
+            : [$category];
+
         foreach ($rates as $rate) {
-            if (($rate['category'] ?? '') !== $category) {
+            $rateCategory = (string) ($rate['category'] ?? '');
+            if (! in_array($rateCategory, $categoryAlts, true)) {
                 continue;
             }
 
@@ -229,9 +248,16 @@ class JuminTaxCalculator implements ProvidesKeys
 
             $numeric = (float) $value;
 
-            if ($category === '特例控除' || $category === '基本控除') {
-                // これらは jumin_master 上の値をそのまま使う（％表記）
+            if ($category === '特例控除') {
+                // 特例控除は市・県の按分比(0.2, 0.8 など)を
+                // そのまま「率」として使う
                 return $numeric;
+            }
+
+            if ($category === '基本控除') {
+                // 基本控除は jumin_master 上では「○％」表記なので
+                // 0.xx の率に変換して使う（例: 4 → 0.04）
+                return $numeric / 100.0;
             }
 
             // 総合課税など通常の税率は 〇％ → 率(0.xx) に変換

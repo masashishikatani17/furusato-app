@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
+use App\Domain\Tax\Factory\SyoriSettingsFactory;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
@@ -138,6 +139,7 @@ class AppServiceProvider extends ServiceProvider
                 $app->make(PayloadNormalizer::class),
                 $calculators,
                 $app->make(FurusatoResultCalculator::class),
+                $app->make(SyoriSettingsFactory::class),
             );
         });
     }

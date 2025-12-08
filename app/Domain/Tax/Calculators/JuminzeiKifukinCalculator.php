@@ -152,8 +152,21 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
         ];
 
         foreach (self::PERIODS as $period) {
-            // ▼ 課税総所得金額（住民税）は SoT（tb_*）を唯一参照
-            $kazeisoushotoku = $this->n($payload[sprintf('tb_sogo_jumin_%s', $period)] ?? null);
+            // ▼ 合計課税所得金額（住民税）
+            //    1) まず JuminTaxCalculator が算出した jumin_kazeishotoku_total_* を優先
+            //    2) 無ければ tb_sogo_jumin + tb_sanrin_jumin + tb_taishoku_jumin から算出
+            $kazeisoushotoku = $this->n(
+                $payload[sprintf('jumin_kazeishotoku_total_%s', $period)] ?? null
+            );
+
+            if ($kazeisoushotoku <= 0) {
+                $sogo     = $this->n($payload[sprintf('tb_sogo_jumin_%s',   $period)] ?? null);
+                $sanrin   = $this->n($payload[sprintf('tb_sanrin_jumin_%s', $period)] ?? null);
+                $taishoku = $this->n($payload[sprintf('tb_taishoku_jumin_%s', $period)] ?? null);
+
+                $kazeisoushotoku = max(0, $sogo) + max(0, $sanrin) + max(0, $taishoku);
+            }
+
             $out["kazeisoushotoku_{$period}"] = $kazeisoushotoku;
 
             $categories = ['furusato', 'kyodobokin_nisseki', 'npo', 'koueki', 'sonota'];
@@ -474,8 +487,15 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
         string $target,
         ?string $remarkContains = null
     ): float {
+        // 「総合」と「総合課税」がマスタ上で混在しうるため、
+        // '総合課税' 指定時は '総合' も同一カテゴリとして扱う
+        $categoryAlts = $category === '総合課税'
+            ? ['総合課税', '総合']
+            : [$category];
+
         foreach ($rates as $rate) {
-            if (($rate['category'] ?? '') !== $category) {
+            $rateCategory = (string) ($rate['category'] ?? '');
+            if (! in_array($rateCategory, $categoryAlts, true)) {
                 continue;
             }
 
@@ -497,10 +517,19 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
 
             $numeric = (float) $value;
 
-            if ($category === '特例控除' || $category === '基本控除') {
+            if ($category === '特例控除') {
+                // 特例控除は市・県の按分比(0.2, 0.8 など)を
+                // そのまま「率」として使う
                 return $numeric;
             }
 
+            if ($category === '基本控除') {
+                // 基本控除は jumin_master 上では「○％」表記なので
+                // 0.xx の率に変換して使う（例: 4 → 0.04）
+                return $numeric / 100.0;
+            }
+
+            // 総合課税など通常の税率は 〇％ → 率(0.xx) に変換
             return $numeric / 100.0;
         }
 

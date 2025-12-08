@@ -653,6 +653,27 @@ select.bg-light[readonly] {
           margin-bottom: 0 !important;
           height: calc(1em + 4px) !important;
         }
+
+        .form-control-sm {
+          padding-top: 1px !important;
+          padding-bottom: 1px !important;
+          line-height: 1.0 !important;
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+          height: calc(1em + 4px) !important;
+          font-size: 13px;
+        }
+
+        /* ▼ 第一表・第三表（table-compact-05）内だけ、
+           .form-control-compact-05 と同じコンパクト高さに揃える */
+        table.table-base.table-compact-05 td > .form-control.form-control-sm {
+          padding-top: 1px !important;
+          padding-bottom: 1px !important;
+          line-height: 1.0 !important;
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+          height: calc(1em + 4px) !important;
+        }
         
          /* ============================================
           * 0.5pxギャップの超コンパクト版（ボーダー非考慮・最小指定）
@@ -665,6 +686,7 @@ select.bg-light[readonly] {
            line-height: 1.0;
          }
          table.table-base.table-compact-05 td > .form-control,
+         table.table-base.table-compact-05 td > .form-control.form-control-sm,
          table.table-base.table-compact-05 td > .form-select,
          table.table-base.table-compact-05 td > .input-group,
          table.table-base.table-compact-05 td > .form-check {
@@ -673,7 +695,8 @@ select.bg-light[readonly] {
         
         /* Bootstrapの高さ・余白に負けないようセレクタ強化（任意） */
         table.table-base.table-compact-05 td > .form-control.form-control-compact,
-        table.table-base.table-compact-05 td > .form-control.form-control-compact-05 {
+        table.table-base.table-compact-05 td > .form-control.form-control-compact-05,
+        table.table-base.table-compact-05 td > .form-control.form-control-sm {
           padding-top: 0 !important;
           padding-bottom: 0 !important;
           height: calc(1em + 2px) !important; /* さらに低く */

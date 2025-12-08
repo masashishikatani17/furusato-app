@@ -220,7 +220,12 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_naibutsusan_ichiji_{{ $period }}"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['tsusango_ichiji_' . $period] ?? '' }}" readonly>
+                             value="{{ max(
+                                 0,
+                                 (int)($inputs['syunyu_ichiji_' . $period] ?? 0)
+                                   - (int)($inputs['keihi_ichiji_' . $period] ?? 0)
+                             ) }}"
+                             readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"

@@ -20,24 +20,26 @@
     /* 第一表・第三表：ヘッダー固定＋ボディのみ縦スクロール */
     .furusato-table-scroll {
       max-height: 720px;         /* 必要に応じて 500〜600px で微調整 */
-      overflow-y: auto;
+      overflow-y: auto;          /* ボディ側だけをスクロールさせる */
     }
     .furusato-table-scroll table {
       margin-bottom: 0;          /* スクロール内で余白を詰める */
     }
-    /* ヘッダー1行目（項目／所得税／住民税）を最上部に固定 */
-    .furusato-table-scroll thead tr:first-child th {
-      position: sticky;
-      top: 0;
-      z-index: 3;
+
+    /* 第一表専用：ヘッダー＋ボディをラップするコンテナ */
+    .furusato-sogo-table-wrapper .table {
+      margin-bottom: 0;          /* ヘッダー／ボディ両方とも余分な下マージンを無くす */
     }
-    /* ヘッダー2行目（令和6年／令和7年…）はそのすぐ下に固定
-       height="30px" 相当なので top:30px にしている */
-    .furusato-table-scroll thead tr:nth-child(2) th {
-      position: sticky;
-      top: 30px;
-      z-index: 3;
-    }   
+    .furusato-sogo-table-header {
+      border-bottom: 1px solid #dee2e6; /* ヘッダーとボディの境界線を明示 */
+    }
+
+    /* ヘッダー用テーブルとボディ用テーブルの列幅を合わせやすくする */
+    .furusato-sogo-table-header table,
+    .furusato-sogo-table-wrapper .furusato-table-scroll table {
+      table-layout: fixed;
+      width: 100%;
+    }
     
   </style>
 @endpush
@@ -269,15 +271,20 @@
                     foreach ($periods as $period) {
                         $format = $kojoFieldOverrides[$base][$tax] ?? null;
                         $name = $format ? sprintf($format, $period) : sprintf('%s_%s_%s', $base, $tax, $period);
+                        // ▼ 退職（bunri_*_taishoku_*）だけは第三表でもユーザー任意入力を許可する
+                        $allowRetirementManual = in_array($base, ['bunri_syunyu_taishoku', 'bunri_shotoku_taishoku'], true);
                         $isBunriThird =
-                            str_starts_with($base, 'bunri_syunyu_') ||
-                            str_starts_with($base, 'bunri_shotoku_') ||
-                            str_starts_with($base, 'tb_');
+                            ! $allowRetirementManual && (
+                                str_starts_with($base, 'bunri_syunyu_') ||
+                                str_starts_with($base, 'bunri_shotoku_') ||
+                                str_starts_with($base, 'tb_')
+                            );
                         // 分離・第三表 または server-only base は server 計算値のみ表示（old()は採用しない）
+                        // ただし退職（bunri_*_taishoku_*）は allowRetirementManual によって isBunriThird から除外される
                         if ($isBunriThird || isset($serverOnlyBases[$base])) {
-                          $value = $inputs[$name] ?? null;
+                            $value = $inputs[$name] ?? null;
                         } else {
-                          $value = old($name, $inputs[$name] ?? null);
+                            $value = old($name, $inputs[$name] ?? null);
                         }
                         // data-server-raw 用にカンマ除去した整数文字列を用意
                         $valueRaw = null;
@@ -351,15 +358,16 @@
                         }
 
                         if ($isForceDash) {
-                            $html .= '<td><input type="text" class="form-control form-control-compact-05-compact-05 text-center bg-light" value="－" readonly><input type="hidden" name="' . e($name) . '" value=""></td>';
+                            $html .= '<td><input type="text" class="form-control form-control-compact-05 text-center bg-light" value="－" readonly><input type="hidden" name="' . e($name) . '" value=""></td>';
                         } else {
                             $readonlyAttr = $isReadonly ? ' readonly' : '';
-                            $class = 'form-control form-control-compact-05-compact-05 text-end js-comma';
+                            $class = 'form-control form-control-compact-05 text-end js-comma';
                             if ($isReadonly) {
                                 $class .= ' bg-light';
                             }
-                        // 分離・第三表／server-only は data-server-lock＋（可能なら）data-server-raw を付与
-                        $isLocked = $isBunriThird || isset($serverOnlyBases[$base]);
+                            // 分離・第三表／server-only は data-server-lock＋（可能なら）data-server-raw を付与
+                            // 退職（bunri_*_taishoku_*）は isBunriThird=false なのでロックされず、ユーザー編集を許可する
+                            $isLocked = $isBunriThird || isset($serverOnlyBases[$base]);
                             $lockAttr = $isLocked ? ' data-server-lock="1"' : '';
                             $rawAttr  = ($isLocked && $valueRaw !== null) ? ' data-server-raw="' . e($valueRaw) . '"' : '';
                             $html .= '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . $lockAttr . $rawAttr . '></td>';
@@ -399,7 +407,7 @@
                             $disp += (int)($inputs[$tb] ?? 0);
                       }
                         $html .= '<td>';
-                        $html .= '<input type="text" class="form-control form-control-sm text-end bg-light js-comma" value="' . e(number_format($disp)) . '" readonly>';
+                        $html .= '<input type="text" class="form-control form-control-compact-05 text-end bg-light js-comma" value="' . e(number_format($disp)) . '" readonly>';
                         foreach ($keys as $k) {
                             $tb = sprintf('%s_%s_%s', $k, $tax, $p);
                             $raw = (int)($inputs[$tb] ?? 0);
@@ -673,7 +681,7 @@
                             $name = sprintf('shotoku_gokei_%s_%s', $tax, $period);
                             $raw = $normalizeInt($inputs[$name] ?? 0);
                             // shotoku_gokei_* はクライアント側で常に再計算するため lock は付けない
-                            echo $renderReadonlyInput($name, $raw, 'form-control form-control-compact-05-compact-05 text-end js-comma bg-light');
+                            echo $renderReadonlyInput($name, $raw, 'form-control form-control-compact-05 text-end js-comma bg-light');
                         }
                     }
                   @endphp
@@ -854,7 +862,7 @@
                   @endphp
                   @foreach ($cells as [$name,$raw])
                     <td>
-                      <input type="text" class="form-control form-control-compact-05-compact-05 text-end js-comma bg-light" value="{{ number_format((int)$raw) }}" readonly>
+                      <input type="text" class="form-control form-control-compact-05 text-end js-comma bg-light" value="{{ number_format((int)$raw) }}" readonly>
                       <input type="hidden" name="{{ $name }}" value="{{ (int)$raw }}">
                     </td>
                   @endforeach

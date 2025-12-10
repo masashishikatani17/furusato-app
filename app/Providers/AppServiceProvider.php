@@ -79,7 +79,6 @@ class AppServiceProvider extends ServiceProvider
             SeitotoTokubetsuZeigakuKojoCalculator::class,
             JuminTaxCalculator::class,
             JuminJutakuLoanCreditCalculator::class,
-            JuminzeiKifukinCalculator::class,
             TokureiRateCalculator::class,
             JuminzeiKifukinCalculator::class,
             // 6) 最終表示

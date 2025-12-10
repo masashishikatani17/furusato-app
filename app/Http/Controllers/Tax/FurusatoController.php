@@ -819,6 +819,14 @@ final class FurusatoController extends Controller
     {
         $inputsForView = $savedInputs;
 
+    Log::info('[furusato debug] bunri joto snapshot', [
+        'res_tanki_prev'  => $resultsPayload['joto_shotoku_tanki_ippan_prev'] ?? null,
+        'res_choki_prev'  => $resultsPayload['joto_shotoku_choki_ippan_prev'] ?? null,
+        'res_tsusango_tanki_prev' => $resultsPayload['tsusango_tanki_ippan_prev'] ?? null,
+        'res_tsusango_choki_prev' => $resultsPayload['tsusango_choki_ippan_prev'] ?? null,
+        'preview_tanki_prev' => $previewPayload['joto_shotoku_tanki_ippan_prev'] ?? null,
+    ]);
+    
         $lookup = function (array $candidates, bool $previewOnly = false, bool $allowSaved = true) use ($resultsPayload, $resultsUpper, $previewPayload, $savedInputs): ?int {
             foreach ($candidates as $key) {
                 if (! $previewOnly) {
@@ -1092,6 +1100,21 @@ final class FurusatoController extends Controller
                     null,
                     true
                 );
+
+                // ▼ 山林（分離）の第三表ブリッジ
+                //   - 収入：bunri_syunyu_sanrin_{shotoku/jumin}_* ← details の syunyu_sanrin_*
+                //   - 所得：bunri_shotoku_sanrin_{shotoku/jumin}_* ← サーバ確定 shotoku_sanrin_*
+                $sanrinIncome = $lookup([sprintf('shotoku_sanrin_%s', $period)], true, false);
+                if ($sanrinIncome !== null) {
+                    $sanrinIncome = (int) $sanrinIncome;
+                    $inputsForView[sprintf('bunri_shotoku_sanrin_shotoku_%s', $period)] = $sanrinIncome;
+                    $inputsForView[sprintf('bunri_shotoku_sanrin_jumin_%s',   $period)] = $sanrinIncome;
+                }
+
+                $syunyuSanrinValue = $lookup([sprintf('syunyu_sanrin_%s', $period)]);
+                $syunyuSanrinValue = $syunyuSanrinValue !== null ? (int) $syunyuSanrinValue : 0;
+                $inputsForView[sprintf('bunri_syunyu_sanrin_shotoku_%s', $period)] = $syunyuSanrinValue;
+                $inputsForView[sprintf('bunri_syunyu_sanrin_jumin_%s',   $period)] = $syunyuSanrinValue;
                 if (config('app.furusato_mirror_fallback')) {
                     $kojoShotoku = $this->valueOrZero($lookup([sprintf('kojo_gokei_shotoku_%s', $period)]));
                     $kojoJumin = $this->valueOrZero($lookup([sprintf('kojo_gokei_jumin_%s', $period)]));
@@ -1361,6 +1384,37 @@ final class FurusatoController extends Controller
                     },
                     true // previewOnly: results/upper が無くても preview（＝Calculator出力）を採用
                 );
+            }
+
+            /**
+             * ▼ 行レベル譲渡所得金額（joto_shotoku_%_%）をサーバ側で確定させる
+             *
+             *   joto_shotoku_%_% = max(0, tsusango_%_% - tokubetsukojo_%_%)
+             *
+             *   - tsusango_%_% ：上のブロックで after_2jitsusan_%_% から 0 下限で生成済み
+             *   - tokubetsukojo_%_% ：details 画面入力（無ければ 0）
+             *   - Calculator（BunriNettingCalculator）でも同様に計算しているが、
+             *     ここで previewPayload/results 不問で最終値を inputsForView に反映させることで、
+             *     第三表の bunri_shotoku_%_% への橋渡しを安定させる。
+             */
+            foreach ([
+                'tanki_ippan',
+                'tanki_keigen',
+                'choki_ippan',
+                'choki_tokutei',
+                'choki_keika',
+            ] as $suffix) {
+                $tsuKey = sprintf('tsusango_%s_%s', $suffix, $period);
+                $tokKey = sprintf('tokubetsukojo_%s_%s', $suffix, $period);
+
+                $tsuVal = $lookup([$tsuKey], true, false) ?? 0;      // 0 下限済み
+                $tokVal = $lookup([$tokKey], false, true) ?? 0;      // details 入力／saved も許容
+
+                $tsuVal = max(0, (int)$tsuVal);
+                $tokVal = max(0, (int)$tokVal);
+
+                $joto = max(0, $tsuVal - $tokVal);
+                $inputsForView[sprintf('joto_shotoku_%s_%s', $suffix, $period)] = $joto;
             }
 
             /**
@@ -2448,7 +2502,9 @@ final class FurusatoController extends Controller
             'choki_tokutei',
             'choki_keika',
         ];
-        $editablePrefixes = ['syunyu', 'keihi', 'tsusango', 'tokubetsukojo'];
+        // tsusango_%_% は「第2次損益通算後（after_2jitsusan_%_%）」を
+        // サーバ側で一意に決定するため、POST 入力は受け付けない（表示専用）。
+        $editablePrefixes = ['syunyu', 'keihi', 'tokubetsukojo'];
         $rules = [];
 
         foreach ($rowKeys as $rowKey) {
@@ -2465,7 +2521,9 @@ final class FurusatoController extends Controller
 
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        // バリデーション対象のキーだけを保存対象にする
+        // （tsusango_%_% は rules に含めていないので payload には入らない）
+        $payload = $this->sanitizeDetailPayload($req->only(array_keys($rules)));
         
         $updatesForRecalc = $payload;
 

@@ -7,7 +7,6 @@ use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Factory\SyoriSettingsFactory;
 use App\Domain\Tax\Calculators\BunriNettingCalculator;
 use App\Domain\Tax\Calculators\BunriKabutekiNettingCalculator;
-use App\Domain\Tax\Calculators\KojoSeimeiJishinCalculator;
 use App\Domain\Tax\Calculators\ResultToDetailsAliasCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;

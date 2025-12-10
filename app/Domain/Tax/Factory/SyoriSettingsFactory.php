@@ -69,6 +69,40 @@ final class SyoriSettingsFactory
     }
 
     /**
+     * syori_menu 画面用の設定ペイロードを構築する。
+     *
+     * 現時点では Data 単位の有効 syori_settings（buildInitial）の結果を
+     * そのまま返すだけにしておく。
+     *
+     * 将来的に syori_menu 専用の付加情報（選択肢リストやヘルパ値など）が
+     * 必要になった場合は、このメソッド内でラップして拡張する。
+     *
+     * @return array<string,mixed>
+     */
+    public function buildMenuPayload(Data $data): array
+    {
+        return $this->buildInitial($data);
+    }
+
+    /**
+     * 保存用の設定ペイロードを構築する
+     *
+     * @param array<string,mixed> $validated
+     * @return array<string,mixed>
+     */
+    public function buildPayloadForSave(array $validated): array
+    {
+    // validatedからデータIDを取得
+        $data = Data::find($validated['data_id']);
+        
+        // buildInitial() で基本設定を取得
+        $settings = $this->buildInitial($data);
+        
+        // 必要に応じて値を正規化して返却（例えば、百分率を小数に変換するなど）
+        return $this->applySaveAdjustments($settings, $validated);
+    }
+
+    /**
      * syori_settings を保存する
      *
      * @param array<string,mixed> $settings
@@ -93,6 +127,60 @@ final class SyoriSettingsFactory
             $record->updated_by = $userId ?: null;
             $record->save();
         });
+    }
+
+    /**
+     * 保存用ペイロードに必要な調整を加える（例えば、パーセントから小数に変換）
+     *
+     * @param array<string,mixed> $settings
+     * @param array<string,mixed> $validated
+     * @return array<string,mixed>
+     */
+    private function applySaveAdjustments(array $settings, array $validated): array
+    {
+        // ▼ syori_menu で管理するキーだけを対象にする
+        foreach (self::SYORI_MENU_KEYS as $key) {
+            if (!array_key_exists($key, $validated)) {
+                // 画面から送られていないキーは既存設定をそのまま利用
+                continue;
+            }
+
+            $raw = $validated[$key];
+
+            // 数値に寄せておく（カンマ等を除去）
+            if (is_string($raw)) {
+                $raw = str_replace([',', ' '], '', $raw);
+            }
+
+            // ▼ 適用率（百分率で送られてくる想定）が POST されている場合だけ 0〜1 に正規化
+            //   現状の画面では rate 入力自体が無いため、ここは基本的にスキップされる。
+            if (str_contains($key, 'pref_applied_rate_') || str_contains($key, 'muni_applied_rate_')) {
+                if ($raw === null || $raw === '') {
+                    // 未入力なら既存値を維持（DEFAULT or DB）
+                    continue;
+                }
+                if (!is_numeric($raw)) {
+                    // 数値でなければ既存値を維持（バリデーション側で弾かれている想定）
+                    continue;
+                }
+
+                // 例：4 → 0.04, 6 → 0.06
+                $settings[$key] = max(0.0, min(100.0, (float) $raw)) / 100.0;
+                continue;
+            }
+
+            // ▼ それ以外（detail_mode / bunri_flag / one_stop_flag / shitei_toshi_flag）は
+            //    0/1 フラグとして整数化して上書き
+            if ($raw === null || $raw === '') {
+                // 空なら既存値をそのまま使う
+                continue;
+            }
+
+            $settings[$key] = (int) $raw;
+        }
+
+        // shitei_toshi_flag などの変更に応じて標準税率や legacy キーを揃える
+        return $this->applyStandardRates($settings);
     }
 
     /**
@@ -146,7 +234,6 @@ final class SyoriSettingsFactory
 
         return $this->applyStandardRates($settings);
     }
-
     /**
      * syori_settings のデフォルト構造
      *

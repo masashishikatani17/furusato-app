@@ -142,7 +142,8 @@
                         <input type="text" inputmode="numeric" autocomplete="off"
                                data-format="comma-int" data-name="{{ $name }}"
                                class="form-control suji11 text-end bg-light"
-                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly
+                               oninput="updateCalculation('{{ $period }}')">
                       @endif
                     </td>
                     {{-- 損益通算後（0下限・hidden反映） --}}
@@ -186,7 +187,8 @@
                         <input type="text" inputmode="numeric" autocomplete="off"
                                data-format="comma-int" data-name="{{ $name }}"
                                class="form-control suji11 text-end bg-light"
-                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly
+                               oninput="updateCalculation('{{ $period }}')">
                       @endif
                     </td>
                     {{-- 区分合計（行頭で rowspan） --}}

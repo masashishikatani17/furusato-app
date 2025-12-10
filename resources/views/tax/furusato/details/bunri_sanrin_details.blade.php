@@ -71,7 +71,8 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
                              class="form-control suji11 text-end"
-                             value="{{ old($name, $inputs[$name] ?? null) }}">
+                             value="{{ old($name, $inputs[$name] ?? null) }}"
+                             oninput="updateCalculation('{{ $period }}')">
                     @endif
                   </td>
                   @php($name = 'keihi_sanrin_' . $period)
@@ -83,7 +84,8 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
                              class="form-control suji11 text-end"
-                             value="{{ old($name, $inputs[$name] ?? null) }}">
+                             value="{{ old($name, $inputs[$name] ?? null) }}"
+                             oninput="updateCalculation('{{ $period }}')">
                     @endif
                   </td>
                   @php($name = 'sashihiki_sanrin_' . $period)
@@ -95,7 +97,8 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly
+                             oninput="updateCalculation('{{ $period }}')">
                     @endif
                   </td>
                   @php($name = 'tokubetsukojo_sanrin_' . $period)
@@ -107,7 +110,8 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly
+                             oninput="updateCalculation('{{ $period }}')">
                     @endif
                   </td>
                   @php($name = 'shotoku_sanrin_' . $period)
@@ -119,7 +123,8 @@
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
                              class="form-control suji11 text-end bg-light"
-                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly
+                             oninput="updateCalculation('{{ $period }}')">
                     @endif
                   </td>
                 </tr>

@@ -103,9 +103,12 @@
                         <input type="hidden" name="{{ $name }}" value="0">
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
                                class="form-control suji11 text-end bg-light"
-                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                               value="{{ (isset($inputs[$name]) && $inputs[$name] !== '' && $inputs[$name] !== null)
+                                   ? number_format((int) $inputs[$name])
+                                   : '' }}"
+                               data-display-key="{{ $name }}"
+                               readonly>
                       @endif
                     </td>
                     @php($name = 'tsusango_' . $base)
@@ -115,9 +118,11 @@
                         <input type="hidden" name="{{ $name }}" value="0">
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
                                class="form-control suji11 text-end bg-light"
-                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                               value="{{ (isset($inputs[$name]) && $inputs[$name] !== '' && $inputs[$name] !== null)
+                                   ? number_format((int) $inputs[$name])
+                                   : '' }}"
+                               readonly>
                       @endif
                     </td>
                     <td>
@@ -143,9 +148,11 @@
                         <input type="hidden" name="{{ $name }}" value="0">
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
                                class="form-control suji11 text-end bg-light"
-                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                               value="{{ (isset($inputs[$name]) && $inputs[$name] !== '' && $inputs[$name] !== null)
+                                   ? number_format((int) $inputs[$name])
+                                   : '' }}"
+                               readonly>
                       @endif
                     </td>
                   </tr>
@@ -192,7 +199,9 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   })();
-  // ===== カンマ整形 + hidden 連携（表示は常に3桁カンマ、POSTは数値のみ）=====
+  // ===== カンマ整形 + hidden 連携（入力欄のみ：syunyu/keihi/kurikoshi）=====
+  // この画面では、所得金額/損益通算後/繰越控除後はサーバ確定値の「表示専用」。
+  // JSで再計算すると古い値の混入源になるため、ここでは「入力欄の整形とPOST用hidden同期」だけ行う。
   const toRawInt = (value) => {
     if (typeof value !== 'string') return '';
     const stripped = value.replace(/,/g, '').trim();
@@ -214,6 +223,25 @@ document.addEventListener('DOMContentLoaded', function () {
     return h || null;
   };
   const getDisplay = (name) => document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+  const getDisplayByKey = (name) => document.querySelector(`[data-display-key="${name}"]`);
+
+  // signed int をカンマ整形して readonly 表示欄へ入れる（所得金額だけ）
+  const setDisplayInt = (displayKey, value) => {
+    const el = getDisplayByKey(displayKey);
+    if (!el) return;
+    const n = Math.trunc(Number(value) || 0);
+    // 0 は "0" を出す（空欄にしたいならここを '' に変えてOK）
+    el.value = n.toLocaleString('ja-JP');
+  };
+
+  // hidden から整数を取得（無ければ0）
+  const V = (name) => {
+    const h = getHidden(name);
+    const raw = toRawInt(String(h?.value ?? ''));
+    const n = raw === '' ? 0 : parseInt(raw, 10);
+    return Number.isNaN(n) ? 0 : n;
+  };
+
   const ensureHidden = (displayInput) => {
     const name = displayInput?.dataset?.name;
     if (!name) return null;
@@ -226,67 +254,11 @@ document.addEventListener('DOMContentLoaded', function () {
       (displayInput.parentElement || displayInput.closest('form') || document.body).appendChild(hidden);
       hiddenCache.set(name, hidden);
     }
-    // 初回同期
-    const hiddenRaw = toRawInt(hidden.value ?? '');
-    const inputRaw  = toRawInt(displayInput.value ?? '');
-    const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+    // 初回同期（表示値→raw→hidden）
+    const raw = toRawInt(displayInput.value ?? '');
     hidden.value = raw;
     displayInput.value = raw === '' ? '' : formatWithComma(raw);
     return hidden;
-  };
-  const V = (name) => { // get int
-    const h = getHidden(name);
-    if (!h) return 0;
-    const raw = toRawInt(h.value ?? '');
-    if (raw === '') return 0;
-    const n = parseInt(raw, 10);
-    return Number.isNaN(n) ? 0 : n;
-  };
-  const S = (name, value) => { // set int (sync hidden + display)
-    const h = getHidden(name);
-    const d = getDisplay(name);
-    if (value === '' || value === null || typeof value === 'undefined' || Number.isNaN(value)) {
-      if (h) h.value = '';
-      if (d) d.value = '';
-      return;
-    }
-    const raw = String(Math.trunc(Number(value) || 0));
-    if (h) h.value = raw;
-    if (d) d.value = formatWithComma(raw);
-  };
-
-  const rows = [
-    { key: 'ippan_joto', hasKurikoshi: false },
-    { key: 'jojo_joto', hasKurikoshi: true },
-    { key: 'jojo_haito', hasKurikoshi: false },
-  ];
-
-  const syncIppanTsusango = (period) => {
-    const base = `ippan_joto_${period}`;
-    const shotoku = V(`shotoku_${base}`);
-    S(`tsusango_${base}`, shotoku);
-  };
-
-  const recalc = (period) => {
-    rows.forEach((row) => {
-      const base = `${row.key}_${period}`;
-      const syunyu  = V(`syunyu_${base}`);
-      const keihi   = V(`keihi_${base}`);
-      const shotoku = syunyu - keihi;
-      S(`shotoku_${base}`, shotoku);
-
-      let tsusango;
-      if (row.key === 'ippan_joto') {
-        tsusango = shotoku;
-        S(`tsusango_${base}`, tsusango);
-      } else {
-        tsusango = V(`tsusango_${base}`);
-      }
-      const kurikoshi = row.hasKurikoshi ? V(`kurikoshi_${base}`) : 0;
-      const deduction = row.hasKurikoshi ? Math.min(Math.max(tsusango, 0), Math.max(kurikoshi, 0)) : 0;
-      const after = row.hasKurikoshi ? tsusango - deduction : tsusango;
-      S(`shotoku_after_kurikoshi_${base}`, after);
-    });
   };
 
   // ===== 表示 input（data-name）に hidden を用意し、blurで3桁カンマ化 =====
@@ -295,9 +267,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const name = input.dataset.name;
     if (!name) return;
     ensureHidden(input);
-    // 初期表示は常にカンマ整形
+    // 初期表示（hiddenがあればそれ、なければ表示値から）
     const h = getHidden(name);
-    const raw = toRawInt(h?.value ?? input.value ?? '');
+    const raw = toRawInt((h?.value ?? '') !== '' ? (h?.value ?? '') : (input.value ?? ''));
+    if (h) h.value = raw;
     input.value = raw === '' ? '' : formatWithComma(raw);
     if (input.readOnly) return;
     input.addEventListener('focus', () => {
@@ -310,13 +283,31 @@ document.addEventListener('DOMContentLoaded', function () {
       const raw = toRawInt(input.value ?? hidden?.value ?? '');
       if (hidden) hidden.value = raw;
       input.value = raw === '' ? '' : formatWithComma(raw);
-      const m = name.match(/_(prev|curr)$/);
-      if (m) recalc(m[1]);
+
+      // 所得金額（=収入-経費）だけを即時再計算して表示
+      const m = name.match(/^(syunyu|keihi)_(ippan_joto|jojo_joto|jojo_haito)_(prev|curr)$/);
+      if (m) {
+        const rowKey = m[2];
+        const period = m[3];
+        const syunyuKey = `syunyu_${rowKey}_${period}`;
+        const keihiKey  = `keihi_${rowKey}_${period}`;
+        const shotokuKey = `shotoku_${rowKey}_${period}`;
+        const syunyu = V(syunyuKey);
+        const keihi  = V(keihiKey);
+        setDisplayInt(shotokuKey, syunyu - keihi);
+      }
     });
   });
-
-  recalc('prev');
-  recalc('curr');
+  // 初期表示でも「所得金額（収入−経費）」だけは整合させる
+  (function initShotokuDisplay() {
+    ['prev','curr'].forEach((period) => {
+      ['ippan_joto','jojo_joto','jojo_haito'].forEach((rowKey) => {
+        const syunyu = V(`syunyu_${rowKey}_${period}`);
+        const keihi  = V(`keihi_${rowKey}_${period}`);
+        setDisplayInt(`shotoku_${rowKey}_${period}`, syunyu - keihi);
+      });
+    });
+  })();
 
   // 送信直前：hiddenへ数値を確実に格納（表示のnameは元から無いのでチラつき無し）
   const form = document.querySelector('form');

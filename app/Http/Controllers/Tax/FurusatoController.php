@@ -236,21 +236,13 @@ final class FurusatoController extends Controller
 
     private function resolveBunriFlag(?int $dataId): int
     {
+        // ▼ 分離課税は常に「あり」で固定（syori_menu の選択肢を廃止する前提）
+        //   data_id が無いケース（初期遷移など）だけは 0 を返しておく。
         if (! $dataId) {
-            return 0;
+        return 0;
         }
 
-        $payload = FurusatoSyoriSetting::query()
-            ->where('data_id', $dataId)
-            ->value('payload');
-
-        if (! is_array($payload)) {
-            return 0;
-        }
-
-        $flag = $payload['bunri_flag'] ?? 0;
-
-        return (int) ($flag ? 1 : 0);
+        return 1;
     }
 
     private function makeInputContext(Request $request, ?int $dataId): array
@@ -268,11 +260,9 @@ final class FurusatoController extends Controller
             $data = $this->findDataForInput($request, $dataId);
 
             $syoriSettings = $this->getSyoriSettings($dataId);
-            $prevOn = (int) ($syoriSettings['bunri_flag_prev'] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
-            $currOn = (int) ($syoriSettings['bunri_flag_curr'] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
-            $showSeparatedNetting = $prevOn || $currOn;
-
-            $bunriFlag = $this->resolveBunriFlag($dataId);
+            // ▼ 分離課税は常に「あり」で固定：入力画面（第一表＋第三表）の表示は常に分離あり前提
+            $showSeparatedNetting = true;
+            $bunriFlag = 1;
 
             if ($data && $data->kihu_year) {
                 $kihuYear = (int) $data->kihu_year;
@@ -328,6 +318,15 @@ final class FurusatoController extends Controller
             'kihu_year'        => $calculatorYear,
             'company_id'       => $companyId,
             'data_id'          => $data?->id,
+            // ひとり親控除（父=1万/母=5万）の人的控除差の分岐に用いる
+            // guest のカラム名が環境差で揺れる可能性があるため data_get で安全に取得
+            'taxpayer_sex'     => (function () use ($data) {
+                if (!$data) return null;
+                $v = data_get($data, 'guest.sex');
+                if ($v === null) $v = data_get($data, 'guest.gender');
+                if ($v === null) $v = data_get($data, 'guest.sex_code');
+                return $v;
+            })(),
         ];
 
         // ▼ KyuyoNenkin を index/calc 再描画時にも走らせ、details由来の収入→所得を確定
@@ -1138,6 +1137,45 @@ final class FurusatoController extends Controller
                         $inputsForView[$juminKey] = $fallback;
                     }
                 }
+
+                /**
+                 * ▼ 分離ONでも「行レベル損益通算後」「譲渡所得金額」を
+                 *    サーバ計算値（Calculator 出力）から確実にブリッジする
+                 *
+                 *  - tsusango_%_%            ← after_2jitsusan_%_%（0 下限）
+                 *  - bunri_shotoku_%_%_*     ← joto_shotoku_%_%（行レベル譲渡所得）
+                 */
+                foreach ([
+                    'tanki_ippan',
+                    'tanki_keigen',
+                    'choki_ippan',
+                    'choki_tokutei',
+                    'choki_keika',
+                ] as $suffix) {
+                    // tsusango_%_% : 0 下限＋サーバ値優先（results/upper/preview）
+                    $assign(
+                        sprintf('tsusango_%s_%s', $suffix, $period),
+                        [sprintf('tsusango_%s_%s', $suffix, $period)],
+                        static function (int $v): int {
+                            return max(0, $v);
+                        },
+                        /* previewOnly */ true,   // Calculator 出力（results/upper/preview）を優先
+                        /* allowSaved  */ false   // savedInputs は参照しない
+                    );
+
+                    // bunri_shotoku_%_%_* ← joto_shotoku_%_%（特別控除後の行別譲渡所得）
+                    $mirrorMany(
+                        [
+                            sprintf('bunri_shotoku_%s_shotoku_%s', $suffix, $period),
+                            sprintf('bunri_shotoku_%s_jumin_%s',   $suffix, $period),
+                        ],
+                        [sprintf('joto_shotoku_%s_%s', $suffix, $period)],
+                        null,
+                        /* previewOnly */ true,   // サーバ確定値を必ず採用
+                        /* allowSaved  */ false
+                    );
+                }
+
                 /**
                  * ▼ 分離ONでも kabuteki（一般/上場の収入・所得）を第三表へブリッジ
                  *  （ここでやらないと continue で以降が実行されず、表示されない）
@@ -1723,6 +1761,63 @@ final class FurusatoController extends Controller
             }
 
             /**
+             * ▼ 分離譲渡行レベルの SoT を素直に inputs へミラー
+             *   - tsusango_%_%           : 損益通算後（行単位）… SoT=tsusango_%_%
+             *   - joto_shotoku_%_%       : 特別控除後の行レベル譲渡所得 … SoT=joto_shotoku_%_%
+             *   （tb_* と同じノリで「正のキー」だけを inputsForView に流す）
+             */
+            foreach ([
+                'tanki_ippan',
+                'tanki_keigen',
+                'choki_ippan',
+                'choki_tokutei',
+                'choki_keika',
+            ] as $suffix) {
+                // tsusango_%_%（details や result_details, bunri_joto_details で使用）
+                $tsuKey = sprintf('tsusango_%s_%s', $suffix, $period);
+                $tsuVal =
+                    $resultsPayload[$tsuKey] ?? $resultsUpper[$tsuKey]
+                    ?? $previewPayload[$tsuKey] ?? $savedInputs[$tsuKey] ?? null;
+                if ($tsuVal !== null) {
+                    $inputsForView[$tsuKey] = max(0, (int)$tsuVal);
+                }
+    
+                // joto_shotoku_%_%（特別控除後の行レベル譲渡所得）
+                $jotoKey = sprintf('joto_shotoku_%s_%s', $suffix, $period);
+                $jotoVal =
+                    $resultsPayload[$jotoKey] ?? $resultsUpper[$jotoKey]
+                    ?? $previewPayload[$jotoKey] ?? $savedInputs[$jotoKey] ?? null;
+                if ($jotoVal !== null) {
+                    $inputsForView[$jotoKey] = (int)$jotoVal;
+                }
+            }
+
+            /**
+             * ▼ 第三表の分離所得欄（bunri_shotoku_%_%_*）も
+             *   行レベル譲渡所得 joto_shotoku_%_% から素直にミラーする。
+             *   - 所得税／住民税とも同額（行レベル SoT は共通）
+             */
+            foreach ([
+                'tanki_ippan',
+                'tanki_keigen',
+                'choki_ippan',
+                'choki_tokutei',
+                'choki_keika',
+            ] as $suffix) {
+                $jotoKey = sprintf('joto_shotoku_%s_%s', $suffix, $period);
+                $jotoVal =
+                    $inputsForView[$jotoKey]
+                    ?? $resultsPayload[$jotoKey] ?? $resultsUpper[$jotoKey]
+                    ?? $previewPayload[$jotoKey] ?? $savedInputs[$jotoKey] ?? null;
+                if ($jotoVal === null) {
+                    continue;
+                }
+                $val = (int)$jotoVal;
+                $inputsForView[sprintf('bunri_shotoku_%s_shotoku_%s', $suffix, $period)] = $val;
+                $inputsForView[sprintf('bunri_shotoku_%s_jumin_%s',   $suffix, $period)] = $val;
+            }
+
+            /**
              * SoT 統一：課税標準は tb_* を唯一のソースにする
              *  - 分離OFF年度：tb_sogo_* をそのまま表示
              *  - 分離ON年度：tb_sogo_* は第三表の反映後値（サーバ確定）なので、同様に表示
@@ -1911,9 +2006,15 @@ final class FurusatoController extends Controller
                 $srcIncomeKey = sprintf('syunyu_%s_%s', $suffix, $period); // 例: syunyu_choki_keika_prev
                 $dstIncomeShotoku = sprintf('bunri_syunyu_%s_shotoku_%s', $suffix, $period);
                 $dstIncomeJumin   = sprintf('bunri_syunyu_%s_jumin_%s',   $suffix, $period);
-                $v = $lookup([$srcIncomeKey], false, true); // allowSaved=true（ユーザー入力を尊重）
-                if ($v !== null) { $inputsForView[$dstIncomeShotoku] = (int)$v; }
-                if ($v !== null) { $inputsForView[$dstIncomeJumin]   = (int)$v; }
+                // 分離譲渡の収入金額 syunyu_%_% は「詳細画面の入力値（FurusatoInput.payload）」が唯一の SoT。
+                //    ここでは常に「最新の payload / previewPayload」を優先し、
+                //    セッションに残っている古い results（furusato_results）を参照しないようにする。
+                //    → previewOnly=true として resultsPayload / resultsUpper をスキップする。
+                //    また、syunyu_* が null / 未設定なら 0 とみなし、古い bunri_syunyu_* の値は必ず上書きする。
+                $rawIncome = $lookup([$srcIncomeKey], true, true);
+                $incomeVal = $rawIncome !== null ? (int)$rawIncome : 0;
+                $inputsForView[$dstIncomeShotoku] = $incomeVal;
+                $inputsForView[$dstIncomeJumin]   = $incomeVal;
 
                 // 分離・所得（特別控除後）… Calculator 出力の joto_shotoku_%_% を映す
                 $srcShotokuKey    = sprintf('joto_shotoku_%s_%s', $suffix, $period); // 例: joto_shotoku_choki_keika_prev
@@ -1923,6 +2024,30 @@ final class FurusatoController extends Controller
                 $v2 = $lookup([$srcShotokuKey], false, false /* allowSaved=false */);
                 if ($v2 !== null) { $inputsForView[$dstShotokuShotoku] = (int)$v2; }
                 if ($v2 !== null) { $inputsForView[$dstShotokuJumin]   = (int)$v2; }
+            }
+        }
+
+        /**
+         * ▼ 株式等（bunri_kabuteki_details）の「収入金額」も第三表へ確実にミラー
+         *   - SoT: syunyu_{ippan_joto|jojo_joto|jojo_haito}_{prev|curr}
+         *   - 表示先: bunri_syunyu_{ippan_kabuteki_joto|jojo_kabuteki_joto|jojo_kabuteki_haito}_{shotoku|jumin}_{prev|curr}
+         *   - syunyu_* が null / 未設定でも 0 を上書きし、古い表示値が残らないようにする
+         *   - results（セッションの furusato_results）が古いケースを避けるため previewOnly=true
+         */
+        foreach (['prev', 'curr'] as $period) {
+            $map = [
+                'ippan_kabuteki_joto' => 'ippan_joto',
+                'jojo_kabuteki_joto'  => 'jojo_joto',
+                'jojo_kabuteki_haito' => 'jojo_haito',
+            ];
+            foreach ($map as $destPart => $srcPart) {
+                $srcKey = sprintf('syunyu_%s_%s', $srcPart, $period);
+                $dstShot = sprintf('bunri_syunyu_%s_shotoku_%s', $destPart, $period);
+                $dstJmn  = sprintf('bunri_syunyu_%s_jumin_%s',   $destPart, $period);
+                $raw = $lookup([$srcKey], true, true);
+                $val = $raw !== null ? (int) $raw : 0;
+                $inputsForView[$dstShot] = $val;
+                $inputsForView[$dstJmn]  = $val;
             }
         }
 
@@ -1944,6 +2069,65 @@ final class FurusatoController extends Controller
                 }
             }
         }
+
+        /**
+         * ▼ 分離課税あり年度（bunri_flag=1）について、
+         *   ・tsusango_%_%           = サーバ確定 tsusango_%_%（0 下限）
+         *   ・bunri_shotoku_%_%_*    = 行レベル譲渡所得 joto_shotoku_%_%
+         *   を最終的に UI 用 inputs にブリッジする。
+         *
+         *   優先度: results.payload → results.upper → previewPayload → savedInputs
+         */
+        foreach (['prev', 'curr'] as $period) {
+            $isSeparated = (int) ($syoriSettings[sprintf('bunri_flag_%s', $period)] ?? $syoriSettings['bunri_flag'] ?? 0) === 1;
+            if (! $isSeparated) {
+                continue;
+            }
+
+            foreach ([
+                'tanki_ippan',
+                'tanki_keigen',
+                'choki_ippan',
+                'choki_tokutei',
+                'choki_keika',
+            ] as $suffix) {
+                // 1) tsusango_%_% : 0 下限で確定値を転記
+                $tsuKey = sprintf('tsusango_%s_%s', $suffix, $period);
+                $tsuSrc =
+                    $resultsPayload[$tsuKey] ?? $resultsUpper[$tsuKey]
+                    ?? $previewPayload[$tsuKey] ?? $savedInputs[$tsuKey] ?? null;
+                if ($tsuSrc !== null) {
+                    $inputsForView[$tsuKey] = max(0, (int) $tsuSrc);
+                }
+
+                // 2) bunri_shotoku_%_%_* ← joto_shotoku_%_%（特別控除後の行レベル譲渡所得）
+                $jotoKey = sprintf('joto_shotoku_%s_%s', $suffix, $period);
+                $jotoSrc =
+                    $resultsPayload[$jotoKey] ?? $resultsUpper[$jotoKey]
+                    ?? $previewPayload[$jotoKey] ?? $savedInputs[$jotoKey] ?? null;
+                if ($jotoSrc !== null) {
+                    $val = (int) $jotoSrc;
+                    $inputsForView[sprintf('bunri_shotoku_%s_shotoku_%s', $suffix, $period)] = $val;
+                    $inputsForView[sprintf('bunri_shotoku_%s_jumin_%s',   $suffix, $period)] = $val;
+                }
+            }
+        }
+
+Log::info('[furusato debug] final inputs snapshot', [
+    // 元入力（詳細画面 SoT）
+    'src_syunyu_tanki_ippan_prev' => $savedInputs['syunyu_tanki_ippan_prev'] ?? null,
+    // ビュー用に組んだ previewPayload 側
+    'preview_syunyu_tanki_ippan_prev' => $previewPayload['syunyu_tanki_ippan_prev'] ?? null,
+    // 最終的に第三表へ渡す値
+    'bunri_syunyu_tanki_ippan_shotoku_prev' => $inputsForView['bunri_syunyu_tanki_ippan_shotoku_prev'] ?? null,
+    'bunri_syunyu_tanki_ippan_jumin_prev'   => $inputsForView['bunri_syunyu_tanki_ippan_jumin_prev']   ?? null,
+
+    // 参考：これまで見ていたキーもそのまま残しておく
+    'tsusango_tanki_ippan_prev' => $inputsForView['tsusango_tanki_ippan_prev'] ?? null,
+    'joto_shotoku_tanki_ippan_prev' => $inputsForView['joto_shotoku_tanki_ippan_prev'] ?? null,
+    'bunri_shotoku_tanki_ippan_shotoku_prev' => $inputsForView['bunri_shotoku_tanki_ippan_shotoku_prev'] ?? null,
+    'tb_joto_tanki_shotoku_prev' => $inputsForView['tb_joto_tanki_shotoku_prev'] ?? null,
+]);
 
         return $inputsForView;
     }
@@ -2584,38 +2768,27 @@ final class FurusatoController extends Controller
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $rows = [
-            ['key' => 'ippan_joto', 'kurikoshi' => false],
-            ['key' => 'jojo_joto', 'kurikoshi' => true],
-            ['key' => 'jojo_haito', 'kurikoshi' => false],
-        ];
-
+        // ▼ 入力SoTを限定：
+        //   - syunyu_*/keihi_* と kurikoshi_jojo_joto_* だけを保存する
+        //   - tsusango_*/shotoku_*/shotoku_after_kurikoshi_* はサーバ計算で毎回上書きするため、POSTを受け取らない
         $rules = [];
-        foreach ($rows as $row) {
-            foreach (['syunyu', 'keihi', 'tsusango'] as $prefix) {
-                foreach (['prev', 'curr'] as $period) {
-                    $ruleKey = sprintf('%s_%s_%s', $prefix, $row['key'], $period);
-                    $rule = ['bail', 'nullable', 'integer'];
-
-                    $isIppanTsusango = $row['key'] === 'ippan_joto' && $prefix === 'tsusango';
-                    if (! $isIppanTsusango) {
-                        $rule[] = 'min:0';
-                    }
-
-                    $rules[$ruleKey] = $rule;
-                }
+        foreach (['prev', 'curr'] as $period) {
+            foreach ([
+                'ippan_joto',
+                'jojo_joto',
+                'jojo_haito',
+            ] as $kind) {
+                $rules[sprintf('syunyu_%s_%s', $kind, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
+                $rules[sprintf('keihi_%s_%s',  $kind, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
             }
-
-            if ($row['kurikoshi']) {
-                foreach (['prev', 'curr'] as $period) {
-                    $rules[sprintf('kurikoshi_%s_%s', $row['key'], $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-                }
-            }
+            // 繰越は上場株式等の譲渡のみ
+            $rules[sprintf('kurikoshi_jojo_joto_%s', $period)] = ['bail', 'nullable', 'integer', 'min:0'];
         }
 
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+        // 保存対象は rules のキーだけに限定（display-only が混入しない）
+        $payload = $this->sanitizeDetailPayload($req->only(array_keys($rules)));
 
         $updatesForRecalc = $payload;
 
@@ -2901,12 +3074,14 @@ final class FurusatoController extends Controller
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $toggleFields = [
+            // 〇/×
             'kojo_kafu_applicable_prev',
             'kojo_kafu_applicable_curr',
-            'kojo_hitorioya_applicable_prev',
-            'kojo_hitorioya_applicable_curr',
             'kojo_kinrogakusei_applicable_prev',
             'kojo_kinrogakusei_applicable_curr',
+            // 父/母/×（互換で〇も許容）
+            'kojo_hitorioya_applicable_prev',
+            'kojo_hitorioya_applicable_curr',
         ];
 
         $categoryFields = [
@@ -2945,7 +3120,13 @@ final class FurusatoController extends Controller
         }
 
         foreach ($toggleFields as $field) {
-            $rules[$field] = ['bail', 'nullable', 'in:〇,×'];
+            if (str_starts_with($field, 'kojo_hitorioya_applicable_')) {
+                // ひとり親控除：父/母/×（互換で旧〇も通す）
+                $rules[$field] = ['bail', 'nullable', 'in:父,母,×,〇'];
+            } else {
+                // 寡婦・勤労学生：〇/×
+                $rules[$field] = ['bail', 'nullable', 'in:〇,×'];
+            }
         }
 
         foreach ($categoryFields as $field) {
@@ -2956,7 +3137,25 @@ final class FurusatoController extends Controller
         //   - 合計所得金額5,000,000円超時の寡婦／ひとり親控除
         //   - 合計所得金額10,000,000円超時の配偶者控除・配偶者特別控除
         //   - 勤労学生控除の年次要件（75万円／85万円）のチェック
-        $validator = Validator::make($req->only(array_keys($rules)), $rules);
+        $validator = Validator::make(
+            $req->only(array_keys($rules)),
+            $rules,
+            [
+                // デフォルト（個別指定が無い場合）
+                'in' => ':attributeの選択が不正です。',
+                // ひとり親控除：ユーザー向け
+                'kojo_hitorioya_applicable_prev.in' => 'ひとり親控除（前年）は「父」「母」「×」から選択してください。',
+                'kojo_hitorioya_applicable_curr.in' => 'ひとり親控除（当年）は「父」「母」「×」から選択してください。',
+            ],
+            [
+                'kojo_kafu_applicable_prev' => '寡婦控除（前年）',
+                'kojo_kafu_applicable_curr' => '寡婦控除（当年）',
+                'kojo_hitorioya_applicable_prev' => 'ひとり親控除（前年）',
+                'kojo_hitorioya_applicable_curr' => 'ひとり親控除（当年）',
+                'kojo_kinrogakusei_applicable_prev' => '勤労学生控除（前年）',
+                'kojo_kinrogakusei_applicable_curr' => '勤労学生控除（当年）',
+            ],
+        );
 
         $validator->after(function ($v) use ($data, $req) {
             // 合計所得金額（sum_for_gokeishotoku_*）は CommonSumsCalculator の SoT。
@@ -2990,7 +3189,8 @@ final class FurusatoController extends Controller
                             '合計所得金額が500万円を超えるため、この年分について寡婦控除は適用できません。'
                         );
                     }
-                    if ($hitorioyaVal === '〇') {
+                    // ひとり親：父/母/〇（互換）を “適用” 扱い
+                    if (in_array((string) $hitorioyaVal, ['父', '母', '〇'], true)) {
                         $v->errors()->add(
                             $hitorioyaKey,
                             '合計所得金額が500万円を超えるため、この年分についてひとり親控除は適用できません。'
@@ -4108,6 +4308,7 @@ final class FurusatoController extends Controller
             [
                 'guest_birth_date' => $this->normalizeBirthDateForContext($data->guest?->birth_date ?? null),
                 'data_id'          => $data->id,
+                'taxpayer_sex'     => data_get($data, 'guest.sex') ?? data_get($data, 'guest.gender') ?? data_get($data, 'guest.sex_code'),
             ],
             $ctx,
         );

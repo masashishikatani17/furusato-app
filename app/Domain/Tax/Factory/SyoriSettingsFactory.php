@@ -244,8 +244,8 @@ final class SyoriSettingsFactory
         return [
             'detail_mode_prev' => 1,
             'detail_mode_curr' => 1,
-            'bunri_flag_prev' => 0,
-            'bunri_flag_curr' => 0,
+            'bunri_flag_prev' => 1,
+            'bunri_flag_curr' => 1,
             'one_stop_flag_prev' => 1,
             'one_stop_flag_curr' => 1,
             'shitei_toshi_flag_prev' => 0,
@@ -264,7 +264,7 @@ final class SyoriSettingsFactory
             'other_taxes_amount_curr' => 0,
             // Legacy keys for backward compatibility
             'detail_mode' => 1,
-            'bunri_flag' => 0,
+            'bunri_flag' => 1,
             'one_stop_flag' => 1,
             'shitei_toshi_flag' => 0,
             'pref_applied_rate' => 0.04,
@@ -286,8 +286,11 @@ final class SyoriSettingsFactory
         $detailPrev = (int) ($payload['detail_mode_prev'] ?? $payload['detail_mode'] ?? 1);
         $detailCurr = (int) ($payload['detail_mode_curr'] ?? $payload['detail_mode'] ?? $detailPrev);
 
-        $bunriPrev = (int) ($payload['bunri_flag_prev'] ?? $payload['bunri_flag'] ?? 0);
-        $bunriCurr = (int) ($payload['bunri_flag_curr'] ?? $payload['bunri_flag'] ?? $bunriPrev);
+        // ▼ 分離課税は常に「あり」で固定
+        // - DB に 0 が残っていても、buildInitial()/applyStandardRates() を通す限り 1 になる
+        // - 将来的に syori_menu から bunri_flag の選択 UI を撤去しても破綻しない
+        $bunriPrev = 1;
+        $bunriCurr = 1;
 
         $oneStopPrev = (int) ($payload['one_stop_flag_prev'] ?? $payload['one_stop_flag'] ?? 1);
         $oneStopCurr = (int) ($payload['one_stop_flag_curr'] ?? $payload['one_stop_flag'] ?? $oneStopPrev);

@@ -67,6 +67,21 @@ class BunriNettingCalculator implements ProvidesKeys
             return [];
         }
 
+        // ▼ デバッグ用：まずは payload に何が入ってきているかを確認する
+        Log::debug('bunri.netting: raw inputs', [
+            'period'                => $period,
+            'syunyu_tanki_ippan'    => $payload[sprintf('syunyu_tanki_ippan_%s',   $period)] ?? null,
+            'keihi_tanki_ippan'     => $payload[sprintf('keihi_tanki_ippan_%s',    $period)] ?? null,
+            'syunyu_tanki_keigen'   => $payload[sprintf('syunyu_tanki_keigen_%s',  $period)] ?? null,
+            'keihi_tanki_keigen'    => $payload[sprintf('keihi_tanki_keigen_%s',   $period)] ?? null,
+            'syunyu_choki_ippan'    => $payload[sprintf('syunyu_choki_ippan_%s',   $period)] ?? null,
+            'keihi_choki_ippan'     => $payload[sprintf('keihi_choki_ippan_%s',    $period)] ?? null,
+            'syunyu_choki_tokutei'  => $payload[sprintf('syunyu_choki_tokutei_%s', $period)] ?? null,
+            'keihi_choki_tokutei'   => $payload[sprintf('keihi_choki_tokutei_%s',  $period)] ?? null,
+            'syunyu_choki_keika'    => $payload[sprintf('syunyu_choki_keika_%s',   $period)] ?? null,
+            'keihi_choki_keika'     => $payload[sprintf('keihi_choki_keika_%s',    $period)] ?? null,
+        ]);
+
         // 1) 差引金額（＝収入−必要経費）を基礎値として作成（details/bunri_joto_details の入力キーに準拠）
         $shortGeneral = $this->diff($payload, 'tanki_ippan',  $period);
         $shortReduced = $this->diff($payload, 'tanki_keigen', $period);
@@ -208,6 +223,33 @@ class BunriNettingCalculator implements ProvidesKeys
             sprintf('joto_shotoku_tanki_gokei_%s', $period) => $tankiGokei,
             sprintf('joto_shotoku_choki_gokei_%s', $period) => $chokiGokei,
         ];
+
+Log::debug('bunri.netting: outputs snapshot', [
+    'period' => $period,
+    'before' => [
+        'before_tsusan_tanki_ippan'   => $before[sprintf('before_tsusan_tanki_ippan_%s', $period)] ?? null,
+        'before_tsusan_tanki_keigen'  => $before[sprintf('before_tsusan_tanki_keigen_%s', $period)] ?? null,
+        'before_tsusan_choki_ippan'   => $before[sprintf('before_tsusan_choki_ippan_%s', $period)] ?? null,
+        'before_tsusan_choki_tokutei' => $before[sprintf('before_tsusan_choki_tokutei_%s', $period)] ?? null,
+        'before_tsusan_choki_keika'   => $before[sprintf('before_tsusan_choki_keika_%s', $period)] ?? null,
+    ],
+    'after2' => [
+        'after_2jitsusan_tanki_ippan'   => $after2[sprintf('after_2jitsusan_tanki_ippan_%s', $period)] ?? null,
+        'after_2jitsusan_tanki_keigen'  => $after2[sprintf('after_2jitsusan_tanki_keigen_%s', $period)] ?? null,
+        'after_2jitsusan_choki_ippan'   => $after2[sprintf('after_2jitsusan_choki_ippan_%s', $period)] ?? null,
+        'after_2jitsusan_choki_tokutei' => $after2[sprintf('after_2jitsusan_choki_tokutei_%s', $period)] ?? null,
+        'after_2jitsusan_choki_keika'   => $after2[sprintf('after_2jitsusan_choki_keika_%s', $period)] ?? null,
+    ],
+    'joto' => [
+        'joto_shotoku_tanki_ippan'   => $joto[sprintf('joto_shotoku_tanki_ippan_%s', $period)] ?? null,
+        'joto_shotoku_tanki_keigen'  => $joto[sprintf('joto_shotoku_tanki_keigen_%s', $period)] ?? null,
+        'joto_shotoku_choki_ippan'   => $joto[sprintf('joto_shotoku_choki_ippan_%s', $period)] ?? null,
+        'joto_shotoku_choki_tokutei' => $joto[sprintf('joto_shotoku_choki_tokutei_%s', $period)] ?? null,
+        'joto_shotoku_choki_keika'   => $joto[sprintf('joto_shotoku_choki_keika_%s', $period)] ?? null,
+        'joto_shotoku_tanki_gokei'   => $gokei[sprintf('joto_shotoku_tanki_gokei_%s', $period)] ?? null,
+        'joto_shotoku_choki_gokei'   => $gokei[sprintf('joto_shotoku_choki_gokei_%s', $period)] ?? null,
+    ],
+]);
 
         return array_replace($before, $after1, $after2, $joto, $gokei);
     }

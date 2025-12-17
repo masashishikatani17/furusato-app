@@ -15,10 +15,13 @@ final class FurusatoSyoriRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'detail_mode_prev' => ['bail', 'required', 'integer', 'in:0,1'],
-            'detail_mode_curr' => ['bail', 'required', 'integer', 'in:0,1'],
-            'bunri_flag_prev' => ['bail', 'required', 'integer', 'in:0,1'],
-            'bunri_flag_curr' => ['bail', 'required', 'integer', 'in:0,1'],
+            // ▼ UI廃止予定：処理タイプ(detail_mode) / 分離課税(bunri_flag)
+            //   - 画面から送られない場合があるため nullable にする（将来の完全撤去に備える）
+            //   - 互換のため、送られてきた場合は 0/1 を受け付ける
+            'detail_mode_prev' => ['bail', 'nullable', 'integer', 'in:0,1'],
+            'detail_mode_curr' => ['bail', 'nullable', 'integer', 'in:0,1'],
+            'bunri_flag_prev' => ['bail', 'nullable', 'integer', 'in:0,1'],
+            'bunri_flag_curr' => ['bail', 'nullable', 'integer', 'in:0,1'],
             'one_stop_flag_prev' => ['bail', 'required', 'integer', 'in:0,1'],
             'one_stop_flag_curr' => ['bail', 'required', 'integer', 'in:0,1'],
             'shitei_toshi_flag_prev' => ['bail', 'required', 'integer', 'in:0,1'],
@@ -35,7 +38,7 @@ final class FurusatoSyoriRequest extends FormRequest
             'muni_equal_share_curr' => ['bail', 'nullable', 'integer', 'min:0'],
             'other_taxes_amount_prev' => ['bail', 'nullable', 'integer', 'min:0'],
             'other_taxes_amount_curr' => ['bail', 'nullable', 'integer', 'min:0'],       
-            'data_id' => ['bail', 'nullable', 'integer', 'min:1'],
+            'data_id' => ['bail', 'required', 'integer', 'min:1'],
         ];
     }
 

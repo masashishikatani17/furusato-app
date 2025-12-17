@@ -77,19 +77,25 @@ class TokureiRateCalculator implements ProvidesKeys
             return array_replace($payload, $updates);
         }
         foreach (self::PERIODS as $period) {
-            // ── 1) 合計課税所得金額（住民税側）と人的控除差から K(D) を算出 ──
-            $taxableTotal = $this->taxableTotalJumin($payload, $period);
-            $humanDiff    = $this->n($payload[sprintf('human_diff_sum_%s', $period)] ?? null);
+            // ── 1) D（条文の入力）を厳密化 ───────────────────────────────
+            // 地方税法314条の7第11項の「課税総所得金額から人的控除差調整額を控除した金額」
+            //   D = 課税総所得金額（＝総合のみ） − 人的控除差調整額
+            //
+            // ★重要：ここで “合計課税所得金額（総合＋山林＋退職）” を使わない。
+            //        山林・退職は同項第3号（表ロ）で別扱いとなるため。
+            $sogoJumin = $this->n($payload[sprintf('tb_sogo_jumin_%s', $period)] ?? null); // 課税総所得金額（住民税側）
+            $humanDiff = $this->n($payload[sprintf('human_diff_sum_%s', $period)] ?? null);
 
-            $Kraw = $taxableTotal - $humanDiff;
-            $K    = $this->floorToThousands($Kraw);
+            // 判定用（符号を保持）※負の値も許容
+            $Draw = $sogoJumin - $humanDiff;
+            // 表イに当てる用（千円未満切捨て、0下限）
+            $Dtbl = $this->floorToThousands(max(0, $Draw));
 
-            $updates[sprintf('tokurei_K_%s', $period)] = $K;
+            // 既存キー tokurei_K_* は「表イに当てる入力（千円切捨て後）」として保持（ビュー・互換用途）
+            $updates[sprintf('tokurei_K_%s', $period)] = $Dtbl;
 
-            // ── 2) 標準率（D = 課税総所得金額 − 人的控除差調整額 に基づく一般ケース用） ──
-            // 法令上は D を千円単位に切り捨てて表イに当てるので、rateForAmount には K(D) を渡す。
-            $standardAmount = $K;
-            $standardRate   = $this->rateForAmount($rows, $standardAmount);
+            // 法令上は D を千円単位に切り捨てて表イに当てる（D>=0 のときのみ）。
+            $standardRate = $this->rateForAmount($rows, $Dtbl);
             $updates[sprintf('tokurei_rate_standard_%s', $period)] = $standardRate;
 
             // ── 3) 90% 行（K<0 & 山林/退職/分離等なしのケース） ──
@@ -106,74 +112,67 @@ class TokureiRateCalculator implements ProvidesKeys
             $bunriMinRate = $this->computeBunriMinRate($payload, $period);
             $updates[sprintf('tokurei_rate_bunri_min_%s', $period)] = $bunriMinRate;
 
-            // ── 6) 各種フラグ（総合・山林・退職・分離） ──
-            $hasSogo      = $this->n($payload[sprintf('tb_sogo_shotoku_%s',   $period)] ?? null) > 0;
-            $hasSanrin    = $this->n($payload[sprintf('tb_sanrin_shotoku_%s', $period)] ?? null) > 0;
-            $hasTaishoku  = $this->n($payload[sprintf('tb_taishoku_shotoku_%s', $period)] ?? null) > 0;
+            // 条文の判定は「課税総所得金額（総合）を有するか」「課税山林/退職を有するか」が基準。
+            $hasSogo     = $sogoJumin > 0;
+            $hasSanrin   = $this->n($payload[sprintf('tb_sanrin_jumin_%s',   $period)] ?? null) > 0;
+            $hasTaishoku = $this->n($payload[sprintf('tb_taishoku_jumin_%s', $period)] ?? null) > 0;
 
-            $hasBunriShort = $this->n($payload[sprintf('tb_joto_tanki_shotoku_%s', $period)] ?? null) > 0;
+            // 分離課税（実務上の追加扱い：自治体説明に合わせるため候補率に残す）
+            $hasBunriShort = $this->n($payload[sprintf('tb_joto_tanki_jumin_%s', $period)] ?? null) > 0;
             $hasBunriOther =
                 (
-                    $this->n($payload[sprintf('tb_joto_choki_shotoku_%s',            $period)] ?? null)
-                  + $this->n($payload[sprintf('tb_ippan_kabuteki_joto_shotoku_%s',   $period)] ?? null)
-                  + $this->n($payload[sprintf('tb_jojo_kabuteki_joto_shotoku_%s',    $period)] ?? null)
-                  + $this->n($payload[sprintf('tb_jojo_kabuteki_haito_shotoku_%s',   $period)] ?? null)
-                  + $this->n($payload[sprintf('tb_sakimono_shotoku_%s',             $period)] ?? null)
+                    $this->n($payload[sprintf('tb_joto_choki_jumin_%s',            $period)] ?? null)
+                  + $this->n($payload[sprintf('tb_ippan_kabuteki_joto_jumin_%s',   $period)] ?? null)
+                  + $this->n($payload[sprintf('tb_jojo_kabuteki_joto_jumin_%s',    $period)] ?? null)
+                  + $this->n($payload[sprintf('tb_jojo_kabuteki_haito_jumin_%s',   $period)] ?? null)
+                  + $this->n($payload[sprintf('tb_sakimono_jumin_%s',             $period)] ?? null)
                 ) > 0;
             $hasBunri = $hasBunriShort || $hasBunriOther;
-            // 表ロの対象となる所得（山林・退職・分離）があるか
-            $hasHyoro = $hasSanrin || $hasTaishoku || $hasBunri;
+            // ── 7) 最終採用率の決定：（1）～（4）を候補率→最小採用で実装 ──
+            //   (1) Sあり & (S-H)>=0 → 表イ
+            //   (2) Sあり & (S-H)<0 & 山林/退職なし & 分離なし → 90%
+            //   (3) [Sあり&(S-H)<0] または [Sなし] で 山林/退職あり → 表ロ（山林1/5、退職。両方なら低い方）
+            //   (4) (2)(3)に該当する場合 又は S/F/R を全て有しない場合 で 分離あり → 59.37 / 74.685
+            //       2以上に該当する場合は最も低い割合（min）を採用
+            $candidates = [];
 
-            // ── 7) 最終採用率の決定（法令上の A/B/C ケースに対応） ──
-            $finalRate = null;
-
-            // Case A: 課税総所得あり & D(K) >= 0 → 表イに基づく標準率
-            if ($hasSogo && $K >= 0 && $standardRate !== null) {
-                $finalRate = $standardRate;
+            // (1)
+            if ($hasSogo && $Draw >= 0 && $standardRate !== null) {
+                $candidates[] = $standardRate;
             }
 
-            // Case B: 課税総所得あり & D(K) < 0 かつ 表ロの所得なし → 90%
-            if ($finalRate === null && $hasSogo && $K < 0 && ! $hasHyoro) {
-                $finalRate = $this->roundPercent(90.0);
+            // (2) ※分離がある場合は (4) 側で処理するため、ここでは「分離なし」を条件に含める
+            if ($hasSogo && $Draw < 0 && ! $hasSanrin && ! $hasTaishoku && ! $hasBunri) {
+                $candidates[] = $this->roundPercent(90.0);
             }
 
-            // Case C: 表ロケース（D(K) < 0 または課税総所得なし）で、表ロの所得（山林・退職・分離）がある
-            if (
-                $finalRate === null
-                && (
-                    ($hasSogo && $K < 0 && $hasHyoro)
-                    || (! $hasSogo && $hasHyoro)
-                )
-            ) {
-                $candidates = [];
-
-                // 山林所得に対する特例率（tb_sanrin_shotoku > 0 のとき）
+            // (3)
+            if ((($hasSogo && $Draw < 0) || (! $hasSogo)) && ($hasSanrin || $hasTaishoku)) {
                 if ($hasSanrin && $sanrinRate !== null) {
                     $candidates[] = $sanrinRate;
                 }
-
-                // 退職所得に対する特例率（tb_taishoku_shotoku > 0 のとき）
                 if ($hasTaishoku && $taishokuRate !== null) {
                     $candidates[] = $taishokuRate;
                 }
+            }
 
-                // 分離短期がある場合：59.37%
+            // (4)
+            $noSFR = (! $hasSogo) && (! $hasSanrin) && (! $hasTaishoku);
+            $cond24 = ($hasSogo && $Draw < 0) || (! $hasSogo); // (2)(3)側の大枠（Sなし含む）
+            if (($cond24 || $noSFR) && $hasBunri) {
                 if ($hasBunriShort) {
                     $candidates[] = $this->roundPercent(59.37);
                 }
-
-                // 分離長期・株式譲渡・配当・先物等がある場合：74.685%
                 if ($hasBunriOther) {
                     $candidates[] = $this->roundPercent(74.685);
                 }
-
-                if ($candidates !== []) {
-                    $finalRate = min($candidates);
-                }
             }
 
-            // Fallback（理論上到達しづらいが、安全弁として残す）
-            if ($finalRate === null) {
+            // 最終：候補があれば最小、無ければ安全弁（表イ→分離→90%）
+            $finalRate = null;
+            if ($candidates !== []) {
+                $finalRate = min($candidates);
+            } else {
                 if ($standardRate !== null) {
                     $finalRate = $standardRate;
                 } elseif ($bunriMinRate !== null) {
@@ -282,8 +281,8 @@ class TokureiRateCalculator implements ProvidesKeys
 
     private function computeSanrinRate(array $rows, array $payload, string $period): ?float
     {
-        // tb_sanrin_shotoku_*
-        $amount = $this->n($payload[sprintf('tb_sanrin_shotoku_%s', $period)] ?? null);
+        // 条文の表ロ：課税山林所得金額（住民税側）を基準に 1/5 を表イに当てる
+        $amount = $this->n($payload[sprintf('tb_sanrin_jumin_%s', $period)] ?? null);
         if ($amount <= 0) {
             return null;
         }
@@ -298,8 +297,8 @@ class TokureiRateCalculator implements ProvidesKeys
 
     private function computeTaishokuRate(array $rows, array $payload, string $period): ?float
     {
-        // tb_taishoku_shotoku_*
-        $amount = $this->n($payload[sprintf('tb_taishoku_shotoku_%s', $period)] ?? null);
+        // 条文の表ロ：課税退職所得金額（住民税側）を表イに当てる
+        $amount = $this->n($payload[sprintf('tb_taishoku_jumin_%s', $period)] ?? null);
         if ($amount <= 0) {
             return null;
         }
@@ -323,13 +322,13 @@ class TokureiRateCalculator implements ProvidesKeys
      */
     private function computeBunriMinRate(array $payload, string $period): ?float
     {
-        $short = $this->n($payload[sprintf('tb_joto_tanki_shotoku_%s', $period)] ?? null);
+        $short = $this->n($payload[sprintf('tb_joto_tanki_jumin_%s', $period)] ?? null);
         $otherSum =
-              $this->n($payload[sprintf('tb_joto_choki_shotoku_%s', $period)] ?? null)
-            + $this->n($payload[sprintf('tb_ippan_kabuteki_joto_shotoku_%s', $period)] ?? null)
-            + $this->n($payload[sprintf('tb_jojo_kabuteki_joto_shotoku_%s',  $period)] ?? null)
-            + $this->n($payload[sprintf('tb_jojo_kabuteki_haito_shotoku_%s', $period)] ?? null)
-            + $this->n($payload[sprintf('tb_sakimono_shotoku_%s',            $period)] ?? null);
+              $this->n($payload[sprintf('tb_joto_choki_jumin_%s', $period)] ?? null)
+            + $this->n($payload[sprintf('tb_ippan_kabuteki_joto_jumin_%s', $period)] ?? null)
+            + $this->n($payload[sprintf('tb_jojo_kabuteki_joto_jumin_%s',  $period)] ?? null)
+            + $this->n($payload[sprintf('tb_jojo_kabuteki_haito_jumin_%s', $period)] ?? null)
+            + $this->n($payload[sprintf('tb_sakimono_jumin_%s',            $period)] ?? null);
 
         if ($short > 0) {
             return $this->roundPercent(59.37);

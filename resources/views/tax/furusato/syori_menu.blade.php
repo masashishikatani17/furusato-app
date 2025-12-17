@@ -101,8 +101,6 @@
   $periods = [
       'prev' => [
           'title' => '前期',
-          'detail_mode' => $detailModePrev,
-          'bunri_flag' => $bunriFlagPrev,
           'one_stop_flag' => $oneStopFlagPrev,
           'shitei_toshi_flag' => $shiteiFlagPrev,
           'pref_applied_rate' => $prefAppliedPrev,
@@ -113,8 +111,6 @@
       ],
       'curr' => [
           'title' => '当期',
-          'detail_mode' => $detailModeCurr,
-          'bunri_flag' => $bunriFlagCurr,
           'one_stop_flag' => $oneStopFlagCurr,
           'shitei_toshi_flag' => $shiteiFlagCurr,
           'pref_applied_rate' => $prefAppliedCurr,
@@ -123,16 +119,6 @@
           'muni_equal_share' => $muniEqualCurr,
           'other_taxes_amount' => $otherTaxesCurr,
       ],
-  ];
-
-  $detailOptions = [
-      '1' => '詳細版',
-      '0' => '簡便版',
-  ];
-
-  $bunriOptions = [
-      '0' => 'なし',
-      '1' => 'あり',
   ];
 
   $oneStopOptions = [
@@ -154,6 +140,12 @@
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId }}">
     <input type="hidden" name="redirect_to" value="">
+    {{-- ▼ UI廃止：処理タイプ(detail_mode) / 分離課税(bunri_flag) は常に固定値を送信 --}}
+    {{--   ※ FurusatoSyoriRequest の必須バリデーション回避のため、現時点では送信自体は継続 --}}
+    <input type="hidden" name="detail_mode_prev" value="1">
+    <input type="hidden" name="detail_mode_curr" value="1">
+    <input type="hidden" name="bunri_flag_prev" value="1">
+    <input type="hidden" name="bunri_flag_curr" value="1">
       @if ($errors->any())
         <div class="alert alert-danger">
           <ul class="mb-0">
@@ -172,48 +164,6 @@
                 <div class="mb-4">
                   <h1>○処理モード</h1>
                   <div class="row g-3">
-                    <div class="col-12">
-                      <div class="p-2 bg-cream mt-1">
-                        <hb class="d-block text-center">処理タイプ</hb>
-                        <hr class="my-2">
-                        <div class="d-flex ms-5 gap-3 flex-wrap">
-                          @foreach ($detailOptions as $value => $label)
-                            @php $id = sprintf('detail-mode-%s-%s', $key, $value); @endphp
-                            <div class="form-check form-check-inline">
-                              <input class="form-check-input"
-                                     type="radio"
-                                     name="detail_mode_{{ $key }}"
-                                     id="{{ $id }}"
-                                     value="{{ $value }}"
-                                     @checked($period['detail_mode'] === (string) $value)
-                                     required>
-                              <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                            </div>
-                          @endforeach
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-12">
-                      <div class="p-2 bg-cream mt-1">
-                        <hb class="d-block text-center">分離課税</hb>
-                        <hr class="my-2">
-                        <div class="d-flex ms-5 gap-3 flex-wrap">
-                          @foreach ($bunriOptions as $value => $label)
-                            @php $id = sprintf('bunri-flag-%s-%s', $key, $value); @endphp
-                            <div class="form-check form-check-inline">
-                              <input class="form-check-input"
-                                     type="radio"
-                                     name="bunri_flag_{{ $key }}"
-                                     id="{{ $id }}"
-                                     value="{{ $value }}"
-                                     @checked($period['bunri_flag'] === (string) $value)
-                                     required>
-                              <label class="form-check-label" for="{{ $id }}">{{ $label }}</label>
-                            </div>
-                          @endforeach
-                        </div>
-                      </div>
-                    </div>
                     <div class="col-12">
                       <div class="p-2 bg-cream mt-1">
                         <hb class="d-block text-center">ワンストップ特例</hb>

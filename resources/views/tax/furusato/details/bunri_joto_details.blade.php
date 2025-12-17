@@ -132,36 +132,32 @@
                                value="{{ old($name, $inputs[$name] ?? null) }}">
                       @endif
                     </td>
-                    {{-- 差引（通算前） --}}
+                    {{-- 差引（通算前）※サーバ計算専用：表示のみ --}}
                     @php $name = 'before_tsusan_' . $base; @endphp
                     <td>
                       @if($off)
                         <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
-                        <input type="hidden" name="{{ $name }}" value="0">
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
+                               data-format="comma-int" data-name="{{ $name }}" data-display-only="1"
                                class="form-control suji11 text-end bg-light"
-                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly
-                               oninput="updateCalculation('{{ $period }}')">
+                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       @endif
                     </td>
-                    {{-- 損益通算後（0下限・hidden反映） --}}
+                    {{-- 損益通算後（0下限・サーバ計算専用：表示のみ） --}}
                     @php $name = 'tsusango_' . $base; @endphp
                     <td>
                       @if($off)
                         <input type="text" class="form-control suji11 text-center bg-light" value="－" readonly>
-                        <input type="hidden" name="{{ $name }}" value="0">
                       @else
                         @php
                           $tsusangoSrc = old($name, $inputs[$name] ?? null);
                           $tsusangoVal = $nz($tsusangoSrc);
                         @endphp
                         <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
+                               data-format="comma-int" data-name="{{ $name }}" data-display-only="1"
                                class="form-control suji11 text-end bg-light"
                                value="{{ $fmt($tsusangoVal) }}" readonly>
-                        <input type="hidden" name="{{ $name }}" value="{{ $tsusangoVal }}">
                       @endif
                     </td>
                     {{-- 特別控除額 --}}
@@ -177,30 +173,27 @@
                                value="{{ old($name, $inputs[$name] ?? null) }}">
                       @endif
                     </td>
-                    {{-- 譲渡所得金額（表示専用） --}}
+                    {{-- 譲渡所得金額（サーバ計算専用：表示のみ） --}}
                     @php $name = 'joto_shotoku_' . $base; @endphp
                     <td>
                       @if($off)
                         <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
-                        <input type="hidden" name="{{ $name }}" value="0">
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
-                               data-format="comma-int" data-name="{{ $name }}"
+                               data-format="comma-int" data-name="{{ $name }}" data-display-only="1"
                                class="form-control suji11 text-end bg-light"
-                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly
-                               oninput="updateCalculation('{{ $period }}')">
+                               value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       @endif
                     </td>
-                    {{-- 区分合計（行頭で rowspan） --}}
+                    {{-- 区分合計（行頭で rowspan：サーバ計算専用・表示のみ） --}}
                     @if ($index === 0)
                       @php $gokeiName = sprintf('joto_shotoku_%s_gokei_%s', $group['key'], $period); @endphp
                       <td rowspan="{{ $rowspan }}">
                         @if($off)
                           <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
-                          <input type="hidden" name="{{ $gokeiName }}" value="0">
                         @else
                           <input type="text" inputmode="numeric" autocomplete="off"
-                                 data-format="comma-int" data-name="{{ $gokeiName }}"
+                                 data-format="comma-int" data-name="{{ $gokeiName }}" data-display-only="1"
                                  class="form-control suji11 text-end bg-light"
                                  value="{{ old($gokeiName, $inputs[$gokeiName] ?? null) }}" readonly>
                         @endif
@@ -322,10 +315,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const getIntValue = (name) => {
     const hidden = getHidden(name);
-    if (!hidden) {
+    if (hidden) {
+      const raw = toRawInt(hidden.value ?? '');
+      if (raw === '') {
+        return 0;
+      }
+      const parsed = parseInt(raw, 10);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    }
+    // hidden が無い場合は display-only フィールドとみなし、表示値から読む
+    const display = getDisplay(name);
+    if (!display) {
       return 0;
     }
-    const raw = toRawInt(hidden.value ?? '');
+    const raw = toRawInt(display.value ?? '');
     if (raw === '') {
       return 0;
     }
@@ -382,25 +385,44 @@ document.addEventListener('DOMContentLoaded', function () {
     setIntValue(`joto_shotoku_choki_gokei_${period}`, sums.choki);
   };
 
+  // 旧HTML属性 oninput="updateCalculation('prev')" 等から呼ばれるラッパー
+  // （既存の recalc() をそのまま使う）
+  window.updateCalculation = function (period) {
+    try {
+      recalc(period);
+    } catch (e) {
+      console.error('updateCalculation error:', e);
+    }
+  };
+
   const inputs = document.querySelectorAll('[data-format="comma-int"]');
+  const displayOnlyNames = new Set();
 
   inputs.forEach((input) => {
     const name = input.dataset.name;
     if (!name) {
       return;
     }
+    if (input.dataset.displayOnly === '1') {
+      displayOnlyNames.add(name);
+    }
 
-    ensureHidden(input);
+    // 表示専用フィールド以外についてのみ hidden を作成し、POST 対象とする
+    if (!displayOnlyNames.has(name)) {
+      ensureHidden(input);
+    }
 
     const applyFormat = () => {
       const hidden = getHidden(name);
-      const raw = hidden ? toRawInt(hidden.value ?? '') : toRawInt(input.value ?? '');
+      const rawSource = hidden ? hidden.value ?? '' : input.value ?? '';
+      const raw = toRawInt(rawSource);
       input.value = raw === '' ? '' : formatWithComma(raw);
     };
 
     applyFormat();
 
-    if (input.readOnly) {
+    // display-only / readOnly なフィールドはここで終了（入力イベントを張らない）
+    if (input.readOnly || displayOnlyNames.has(name)) {
       return;
     }
 
@@ -434,15 +456,15 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!name) {
           return;
         }
+        if (displayOnlyNames.has(name)) {
+          // 表示専用フィールドはサーバに送らない
+          return;
+        }
         const hidden = getHidden(name) || ensureHidden(input);
         if (!hidden) {
           return;
         }
-        let raw = toRawInt(input.value ?? hidden.value ?? '');
-        // ▼ 送信直前の最終ガード：tsusango_* は必ず 0 以上で POST
-        if (name.startsWith('tsusango_')) {
-          if (raw === '' || /^-/.test(raw)) raw = '0';
-        }
+        const raw = toRawInt(input.value ?? hidden.value ?? '');
         hidden.value = raw;
       });
     });

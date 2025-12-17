@@ -51,7 +51,8 @@ class JintekiKojoCalculator implements ProvidesKeys
         'kojo_tokutei_shinzoku_3_shotoku_%s',
     ];
 
-    private const TOKUTEI_THRESHOLDS = [
+    // 所得税：特定親族特別控除（最大63万円、以降逓減）
+    private const TOKUTEI_THRESHOLDS_SHOTOKU = [
         0,
         580_001,
         850_001,
@@ -65,7 +66,7 @@ class JintekiKojoCalculator implements ProvidesKeys
         1_230_001,
     ];
 
-    private const TOKUTEI_VALUES = [
+    private const TOKUTEI_VALUES_SHOTOKU = [
         0,
         630_000,
         610_000,
@@ -78,7 +79,33 @@ class JintekiKojoCalculator implements ProvidesKeys
         30_000,
         0,
     ];
-    
+
+    // 住民税：特定親族特別控除（最大45万円、以降逓減）
+    // 58万円超95万円以下=45万円、以降 41/31/21/11/6/3 万円（静岡市の最新表に合わせる）
+    private const TOKUTEI_THRESHOLDS_JUMIN = [
+        0,
+        580_001,
+        950_001,
+        1_000_001,
+        1_050_001,
+        1_100_001,
+        1_150_001,
+        1_200_001,
+        1_230_001,
+    ];
+
+    private const TOKUTEI_VALUES_JUMIN = [
+        0,
+        450_000,
+        410_000,
+        310_000,
+        210_000,
+        110_000,
+        60_000,
+        30_000,
+        0,
+    ];
+
     private const KAFU_SHOTOKU = 270_000;
     private const KAFU_JUMIN = 260_000;
 
@@ -136,8 +163,8 @@ class JintekiKojoCalculator implements ProvidesKeys
             // 寡婦控除・ひとり親控除：同一年度での重複適用を防ぐ
             //  - 制度上、寡婦控除とひとり親控除は併用不可。
             //  - 両方の要件を満たす場合は、ひとり親控除のみを適用する。
-            $kafuApplicable      = $this->isApplicable($payload, sprintf('kojo_kafu_applicable_%s', $period));
-            $hitorioyaApplicable = $this->isApplicable($payload, sprintf('kojo_hitorioya_applicable_%s', $period));
+            $kafuApplicable      = $this->isCircleApplicable($payload, sprintf('kojo_kafu_applicable_%s', $period));
+            $hitorioyaApplicable = $this->isHitorioyaApplicable($payload, sprintf('kojo_hitorioya_applicable_%s', $period));
 
             if ($total <= self::THRESHOLD) {
                 if ($hitorioyaApplicable) {
@@ -160,7 +187,8 @@ class JintekiKojoCalculator implements ProvidesKeys
                 $targetYear = ($period === 'prev') ? $kihuYear - 1 : $kihuYear;
             }
             $kinroThreshold = ($targetYear !== null && $targetYear >= 2025) ? 850_000 : 750_000;
-            if ($this->isApplicable($payload, sprintf('kojo_kinrogakusei_%s', $period))
+            // 入力キーは *_applicable_*（details 画面の name と一致させる）
+            if ($this->isCircleApplicable($payload, sprintf('kojo_kinrogakusei_applicable_%s', $period))
                 && $total <= $kinroThreshold) {
                 $updates[sprintf('kojo_kinrogakusei_shotoku_%s', $period)] = self::KINROGAKUSEI_SHOTOKU;
                 $updates[sprintf('kojo_kinrogakusei_jumin_%s', $period)] = self::KINROGAKUSEI_JUMIN;
@@ -193,26 +221,44 @@ class JintekiKojoCalculator implements ProvidesKeys
             $updates[sprintf('kojo_fuyo_shotoku_%s', $period)] = $fuyoShotoku;
             $updates[sprintf('kojo_fuyo_jumin_%s', $period)] = $fuyoJumin;
 
-            if ($period === 'prev' && $kihuYear === 2025) {
-                $tokuteiShotoku = 0;
-            } else {
-                $tokuteiShotoku = 0;
+            // 特定親族特別控除は 2025年分（住民税は令和8年度）から開始する前提：
+            //  - prev は kihu_year-1、curr は kihu_year
+            $targetYear = null;
+            if ($kihuYear !== null) {
+                $targetYear = ($period === 'prev') ? $kihuYear - 1 : $kihuYear;
+            }
+
+            $tokuteiShotoku = 0;
+            $tokuteiJumin   = 0;
+            if ($targetYear !== null && $targetYear >= 2025) {
                 foreach (self::TOKUTEI_SHINZOKU_KEYS as $format) {
                     $income = $this->n($payload[sprintf($format, $period)] ?? null);
-                    $tokuteiShotoku += $this->matchIndex($income, self::TOKUTEI_THRESHOLDS, self::TOKUTEI_VALUES);
+                    $tokuteiShotoku += $this->matchIndex($income, self::TOKUTEI_THRESHOLDS_SHOTOKU, self::TOKUTEI_VALUES_SHOTOKU);
+                    $tokuteiJumin   += $this->matchIndex($income, self::TOKUTEI_THRESHOLDS_JUMIN,   self::TOKUTEI_VALUES_JUMIN);
                 }
             }
 
             $updates[sprintf('kojo_tokutei_shinzoku_shotoku_%s', $period)] = $tokuteiShotoku;
-            $updates[sprintf('kojo_tokutei_shinzoku_jumin_%s', $period)] = 0;
+            $updates[sprintf('kojo_tokutei_shinzoku_jumin_%s',   $period)] = $tokuteiJumin;
         }
 
         return array_replace($payload, $updates);
     }
 
-    private function isApplicable(array $payload, string $key): bool
+    private function isCircleApplicable(array $payload, string $key): bool
     {
         return ($payload[$key] ?? null) === '〇';
+    }
+
+    /**
+     * ひとり親控除の適用（父/母/×）
+     * - UIは「父」「母」「×」の3択
+     * - 互換として旧データの「〇」も適用扱い（=母）にする
+     */
+    private function isHitorioyaApplicable(array $payload, string $key): bool
+    {
+        $v = (string) ($payload[$key] ?? '');
+        return in_array($v, ['父', '母', '〇'], true);
     }
 
     private function n(mixed $value): int

@@ -316,6 +316,14 @@ final class FurusatoInputRequest extends FormRequest
             }
         }
 
+        // ▼ 人的控除（詳細画面）: 寡婦/ひとり親/勤労学生（UI選択）
+        //   - ひとり親控除：父/母/×（旧データ互換で〇も許可）
+        //   - 寡婦・勤労学生：〇/×
+        foreach (['prev', 'curr'] as $period) {
+            $rules["kojo_kafu_applicable_{$period}"] = ['bail', 'nullable', 'in:〇,×'];
+            $rules["kojo_kinrogakusei_applicable_{$period}"] = ['bail', 'nullable', 'in:〇,×'];
+            $rules["kojo_hitorioya_applicable_{$period}"] = ['bail', 'nullable', 'in:父,母,×,〇'];
+        }
         return $rules;
     }
 
@@ -325,7 +333,12 @@ final class FurusatoInputRequest extends FormRequest
             'required' => ':attributeは必須です。',
             'integer' => ':attributeは整数で入力してください。',
             'min' => ':attributeは:min以上で入力してください。',
-            'in' => ':attributeは0または1を選択してください。',
+            // デフォルト（個別指定が無い場合）
+            'in' => ':attributeの選択が不正です。',
+
+            // ▼ ひとり親控除：ユーザーに分かるメッセージへ
+            'kojo_hitorioya_applicable_prev.in' => 'ひとり親控除（前年）は「父」「母」「×」から選択してください。',
+            'kojo_hitorioya_applicable_curr.in' => 'ひとり親控除（当年）は「父」「母」「×」から選択してください。',
         ];
     }
 
@@ -394,6 +407,12 @@ final class FurusatoInputRequest extends FormRequest
             'tokubetsu_zeigaku_kojo_kingaku' => '特別税額控除',
             'gensen_choshu_zeigaku' => '源泉徴収税額',
             'shitei_toshi_flag' => '指定都市区分',
+            'kojo_kafu_applicable_prev' => '寡婦控除（前年）',
+            'kojo_kafu_applicable_curr' => '寡婦控除（当年）',
+            'kojo_hitorioya_applicable_prev' => 'ひとり親控除（前年）',
+            'kojo_hitorioya_applicable_curr' => 'ひとり親控除（当年）',
+            'kojo_kinrogakusei_applicable_prev' => '勤労学生控除（前年）',
+            'kojo_kinrogakusei_applicable_curr' => '勤労学生控除（当年）',
         ];
 
         $kihukinCategoryLabels = [

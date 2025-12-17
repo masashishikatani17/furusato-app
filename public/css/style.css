@@ -480,6 +480,17 @@ select.bg-light[readonly] {
         　　　　　<th class="u-nowrap th-cream">氏　名</th> */
                table.table-base th.th-ccc { background-color:#ccc !important; color:#000 !important; }　
         
+        /* ============================
+         *  縦書きTH（rowgroup見出し用）
+         * ============================ */
+        .th-vertical {
+          writing-mode: vertical-rl;     /* 縦書き（右→左） */
+          text-orientation: mixed;       /* 数字は横向き混在（自然な見え方） */
+          white-space: nowrap;           /* 改行させない */
+          letter-spacing: 0.05em;        /* 視認性微調整（不要なら削除OK） */
+          padding: 6px 4px;              /* 横幅を詰める */
+          min-width: 28px;               /* 縦書き列の最小幅（必要なら調整） */
+        }
         
         .table-m-sentaku td {
           vertical-align: middle !important;

@@ -72,11 +72,14 @@ class SeitotoTokubetsuZeigakuKojoCalculator implements ProvidesKeys
             // 税額控除に回せる実効元本（最終）：2,000相殺後 × 40%枠残
             $baseTotal  = min($donEff, $capForCredit);
 
-            // 25% 上限（NPO+公益のみ対象、政党等は別枠）
-            $cap25Credit = $this->floor100( (int) floor(max($T, 0) * 0.25) );
+            // 25% 上限（税額ベース）
+            //  - 公益＋NPO：共通25%枠（同一枠内で「公益→NPO」優先）
+            //  - 政党等：別枠25%（同じTから算定するが、公益/NPOとは別に判定する）
+            $cap25Common = $this->floor100((int) floor(max($T, 0) * 0.25));
+            $cap25Seito  = $this->floor100((int) floor(max($T, 0) * 0.25));
 
             // ――― 25% 上限の厳密適用：「公益 → NPO」優先（No.1263 注4の整理に整合）―――
-            $cap25Rem = $cap25Credit;
+            $cap25Rem = $cap25Common;
             $baseLeft = $baseTotal;
 
             // 1) 公益：元本上限 / baseLeft / 25%上限（金額）を順に当て、100円切捨て
@@ -94,9 +97,15 @@ class SeitotoTokubetsuZeigakuKojoCalculator implements ProvidesKeys
             $credNpo          = $this->floor100((int) floor($allocNpo * 0.40));
             $baseLeft        -= $allocNpo;
 
-            // 3) 政党等：25%上限の別枠。残余の実効元本から30%で算定（100円切捨て）
             $allocSeitoMax    = min($donSeito, max($baseLeft, 0));
-            $credSeito        = $this->floor100((int) floor($allocSeitoMax * 0.30));
+
+            // 政党等は「別枠」で 所得税額×25% 上限（税額ベース）を持つ
+            // 30%控除なので、100円単位の整合を取りやすいよう元本は334円単位で刻む（0.3×334=100.2→floorで100）
+            $seitoBaseBy25    = $this->floorTo((int) floor(max($cap25Seito, 0) / 0.3), 334);
+            $allocSeito       = min($allocSeitoMax, $seitoBaseBy25);
+            $credSeitoRaw     = $this->floor100((int) floor($allocSeito * 0.30));
+            // 念のため二重ガード（端数・浮動小数の揺れでも cap を超えない）
+            $credSeito        = min($credSeitoRaw, max($cap25Seito, 0));
 
             // 万一、寄附元本の偏在で baseTotal を使い切れない場合は（まれ）、
             // 40%側寄附が残っていれば政党枠へリバランスできないため、その分は自然に未使用となる。

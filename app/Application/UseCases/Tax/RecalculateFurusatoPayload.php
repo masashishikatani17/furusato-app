@@ -52,12 +52,23 @@ class RecalculateFurusatoPayload
         $userId = isset($ctx['user_id']) ? (int) $ctx['user_id'] : null;
 
         [$payload, $syoriSettings] = $this->saveDiff($data, $payloadUpdates, $labelUpdates, $userId);
+    \Log::info('[Recalc payload after saveDiff]', [
+        'before_tsusan_tanki_ippan_prev' => $payload['before_tsusan_tanki_ippan_prev'] ?? null,
+        'after_2jitsusan_tanki_ippan_prev' => $payload['after_2jitsusan_tanki_ippan_prev'] ?? null,
+        'joto_shotoku_tanki_ippan_prev' => $payload['joto_shotoku_tanki_ippan_prev'] ?? null,
+    ]);
         $calculatorCtx = array_merge($ctx, ['syori_settings' => $syoriSettings]);
         $builtCtx = $this->buildContext($data, $calculatorCtx);
         $shouldFlashResults = $builtCtx['should_flash_results'] ?? true;
         unset($builtCtx['should_flash_results']);
         $finalPayload = $this->runCalculators($payload, $builtCtx);
 
+    \Log::info('[Recalc payload after runCalculators]', [
+        'before_tsusan_tanki_ippan_prev' => $finalPayload['before_tsusan_tanki_ippan_prev'] ?? null,
+        'after_2jitsusan_tanki_ippan_prev' => $finalPayload['after_2jitsusan_tanki_ippan_prev'] ?? null,
+        'joto_shotoku_tanki_ippan_prev' => $finalPayload['joto_shotoku_tanki_ippan_prev'] ?? null,
+    ]);
+    
         $this->persistFinalPayload($data, $finalPayload, $userId);
 
         $this->persistResults($data, $finalPayload, $builtCtx, $userId, $shouldFlashResults);
@@ -165,8 +176,6 @@ class RecalculateFurusatoPayload
             $record->payload = $payload;
             $record->updated_by = $userId ?: null;
             $record->save();
-
-            $payload = is_array($record->payload) ? $record->payload : [];
         });
 
         return [$payload, $syoriSettings];
@@ -391,24 +400,6 @@ class RecalculateFurusatoPayload
         );
         $this->assertProvidedKeys($payload, $sakimonoCalculator);
 
-        /** @var BunriNettingCalculator $bunriNettingCalculator */
-        $bunriNettingCalculator = app(BunriNettingCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $bunriNettingCalculator->compute($payload, 'prev'),
-            $bunriNettingCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $bunriNettingCalculator);
-
-        /** @var BunriKabutekiNettingCalculator $bunriKabutekiNettingCalculator */
-        $bunriKabutekiNettingCalculator = app(BunriKabutekiNettingCalculator::class);
-        $payload = array_replace(
-            $payload,
-            $bunriKabutekiNettingCalculator->compute($payload, 'prev'),
-            $bunriKabutekiNettingCalculator->compute($payload, 'curr'),
-        );
-        $this->assertProvidedKeys($payload, $bunriKabutekiNettingCalculator);
-
         /** KyuyoNenkin：Sakimono／Bunri 後に実行して、OTP（年金以外の合計）で年金雑所得を確定 */
         /** @var KyuyoNenkinCalculator $kyuyoNenkinCalculator */
         $kyuyoNenkinCalculator = app(KyuyoNenkinCalculator::class);
@@ -452,6 +443,68 @@ class RecalculateFurusatoPayload
             $resultToDetailsAliasCalculator->compute($payload, $resultAliasContext),
         );
         $this->assertProvidedKeys($payload, $resultToDetailsAliasCalculator);
+
+        /**
+         * ▼ 分離譲渡（短期/長期）の損益通算は「最後に」確定させる
+         *   - ここで BunriNetting をもう一度実行して、行レベルの
+         *     before_tsusan_*,after_2jitsusan_*,joto_shotoku_* を確定版で上書きする
+         *   - この後に他の Calculator は走らないので、以降 payload 内では
+         *     BunriNetting の出力が常に SoT になる
+         */
+        /** @var BunriNettingCalculator $bunriNettingCalculator */
+        $bunriNettingCalculator = app(BunriNettingCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $bunriNettingCalculator->compute($payload, 'prev'),
+            $bunriNettingCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $bunriNettingCalculator);
+
+        \Log::info('[applyAutoCalculatedFields after BunriNetting(final)]', [
+            'before_tsusan_tanki_ippan_prev'    => $payload['before_tsusan_tanki_ippan_prev']    ?? null,
+            'after_2jitsusan_tanki_ippan_prev'  => $payload['after_2jitsusan_tanki_ippan_prev']  ?? null,
+            'joto_shotoku_tanki_ippan_prev'     => $payload['joto_shotoku_tanki_ippan_prev']     ?? null,
+            'joto_shotoku_tanki_gokei_prev'     => $payload['joto_shotoku_tanki_gokei_prev']     ?? null,
+        ]);
+
+        // ▼ tsusango_%_% を DB 保存用 payload にも確定させる
+        //   仕様：tsusango_%_% = max(0, after_2jitsusan_%_%)
+        foreach (['prev', 'curr'] as $period) {
+            foreach ([
+                'tanki_ippan',
+                'tanki_keigen',
+                'choki_ippan',
+                'choki_tokutei',
+                'choki_keika',
+            ] as $suffix) {
+                $after2Key   = sprintf('after_2jitsusan_%s_%s', $suffix, $period);
+                $tsusangoKey = sprintf('tsusango_%s_%s',       $suffix, $period);
+                $val         = (int) ($payload[$after2Key] ?? 0);
+                $payload[$tsusangoKey] = max(0, $val);
+            }
+
+            // 一時所得も 0 下限で揃える
+            $after2IchijiKey   = sprintf('after_2jitsusan_ichiji_%s', $period);
+            $tsusangoIchijiKey = sprintf('tsusango_ichiji_%s',        $period);
+            $val = (int) ($payload[$after2IchijiKey] ?? 0);
+            $payload[$tsusangoIchijiKey] = max(0, $val);
+        }
+
+        /** @var BunriKabutekiNettingCalculator $bunriKabutekiNettingCalculator */
+        $bunriKabutekiNettingCalculator = app(BunriKabutekiNettingCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $bunriKabutekiNettingCalculator->compute($payload, 'prev'),
+            $bunriKabutekiNettingCalculator->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $bunriKabutekiNettingCalculator);
+
+        \Log::info('[applyAutoCalculatedFields final snapshot]', [
+            'before_tsusan_tanki_ippan_prev'   => $payload['before_tsusan_tanki_ippan_prev']   ?? null,
+            'after_2jitsusan_tanki_ippan_prev' => $payload['after_2jitsusan_tanki_ippan_prev'] ?? null,
+            'joto_shotoku_tanki_ippan_prev'    => $payload['joto_shotoku_tanki_ippan_prev']    ?? null,
+            'tsusango_tanki_ippan_prev'        => $payload['tsusango_tanki_ippan_prev']        ?? null,
+        ]);
 
         return $payload;
     }

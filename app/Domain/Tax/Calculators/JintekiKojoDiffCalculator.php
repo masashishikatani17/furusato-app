@@ -66,68 +66,62 @@ class JintekiKojoDiffCalculator implements ProvidesKeys
      */
     public function compute(array $payload, array $ctx): array
     {
-        unset($ctx);
-
         $out = [
             'human_diff_sum_prev' => 0,
             'human_diff_sum_curr' => 0,
         ];
 
         foreach (self::PERIODS as $period) {
+            $sumGokei = $this->n($payload["sum_for_gokeishotoku_{$period}"] ?? null);
+            if ($sumGokei > 25_000_000) {
+                // 地方税法314条の6（調整控除）：合計所得金額が2,500万円超は対象外
+                $out["human_diff_sum_{$period}"] = 0;
+                continue;
+            }
+
             $sum = 0;
 
-            // 基礎控除差：shotokuzei_kojo_kiso_* − juminzei_kojo_kiso_*
-            $sum += $this->diff(
-                $payload,
-                "shotokuzei_kojo_kiso_{$period}",
-                "juminzei_kojo_kiso_{$period}"
-            );
+            // 1) 基礎控除差（原則5万円：静岡市の差額表/地方税法314条の6の整理）
+            $sum += 50_000;
 
-            // 扶養控除差：kojo_fuyo_shotoku_* − kojo_fuyo_jumin_*
-            $sum += $this->diff(
-                $payload,
-                "kojo_fuyo_shotoku_{$period}",
-                "kojo_fuyo_jumin_{$period}"
-            );
+            // 2) 障害者控除差（人数×差額）
+            $sum += $this->n($payload["kojo_shogaisha_count_{$period}"] ?? null) * 10_000;          // 普通：1万円
+            $sum += $this->n($payload["kojo_tokubetsu_shogaisha_count_{$period}"] ?? null) * 100_000; // 特別：10万円
+            $sum += $this->n($payload["kojo_doukyo_tokubetsu_shogaisha_count_{$period}"] ?? null) * 220_000; // 同居特別：22万円
 
-            // 障害者控除差：kojo_shogaisyo_shotoku_* − kojo_shogaisyo_jumin_*
-            $sum += $this->diff(
-                $payload,
-                "kojo_shogaisyo_shotoku_{$period}",
-                "kojo_shogaisyo_jumin_{$period}"
-            );
+            // 3) 寡婦／ひとり親（合計所得500万円以下の前提）
+            if ($sumGokei <= 5_000_000) {
+                $kafu = ($payload["kojo_kafu_applicable_{$period}"] ?? null) === '〇';
+                $hitoVal = (string) ($payload["kojo_hitorioya_applicable_{$period}"] ?? '');
+                $hitoOn  = in_array($hitoVal, ['父', '母', '〇'], true);
 
-            // 寡婦控除差：kojo_kafu_shotoku_* − kojo_kafu_jumin_*
-            $sum += $this->diff(
-                $payload,
-                "kojo_kafu_shotoku_{$period}",
-                "kojo_kafu_jumin_{$period}"
-            );
+                if ($hitoOn) {
+                    // ひとり親：母=5万円、父=1万円
+                    // - UIは「父」「母」「×」の3択
+                    // - 互換として旧データの「〇」は「母」扱い
+                    $sum += ($hitoVal === '父') ? 10_000 : 50_000;
+                } elseif ($kafu) {
+                    // 寡婦：1万円
+                    $sum += 10_000;
+                }
+            }
 
-            // ひとり親控除差：kojo_hitorioya_shotoku_* − kojo_hitorioya_jumin_*
-            $sum += $this->diff(
-                $payload,
-                "kojo_hitorioya_shotoku_{$period}",
-                "kojo_hitorioya_jumin_{$period}"
-            );
+            // 4) 勤労学生（1万円：所得要件は入力側/別Calculatorで担保）
+            if (($payload["kojo_kinrogakusei_applicable_{$period}"] ?? null) === '〇') {
+                $sum += 10_000;
+            }
 
-            // 勤労学生控除差：kojo_kinrogakusei_shotoku_* − kojo_kinrogakusei_jumin_*
-            $sum += $this->diff(
-                $payload,
-                "kojo_kinrogakusei_shotoku_{$period}",
-                "kojo_kinrogakusei_jumin_{$period}"
-            );
+            // 5) 扶養控除（人数×差額）
+            $sum += $this->n($payload["kojo_fuyo_ippan_count_{$period}"] ?? null) * 50_000;             // 一般：5万円
+            $sum += $this->n($payload["kojo_fuyo_tokutei_count_{$period}"] ?? null) * 180_000;           // 特定：18万円
+            $sum += $this->n($payload["kojo_fuyo_roujin_sonota_count_{$period}"] ?? null) * 100_000;     // 老人(その他)：10万円
+            $sum += $this->n($payload["kojo_fuyo_roujin_doukyo_count_{$period}"] ?? null) * 130_000;     // 同居老親等：13万円
 
-            // 特定親族控除（所得税のみ）：kojo_tokutei_shinzoku_shotoku_* − kojo_tokutei_shinzoku_jumin_*
-            $sum += $this->diff(
-                $payload,
-                "kojo_tokutei_shinzoku_shotoku_{$period}",
-                "kojo_tokutei_shinzoku_jumin_{$period}"
-            );
+            // 6) 配偶者控除・配偶者特別控除（差額表ベース）
+            $sum += $this->spouseHumanDiffByTable($payload, $ctx, $period, $sumGokei);
 
-            // 配偶者控除・配偶者特別控除の差分（HaigushaKojoCalculator）
-            // キー名を固定せず、kojo_haigusha*_shotoku/jumin_* を包括的に拾う。
-            $sum += $this->spouseDiff($payload, $period);
+            // 7) 特定親族特別控除は「調整控除の人的控除差」には含めない（差額表対象外）
+            //    ※控除額（所得控除）としては JintekiKojoCalculator で別途計算・課税所得に反映する。
 
             $out["human_diff_sum_{$period}"] = max(0, $sum);
         }
@@ -135,49 +129,77 @@ class JintekiKojoDiffCalculator implements ProvidesKeys
         return array_replace($payload, $out);
     }
 
-    /**
-     * 単一ペアの差分（所得税−住民税）を取得。
-     */
-    private function diff(array $payload, string $shotokuKey, string $juminKey): int
+    private function spouseHumanDiffByTable(array $payload, array $ctx, string $period, int $taxpayerIncome): int
     {
-        $shotoku = $this->n($payload[$shotokuKey] ?? null);
-        $jumin   = $this->n($payload[$juminKey] ?? null);
-
-        $d = $shotoku - $jumin;
-
-        // 人的控除差としては負の値は持たず 0 下限に揃える
-        return $d > 0 ? $d : 0;
-    }
-
-    /**
-     * 配偶者控除・配偶者特別控除系の差分。
-     *
-     * キー名を固定せず、'kojo_haigusha' で始まり
-     * '_shotoku_{period}' / '_jumin_{period}' で終わるものを自動集計する。
-     */
-    private function spouseDiff(array $payload, string $period): int
-    {
-        $shotokuSum = 0;
-        $juminSum   = 0;
-        $suffixShotoku = "_shotoku_{$period}";
-        $suffixJumin   = "_jumin_{$period}";
-
-        foreach ($payload as $key => $value) {
-            if (!is_string($key)) {
-                continue;
-            }
-            if (str_starts_with($key, 'kojo_haigusha')) {
-                if (str_ends_with($key, $suffixShotoku)) {
-                        $shotokuSum += $this->n($value);
-                } elseif (str_ends_with($key, $suffixJumin)) {
-                    $juminSum += $this->n($value);
-                }
-            }
+        // 本人が1,000万円超は配偶者控除/特別控除は対象外（差額も0）
+        if ($taxpayerIncome > 10_000_000) {
+            return 0;
         }
 
-        $d = $shotokuSum - $juminSum;
+        $category = (string) ($payload["kojo_haigusha_category_{$period}"] ?? 'none'); // ippan/roujin/none
+        $spouseIncome = $this->n($payload["kojo_haigusha_tokubetsu_gokeishotoku_{$period}"] ?? null);
 
-        return $d > 0 ? $d : 0;
+        // 対象年（所得年）で分岐：2025年分（住民税令和8年度）以降は配偶者特別控除の“差”は生じない
+        $targetYear = $this->targetIncomeYear($ctx, $period);
+
+        $isElderly = ($category === 'roujin');
+        $tier = $this->taxpayerTierForSpouse($taxpayerIncome); // 0/1/2（<=900 / <=950 / <=1000）
+        if ($tier === null) {
+            return 0;
+        }
+
+        // 配偶者控除の所得要件起算点：令和7年度分まで=48万円、令和8年度分以降=58万円
+        $start = ($targetYear !== null && $targetYear >= 2025) ? 580_000 : 480_000;
+
+        // A) 配偶者控除（配偶者所得が start 以下）
+        if ($spouseIncome > 0 && $spouseIncome <= $start && $category !== 'none') {
+            // 一般：5/4/2、老人：10/6/3（万円）
+            $table = $isElderly
+                ? [100_000, 60_000, 30_000]
+                : [50_000, 40_000, 20_000];
+            return $table[$tier];
+        }
+
+        // B) 配偶者特別控除の“人的控除差”
+        //    静岡市の整理：令和3〜7年度（所得年=2024まで）は 48万超〜55万未満の一部のみ差額あり、
+        //    それ以外（55万以上）は差額0。令和8年度（所得年=2025）以降は差額0。
+        if ($targetYear !== null && $targetYear >= 2025) {
+            return 0;
+        }
+
+        if ($spouseIncome > 480_000 && $spouseIncome < 550_000) {
+            if ($spouseIncome <= 500_000) {
+                // 48万超〜50万以下：一般 5/4/2、老人 10/6/3
+                $table = $isElderly
+                    ? [100_000, 60_000, 30_000]
+                    : [50_000, 40_000, 20_000];
+                return $table[$tier];
+            }
+            // 50万超〜55万未満：一般 3/2/1、老人 6/4/2（万円）
+            $table = $isElderly
+                ? [60_000, 40_000, 20_000]
+                : [30_000, 20_000, 10_000];
+            return $table[$tier];
+        }
+
+        return 0;
+    }
+
+    private function taxpayerTierForSpouse(int $income): ?int
+    {
+        if ($income <= 9_000_000) return 0;
+        if ($income <= 9_500_000) return 1;
+        if ($income <= 10_000_000) return 2;
+        return null;
+    }
+
+    private function targetIncomeYear(array $ctx, string $period): ?int
+    {
+        $kihuYear = isset($ctx['kihu_year']) ? (int) $ctx['kihu_year'] : null;
+        if ($kihuYear === null || $kihuYear <= 0) {
+            return null;
+        }
+        return $period === 'prev' ? ($kihuYear - 1) : $kihuYear;
     }
 
     private function n(mixed $value): int

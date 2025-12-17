@@ -10,6 +10,22 @@
     $warekiCurrLabel = $warekiCurr ?? '当年';
     $originTab = 'input';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', 'kojo_jinteki'));
+
+    // ============================
+    // ▼ セレクト初期値は「このブロックで確定」させる
+    //   - テーブル内に @php を置くと、環境/編集状態によって文字表示される事故が起きやすい
+    //   - 既存データ互換：「〇」は「母」として扱う（父/母/× の3択へ移行）
+    // ============================
+    $kafuPrev = old('kojo_kafu_applicable_prev', $inputs['kojo_kafu_applicable_prev'] ?? '×');
+    $kafuCurr = old('kojo_kafu_applicable_curr', $inputs['kojo_kafu_applicable_curr'] ?? '×');
+
+    $hitorioyaPrev = old('kojo_hitorioya_applicable_prev', $inputs['kojo_hitorioya_applicable_prev'] ?? '×');
+    $hitorioyaPrev = ($hitorioyaPrev === '〇') ? '母' : $hitorioyaPrev;
+    $hitorioyaCurr = old('kojo_hitorioya_applicable_curr', $inputs['kojo_hitorioya_applicable_curr'] ?? '×');
+    $hitorioyaCurr = ($hitorioyaCurr === '〇') ? '母' : $hitorioyaCurr;
+
+    $kinroPrev = old('kojo_kinrogakusei_applicable_prev', $inputs['kojo_kinrogakusei_applicable_prev'] ?? '×');
+    $kinroCurr = old('kojo_kinrogakusei_applicable_curr', $inputs['kojo_kinrogakusei_applicable_curr'] ?? '×');
 @endphp
 <div class="container-blue mt-2" style="width:1000px;">
   <div class="card-header d-flex align-items-start">
@@ -53,14 +69,12 @@
                   </button>
                 </td>
                 <td>
-                  @php($kafuPrev = old('kojo_kafu_applicable_prev', $inputs['kojo_kafu_applicable_prev'] ?? null))
                   <select name="kojo_kafu_applicable_prev" class="form-select sel4" aria-label="{{ $warekiPrevLabel }}の寡婦控除の適用状況">
                     <option value="〇" @selected($kafuPrev === '〇')>〇</option>
                     <option value="×" @selected($kafuPrev === '×')>×</option>
                   </select>
                 </td>
                 <td>
-                  @php($kafuCurr = old('kojo_kafu_applicable_curr', $inputs['kojo_kafu_applicable_curr'] ?? null))
                   <select name="kojo_kafu_applicable_curr" class="form-select sel4" aria-label="{{ $warekiCurrLabel }}の寡婦控除の適用状況">
                     <option value="〇" @selected($kafuCurr === '〇')>〇</option>
                     <option value="×" @selected($kafuCurr === '×')>×</option>
@@ -74,17 +88,17 @@
               <tr>
                 <th colspan="3" class="text-start ps-1">ひとり親控除</th>
                 <td>
-                  @php($hitorioyaPrev = old('kojo_hitorioya_applicable_prev', $inputs['kojo_hitorioya_applicable_prev'] ?? null))
                   <select name="kojo_hitorioya_applicable_prev" class="form-select sel4" aria-label="{{ $warekiPrevLabel }}のひとり親控除の適用状況">
-                    <option value="〇" @selected($hitorioyaPrev === '〇')>〇</option>
-                    <option value="×" @selected($hitorioyaPrev === '×')>×</option>
+                    <option value="父" @selected(($hitorioyaPrev ?? null) === '父')>父</option>
+                    <option value="母" @selected(($hitorioyaPrev ?? null) === '母')>母</option>
+                    <option value="×" @selected(in_array(($hitorioyaPrev ?? null), ['×', null, ''], true))>×</option>
                   </select>
                 </td>
                 <td>
-                  @php($hitorioyaCurr = old('kojo_hitorioya_applicable_curr', $inputs['kojo_hitorioya_applicable_curr'] ?? null))
                   <select name="kojo_hitorioya_applicable_curr" class="form-select sel4" aria-label="{{ $warekiCurrLabel }}のひとり親控除の適用状況">
-                    <option value="〇" @selected($hitorioyaCurr === '〇')>〇</option>
-                    <option value="×" @selected($hitorioyaCurr === '×')>×</option>
+                    <option value="父" @selected(($hitorioyaCurr ?? null) === '父')>父</option>
+                    <option value="母" @selected(($hitorioyaCurr ?? null) === '母')>母</option>
+                    <option value="×" @selected(in_array(($hitorioyaCurr ?? null), ['×', null, ''], true))>×</option>
                   </select>
                 </td>
               </tr>
@@ -96,14 +110,12 @@
                   </button>
                 </td>
                 <td>
-                  @php($kinroPrev = old('kojo_kinrogakusei_applicable_prev', $inputs['kojo_kinrogakusei_applicable_prev'] ?? null))
                   <select name="kojo_kinrogakusei_applicable_prev" class="form-select sel4" aria-label="{{ $warekiPrevLabel }}の勤労学生控除の適用状況">
                     <option value="〇" @selected($kinroPrev === '〇')>〇</option>
                     <option value="×" @selected($kinroPrev === '×')>×</option>
                   </select>
                 </td>
                 <td>
-                  @php($kinroCurr = old('kojo_kinrogakusei_applicable_curr', $inputs['kojo_kinrogakusei_applicable_curr'] ?? null))
                   <select name="kojo_kinrogakusei_applicable_curr" class="form-select sel4" aria-label="{{ $warekiCurrLabel }}の勤労学生控除の適用状況">
                     <option value="〇" @selected($kinroCurr === '〇')>〇</option>
                     <option value="×" @selected($kinroCurr === '×')>×</option>
@@ -506,22 +518,27 @@ document.addEventListener('DOMContentLoaded', function () {
     pairs.forEach(({ kafu, hitorioya }) => {
       if (!kafu || !hitorioya) return;
 
+      const isHitorioyaOn = () => {
+        // 「父」「母」を適用扱い（旧「〇」互換は上で「母」に正規化済み）
+        return hitorioya.value === '父' || hitorioya.value === '母';
+      };
+
       const normalizeInitial = () => {
-        if (kafu.value === '〇' && hitorioya.value === '〇') {
+        if (kafu.value === '〇' && isHitorioyaOn()) {
           // 優先順位：ひとり親控除を残し、寡婦控除は「×」へ補正
           kafu.value = '×';
         }
       };
 
       const onKafuChange = () => {
-        if (kafu.value === '〇' && hitorioya.value === '〇') {
+        if (kafu.value === '〇' && isHitorioyaOn()) {
           // ひとり親控除が既に〇なら、寡婦控除側を戻す（ひとり親優先）
           kafu.value = '×';
         }
       };
 
       const onHitorioyaChange = () => {
-        if (hitorioya.value === '〇' && kafu.value === '〇') {
+        if (isHitorioyaOn() && kafu.value === '〇') {
           // ひとり親控除を〇にしたら、寡婦控除は自動的に×へ
           kafu.value = '×';
         }

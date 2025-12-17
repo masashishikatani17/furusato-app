@@ -26,7 +26,7 @@ class JuminTaxCalculator implements ProvidesKeys
      */
     public static function provides(): array
     {
-        return [
+        $keys = [
             // 合計課税所得金額（調整控除・Tokurei用）
             'jumin_kazeishotoku_total_prev',
             'jumin_kazeishotoku_total_curr',
@@ -56,6 +56,21 @@ class JuminTaxCalculator implements ProvidesKeys
             'tax_zeigaku_jumin_prev',
             'tax_zeigaku_jumin_curr',
         ];
+
+        // 分離課税（住民税側）の税額（第三表用）
+        foreach (self::PERIODS as $p) {
+            $keys[] = sprintf('bunri_zeigaku_sogo_jumin_%s', $p);
+            $keys[] = sprintf('bunri_zeigaku_tanki_jumin_%s', $p);
+            $keys[] = sprintf('bunri_zeigaku_choki_jumin_%s', $p);
+            $keys[] = sprintf('bunri_zeigaku_joto_jumin_%s', $p);
+            $keys[] = sprintf('bunri_zeigaku_haito_jumin_%s', $p);
+            $keys[] = sprintf('bunri_zeigaku_sakimono_jumin_%s', $p);
+            $keys[] = sprintf('bunri_zeigaku_sanrin_jumin_%s', $p);
+            $keys[] = sprintf('bunri_zeigaku_taishoku_jumin_%s', $p);
+            $keys[] = sprintf('bunri_zeigaku_gokei_jumin_%s', $p);
+        }
+
+        return $keys;
     }
 
     /**
@@ -168,12 +183,140 @@ class JuminTaxCalculator implements ProvidesKeys
             // 将来 tb_taishoku_jumin_* を含めるようになったら、ここで退職分を控除する。
             $updates[sprintf('choseigo_shotokuwari_capbase_pref_%s', $period)] = $afterPref;
             $updates[sprintf('choseigo_shotokuwari_capbase_muni_%s', $period)] = $afterMuni;
-            // ===== 7) 住民税（所得割）の算出税額（pref+muni 合計）=====
-            $updates[sprintf('tax_zeigaku_jumin_%s', $period)] = $afterPref + $afterMuni;
+            // ===== 7) 住民税（所得割）の算出税額（prefmuni 合計）=====
+            $baseSogoZeigaku = (int) ($afterPref + $afterMuni);
+            $updates[sprintf('tax_zeigaku_jumin_%s', $period)] = $baseSogoZeigaku;
+
+            /**
+             * ▼ 分離課税（住民税）用の税額（第三表）
+             *   - JS で行っていた recalcBunriZeigakuJuminAll / recalcZeigakuGokeiAll のロジックを移植
+             *   - bunri_flag が 0 の期間は 0 のまま
+             */
+            $bunriOn = $this->resolveFlag($settings, $payload, 'bunri_flag', $period);
+            if (! $bunriOn) {
+                continue;
+            }
+
+            // 第三表の「総合課税」行は、JuminTaxCalculator が確定した総合税額（調整控除後）をそのまま表示
+            // （第一表の総合税額と一致させる）
+            $updates[sprintf('bunri_zeigaku_sogo_jumin_%s', $period)] = $baseSogoZeigaku;
+
+            // 住民税率（市+県）を jumin_master から取得して税額を算出する（pref/city を別々に floor → 合算）
+            // ※ floor((pref+city)*amount) ではなく、制度上の「県・市ごとの算出」前提に合わせる。
+            // ※ マスター未設定で rate=0 のまま金額が入っている場合は debug ログに出す（原因追跡用）。
+            $taxByMaster = function (int $amount, string $category, ?string $sub, ?string $remarkContains = null) use ($rateRows, $shitei, $period): int {
+                return $this->bunriTaxByMaster($rateRows, $shitei, $amount, $category, $sub, $remarkContains, $period);
+            };
+
+            // 短期譲渡：一般 / 軽減（区分別に master の率を使う）
+            $tIppan  = $this->n($payload[sprintf('bunri_shotoku_tanki_ippan_jumin_%s',  $period)] ?? null);
+            $tKeigen = $this->n($payload[sprintf('bunri_shotoku_tanki_keigen_jumin_%s', $period)] ?? null);
+            $zeigakuTanki = $taxByMaster($tIppan, '短期譲渡', '一般') + $taxByMaster($tKeigen, '短期譲渡', '軽減');
+            $updates[sprintf('bunri_zeigaku_tanki_jumin_%s', $period)] = $zeigakuTanki;
+
+            // 長期譲渡：一般 + 特定(2,000万円以下/超) + 軽課(6,000万円以下/超)
+            $cIppan   = $this->n($payload[sprintf('bunri_shotoku_choki_ippan_jumin_%s',   $period)] ?? null);
+            $cTokutei = $this->n($payload[sprintf('bunri_shotoku_choki_tokutei_jumin_%s', $period)] ?? null);
+            $cKeika   = $this->n($payload[sprintf('bunri_shotoku_choki_keika_jumin_%s',   $period)] ?? null);
+
+            $zeigakuChoki = $taxByMaster($cIppan, '長期譲渡', '一般');
+            // 特定：2,000万円以下 / 超（remarkで「以下」「超」を拾う）
+            $tokLow  = min(20_000_000, max(0, $cTokutei));
+            $tokHigh = max(0, $cTokutei - 20_000_000);
+            $zeigakuChoki += $taxByMaster($tokLow,  '長期譲渡', '特定', '以下');
+            $zeigakuChoki += $taxByMaster($tokHigh, '長期譲渡', '特定', '超');
+            // 軽課：6,000万円以下 / 超
+            $keiLow  = min(60_000_000, max(0, $cKeika));
+            $keiHigh = max(0, $cKeika - 60_000_000);
+            $zeigakuChoki += $taxByMaster($keiLow,  '長期譲渡', '軽課', '以下');
+            $zeigakuChoki += $taxByMaster($keiHigh, '長期譲渡', '軽課', '超');
+            $updates[sprintf('bunri_zeigaku_choki_jumin_%s', $period)] = $zeigakuChoki;
+
+            // 一般株式等の譲渡 / 上場株式等の譲渡（区分別に master の率）
+            $tbIppan = $this->n($payload[sprintf('tb_ippan_kabuteki_joto_jumin_%s', $period)] ?? null);
+            $tbJojo  = $this->n($payload[sprintf('tb_jojo_kabuteki_joto_jumin_%s',  $period)] ?? null);
+            $zeigakuJoto = $taxByMaster($tbIppan, '一般株式等の譲渡', null) + $taxByMaster($tbJojo, '上場株式等の譲渡', null);
+            $updates[sprintf('bunri_zeigaku_joto_jumin_%s', $period)] = $zeigakuJoto;
+
+            // 上場株式等の配当等（master の率）
+            $haitoTaxable = $this->n($payload[sprintf('tb_jojo_kabuteki_haito_jumin_%s', $period)] ?? null);
+            $zeigakuHaito = $taxByMaster($haitoTaxable, '上場株式等の配当等', null);
+            $updates[sprintf('bunri_zeigaku_haito_jumin_%s', $period)] = $zeigakuHaito;
+
+            // 先物取引（master の率）
+            $sakiTaxable = $this->n($payload[sprintf('tb_sakimono_jumin_%s', $period)] ?? null);
+            $zeigakuSakimono = $taxByMaster($sakiTaxable, '先物取引', null);
+            $updates[sprintf('bunri_zeigaku_sakimono_jumin_%s', $period)] = $zeigakuSakimono;
+
+            // 山林（master の率）
+            $sanTaxable = $this->n($payload[sprintf('tb_sanrin_jumin_%s', $period)] ?? null);
+            $zeigakuSanrin = $taxByMaster($sanTaxable, '山林', null);
+            $updates[sprintf('bunri_zeigaku_sanrin_jumin_%s', $period)] = $zeigakuSanrin;
+
+            // 退職（master の率）
+            $taiTaxable = $this->n($payload[sprintf('tb_taishoku_jumin_%s', $period)] ?? null);
+            $zeigakuTaishoku = $taxByMaster($taiTaxable, '退職', null);
+            $updates[sprintf('bunri_zeigaku_taishoku_jumin_%s', $period)] = $zeigakuTaishoku;
+
+            // 合計（第三表の「合計（第一表へ）」行）
+            $gokei =
+                $baseSogoZeigaku +
+                $zeigakuTanki +
+                $zeigakuChoki +
+                $zeigakuJoto +
+                $zeigakuHaito +
+                $zeigakuSakimono +
+                $zeigakuSanrin +
+                $zeigakuTaishoku;
+            $updates[sprintf('bunri_zeigaku_gokei_jumin_%s', $period)] = $gokei;
+            // 分離ON年度：第一表の tax_zeigaku_jumin_* は「総合＋分離」の合算額を表示
+            // （第三表の合計（第一表へ）と一致させる）
+            $updates[sprintf('tax_zeigaku_jumin_%s', $period)] = $gokei;
         }
 
         return array_replace($payload, $updates);
     }
+
+    /**
+     * 分離課税（住民税）税額計算：jumin_master の県・市率をそれぞれ乗算して合算する。
+     * - 例：先物取引を「合計 8%」にしたい場合、city_specified + pref_specified（または non_specified）が 8 になるように設定すればOK
+     * - 率が取得できず 0 のまま金額だけある場合、debug で追跡できるようログを出す
+     *
+     * @param  array<int, array<string, mixed>>  $rateRows
+     */
+    private function bunriTaxByMaster(
+        array $rateRows,
+        bool $shitei,
+        int $amount,
+        string $category,
+        ?string $sub,
+        ?string $remarkContains,
+        string $period
+    ): int {
+        $a = max(0, $amount);
+        if ($a === 0) {
+            return 0;
+        }
+
+        $prefRate = $this->juminRate($rateRows, $category, $sub, $shitei, 'pref', $remarkContains);
+        $muniRate = $this->juminRate($rateRows, $category, $sub, $shitei, 'city', $remarkContains);
+
+        // マスターが欠けている疑い（率0なのに金額がある）
+        if (config('app.debug') && ($prefRate + $muniRate) === 0.0) {
+            \Log::warning('[jumin.bunri.rate.missing]', [
+                'period' => $period,
+                'category' => $category,
+                'sub_category' => $sub,
+                'remark_contains' => $remarkContains,
+                'shitei' => $shitei ? 1 : 0,
+                'amount' => $a,
+            ]);
+        }
+
+        // 県・市で別々に算出 → 合算（制度上の作りに合わせる）
+        return $this->mulRate($a, $prefRate) + $this->mulRate($a, $muniRate);
+    }
+
 
     /**
      * jumin_master から住民税率マスタを取得。

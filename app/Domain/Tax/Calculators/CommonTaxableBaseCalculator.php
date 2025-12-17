@@ -58,13 +58,6 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
      */
     public function compute(array $payload, array $ctx): array
     {
-        // syori_settings から分離ON/OFF（住民税側）を判定
-        $settings = is_array($ctx['syori_settings'] ?? null) ? $ctx['syori_settings'] : [];
-        $bunriOn = [
-            'prev' => (int)($settings['bunri_flag_prev'] ?? $settings['bunri_flag'] ?? 0) === 1,
-            'curr' => (int)($settings['bunri_flag_curr'] ?? $settings['bunri_flag'] ?? ($settings['bunri_flag_prev'] ?? 0)) === 1,
-        ];
-
         foreach (self::PERIODS as $p) {
             // ===== 参照（SoT） =====
             $sumA   = $this->n($payload["sum_for_sogoshotoku_{$p}"]    ?? null); // A: 総合
@@ -118,27 +111,17 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
                 $remJ -= $use;
                 return $this->floorToThousands(max(0, $base - $use));
             };
-            if ($bunriOn[$p]) {
-                $tb_joto_tanki_jumin      = $alloc($baseST);
-                $tb_joto_choki_jumin      = $alloc($baseLT);
-                $tb_jojo_kabuteki_haito_j = $alloc($baseH);
-                $tb_ippan_kabuteki_joto_j = $alloc($baseJG);
-                $tb_jojo_kabuteki_joto_j  = $alloc($baseJL);
-                $tb_sakimono_jumin        = $alloc($baseSX);
-                $tb_sanrin_jumin          = $alloc($baseSan);
-                $tb_taishoku_jumin        = $alloc($baseTai);
-            } else {
-                // 分離OFF: 第三表(住民税)はすべて 0 に集約（総合 tb_sogo_jumin_* のみ成立）
-                $tb_joto_tanki_jumin      = 0;
-                $tb_joto_choki_jumin      = 0;
-                $tb_jojo_kabuteki_haito_j = 0;
-                $tb_ippan_kabuteki_joto_j = 0;
-                $tb_jojo_kabuteki_joto_j  = 0;
-                $tb_sakimono_jumin        = 0;
-                $tb_sanrin_jumin          = 0;
-                $tb_taishoku_jumin        = 0;
-                // remJ は以後参照しないため未使用でOK
-            }
+            // ▼ 分離課税のON/OFFによる分岐は撤去（SoT安定化）
+            //   - 分離所得が無い場合は base が 0 なので自動的に 0 になる
+            //   - これにより「bunri_flag が 0 だと第三表が強制 0 化される」事故を防ぐ
+            $tb_joto_tanki_jumin      = $alloc($baseST);
+            $tb_joto_choki_jumin      = $alloc($baseLT);
+            $tb_jojo_kabuteki_haito_j = $alloc($baseH);
+            $tb_ippan_kabuteki_joto_j = $alloc($baseJG);
+            $tb_jojo_kabuteki_joto_j  = $alloc($baseJL);
+            $tb_sakimono_jumin        = $alloc($baseSX);
+            $tb_sanrin_jumin          = $alloc($baseSan);
+            $tb_taishoku_jumin        = $alloc($baseTai);
 
             // ===== 書き戻し =====
             $payload["tb_sogo_shotoku_{$p}"] = $tb_sogo_shotoku;

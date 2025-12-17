@@ -108,7 +108,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
          * 第1次通算の計算元も “短期/長期/一時 すべて” 内部通算後を用いる。
          * ただし山林だけは sashihiki_sanrin を用いる（第1次結果 after_1jitsusan_sanrin_* のみ）。
          */
-        $tsusanmaeShort  = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $period));
+        $tsusanmaeShort  = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $period));
         $tsusanmaeLong   = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period));
         $tsusanmaeIchiji = (int) $this->value($payload, sprintf('after_joto_ichiji_tousan_ichiji_%s', $period));
 

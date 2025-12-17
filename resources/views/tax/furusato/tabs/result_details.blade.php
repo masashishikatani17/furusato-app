@@ -32,6 +32,38 @@
   $dispInt = static function (?int $v): string {
       return $v === null ? '' : number_format((int) $v);
   };
+
+  // サーバ計算専用の表示値（before_tsusan_*, after_1jitsusan_*, after_2jitsusan_* 用）
+  // - フロントからは POST しない（input に name を付けない）
+  // - 値のソース優先度：$resultsUpper → $details(prev/curr) → $inputs
+  $serverDisplay = static function (string $key) use ($resultsUpper, $prevDetails, $currDetails, $inputs): string {
+      // 1) 上段結果（upper）を最優先
+      $value = $resultsUpper[$key] ?? null;
+
+      // 2) details[prev/curr] にあればそこから
+      if ($value === null) {
+          if (str_ends_with($key, '_prev')) {
+              $baseKey = substr($key, 0, -5); // '_prev' を除去
+              $value = $prevDetails[$baseKey] ?? null;
+          } elseif (str_ends_with($key, '_curr')) {
+              $baseKey = substr($key, 0, -5); // '_curr' を除去
+            $value = $currDetails[$baseKey] ?? null;
+          }
+      }
+
+    // 3) 最後の保険として inputs も見る（Calculator が payload にだけ詰めている場合）
+      if ($value === null) {
+          $value = $inputs[$key] ?? null;
+      }
+
+      if ($value === null || $value === '') {
+          return '';
+      }
+
+      $normalized = str_replace(',', '', (string) $value);
+      return is_numeric($normalized) ? number_format((int) $normalized) : (string) $value;
+  };
+
   $floorDisplay = static function (?int $value): ?int {
       if ($value === null) {
           return null;
@@ -213,21 +245,21 @@
     'curr' => (int) ($jintekiDiff['sum']['curr'] ?? $inputs['human_diff_sum_curr'] ?? 0),
   ];
 
-  // 分離系の金額（判定用）…SoT=tb_* へ移行
+  // 分離系の金額（判定用）…SoT=tb_*（住民税側）へ統一
   // part は 'tanki','choki','joto','haito','sakimono','sanrin','taishoku' を想定
   $bunriShotoku = function(string $part, string $p) use ($inputs): int {
       $map = [
-          'tanki'    => [sprintf('tb_joto_tanki_shotoku_%s', $p)],
-          'choki'    => [sprintf('tb_joto_choki_shotoku_%s', $p)],
+          'tanki'    => [sprintf('tb_joto_tanki_jumin_%s', $p)],
+          'choki'    => [sprintf('tb_joto_choki_jumin_%s', $p)],
           // 「一般・上場の譲渡」は表示上は合算なので、tb_を和で評価
           'joto'     => [
-              sprintf('tb_ippan_kabuteki_joto_shotoku_%s', $p),
-              sprintf('tb_jojo_kabuteki_joto_shotoku_%s', $p),
+              sprintf('tb_ippan_kabuteki_joto_jumin_%s', $p),
+              sprintf('tb_jojo_kabuteki_joto_jumin_%s', $p),
           ],
-          'haito'    => [sprintf('tb_jojo_kabuteki_haito_shotoku_%s', $p)],
-          'sakimono' => [sprintf('tb_sakimono_shotoku_%s', $p)],
-          'sanrin'   => [sprintf('tb_sanrin_shotoku_%s', $p)],
-          'taishoku' => [sprintf('tb_taishoku_shotoku_%s', $p)],
+          'haito'    => [sprintf('tb_jojo_kabuteki_haito_jumin_%s', $p)],
+          'sakimono' => [sprintf('tb_sakimono_jumin_%s', $p)],
+          'sanrin'   => [sprintf('tb_sanrin_jumin_%s', $p)],
+          'taishoku' => [sprintf('tb_taishoku_jumin_%s', $p)],
       ];
       $keys = $map[$part] ?? [];
       $sum  = 0;
@@ -240,14 +272,14 @@
       return $sum;
   };
 
-  // taxable_base は SoT（tb_sogo_shotoku_*）で統一
+  // 課税総所得金額（住民税側）：SoT（tb_sogo_jumin_*）で統一
   $taxableBase = [];
   foreach ($periods as $p) {
-    $v = $inputs[sprintf('tb_sogo_shotoku_%s', $p)] ?? null;
+    $v = $inputs[sprintf('tb_sogo_jumin_%s', $p)] ?? null;
     $taxableBase[$p] = ($v === '' || $v === null) ? 0 : (int) $v;
   }
 
-  // 調整後課税（負もOK）
+  // D_raw = 課税総所得金額（住民税側）－人的控除差調整額（負もOK）
   $humanAdjTaxable = [
     'prev' => $taxableBase['prev'] - $humanDiffSum['prev'],
     'curr' => $taxableBase['curr'] - $humanDiffSum['curr'],
@@ -296,26 +328,24 @@
   ];
 
   foreach ($periods as $p) {
-    // 標準
+    // (1) 標準：課税総所得金額を有し、D_raw>=0
     $show['standard'][$p] =
       ($taxableBase[$p] > 0) &&
-      ($humanAdjTaxable[$p] > 0);
+      ($humanAdjTaxable[$p] >= 0);
 
-    // 山林
+    // (3) 山林：[(Sあり & D<0) または (Sなし)] かつ 山林あり
     $show['sanrin'][$p] =
       (
         ($taxableBase[$p] > 0 && $humanAdjTaxable[$p] < 0)
         || ($taxableBase[$p] === 0)
-      ) &&
-      ($bunriShotoku('sanrin', $p) > 0);
+      ) && ($bunriShotoku('sanrin', $p) > 0);
 
-    // 退職
+    // (3) 退職：[(Sあり & D<0) または (Sなし)] かつ 退職あり
     $show['taishoku'][$p] =
       (
         ($taxableBase[$p] > 0 && $humanAdjTaxable[$p] < 0)
         || ($taxableBase[$p] === 0)
-      ) &&
-      ($bunriShotoku('taishoku', $p) > 0);
+      ) && ($bunriShotoku('taishoku', $p) > 0);
 
     // 採用（両方表示のときだけ）
     if ($show['sanrin'][$p] && $show['taishoku'][$p]) {
@@ -330,9 +360,6 @@
       $show['adopted'][$p] = false;
     }
 
-    // 90%（一次判定：標準の負ケース、かつ山林/退職が表示されていない時）
-    $preShow90 = ($taxableBase[$p] > 0) && ($humanAdjTaxable[$p] < 0) && (!$show['sanrin'][$p]) && (!$show['taishoku'][$p]);
-
     // 分離有無（いずれか>0）
     $anyBunriIncome =
       ($bunriShotoku('tanki', $p) > 0) ||
@@ -341,11 +368,20 @@
       ($bunriShotoku('haito', $p) > 0) ||
       ($bunriShotoku('sakimono', $p) > 0);
 
-    // 90% 最終表示（循環回避：preShow90 を使って bunri_min を決め、その後で 90% OFF）
-    $show['rate90'][$p] = $preShow90;
+    // (2) 90%：Sあり & D<0 & 山林/退職なし & 分離なし
+    $show['rate90'][$p] =
+      ($taxableBase[$p] > 0) &&
+      ($humanAdjTaxable[$p] < 0) &&
+      (!$show['sanrin'][$p]) &&
+      (!$show['taishoku'][$p]) &&
+      (!$anyBunriIncome);
 
-    // 分離最小（条件： 90%表示（pre）or 山林/退職 いずれか表示、かつ 分離のどれか>0）
-    $show['bunrimin'][$p] = ( $preShow90 || $show['sanrin'][$p] || $show['taishoku'][$p] ) && $anyBunriIncome;
+    // (4) 分離最小：
+    //  - (2)(3)に該当する場合（Sあり& D<0、または Sなし）又は S/F/R を全て有しない場合
+    //  - かつ分離所得あり
+    // ※ここでは「Sなし（taxableBase==0）」も対象に含めるため、分離だけでも表示される
+    $cond24 = (($taxableBase[$p] > 0 && $humanAdjTaxable[$p] < 0) || ($taxableBase[$p] === 0));
+    $show['bunrimin'][$p] = $cond24 && $anyBunriIncome;
     if ($show['bunrimin'][$p]) {
       // 係数：短期>0 →59.370、短期=0かつ他>0 →74.685
       if ($bunriShotoku('tanki', $p) > 0) {
@@ -358,11 +394,6 @@
     } else {
       $rate['bunrimin'][$p] = null;
     }
-
-    // 90%最終調整：bunri_min を表示するなら 90% は非表示
-    if ($show['rate90'][$p] && $show['bunrimin'][$p]) {
-      $show['rate90'][$p] = false;
-    }
   }
 
   // 表示用フォーマッタ（% 文字列／空欄対応）
@@ -372,6 +403,31 @@
     $s = number_format((float)$v, 3, '.', '');
     return $s . '%';
   };
+
+  // 最終率（表示用）：(1)(2)(3)(4) の候補から min を採用
+  foreach ($periods as $p) {
+    $cands = [];
+    if ($show['standard'][$p] && $rate['standard'][$p] !== null) {
+      $cands[] = (float) $rate['standard'][$p];
+    }
+    if ($show['rate90'][$p]) {
+      $cands[] = 90.000;
+    }
+    if ($show['adopted'][$p] && isset($rate['adopted'][$p]) && $rate['adopted'][$p] !== null) {
+      $cands[] = (float) $rate['adopted'][$p];
+    }
+    if ($show['bunrimin'][$p] && isset($rate['bunrimin'][$p]) && $rate['bunrimin'][$p] !== null) {
+      $cands[] = (float) $rate['bunrimin'][$p];
+    }
+
+    if ($cands === []) {
+      $rate['final'][$p] = null;
+      $show['final'][$p] = false;
+    } else {
+      $rate['final'][$p] = min($cands);
+      $show['final'][$p] = true;
+    }
+  }
 @endphp
 @php
   // テスト互換用：上表の「調整後課税」を素テキストで 1 行出す（視覚的に非表示）
@@ -780,14 +836,28 @@
           <th scope="row" class="text-center th-cream">特例控除 最終率</th>
           @if($showPrev)
             <td class="text-end">
-              @php $entry = $tokureiRateRows['prev']['final'] ?? ['raw' => '', 'display' => '']; @endphp
-              <input type="hidden" name="tokurei_rate_final_prev" value="{{ $entry['raw'] }}"><span class="fw-bold">{{ $entry['display'] }}</span>
+              @php
+                $raw = ($show['final']['prev'] && $rate['final']['prev'] !== null)
+                  ? number_format((float)$rate['final']['prev'], 3, '.', '')
+                  : '';
+                $disp = ($show['final']['prev'] && $rate['final']['prev'] !== null)
+                  ? $fmtPct($rate['final']['prev'])
+                  : '－';
+              @endphp
+              <input type="hidden" name="tokurei_rate_final_prev" value="{{ $raw }}"><span class="fw-bold">{{ $disp }}</span>
             </td>
           @endif
           @if($showCurr)
             <td class="text-end">
-              @php $entry = $tokureiRateRows['curr']['final'] ?? ['raw' => '', 'display' => '']; @endphp
-              <input type="hidden" name="tokurei_rate_final_curr" value="{{ $entry['raw'] }}"><span class="fw-bold">{{ $entry['display'] }}</span>
+              @php
+                $raw = ($show['final']['curr'] && $rate['final']['curr'] !== null)
+                  ? number_format((float)$rate['final']['curr'], 3, '.', '')
+                  : '';
+                $disp = ($show['final']['curr'] && $rate['final']['curr'] !== null)
+                  ? $fmtPct($rate['final']['curr'])
+                  : '－';
+              @endphp
+              <input type="hidden" name="tokurei_rate_final_curr" value="{{ $raw }}"><span class="fw-bold">{{ $disp }}</span>
             </td>
           @endif
         </tr>
@@ -1270,6 +1340,9 @@
     <div class="mt-3">
       <div class="fw-bold">譲渡所得に係る所得の損益通算</div>
       @foreach ($warekiTables as $suffix => $label)
+        @php
+          $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff;
+        @endphp
         <div class="mt-3">
           <div class="fw-bold ms-5">（{{ $label }}）</div>
           <div class="table-responsive">
@@ -1287,25 +1360,22 @@
                   <td class="text-end" style="width:120px">
                     <input type="text"
                            readonly
-                           name="before_tsusan_tanki_ippan_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('before_tsusan_tanki_ippan_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $serverDisplay('before_tsusan_tanki_ippan_' . $suffix) }}">
                   </td>
                   <th rowspan="2" class="vtext" style="width:35px">通算</th>
                   <td class="text-end" style="width:120px">
                     <input type="text"
                            readonly
-                           name="after_1jitsusan_tanki_ippan_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_1jitsusan_tanki_ippan_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $serverDisplay('after_1jitsusan_tanki_ippan_' . $suffix) }}">
                   </td>
                   <th rowspan="5" class="vtext" style="width:35px">通算</th>
                   <td class="text-end" style="width:120px">
                     <input type="text"
                            readonly
-                           name="after_2jitsusan_tanki_ippan_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_2jitsusan_tanki_ippan_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $serverDisplay('after_2jitsusan_tanki_ippan_' . $suffix) }}">
                   </td>
                 </tr>
                 <tr>
@@ -1313,23 +1383,20 @@
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="before_tsusan_tanki_keigen_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('before_tsusan_tanki_keigen_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_tanki_keigen_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="after_1jitsusan_tanki_keigen_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_1jitsusan_tanki_keigen_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('after_1jitsusan_tanki_keigen_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="after_2jitsusan_tanki_keigen_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_2jitsusan_tanki_keigen_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('after_2jitsusan_tanki_keigen_' . $suffix) }}">
                   </td>
                 </tr>
                 <tr>
@@ -1338,24 +1405,21 @@
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="before_tsusan_choki_ippan_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('before_tsusan_choki_ippan_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_choki_ippan_' . $suffix) }}">
                   </td>
                   <th rowspan="3" class="vtext" style="width:35px">通算</th>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="after_1jitsusan_choki_ippan_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_1jitsusan_choki_ippan_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('after_1jitsusan_choki_ippan_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="after_2jitsusan_choki_ippan_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_2jitsusan_choki_ippan_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('after_2jitsusan_choki_ippan_' . $suffix) }}">
                   </td>
                 </tr>
                 <tr>
@@ -1363,23 +1427,20 @@
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="before_tsusan_choki_tokutei_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('before_tsusan_choki_tokutei_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_choki_tokutei_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="after_1jitsusan_choki_tokutei_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_1jitsusan_choki_tokutei_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('after_1jitsusan_choki_tokutei_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="after_2jitsusan_choki_tokutei_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_2jitsusan_choki_tokutei_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('after_2jitsusan_choki_tokutei_' . $suffix) }}">
                   </td>
                 </tr>
                 <tr>
@@ -1387,23 +1448,20 @@
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="before_tsusan_choki_keika_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('before_tsusan_choki_keika_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_choki_keika_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="after_1jitsusan_choki_keika_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_1jitsusan_choki_keika_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('after_1jitsusan_choki_keika_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           name="after_2jitsusan_choki_keika_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_2jitsusan_choki_keika_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('after_2jitsusan_choki_keika_' . $suffix) }}">
                   </td>
                 </tr>
               </tbody>
@@ -1415,6 +1473,9 @@
     <div class="mt-4">
       <div class="fw-bold">上場株式等に係る所得の損益通算</div>
       @foreach ($warekiTables as $suffix => $label)
+        @php
+          $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff;
+        @endphp
         <div class="mt-3">
           <div class="fw-bold ms-5">（{{ $label }}）</div>
           <div class="table-responsive">
@@ -1431,16 +1492,16 @@
                     <input type="text"
                            readonly
                            name="before_tsusan_jojo_joto_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('before_tsusan_jojo_joto_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_jojo_joto_' . $suffix) }}">
                   </td>
                   <th rowspan="2" class="vtext" style="width:35px">通算</th>
                   <td class="text-end" style="width:160px">
                     <input type="text"
                            readonly
                            name="after_tsusan_jojo_joto_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_tsusan_jojo_joto_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('after_tsusan_jojo_joto_' . $suffix) }}">
                   </td>
                 </tr>
                 <tr>
@@ -1449,15 +1510,15 @@
                     <input type="text"
                            readonly
                            name="before_tsusan_jojo_haito_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('before_tsusan_jojo_haito_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_jojo_haito_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
                            name="after_tsusan_jojo_haito_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
-                           value="{{ $readonlyValue('after_tsusan_jojo_haito_' . $suffix) }}">
+                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           value="{{ $isBunriOff ? '－' : $readonlyValue('after_tsusan_jojo_haito_' . $suffix) }}">
                   </td>
                 </tr>
               </tbody>

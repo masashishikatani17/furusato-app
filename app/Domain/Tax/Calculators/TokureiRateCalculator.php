@@ -5,6 +5,8 @@ namespace App\Domain\Tax\Calculators;
 use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use Illuminate\Support\Facades\Log;
+use App\Domain\Tax\Calculators\CommonSumsCalculator;
+use App\Domain\Tax\Calculators\KojoAggregationCalculator;
 
 class TokureiRateCalculator implements ProvidesKeys
 {
@@ -13,7 +15,12 @@ class TokureiRateCalculator implements ProvidesKeys
     public const ORDER = 5400;
     public const ANCHOR = 'credits';
     public const BEFORE = [];
-    public const AFTER = [JuminTaxCalculator::ID];
+    // tokurei_table_base_jumin は sum_for_sogoshotoku / kojo_gokei_jumin を参照するため依存を明示
+    public const AFTER = [
+        JuminTaxCalculator::ID,
+        CommonSumsCalculator::ID,
+        KojoAggregationCalculator::ID,
+    ];
 
     /** @var string[] */
     private const PERIODS = ['prev', 'curr'];
@@ -30,6 +37,9 @@ class TokureiRateCalculator implements ProvidesKeys
         return [
             'tokurei_K_prev',
             'tokurei_K_curr',
+            // ▼ TokureiRate 用：課税総所得金額（総合）SoT（候補①）
+            'tokurei_table_base_jumin_prev',
+            'tokurei_table_base_jumin_curr',
             'tokurei_rate_standard_prev',
             'tokurei_rate_standard_curr',
             'tokurei_rate_90_prev',
@@ -77,13 +87,23 @@ class TokureiRateCalculator implements ProvidesKeys
             return array_replace($payload, $updates);
         }
         foreach (self::PERIODS as $period) {
+            // ── 0) TokureiRate 用：課税総所得金額（総合）SoTを生成（候補①） ─────────
+            //   tokurei_table_base_jumin_{p} = floor1000( A - min(K, A) )
+            //     A = max(0, sum_for_sogoshotoku_{p})        ※総合課税（Aブロック）の所得合計
+            //     K = max(0, kojo_gokei_jumin_{p})           ※住民税側 所得控除合計
+            //   ※このキーは TokureiRate の D 判定・表イ入力にのみ用いる（tb_sogo_jumin_* とは別SoT）
+            $A = max(0, $this->n($payload[sprintf('sum_for_sogoshotoku_%s', $period)] ?? null));
+            $K = max(0, $this->n($payload[sprintf('kojo_gokei_jumin_%s', $period)] ?? null));
+            $baseRaw = $A - min($K, $A); // 0以上が保証される
+            $tokureiTableBase = $this->floorToThousands($baseRaw);
+            $updates[sprintf('tokurei_table_base_jumin_%s', $period)] = $tokureiTableBase;
             // ── 1) D（条文の入力）を厳密化 ───────────────────────────────
             // 地方税法314条の7第11項の「課税総所得金額から人的控除差調整額を控除した金額」
-            //   D = 課税総所得金額（＝総合のみ） − 人的控除差調整額
+            //   D = 課税総所得金額（総合） − 人的控除差調整額
             //
-            // ★重要：ここで “合計課税所得金額（総合＋山林＋退職）” を使わない。
-            //        山林・退職は同項第3号（表ロ）で別扱いとなるため。
-            $sogoJumin = $this->n($payload[sprintf('tb_sogo_jumin_%s', $period)] ?? null); // 課税総所得金額（住民税側）
+            // 重要：ここでは「TokureiRate 用 SoT（tokurei_table_base_jumin_*）」を使用する。
+            //        tb_sogo_jumin_* は現状「AB由来（総合＋山林＋退職）」の意味を維持し、TokureiRateとは分離する。
+            $sogoJumin = $this->n($payload[sprintf('tokurei_table_base_jumin_%s', $period)] ?? null); // 課税総所得金額（総合・Tokurei用）
             $humanDiff = $this->n($payload[sprintf('human_diff_sum_%s', $period)] ?? null);
 
             // 判定用（符号を保持）※負の値も許容

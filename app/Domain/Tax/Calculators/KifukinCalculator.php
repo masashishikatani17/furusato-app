@@ -37,6 +37,7 @@ class KifukinCalculator implements ProvidesKeys
     /** @var string[] */
     private const DONATION_BASE_KEYS = [
         'shotokuzei_shotokukojo_kyodobokin_nisseki',
+        'shotokuzei_shotokukojo_seito',
         'shotokuzei_shotokukojo_npo',
         'shotokuzei_shotokukojo_koueki',
         'shotokuzei_shotokukojo_kuni',
@@ -100,12 +101,14 @@ class KifukinCalculator implements ProvidesKeys
             $usedByIncome = min($donationSum, $incomeCap40);
             $updates[sprintf('used_by_income_deduction_%s', $period)] = $usedByIncome;
 
-            // ▼ 所得控除額（従来ロジックを維持）：所得控除の枠配分は「基礎寄附(baseDonations)＋ふるさと」を控除額として評価
-            //   - 40%上限は SoT に合わせて sogoEtc を使用
-            $allowedBase = min($baseDonations, $incomeCap40);
-            $deduction   = $allowedBase + $furusato - 2000;
+            // ▼ 所得控除額：元本Iと同じ母集団・同じ40%上限で確定させる
+            //   控除額 = max(0, min(寄附元本合計, 40%上限) - 2,000)
+            //   - 寄附元本合計 = baseDonations + furusato
+            //   - 40%上限は SoT(sum_for_sogoshotoku_etc_*) を基礎に計算済み incomeCap40 を使用
+            $allowed   = min($donationSum, $incomeCap40);
+            $deduction = max(0, $allowed - 2000);
 
-            $updates[sprintf('shotokuzei_kojo_kifukin_%s', $period)] = max(0, $deduction);
+            $updates[sprintf('shotokuzei_kojo_kifukin_%s', $period)] = $deduction;
         }
 
         return array_replace($payload, $updates);

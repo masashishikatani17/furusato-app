@@ -5,6 +5,7 @@ namespace App\Domain\Tax\Calculators;
 use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
+use Illuminate\Support\Facades\Log;
 
 class FurusatoResultCalculator implements ProvidesKeys
 {
@@ -207,11 +208,29 @@ class FurusatoResultCalculator implements ProvidesKeys
         $sum = 0;
 
         foreach (self::HUMAN_DIFF_BASES as $base) {
-            $shotokuKey = sprintf('%s_shotoku_%s', $base, $period);
-            $juminKey = sprintf('%s_jumin_%s', $base, $period);
+            // 基本キー（新SoT）
+            $shotokuKeys = [sprintf('%s_shotoku_%s', $base, $period)];
+            $juminKeys   = [sprintf('%s_jumin_%s',   $base, $period)];
 
-            $shotoku = $this->intOrNull($payload[$shotokuKey] ?? null) ?? 0;
-            $jumin = $this->intOrNull($payload[$juminKey] ?? null) ?? 0;
+            // ▼ key alias（UI/保存キーが override されているケースを吸収）
+            //  - kojo_kiso: UI/保存は shotokuzei_kojo_kiso_* / juminzei_kojo_kiso_* を使っているため
+            //              kojo_kiso_* が無い場合でも人的控除差に必ず含める
+            if ($base === 'kojo_kiso') {
+                $shotokuKeys[] = sprintf('shotokuzei_kojo_kiso_%s', $period);
+                $juminKeys[]   = sprintf('juminzei_kojo_kiso_%s',   $period);
+            }
+
+            //  - kojo_shogaisyo: typo/旧名 -> kojo_shogaisha に統合されている場合がある
+            if ($base === 'kojo_shogaisyo') {
+                $shotokuKeys[] = sprintf('kojo_shogaisha_shotoku_%s', $period);
+                $juminKeys[]   = sprintf('kojo_shogaisha_jumin_%s',   $period);
+                // さらに旧キー（入力互換）が残っている場合
+                $shotokuKeys[] = sprintf('kojo_shogaisyo_shotoku_%s', $period);
+                $juminKeys[]   = sprintf('kojo_shogaisyo_jumin_%s',   $period);
+            }
+
+            $shotoku = $this->firstIntOrZero($payload, $shotokuKeys);
+            $jumin   = $this->firstIntOrZero($payload, $juminKeys);
 
             $sum += ($shotoku - $jumin);
         }
@@ -219,11 +238,32 @@ class FurusatoResultCalculator implements ProvidesKeys
         return $sum;
     }
 
+    /**
+     * @param  array<string,mixed>  $payload
+     * @param  array<int,string>    $keys
+     */
+    private function firstIntOrZero(array $payload, array $keys): int
+    {
+        foreach ($keys as $key) {
+            if (!array_key_exists($key, $payload)) {
+                continue;
+            }
+            $v = $this->intOrNull($payload[$key] ?? null);
+            if ($v !== null) {
+                return $v;
+            }
+        }
+        return 0;
+    }
+
     private function taxableBase(array $payload, array $ctx, string $period): ?int
     {
         unset($ctx);
-        // SoT統一：常に tb_sogo_shotoku_*
-        $raw = $this->intOrNull($payload[sprintf('tb_sogo_shotoku_%s', $period)] ?? null);
+        /**
+         * ▼ 人的控除差調整（課税総所得金額-人的控除差調整額）は住民税側の概念。
+         * よって基準は tb_sogo_jumin_*（住民税：総合課税の課税標準）を用いる。
+         */
+        $raw = $this->intOrNull($payload[sprintf('tb_sogo_jumin_%s', $period)] ?? null);
         if ($raw === null) {
             return null;
         }

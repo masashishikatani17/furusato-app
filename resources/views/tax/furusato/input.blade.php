@@ -974,7 +974,7 @@
                 @endphp
               </tr>
               <tr>
-                <th scope="row" colspan="3" class="align-middle text-center th-cream">合計</th>
+                <th scope="row" colspan="3" class="align-middle text-center th-cream">合計(調整控除前所得割額)</th>
                 <td class="text-center align-middle"><button type="button" class="btn btn-link btn-sm px-0">HELP</button></td>
                 <td></td>
                 @php
@@ -1221,7 +1221,7 @@
                 {!! $bunriIncomeRows !!}
                 <tr id="shotoku_row_jigyo_eigyo" data-anchor>
                   <th scope="rowgroup" rowspan="23" class="text-center align-middle th-ccc th-vertical">
-                    <span class="th-vertical-inner">所得金額等</span>
+                    <span class="th-vertical-inner">所得金額等(総所得金額等)</span>
                   </th>
                   <th scope="rowgroup" rowspan="11" class="text-start align-middle ps-1 th-vertical">
                     <span class="th-vertical-inner">総合課税</span>

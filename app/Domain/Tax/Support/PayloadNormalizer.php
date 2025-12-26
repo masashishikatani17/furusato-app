@@ -368,10 +368,19 @@ class PayloadNormalizer
                 return null;
             }
 
-            if (is_numeric($trimmed)) {
-                return (int) $trimmed;
+            // ▼ 数値は「整数→int」「小数→float」で保持する（小数を int に潰さない）
+            //    例: "59.370" => 59.37(float), "0.7" => 0.7(float), "100" => 100(int)
+            //    例: "1,234"  => 1234(int)
+            $normalized = str_replace([',', ' '], '', $trimmed);
+            if (is_numeric($normalized)) {
+                // 整数判定（符号付き）
+                if (preg_match('/^-?\d+$/', $normalized) === 1) {
+                    return (int) $normalized;
+                }
+                return (float) $normalized;
             }
 
+            // 非数値はそのまま（例：父/母/〇/× 等）
             return $trimmed;
         }
 
@@ -380,7 +389,8 @@ class PayloadNormalizer
         }
 
         if (is_float($value)) {
-            return (int) $value;
+            // ▼ float は float のまま保持（小数を保持する）
+            return $value;
         }
 
         return $value;

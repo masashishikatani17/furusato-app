@@ -265,6 +265,7 @@
       </table>
   
       {{-- 均等割・その他税額（data_id ごとに編集） --}}
+{{--
       @php
           // Controller から渡される equal（無ければデフォルト）
           $equal = $equal ?? [
@@ -362,6 +363,7 @@
               </tr>
           </tbody>
         </table>
+--}}        
         <div class="d-flex justify-content-end align-items-center mt-3 me-2 mb-2">
           {{-- 「戻る」＝ 保存＋再計算の上でマスター画面へ遷移 --}}
           <button type="submit" class="btn-base-blue">戻 る</button>

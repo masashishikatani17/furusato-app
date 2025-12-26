@@ -68,13 +68,13 @@ class BunriSeparatedMinRateCalculator implements ProvidesKeys
     }
 
     /**
-     * tb_* SoT から分離科目金額（所得税側）を取得
+     * tb_* SoT から分離科目金額（住民税側）を取得
      * kind: tanki|choki|haito|sakimono|joto
      */
     private function fromTb(array $payload, string $kind, string $period): int
     {
         $key = function (string $name): string {
-            return $name . '_shotoku_%s';
+            return $name . '_jumin_%s';
         };
         switch ($kind) {
             case 'tanki':

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="css/furusato.css" rel="stylesheet" type="text/css">
+  <title>特例控除割合</title>
+  <style>
+    /* 用紙設定：A4横・左右余白を非対称にして視覚的センターを微調整 */
+    @page {
+      size: A4 landscape;
+      margin: 8mm 4mm 8mm 12mm; /* top right bottom left（例：右へ 2mm 寄せ） */
+    }
+	  
+    /* 画面表示時も“印刷実効幅(281mm)”を中央に固定表示 */
+    .page-frame{
+      width: calc(297mm - 16mm); /* 281mm */
+      margin: 0 auto;            /* 中央寄せ */
+    }
+
+    /* 2カラムは CSS Grid で厳密配置：左124mm + ギャップ9mm + 右148mm = 281mm */
+    .cols-grid{
+      display: grid;
+      grid-template-columns: 124mm 148mm;
+      grid-column-gap: 9mm;
+      width: 100%;         /* 親(.page-frame)と同幅＝281mm */
+    }
+
+    /* カラム内の余白/枠は全て殺す（印刷専用のため） */
+    .col-box{
+      padding: 0 !important;
+      border: none !important;
+      margin: 0 !important;
+      text-align: center;
+    }
+
+    /* テーブル類の安定描画・改ページ抑制 */
+    table{ page-break-inside: avoid; }
+    table.table, table.table-p, table.table-p1{ border-collapse: collapse; table-layout: fixed; }
+
+    /* 幅固定テーブル（左用/右用） */
+    .table-124mm{
+      width: 124mm !important;
+      table-layout: fixed;
+      border-collapse: collapse;
+      margin: 0 auto;
+      clear: both;
+    }
+    .table-148mm{
+      width: 148mm !important;
+      table-layout: fixed;
+      border-collapse: collapse;
+      margin: 0 auto;
+      clear: both;
+    }
+
+    /* 印刷品質の色再現 */
+    @media print{
+      *{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-frame"><!-- ここが実効幅281mmの中央寄せコンテナ -->
+
+    <table class="table b-none mt-4 no-overlap text-center"
+           style="width: 260mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto 2mm; clear: both; page-break-inside: avoid;">
+      <tr>
+        <td align="center" class="text-center"><h18 class="text-center">特例控除割合</h18></td>
+      </tr>
+    </table>
+
+    <table class="table table-base mt-3 mb-5 no-overlap mb-tight"
+           style="width: 274mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto 2mm; clear: both; page-break-inside: avoid;">
+      <tr>
+        <td class="bg-grey text-center b-l-no b-r-no">
+          <h14>★特例控除加算に使用する特例控除割合は次のそれぞれの場合に応じ、それぞれに定める控除割合を用います。</h14>
+			<div class="text-start ms-5 me-5 mt-3 mb-1">
+			  <h12>
+				※所得税は所得控除なので所得税の適用税率が高いと同じ寄附金であっても節税額が多くなります。そこで住民税の特例控除額を計算するに当たって適用される特例控除割合を小さ<br>&nbsp;&nbsp;&nbsp;くしているのです。所得税と住民税の節税額の合計は変わりません。</h12>
+			</div>
+        </td>
+      </tr>
+    </table>
+
+    <!-- 2カラム（左124mm / 右148mm / ギャップ9mm） -->
+    <div class="cols-grid">
+
+      <!-- 左側 124mm -->
+      <div class="col-box">
+        <!-- 説明（左） -->
+        <table class="g-table--none is-start table-122mm ms-4">
+          <tbody>
+            <tr><td class="text-start"><h14>(ア)&nbsp;課税総所得金額がある場合で</h14></td></tr>
+            <tr><td class="text-end pe-3"><h14>課税総所得金額－人的控除差調整額≧０であるとき</h14></td></tr>
+            <tr><td class="text-start"><h13>　次の区分に応じ、それぞれの特例控除割合を適用して計算します。</h13></td></tr>
+          </tbody>
+        </table>
+        <!-- レート表（左 124mm 固定） -->
+        <table class="table table-compact-p ms-4 mt-1 mb-3 no-overlap mb-tight table-122mm" style="font-size:13px;line-height:1.5;">
+          <colgroup>
+              <col style="width:22mm">
+			  <col style="width:6mm">
+			  <col style="width:20mm">
+              <col style="width:16mm">
+			  <col style="width:16mm">
+			  <col style="width:22mm">
+		      <col style="width:20mm">
+          </colgroup>
+          <tbody>
+            <tr>
+              <td colspan="3">住民税の課税総所得金額<br>－人的控除差調整額</td>
+              <td>所得税率</td>
+              <td>90％－<br>所得税率</td>
+              <td class="nowrap"><h12>復興税考慮後<br>の所得税率</h12></td>
+              <td><hb>特例控除<br>割合</hb></td>
+            </tr>
+            <tr>
+              <td class="is-end b-r-no">0</td>
+              <td class="b-l-no b-r-no">～</td>
+              <td class="b-l-no">1,950,000</td>
+              <td>5％</td>
+              <td>85％</td>
+              <td>&nbsp;&nbsp;&nbsp;5.105%</td>
+              <td><hb>84.895%</hb></td>
+            </tr>
+            <tr>
+              <td class="is-end b-r-no">1,951,000</td>
+              <td class="b-l-no b-r-no">～</td>
+              <td class="is-end b-l-no">3,300,000</td>
+              <td>10％</td>
+              <td>80％</td>
+              <td>10.210%</td>
+              <td><hb>79.790%</hb></td>
+            </tr>
+            <tr>
+              <td class="is-end b-r-no">3,301,000</td>
+              <td class="b-l-no b-r-no">～</td>
+              <td class="is-end b-l-no">6,950,000</td>
+              <td>20％</td>
+              <td>70％</td>
+              <td>20.420%</td>
+              <td><hb>69.580%</hb></td>
+            </tr>
+            <tr>
+              <td class="is-end b-r-no">6,951,000</td>
+              <td class="b-l-no b-r-no">～</td>
+              <td class="is-end b-l-no">9,000,000</td>
+              <td>23％</td>
+              <td>67％</td>
+              <td>23.483%</td>
+              <td><hb>66.517%</hb></td>
+            </tr>
+            <tr>
+              <td class="is-end b-r-no">9,001,000</td>
+              <td class="b-l-no b-r-no">～</td>
+              <td class="is-end b-l-no">18,000,000</td>
+              <td>33％</td>
+              <td>57％</td>
+              <td>33.693%</td>
+              <td><hb>56.307%</hb></td>
+            </tr>
+            <tr>
+              <td class="is-end b-r-no">18,001,000</td>
+              <td class="b-l-no b-r-no">～</td>
+              <td class="is-end b-l-no">40,000,000</td>
+              <td>40％</td>
+              <td>50％</td>
+              <td>40.840%</td>
+              <td><hb>49.160%</hb></td>
+            </tr>
+            <tr>
+              <td class="is-end b-r-no">40,001,000</td>
+              <td class="b-l-no b-r-no">～</td>
+              <td class="is-end b-l-no">&nbsp;</td>
+              <td>45％</td>
+              <td>45％</td>
+              <td>45.945%</td>
+              <td><hb>44.055%</hb></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- 備考（左） -->
+        <table class="g-table--none is-start table-122mm ms-4" style="font-size:13px;font-color:#888888;line-height:1.4;">
+          <tbody>
+            <tr>
+              <td width="3%" valign="top" class="text-end">※</td>
+              <td width="97%" class="text-start"><u>ここでいう課税総所得金額には分離課税の所得は含まれません。総合課税の所得だけで判定します。</u></td>
+            </tr>
+            <tr>
+              <td width="3%" valign="top" class="text-end pt-2">※</td>
+              <td class="text-start pt-2"><span class="u-wave">分離課税所得金額があってもこの控除割合を使用します。</span></td>
+            </tr>
+            <tr>
+              <td width="3%" valign="top" class="text-end pt-2">※</td>
+              <td class="text-start pt-2">ふるさと納税をしようと考えている方で課税総所得金額がマイナスという<br>
+              方は少ないので、ほとんどのケースでこの控除割合が使用されます。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- 追加ブロック（左） -->
+        <table align="center" class="g-table--none is-start table-122mm mt-5 ms-4">
+			<colgroup>
+                <col style="width:64mm">
+				<col style="width:16mm">
+				<col style="width:44mm">
+			</colgroup>
+          <tbody>
+            <tr><td colspan="3" class="text-start"><h14>(イ)&nbsp;課税総所得金額がある場合で、課税総所得金額－人的控除差調整</h14></td></tr>
+            <tr><td colspan="3" class="text-start ps-5"><h14>&nbsp;額＜０、かつ課税山林所得金額と課税退職所得金額がないとき</h14></td></tr>
+            <tr><td colspan="3" class="text-start ps-5 pb-2"><h14></h14></td></tr>
+            <tr>
+              <td valign="middle" class="text-end ps-1 pe-2" style="height:6mm;"><hb>特例控除割合</hb></td>
+              <td valign="middle" class="text-center box-strong"><hb>90%</hb></td>
+              <td>&nbsp;</td>
+            </tr>
+            <tr>
+              <td colspan="3" valign="middle" class="text-start ps-3 pt-2">
+				  <h13><span class="u-wave">★分離課税所得金額があれば(エ)の控除割合を用います。</span></h13>
+			  </td>
+            </tr>
+          </tbody>
+        </table>
+      </div><!-- /左 -->
+
+      <!-- 右側 148mm -->
+      <div class="col-box">
+        <table class="g-table--none is-start table-148mm ms-5">
+          <tbody>
+            <tr>
+              <td class="text-start"><h14>(ウ)&nbsp;課税総所得金額がある場合で、課税総所得金額－人的控除差調整額＜０</h14></td>
+            </tr>
+            <tr>
+              <td class="text-start ps-5"><h14>&nbsp;であるとき、または課税総所得金額がない場合で、課税山林所得金額または</h14></td>
+            </tr>
+            <tr>
+              <td class="text-start ps-5"><h14>&nbsp;課税退職所得金額があるとき</h14><h13></h13></td>
+            </tr>
+            <tr>
+              <td class="text-start ps-3 pt-1 pb-3">
+				  <h13><span class="u-wave">★分離課税所得金額があれば(エ)の控除割合を用います。</span></h13></td>
+            </tr>
+          </tbody>
+        </table>
+        <table border="1" class="table text-start table-136mm mt-3 ms-5" style="font-size:12px;line-height:1.5;">
+          <tbody>           
+            <tr>
+              <td class="text-start ps-5 pe-5 pt-1 pb-1">1.課税山林所得があるとき<br>　　課税山林所得金額の５分の１に相当する金額について、(ア)の表の区分に応じた割合<br>
+                2.課税退職所得があるとき<br>
+              　　課税退職所得金額について、(ア)の表の区分に応じた割合<br>
+              ※両方ある場合はいずれか低い方<br></td>
+            </tr>            
+          </tbody>
+        </table>
+        <table align="center" class="g-table--none text-start table-148mm mt-5 ms-5">
+          <tbody>
+            <tr>
+              <td class="text-start"><h14>(エ)&nbsp;上記（イ）、（ウ）に該当する場合または課税総所得金額、課税退職所得金額、</h14></td>
+            </tr>
+            <tr>
+              <td class="text-start ps-5"><h14>&nbsp;課税山林所得金額がない場合で、分離課税所得金額があるとき</h14></td>
+            </tr>
+            <tr>
+              <td class="text-start ps-5"></td>
+            </tr>            
+          </tbody>
+        </table>
+        <!-- レート表（左 124mm 固定） -->
+        <table class="table table-compact-p mt-3 ms-5 no-overlap mb-tight table-138mm">
+          <colgroup>
+            <col style="width:58mm">
+            <col style="width:19mm">
+            <col style="width:19mm">
+            <col style="width:21mm">
+            <col style="width:21mm">            
+          </colgroup>
+          <tbody>
+            <tr>
+              <td>区　　分</td>
+              <td>所得税率</td>
+              <td>90％－<br>
+                所得税率</td>
+              <td class="nowrap"><h12>復興税考慮後<br>
+                の所得税率</h12></td>
+              <td><hb>特例控除<br>
+                割合</hb></td>
+            </tr>
+            <tr>
+              <td class="text-start">分離短期譲渡所得</td>
+              <td>30％</td>
+              <td>60％</td>
+              <td>30.630%</td>
+              <td><hb>59.370%</hb></td>
+            </tr>
+            <tr>
+              <td class="text-start nowrap">分離長期譲渡所得、上場株式等に<br>係る配当所得、株式等に係る譲渡<br>所得等、先物取引に係る雑所得等</td>
+              <td>15％</td>
+              <td>75％</td>
+              <td>15.315%</td>
+              <td><hb>74.685%</hb></td>
+            </tr>
+            <tr>
+              <td class="text-start">課税山林所得金額</td>
+              <td colspan="4" class="text-start">課税山林所得金額の５分の１に相当する金額に<br>ついて、(ア)の表の区分に応じた割合</td>
+            </tr>
+            <tr>
+              <td class="text-start">課税退職所得金額</td>
+              <td colspan="4" class="text-start">課税退職所得金額について、(ア)の表の区分に<br>応じた割合</td>
+            </tr>
+          </tbody>
+        </table>
+		<div class="text-start ms-5"><h13>※２以上に該当する場合は一番低い割合</h13></div>		
+      </div><!-- /右 -->
+    </div><!-- /.cols-grid -->
+	  <table width="936" class="table b-none no-overlap mt-2 mb-0"
+               style="width: 248mm; table-layout: fixed; border-collapse: collapse;
+					  margin: 0 auto; clear:both;">   	 
+		  <tr>
+			<td width="928" class="text-end"><h14u>６ページ</h14u></td>
+		  </tr>
+      </table>
+  </div><!-- /.page-frame -->
+</body>
+</html>

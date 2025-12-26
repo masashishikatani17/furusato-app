@@ -14,6 +14,8 @@ class PdfRenderer
     {
         $paper  = $options['paper']  ?? 'a4';
         $orient = $options['orient'] ?? 'portrait';
+        // PDF生成時：レイアウト側で public_path() を使えるようフラグを渡す
+        $data = array_merge($data, ['is_pdf' => true]);
         $pdf = Pdf::loadView($view, $data)->setPaper($paper, $orient);
         return $pdf;
     }

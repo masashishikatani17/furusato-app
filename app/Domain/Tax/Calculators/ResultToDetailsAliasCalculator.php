@@ -100,15 +100,48 @@ final class ResultToDetailsAliasCalculator implements ProvidesKeys
      */
     private function computeSanrin(array $payload, string $period): array
     {
-        $afterKey = sprintf('after_1jitsusan_sanrin_%s', $period);
-        $tsusango = $this->toInt($payload[$afterKey] ?? null);
-        $tokubetsu = min(self::SANRIN_TOKUBETSU_LIMIT, max(0, $tsusango));
+         /**
+          * 山林所得の特別控除（上限50万円）は「山林所得金額の算定段階で1回だけ」控除する。
+          *
+          * - SogoShotokuNettingStagesCalculator が
+          *     after_1jitsusan_sanrin = max(0, 差引 - 特別控除)
+          *   を起点に損益通算し、
+          *     after_3jitsusan_sanrin / shotoku_sanrin
+          *   を確定する。
+          *
+          * この Calculator は “結果→details の互換キー” を埋めるだけで、
+          * after_1 を元に特別控除を再控除してはならない（＝二重控除防止）。
+          */
 
-        return [
-            sprintf('tsusango_sanrin_%s', $period) => $tsusango,
-            sprintf('tokubetsukojo_sanrin_%s', $period) => $tokubetsu,
-            sprintf('shotoku_sanrin_%s', $period) => $tsusango - $tokubetsu,
-        ];
+         $sashihikiKey = sprintf('sashihiki_sanrin_%s', $period);
+         $tokubetsuKey = sprintf('tokubetsukojo_sanrin_%s', $period);
+         $after3Key    = sprintf('after_3jitsusan_sanrin_%s', $period);
+         $shotokuKey   = sprintf('shotoku_sanrin_%s', $period);
+
+         // 1) 特別控除額：入力（details）を優先。無い場合のみ差引から補完する。
+         $sashihiki = $this->toInt($payload[$sashihikiKey] ?? null);
+         $tokubetsuRaw = $this->normalizeNullable($payload[$tokubetsuKey] ?? null);
+         if ($tokubetsuRaw === null) {
+             $tokubetsuRaw = min(self::SANRIN_TOKUBETSU_LIMIT, max(0, $sashihiki));
+         }
+         $tokubetsu = min(self::SANRIN_TOKUBETSU_LIMIT, max(0, (int) $tokubetsuRaw));
+
+         // 2) 最終の山林所得金額：stages が確定した値を最優先（shotoku_sanrin → after_3）。
+         $final = $this->normalizeNullable($payload[$shotokuKey] ?? null);
+         if ($final === null) {
+             $final = $this->normalizeNullable($payload[$after3Key] ?? null);
+         }
+         if ($final === null) {
+             // 保険：stages 未実行でも「控除後」になるようにする（再控除はしない）
+             $final = max(0, $sashihiki - $tokubetsu);
+         }
+
+         return [
+             // 互換キー：tsusango_sanrin は “控除後（最終）” に揃える
+             sprintf('tsusango_sanrin_%s', $period) => (int) $final,
+             $tokubetsuKey => (int) $tokubetsu,
+             $shotokuKey   => (int) $final,
+         ];
     }
 
     /**

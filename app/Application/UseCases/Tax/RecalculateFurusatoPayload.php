@@ -17,7 +17,6 @@ use App\Models\Data;
 use App\Models\FurusatoInput;
 use App\Models\FurusatoResult;
 use App\Services\Tax\Contracts\ProvidesKeys;
-use App\Services\Tax\Kojo\SeitotoKihukinTokubetsuService;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use DateTimeInterface;
@@ -68,7 +67,16 @@ class RecalculateFurusatoPayload
         'after_2jitsusan_tanki_ippan_prev' => $finalPayload['after_2jitsusan_tanki_ippan_prev'] ?? null,
         'joto_shotoku_tanki_ippan_prev' => $finalPayload['joto_shotoku_tanki_ippan_prev'] ?? null,
     ]);
-    
+
+\Log::info('[DBG human-adjusted final]', [
+  'tb_sogo_jumin_prev' => $finalPayload['tb_sogo_jumin_prev'] ?? null,
+  'tb_sogo_jumin_curr' => $finalPayload['tb_sogo_jumin_curr'] ?? null,
+  'human_diff_sum_prev' => $finalPayload['human_diff_sum_prev'] ?? null,
+  'human_diff_sum_curr' => $finalPayload['human_diff_sum_curr'] ?? null,
+  'human_adjusted_taxable_prev' => $finalPayload['human_adjusted_taxable_prev'] ?? null,
+  'human_adjusted_taxable_curr' => $finalPayload['human_adjusted_taxable_curr'] ?? null,
+]);
+
         $this->persistFinalPayload($data, $finalPayload, $userId);
 
         $this->persistResults($data, $finalPayload, $builtCtx, $userId, $shouldFlashResults);
@@ -88,6 +96,16 @@ class RecalculateFurusatoPayload
         foreach ($diff as $key => $value) {
             if (str_contains($key, '_label_')) {
                 $labels[$key] = $value;
+                continue;
+            }
+
+            // ▼ 表示専用（サーバ算出）キーは入力diffから除外して混入を防止
+            //    - result_details.blade.php が hidden で持つ human_diff_* 等が payload に残ると、
+            //      内訳表示と SoT がズレる原因になるため、必ずサーバ側で再生成する。
+            if (is_string($key) && (
+                str_starts_with($key, 'human_diff_') ||
+                str_starts_with($key, 'human_adjusted_taxable_')
+            )) {
                 continue;
             }
 
@@ -377,10 +395,10 @@ class RecalculateFurusatoPayload
     {
         unset($settings);
         
-        /** @var SeitotoKihukinTokubetsuService $seitotoService */
-        $seitotoService = app(SeitotoKihukinTokubetsuService::class);
-        $payload = array_replace($payload, $seitotoService->compute($payload));
-        $this->assertProvidedKeys($payload, $seitotoService);
+        // ▼ 旧：SeitotoKihukinTokubetsuService は二重計算になるため廃止
+        //   税額控除（政党等/NPO/公益）のSoTは SeitotoTokubetsuZeigakuKojoCalculator に一本化する。
+        //   互換キー（shotokuzei_zeigakukojo_seitoto_tokubetsu_* 等）は
+        //   後段の LegacyMirrorCalculator が新SoTからミラー生成する。
 
         /** @var DetailsSourceAliasCalculator $detailsAliasCalculator */
         $detailsAliasCalculator = app(DetailsSourceAliasCalculator::class);

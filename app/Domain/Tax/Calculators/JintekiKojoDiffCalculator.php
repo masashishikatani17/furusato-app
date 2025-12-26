@@ -81,8 +81,17 @@ class JintekiKojoDiffCalculator implements ProvidesKeys
 
             $sum = 0;
 
-            // 1) 基礎控除差（原則5万円：静岡市の差額表/地方税法314条の6の整理）
-            $sum += 50_000;
+            // 1) 基礎控除差（所得税 − 住民税）
+            //    SoT は KisoKojoCalculator が確定した
+            //      shotokuzei_kojo_kiso_{p}, juminzei_kojo_kiso_{p}
+            //    を優先し、互換として kojo_kiso_* も見る。
+            $kisoShotoku =
+                $this->n($payload["shotokuzei_kojo_kiso_{$period}"] ?? null)
+                ?: $this->n($payload["kojo_kiso_shotoku_{$period}"] ?? null);
+            $kisoJumin =
+                $this->n($payload["juminzei_kojo_kiso_{$period}"] ?? null)
+                ?: $this->n($payload["kojo_kiso_jumin_{$period}"] ?? null);
+            $sum += max(0, $kisoShotoku - $kisoJumin);
 
             // 2) 障害者控除差（人数×差額）
             $sum += $this->n($payload["kojo_shogaisha_count_{$period}"] ?? null) * 10_000;          // 普通：1万円

@@ -300,7 +300,8 @@ final class FurusatoController extends Controller
         $humanAdjusted = [];
         $humanAdjustedDisplay = [];
         foreach ($periods as $period) {
-            $taxableBase  = $this->resolveTaxableBase($savedInputs, $syoriSettings, $period);
+            // ▼ 人的控除差調整は住民税概念なので tb_sogo_jumin を基準にする
+            $taxableBase  = (int)($savedInputs[sprintf('tb_sogo_jumin_%s', $period)] ?? 0);
             $humanDiffSum = (int) ($jintekiDiff['sum'][$period] ?? 0);
 
             $raw = $taxableBase - $humanDiffSum;
@@ -470,7 +471,8 @@ final class FurusatoController extends Controller
             return $value > 0 ? intdiv($value, 1000) * 1000 : 0;
         };
         foreach (['prev','curr'] as $p) {
-            $tb = (int) ($previewPayload[sprintf('tb_sogo_shotoku_%s', $p)] ?? 0);
+            // ▼ 人的控除差調整後課税は tb_sogo_jumin を基準に確定
+            $tb = (int) ($previewPayload[sprintf('tb_sogo_jumin_%s', $p)] ?? 0);
             $humanDiff = (int) ($jintekiDiff['sum'][$p] ?? 0);
             $adj = $floorToThousands(max(0, $tb - $humanDiff));
             $previewPayload[sprintf('human_adjusted_taxable_%s', $p)] = $adj;
@@ -2412,6 +2414,7 @@ Log::info('[furusato debug] final inputs snapshot', [
             ->value('payload');
         $normalizer = app(PayloadNormalizer::class);
         $out = ['inputs' => is_array($payload) ? $normalizer->normalize($payload) : []];
+        $syoriSettings = $this->getSyoriSettings($data->id);
 
         return view('tax.furusato.details.kifukin_details', [
             'dataId' => $data->id,
@@ -2419,6 +2422,7 @@ Log::info('[furusato debug] final inputs snapshot', [
             'warekiPrev' => $warekiPrev,
             'warekiCurr' => $warekiCurr,
             'out' => $out,
+            'syoriSettings' => $syoriSettings,
         ]);
     }
 
@@ -2458,6 +2462,22 @@ Log::info('[furusato debug] final inputs snapshot', [
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'redirect_to', 'origin_tab', 'origin_anchor']));
         $updatesForRecalc = $payload;
+
+        // ▼ ワンストップ特例（syori_menu）= 利用する場合
+        //   所得税側の寄付入力（所得控除/税額控除）は計算に使わないため 0 固定で保存する
+        //   ※UI(JS)でも readonly+0 にするが、POST改ざん対策としてサーバでも上書きする
+        $syoriSettings = $this->getSyoriSettings($data->id);
+        $categories = ['furusato', 'kyodobokin_nisseki', 'seito', 'npo', 'koueki', 'kuni', 'sonota'];
+        foreach (['prev', 'curr'] as $period) {
+            $oneStop = (int) ($syoriSettings["one_stop_flag_{$period}"] ?? $syoriSettings['one_stop_flag'] ?? 0) === 1;
+            if (! $oneStop) {
+                continue;
+            }
+            foreach ($categories as $cat) {
+                $updatesForRecalc["shotokuzei_shotokukojo_{$cat}_{$period}"] = 0;
+                $updatesForRecalc["shotokuzei_zeigakukojo_{$cat}_{$period}"] = 0;
+            }
+        }
 
         if ((int) $req->input('recalc_all') === 1) {
             Log::info('[details:kifukin] recompute & redirect');
@@ -2924,7 +2944,8 @@ Log::info('[furusato debug] final inputs snapshot', [
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
         $rules = [];
-        foreach (['syunyu_sanrin', 'keihi_sanrin', 'tokubetsukojo_sanrin'] as $base) {
+         // 山林の入力SoTは「収入・必要経費」のみ（特別控除はサーバ側で必ず算出）
+         foreach (['syunyu_sanrin', 'keihi_sanrin'] as $base) {
             foreach (['prev', 'curr'] as $period) {
                 $rules[sprintf('%s_%s', $base, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
             }
@@ -2932,9 +2953,28 @@ Log::info('[furusato debug] final inputs snapshot', [
 
         Validator::make($req->only(array_keys($rules)), $rules)->validate();
 
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
+         // 保存対象は rules のキーに限定（画面制御キーの混入を防ぐ）
+         $payload = $this->sanitizeDetailPayload($req->only(array_keys($rules)));
 
-        $updatesForRecalc = $payload;
+         // サーバで派生値を強制確定（POST改ざん防止 & 二重控除防止の前提を安定化）
+         foreach (['prev', 'curr'] as $period) {
+             $syunyu = (int) ($payload[sprintf('syunyu_sanrin_%s', $period)] ?? 0);
+             $keihi  = (int) ($payload[sprintf('keihi_sanrin_%s',  $period)] ?? 0);
+             $sashihiki = $syunyu - $keihi;
+             $payload[sprintf('sashihiki_sanrin_%s', $period)] = $sashihiki;
+
+             // 特別控除＝min(500,000, max(0, 差引))
+             $tokubetsu = min(500_000, max(0, $sashihiki));
+             $payload[sprintf('tokubetsukojo_sanrin_%s', $period)] = $tokubetsu;
+
+             // shotoku_sanrin_* は stages で確定する（ここでは触らない）
+             unset($payload[sprintf('shotoku_sanrin_%s', $period)]);
+             unset($payload[sprintf('after_1jitsusan_sanrin_%s', $period)]);
+             unset($payload[sprintf('after_2jitsusan_sanrin_%s', $period)]);
+             unset($payload[sprintf('after_3jitsusan_sanrin_%s', $period)]);
+         }
+
+         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
             Log::info('[details:bunri_sanrin] recompute & redirect');
@@ -4679,8 +4719,8 @@ Log::info('[furusato debug] final inputs snapshot', [
         $flag = $syoriSettings[$flagKey] ?? ($syoriSettings['bunri_flag'] ?? 0);
         $isSeparated = (int) $flag === 1;
 
-        // SoT統一：ベース課税は tb_sogo_shotoku_* を参照
-        $key = sprintf('tb_sogo_shotoku_%s', $period);
+        // ▼ 人的控除差調整（住民税）は tb_sogo_jumin_* を参照
+        $key = sprintf('tb_sogo_jumin_%s', $period);
 
         $raw = $this->toNullableInt($payload[$key] ?? null);
 
@@ -4799,13 +4839,10 @@ Log::info('[furusato debug] final inputs snapshot', [
         // 所得税側：総所得金額等 S40 = sum_for_sogoshotoku_etc_curr
         $S40 = $n($payload['sum_for_sogoshotoku_etc_curr'] ?? null);
 
-        // 住民税側：S30 = tb_sogo_shotoku_curr + tb_sanrin_shotoku_curr + tb_taishoku_shotoku_curr
-        $S30 = max(
-            0,
-            $n($payload['tb_sogo_shotoku_curr'] ?? null)
-            + $n($payload['tb_sanrin_shotoku_curr'] ?? null)
-            + $n($payload['tb_taishoku_shotoku_curr'] ?? null)
-        );
+        // 住民税側：S30（30%ガード母数）は「総所得金額等（分離課税を含む）」を使用する
+        // - SoT: CommonSumsCalculator の sum_for_sogoshotoku_etc_curr
+        // - フォールバックは行わない（キーが無い/0 の場合は 0 扱い）
+        $S30 = max(0, $n($payload['sum_for_sogoshotoku_etc_curr'] ?? null));
 
         // 調整控除後所得割額ベース R = capbase_pref + capbase_muni
         $R = $n($payload['choseigo_shotokuwari_capbase_pref_curr'] ?? null)

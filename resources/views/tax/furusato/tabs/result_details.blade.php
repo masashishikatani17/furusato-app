@@ -431,11 +431,13 @@
 @endphp
 @php
   // テスト互換用：上表の「調整後課税」を素テキストで 1 行出す（視覚的に非表示）
-  // 優先：jintekiDiff → payload（hidden入力）→ 空
-  $adjPrevDisplay = $jintekiDiff['adjusted_taxable']['prev']
-      ?? $floorDisplay($humanAdjTaxable['prev'] ?? null);
-  $adjCurrDisplay = $jintekiDiff['adjusted_taxable']['curr']
-      ?? $floorDisplay($humanAdjTaxable['curr'] ?? null);
+  // 優先：payload(human_adjusted_taxable_*) → view内計算（住民税tb−人的控除差）
+  $adjPrevDisplay = array_key_exists('human_adjusted_taxable_prev', $inputs)
+      ? (int)($inputs['human_adjusted_taxable_prev'] ?? 0)
+      : $floorDisplay($humanAdjTaxable['prev'] ?? null);
+  $adjCurrDisplay = array_key_exists('human_adjusted_taxable_curr', $inputs)
+      ? (int)($inputs['human_adjusted_taxable_curr'] ?? 0)
+      : $floorDisplay($humanAdjTaxable['curr'] ?? null);
   $adjPrevText = $adjPrevDisplay !== null ? number_format((int) $adjPrevDisplay) : '';
   $adjCurrText = $adjCurrDisplay !== null ? number_format((int) $adjCurrDisplay) : '';
 @endphp
@@ -505,8 +507,14 @@
         <tr>
           <th class="text-start ps-1 th-cream">課税総所得金額-人的控除差調整額</th>
           @php
-            $fallbackPrev = $jintekiDiff['adjusted_taxable']['prev'] ?? $floorDisplay($humanAdjTaxable['prev'] ?? null);
-            $fallbackCurr = $jintekiDiff['adjusted_taxable']['curr'] ?? $floorDisplay($humanAdjTaxable['curr'] ?? null);
+            // ▼ 表示は「サーバ確定(human_adjusted_taxable_*)」が最優先
+            //   無い場合のみ「住民税 tb_sogo_jumin − 人的控除差」を千円切捨てで計算
+            $fallbackPrev = array_key_exists('human_adjusted_taxable_prev', $inputs)
+                ? (int)($inputs['human_adjusted_taxable_prev'] ?? 0)
+                : $floorDisplay($humanAdjTaxable['prev'] ?? null);
+            $fallbackCurr = array_key_exists('human_adjusted_taxable_curr', $inputs)
+                ? (int)($inputs['human_adjusted_taxable_curr'] ?? 0)
+                : $floorDisplay($humanAdjTaxable['curr'] ?? null);
           @endphp
           @if($showPrev)
             <td class="text-end">
@@ -1557,48 +1565,108 @@
                      readonly
                      name="kazeisoushotoku_prev"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('kazeisoushotoku_prev') }}">
+                     value="{{ number_format((int)($inputs['tb_sogo_jumin_prev'] ?? 0)) }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="kazeisoushotoku_curr"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('kazeisoushotoku_curr') }}">
+                     value="{{ number_format((int)($inputs['tb_sogo_jumin_curr'] ?? 0)) }}">
+            </td>
+          </tr>
+          @php
+            // ▼ 仕様3（A案）：住民税の寄付金額は pref/muni 入力のみをSoTにする（旧合算キー参照なし）
+            $nInt3 = static function ($v): int {
+                if ($v === null || $v === '') return 0;
+                if (is_string($v)) $v = str_replace([',', ' '], '', $v);
+                return is_numeric($v) ? (int) floor((float) $v) : 0;
+            };
+            $sumJumin3 = static function (array $inputs, string $area, string $period, array $cats) use ($nInt3): int {
+                $sum = 0;
+                foreach ($cats as $cat) {
+                    $k = sprintf('juminzei_zeigakukojo_%s_%s_%s', $area, $cat, $period);
+                    $sum += $nInt3($inputs[$k] ?? 0);
+                }
+                return $sum;
+            };
+            $furCats3 = ['furusato'];
+            $othCats3 = ['kyodobokin_nisseki', 'npo', 'koueki', 'sonota']; // kuni/seito は住民税税額控除の対象外
+
+            $furPrevPref3 = $sumJumin3($inputs, 'pref', 'prev', $furCats3);
+            $furPrevMuni3 = $sumJumin3($inputs, 'muni', 'prev', $furCats3);
+            $furCurrPref3 = $sumJumin3($inputs, 'pref', 'curr', $furCats3);
+            $furCurrMuni3 = $sumJumin3($inputs, 'muni', 'curr', $furCats3);
+
+            $othPrevPref3 = $sumJumin3($inputs, 'pref', 'prev', $othCats3);
+            $othPrevMuni3 = $sumJumin3($inputs, 'muni', 'prev', $othCats3);
+            $othCurrPref3 = $sumJumin3($inputs, 'pref', 'curr', $othCats3);
+            $othCurrMuni3 = $sumJumin3($inputs, 'muni', 'curr', $othCats3);
+          @endphp
+
+          {{-- ふるさと納税寄付金額（都道府県／市区町村） --}}
+          <tr>
+            <th rowspan="2" class="text-start ps-1 align-middle">ふるさと納税寄付金額</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ number_format($furPrevPref3) }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ number_format($furCurrPref3) }}">
             </td>
           </tr>
           <tr>
-            <th colspan="2" class="text-start ps-1">寄付金額</th>
+            <th class="text-start ps-1">市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="kifu_gaku_prev"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('kifu_gaku_prev') }}">
+                     value="{{ number_format($furPrevMuni3) }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="kifu_gaku_curr"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('kifu_gaku_curr') }}">
+                     value="{{ number_format($furCurrMuni3) }}">
+            </td>
+          </tr>
+
+          {{-- その他寄付金額（共同募金等・NPO・公益・その他）（都道府県／市区町村） --}}
+          <tr>
+            <th rowspan="2" class="text-start ps-1 align-middle">その他寄付金額</th>
+            <th class="text-start ps-1">都道府県</th>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ number_format($othPrevPref3) }}">
+            </td>
+            <td class="text-end">
+              <input type="text"
+                     readonly
+                     class="form-control form-control-sm text-end bg-light"
+                     value="{{ number_format($othCurrPref3) }}">
             </td>
           </tr>
           <tr>
-            <th colspan="2" class="text-start ps-1">ふるさと納税寄付金額</th>
+            <th class="text-start ps-1">市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="furusato_kifu_gaku_prev"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('furusato_kifu_gaku_prev') }}">
+                     value="{{ number_format($othPrevMuni3) }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
-                     name="furusato_kifu_gaku_curr"
                      class="form-control form-control-sm text-end bg-light"
-                     value="{{ $readonlyValue('furusato_kifu_gaku_curr') }}">
+                     value="{{ number_format($othCurrMuni3) }}">
             </td>
           </tr>
           <tr>

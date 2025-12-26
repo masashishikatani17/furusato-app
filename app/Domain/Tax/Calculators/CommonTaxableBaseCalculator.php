@@ -100,10 +100,19 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             $tb_sakimono_shotoku        = $this->floorToThousands($baseSX);
 
             // ===== 住民税（総合→短期→長期→上場配当→一般譲渡→上場譲渡→先物→山林→退職）配賦 =====
-            $abJ   = max(0, $sumAB);
-            $useAB = min($kojoJ, $abJ);
-            $tb_sogo_jumin = $this->floorToThousands($abJ - $useAB);
-            $remJ = $kojoJ - $useAB;
+             /**
+              * ▼住民税の tb_sogo_jumin は「総合課税（A）」のみを課税標準として確定する。
+              *   山林・退職は tb_sanrin_jumin / tb_taishoku_jumin に別立てで表示するため、
+              *   tb_sogo_jumin に A+B（山林・退職）を混ぜない（内訳の二重化防止）。
+              *
+              * 控除配賦：
+              *   1) まず総合課税（A）から控除を引き tb_sogo_jumin を確定
+              *   2) 余った控除があれば、分離→山林→退職へ順に配賦
+              */
+             $sogoJ = max(0, $sumA);
+             $useSogo = min($kojoJ, $sogoJ);
+             $tb_sogo_jumin = $this->floorToThousands($sogoJ - $useSogo);
+             $remJ = $kojoJ - $useSogo;
 
             // 順次配賦
             $alloc = function (int $base) use (&$remJ): int {

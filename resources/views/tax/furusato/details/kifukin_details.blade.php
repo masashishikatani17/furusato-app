@@ -6,6 +6,9 @@
 @section('content')
 @php
     $inputs = $out['inputs'] ?? [];
+    $syoriSettings = $syoriSettings ?? [];
+    $oneStopPrev = (int) ($syoriSettings['one_stop_flag_prev'] ?? $syoriSettings['one_stop_flag'] ?? 0) === 1;
+    $oneStopCurr = (int) ($syoriSettings['one_stop_flag_curr'] ?? $syoriSettings['one_stop_flag'] ?? 0) === 1;
     $warekiPrevLabel = $warekiPrev ?? '前年';
     $warekiCurrLabel = $warekiCurr ?? '当年';
     $categories = [
@@ -160,6 +163,19 @@
               </tbody>
             </table>
           </div>
+
+          {{-- ▼ 注意：ワンストップ特例を利用する場合（所得税側の寄付控除は確定申告が必要） --}}
+          @if($oneStopPrev || $oneStopCurr)
+            <div class="ms-2 me-2 mb-3">
+              <div class="fw-bold">ワンストップ特例をご利用の場合</div>
+              <div class="small text-muted mb-4 ms-4">
+                ワンストップ特例を利用する場合、所得税の「寄付金控除（所得控除）」および「政党等寄附金等特別控除（税額控除）」は
+                確定申告が必要になるため、本画面では入力できないようになっています。<br>
+                所得税側の控除を適用したい場合は、処理メニューでワンストップ特例を「利用しない」に切り替えてください。
+              </div>
+            </div>
+          @endif
+          
           <div class="row align-items-start">
             {{-- 左：テーブル --}}
               <div class="col-md-8">
@@ -315,6 +331,102 @@ document.addEventListener('DOMContentLoaded', function () {
       input.value = raw2 === '' ? '' : fmt(raw2);
     });
   });
+
+  // ===== ワンストップ特例：所得税側の寄付入力（所得控除/税額控除）を readonly + 0 固定 =====
+  // 方針：one_stop_flag_{period}=1 の期間は、所得税列の寄付入力を計算に使わない。
+  //       UI上も入力不能にし、値は 0 として hidden/表示を揃える。
+  (function applyOneStopLocks() {
+    const oneStop = {
+      prev: Boolean(@json($oneStopPrev)),
+      curr: Boolean(@json($oneStopCurr)),
+    };
+    const periods = ['prev','curr'];
+
+    const getDisplayByName = (name) =>
+      document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+
+    const setFieldRaw = (name, raw) => {
+      const disp = getDisplayByName(name);
+      const hidden = (disp ? (getHidden(name) || ensureHidden(disp)) : getHidden(name));
+      if (hidden) hidden.value = raw;
+      if (disp) disp.value = raw === '' ? '' : fmt(raw);
+    };
+
+    const lockField = (name) => {
+      const disp = getDisplayByName(name);
+      if (!disp) return;
+      // 0固定
+      setFieldRaw(name, '0');
+      // readonly化
+      disp.readOnly = true;
+      disp.classList.add('bg-light');
+    };
+
+    const categories = ['furusato','kyodobokin_nisseki','seito','npo','koueki','kuni','sonota'];
+    periods.forEach((p) => {
+      if (!oneStop[p]) return;
+      categories.forEach((cat) => {
+        lockField(`shotokuzei_shotokukojo_${cat}_${p}`);
+        lockField(`shotokuzei_zeigakukojo_${cat}_${p}`);
+      });
+    });
+  })();
+
+  // ===== 所得控除 / 税額控除 の排他（政党等・NPO・公益）=====
+  // 仕様：片方に「0より大きい値」を入力したら、もう片方は強制的に 0 にする（UI/hiddenともに）
+  (function enforceExclusiveIncomeVsCredit() {
+    const categories = ['seito', 'npo', 'koueki'];
+    const periods = ['prev', 'curr'];
+    const pairs = [];
+    categories.forEach((cat) => {
+      periods.forEach((p) => {
+        pairs.push({
+          income: `shotokuzei_shotokukojo_${cat}_${p}`,
+          credit: `shotokuzei_zeigakukojo_${cat}_${p}`,
+        });
+      });
+    });
+
+    let guard = false;
+
+    const getDisplayByName = (name) =>
+      document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+
+    const setFieldRaw = (name, raw) => {
+      const disp = getDisplayByName(name);
+      // hidden が無い場合もあるので、可能なら display を起点に生成
+      const hidden = (disp ? (getHidden(name) || ensureHidden(disp)) : getHidden(name));
+      if (hidden) hidden.value = raw;
+      if (disp) disp.value = raw === '' ? '' : fmt(raw);
+    };
+
+    const bindExclusive = (src, dst) => {
+      const srcDisp = getDisplayByName(src);
+      if (!srcDisp) return;
+      // hidden を確実に用意
+      ensureHidden(srcDisp);
+
+      const handler = () => {
+        if (guard) return;
+        const srcRaw = toRawInt(srcDisp.value ?? '');
+        // 「0より大きい値」が入ったときだけ、相手側を 0 にする
+        if (srcRaw !== '' && srcRaw !== '0') {
+          guard = true;
+          setFieldRaw(dst, '0');
+          guard = false;
+        }
+      };
+
+      // 入力中にも即時反映（blurだけだと見落としが出るため）
+      srcDisp.addEventListener('input', handler);
+      srcDisp.addEventListener('blur', handler);
+    };
+
+    pairs.forEach(({ income, credit }) => {
+      bindExclusive(income, credit);
+      bindExclusive(credit, income);
+    });
+  })();
 
   // 送信直前：hiddenへ数値を確実に格納（表示側はnameを持たないのでチラつきなし）
   const form = document.querySelector('form');

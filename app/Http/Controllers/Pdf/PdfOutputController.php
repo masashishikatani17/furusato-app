@@ -33,7 +33,12 @@ class PdfOutputController extends Controller
         $vars = $reportObj->buildViewData($data);
         $view = $reportObj->viewName();
         $file = $reportObj->fileName($data);
-        $pdf = $this->renderer->render($view, $vars);
+        // 帳票ごとの用紙設定があれば反映（無ければ既定のまま）
+        $options = [];
+        if (method_exists($reportObj, 'pdfOptions')) {
+            $options = (array) $reportObj->pdfOptions($data);
+        }
+        $pdf = $this->renderer->render($view, $vars, $options);
         return $pdf->download($file);
     }
 

@@ -128,13 +128,6 @@
       0 => 'Spatie\\Activitylog\\ActivitylogServiceProvider',
     ),
   ),
-  'spatie/laravel-csp' => 
-  array (
-    'providers' => 
-    array (
-      0 => 'Spatie\\Csp\\CspServiceProvider',
-    ),
-  ),
   'spatie/laravel-health' => 
   array (
     'aliases' => 

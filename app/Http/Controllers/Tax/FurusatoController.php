@@ -655,6 +655,30 @@ final class FurusatoController extends Controller
             $resultsUpper,
         );
 
+
+        // ------------------------------------------------------------
+        // ▼ 実利上限（自己負担<=2,000円）のふるさと納税上限（dry-run探索）
+        //   - SoT は previewPayload（サーバで確定したキー群）を使用
+        //   - DB保存はしない（表示用途）
+        // ------------------------------------------------------------
+        try {
+            $upperCtx = array_replace($calculatorCtx, [
+                'syori_settings' => $syoriSettings,
+                'data_id'        => $data?->id,
+                'company_id'     => $companyId,
+            ]);
+            /** @var \App\Domain\Tax\Services\FurusatoPracticalUpperLimitService $upperSvc */
+            $upperSvc = app(\App\Domain\Tax\Services\FurusatoPracticalUpperLimitService::class);
+            $context['furusato_upper'] = $upperSvc->compute($previewPayload, $upperCtx);
+        } catch (\Throwable $e) {
+            // 失敗時は落とさず、表示側で非表示にできるよう null を入れる
+            \Log::warning('[furusato.upper] failed to compute practical upper', [
+                'data_id' => $dataId,
+                'err' => $e->getMessage(),
+            ]);
+            $context['furusato_upper'] = null;
+        }
+
         return $context;
     }
  
@@ -2303,6 +2327,20 @@ Log::info('[furusato debug] final inputs snapshot', [
             self::JIGYO_EIGYO_LABEL_FIELDS,
         )));
 
+        // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
+        //   - jigyo_eigyo_details では JS が空欄を '' のまま hidden へ入れて送るため、
+        //     sanitizeDetailPayload() の結果は null になりやすい。
+        //   - null のままだと input.blade.php 側のミラーが上書きされず、過去値が残ることがある。
+        //   → 事業・営業等に関しては「空欄=0」を貫通させる。
+        foreach ($payload as $k => $v) {
+            if (!is_string($k)) continue;
+            // 対象：jigyo_eigyo_*_{prev|curr}
+            if (preg_match('/^jigyo_eigyo_.+_(prev|curr)$/', $k) !== 1) continue;
+            if ($v === null) {
+                $payload[$k] = 0;
+            }
+        }
+
         $updatesForRecalc = array_merge($payload, $labelUpdates);
 
         if ((int) $req->input('recalc_all') === 1) {
@@ -2371,6 +2409,20 @@ Log::info('[furusato debug] final inputs snapshot', [
             ['_token', 'data_id', 'origin_tab', 'origin_anchor'],
             self::FUDOSAN_LABEL_FIELDS,
         )));
+
+        // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
+        //   - fudosan_details では JS が空欄を '' のまま hidden へ入れて送るため、
+        //     sanitizeDetailPayload() の結果は null になりやすい。
+        //   - null のままだと input.blade.php 側のミラーが上書きされず、過去値が残ることがある。
+        //   → 不動産に関しては「空欄=0」を貫通させる。
+        foreach ($payload as $k => $v) {
+            if (!is_string($k)) continue;
+            // 対象：fudosan_*_{prev|curr}
+            if (preg_match('/^fudosan_.+_(prev|curr)$/', $k) !== 1) continue;
+            if ($v === null) {
+                $payload[$k] = 0;
+            }
+        }
 
         $this->normalizeFudosanSyunyuKeys($payload);
 
@@ -2546,6 +2598,18 @@ Log::info('[furusato debug] final inputs snapshot', [
             'zatsu_sonota_shiharai_prev','zatsu_sonota_shiharai_curr',
         ];
 
+        // 方針：details 画面の「空欄」は未更新ではなく 0 として保存する（payload/再計算/表示を一貫させる）
+        //   - 数値フィールド：null/'' → 0
+        //   - checkbox：0/1（下でルール矯正）
+        $numericFields = [
+            'kyuyo_syunyu_prev','kyuyo_syunyu_curr',
+            'zatsu_nenkin_syunyu_prev','zatsu_nenkin_syunyu_curr',
+            'zatsu_gyomu_syunyu_prev','zatsu_gyomu_syunyu_curr',
+            'zatsu_gyomu_shiharai_prev','zatsu_gyomu_shiharai_curr',
+            'zatsu_sonota_syunyu_prev','zatsu_sonota_syunyu_curr',
+            'zatsu_sonota_shiharai_prev','zatsu_sonota_shiharai_curr',
+        ];
+
         $rules = [
             'kyuyo_syunyu_prev' => ['bail', 'nullable', 'integer', 'min:0'],
             'kyuyo_syunyu_curr' => ['bail', 'nullable', 'integer', 'min:0'],
@@ -2568,7 +2632,20 @@ Log::info('[furusato debug] final inputs snapshot', [
         // サニタイズ
         $payload = [];
         foreach ($fields as $k) {
-            $payload[$k] = $this->toNullableInt($validated[$k] ?? null);
+            // checkbox（0/1）
+            if ($k === 'kyuyo_chosei_applicable_prev' || $k === 'kyuyo_chosei_applicable_curr') {
+                $payload[$k] = (int)($validated[$k] ?? 0) === 1 ? 1 : 0;
+                continue;
+            }
+
+            // 数値：空欄は 0 で確定
+            $v = $this->toNullableInt($validated[$k] ?? null);
+            if (in_array($k, $numericFields, true)) {
+                $payload[$k] = $v ?? 0;
+            } else {
+                // 念のため（現状ここは通らない想定）
+                $payload[$k] = $v;
+            }
         }
 
         // 850 万円超チェック：収入が 8,500,000 以下は適用不可（0 に矯正）
@@ -2640,6 +2717,21 @@ Log::info('[furusato debug] final inputs snapshot', [
 
         $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
         $this->normalizeJotoIchijiKeys($payload);
+
+        // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
+        //   - joto_ichiji_details は JS が空欄を '' のまま hidden へ入れて送る
+        //   - sanitizeDetailPayload() は '' を null に正規化する
+        //   - null のままだと input.blade.php 側のミラーが上書きされず、過去値が残ることがある
+        //   → この内訳の「収入/経費」は空欄=0 を貫通させる
+        foreach ($payload as $k => $v) {
+            if (!is_string($k)) continue;
+            if ($v !== null) continue;
+            // 対象：収入・経費（総合譲渡短期/長期、一時）
+            if (preg_match('/^(syunyu|keihi)_(joto_tanki|joto_choki|ichiji)_(prev|curr)$/', $k) !== 1) {
+                continue;
+            }
+            $payload[$k] = 0;
+        }
 
         $updatesForRecalc = $payload;
 
@@ -2728,7 +2820,18 @@ Log::info('[furusato debug] final inputs snapshot', [
         // バリデーション対象のキーだけを保存対象にする
         // （tsusango_%_% は rules に含めていないので payload には入らない）
         $payload = $this->sanitizeDetailPayload($req->only(array_keys($rules)));
-        
+
+        // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
+        //   対象：syunyu_*/keihi_*/tokubetsukojo_*/joto_choki_tokutei_sonshitsu_*（いずれも入力SoT）
+        foreach ($payload as $k => $v) {
+            if (!is_string($k)) continue;
+            if ($v !== null) continue;
+            if (preg_match('/^(syunyu|keihi|tokubetsukojo)_(tanki_ippan|tanki_keigen|choki_ippan|choki_tokutei|choki_keika)_(prev|curr)$/', $k) === 1
+                || preg_match('/^joto_choki_tokutei_sonshitsu_(prev|curr)$/', $k) === 1) {
+                $payload[$k] = 0;
+            }
+        }        
+
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
@@ -2809,6 +2912,16 @@ Log::info('[furusato debug] final inputs snapshot', [
 
         // 保存対象は rules のキーだけに限定（display-only が混入しない）
         $payload = $this->sanitizeDetailPayload($req->only(array_keys($rules)));
+
+        // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
+        foreach ($payload as $k => $v) {
+            if (!is_string($k)) continue;
+            if ($v !== null) continue;
+            if (preg_match('/^(syunyu|keihi)_(ippan_joto|jojo_joto|jojo_haito)_(prev|curr)$/', $k) === 1
+                || preg_match('/^kurikoshi_jojo_joto_(prev|curr)$/', $k) === 1) {
+                $payload[$k] = 0;
+            }
+        }
 
         $updatesForRecalc = $payload;
 
@@ -2955,6 +3068,15 @@ Log::info('[furusato debug] final inputs snapshot', [
 
          // 保存対象は rules のキーに限定（画面制御キーの混入を防ぐ）
          $payload = $this->sanitizeDetailPayload($req->only(array_keys($rules)));
+
+         // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
+         foreach ($payload as $k => $v) {
+             if (!is_string($k)) continue;
+             if ($v !== null) continue;
+             if (preg_match('/^(syunyu_sanrin|keihi_sanrin)_(prev|curr)$/', $k) === 1) {
+                 $payload[$k] = 0;
+             }
+         }
 
          // サーバで派生値を強制確定（POST改ざん防止 & 二重控除防止の前提を安定化）
          foreach (['prev', 'curr'] as $period) {

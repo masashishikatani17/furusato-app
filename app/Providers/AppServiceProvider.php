@@ -30,6 +30,9 @@ use App\Domain\Tax\Calculators\ShotokuTaxCalculator;
 use App\Domain\Tax\Calculators\TaxBaseMirrorCalculator;
 use App\Domain\Tax\Calculators\TokureiRateCalculator;
 use App\Domain\Tax\Calculators\ShinkokushoKifukinTotalsCalculator;
+use App\Domain\Tax\Calculators\ItaxHaitoCreditCalculator;
+use App\Domain\Tax\Calculators\JuminHaitoCreditCalculator;
+use App\Domain\Tax\Calculators\TaxGokeiCalculator;
 use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Domain\Tax\Providers\MasterProvider;
 use App\Domain\Tax\Support\PayloadNormalizer;
@@ -78,13 +81,16 @@ class AppServiceProvider extends ServiceProvider
             // 5) 課税標準→税額→特例
             CommonTaxableBaseCalculator::class,
             ShotokuTaxCalculator::class,
+            ItaxHaitoCreditCalculator::class,
             JutakuLoanCreditCalculator::class,
             SeitotoTokubetsuZeigakuKojoCalculator::class,
             SeitotoTokubetsuLegacyMirrorCalculator::class,
             JuminTaxCalculator::class,
+            JuminHaitoCreditCalculator::class,
             JuminJutakuLoanCreditCalculator::class,
             TokureiRateCalculator::class,
             JuminzeiKifukinCalculator::class,
+            TaxGokeiCalculator::class,
             // 6) 最終表示
             FurusatoResultCalculator::class,
             TaxBaseMirrorCalculator::class,

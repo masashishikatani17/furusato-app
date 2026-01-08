@@ -135,7 +135,6 @@
         
         /* 選択divの背景色　ベージュ*/
         .bg-cream {
-          width: 95%;
           margin: 0 auto;
           font-size: 13px;
           background-color: #F4F1E8;
@@ -718,6 +717,13 @@
 		table td.b-x-dot, table th.b-x-dot { border-left: 1px dotted #000 !important; border-right: 1px dotted #000 !important; }
 		table td.b-y-dot, table th.b-y-dot { border-top: 1px dotted #000 !important; border-bottom: 1px dotted #000 !important; }
 
+        /* collapse境界で負けないよう、太線は左右/上下どちら側でも勝つように強制 */
+        table.table-compact-p td.b-r-strong, table.table-compact-p th.b-r-strong { border-right-width: 2px !important; border-right-style: solid !important; border-right-color: #333 !important; }
+        table.table-compact-p td.b-l-strong, table.table-compact-p th.b-l-strong { border-left-width:  2px !important; border-left-style:  solid !important; border-left-color:  #333 !important; }
+        table.table-compact-p td.b-t-strong, table.table-compact-p th.b-t-strong { border-top-width:   2px !important; border-top-style:   solid !important; border-top-color:   #333 !important; }
+        table.table-compact-p td.b-b-strong, table.table-compact-p th.b-b-strong { border-bottom-width:2px !important; border-bottom-style:solid !important; border-bottom-color:#333 !important; }
+
+    
 /* --------------------------------------
   * タブ
   * ------------------------------------ */
@@ -1025,6 +1031,7 @@
         .mt-5  { margin-top: 24px !important; }
         .mt-8  { margin-top: 36px !important; }
         .mt-10 { margin-top: 48px !important; }
+        .mt-12 { margin-top: 60px !important; }
         
         .mb-0  { margin-bottom: 0 !important; }
         .mb-1  { margin-bottom: 4px !important; }

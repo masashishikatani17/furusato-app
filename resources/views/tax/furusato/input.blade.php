@@ -75,7 +75,8 @@
     <input type="hidden" name="data_id" value="{{ $dataId ?? '' }}">
     <input type="hidden" name="redirect_to" value="input">
     <input type="hidden" name="show_result" value="1">
-
+    {{-- ▼ PDF出力ボタン押下判定（将来のPDF機能拡張用：現時点では再計算トリガとしてのみ利用） --}}
+    <input type="hidden" name="pdf_prepare" id="furusato-pdf-prepare" value="0">
     @php
       $syoriSettings = $syoriSettings ?? [];
       $resultsData = $results ?? [];
@@ -110,11 +111,21 @@
                   value="master">マスター</button>
           <button type="submit"
                   id="furusato-recalc-button"
-                  class="btn-base-green d-none"
+                  class="btn-base-red d-none"
                   name="recalc_all"
                   value="1"
                   data-disable-on-submit
                   data-redirect-to="input">再計算</button>
+          {{-- ▼ 新規：PDF出力（現時点では「常時表示の再計算トリガ」） --}}
+          @php
+            $oneStopCurr = (string)($syoriSettings['one_stop_flag_curr'] ?? $syoriSettings['one_stop_flag'] ?? '1');
+            $bundleUrl = route('pdf.download', ['report' => 'furusato_bundle'])
+              . '?data_id=' . urlencode((string)($dataId ?? ''))
+              . '&one_stop_flag_curr=' . urlencode($oneStopCurr);
+          @endphp
+          <a id="furusato-pdf-button"
+             class="btn-base-green"
+             href="{{ $bundleUrl }}">PDF出力</a>
         </div>
       </div>
 <!--      @includeWhen(config('app.debug'), 'components.furusato.totals_debug') -->
@@ -3696,6 +3707,28 @@
         ['input', 'change', 'blur'].forEach((ev) => {
           el.addEventListener(ev, updateRecalcVisibility);
         });
+      });
+    })();
+
+    // ============================
+    // ▼ PDF出力ボタン：押下時に pdf_prepare=1 を立てる
+    //   - 現時点では再計算（recalc_all=1）を実行して input 再表示するだけ
+    //   - 将来：Controller 側で pdf_prepare=1 を見て PDF 生成へ分岐できる
+    // ============================
+    (function setupPdfButtonFlag () {
+      const form = document.getElementById('furusato-input-form');
+      if (!form) return;
+      const btn = document.getElementById('furusato-pdf-button');
+      const flag = document.getElementById('furusato-pdf-prepare');
+      if (!btn || !flag) return;
+
+      btn.addEventListener('click', () => { flag.value = '1'; });
+
+      // 他の submit のときは 0 に戻す（誤作動防止）
+      form.addEventListener('submit', (ev) => {
+        const submitter = ev.submitter;
+        if (submitter && submitter.id === 'furusato-pdf-button') return;
+        flag.value = '0';
       });
     })();
 

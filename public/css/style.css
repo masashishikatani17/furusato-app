@@ -190,7 +190,11 @@ select.bg-light[readonly] {
         .text-end  { text-align: right; }
         .text-start   { text-align: left; }
         .nowrap    { white-space: nowrap; }     
-        
+   
+   /* 汎用ユーティリティ（どこに置いても効く） */
+		td.text-start,  th.text-start  { text-align: left   !important; }
+		td.text-center, th.text-center { text-align: center !important; }
+		td.text-end,    th.text-end    { text-align: right  !important; }     
 
 /* =========================================================
  * PDF/帳票向け “共通部品” 追記（furusato.css から必要最小限）
@@ -213,29 +217,61 @@ h15b{ font-size: 15px; font-weight: bold; color: #000; }
 h14 { font-size: 14px; font-weight: bold; color: #000; }
 h14u{ font-size: 14px; color: #000; }
 h13 { font-size: 13px; color: #000; }
+h12 { font-size: 12px; color: #000; }
+h11 { font-size: 11px; color: #000; }
 
 /* 背景色（帳票の見出しセル等） */
 td.bg-grey, th.bg-grey { background: #ededed !important; }
 tr.bg-grey > td, tr.bg-grey > th { background: #ededed !important; }
 
-/* table-compact-p14（jintekikojosatyosei で使用） */
-.table-compact-p14 {
-  border-collapse: collapse;
-  font-size: 14px;
-  border: none !important;
-}
-table.table-compact-p14 td,
-table.table-compact-p14 th {
-  border: 1px solid #999;
-  padding: 1px 2px !important;
-  font-size: 14px;
-  vertical-align: middle;
-}
+/* ===== 帳票用コンパクト ===== */
+		.table-compact-p {
+		  border-collapse: collapse;
+		  font-size: 13px;
+		  border: 1px solid #999 !important;
+		}
+		/* セル格子線（ここが基準） */
+		table.table-compact-p td,
+		table.table-compact-p th {
+		  border: 1px solid #999 !important;
+		  padding: 1px 2px !important;
+		  font-size: 13px;
+		  text-align: center;
+		  vertical-align: middle;
+		}
 
-/* 罫線ユーティリティの不足分 */
-.b-y-no { border-top: none !important; border-bottom: none !important; }
-.b-y-strong { border-top: 2px solid #333 !important; border-bottom: 2px solid #333 !important; }        
+        /* table-compact-p14（jintekikojosatyosei で使用） */
+        .table-compact-p14 {
+          border-collapse: collapse;
+          font-size: 14px;
+          border: none !important;
+        }
+        table.table-compact-p14 td,
+        table.table-compact-p14 th {
+          border: 1px solid #999;
+          padding: 1px 2px !important;
+          font-size: 14px;
+          vertical-align: middle;
+        }
 
+/* ===== 外枠だけ太線（既存互換） ===== */
+		.table-frame {
+		  display: inline-block;
+		  border: 2px solid #333;
+		  vertical-align: top;
+		  background: transparent;
+		}
+		.table-frame > table {
+		  border: none !important;
+		  margin: 0;
+		}
+
+        /* 罫線ユーティリティの不足分 */
+        .b-y-no { border-top: none !important; border-bottom: none !important; }
+        .b-y-strong { border-top: 2px solid #333 !important; border-bottom: 2px solid #333 !important; }    
+        
+        
+    
 /* --------------------------------------
   * ボタン（独自クラス）
          * Bootstrapの .btn とは別に運用
@@ -619,6 +655,27 @@ table.table-compact-p14 th {
         .b-b-strong { border-bottom: 2px solid #333 !important; }
         .b-l-strong { border-left:   2px solid #333 !important; }
 
+	    table td.b-x-strong, table th.b-x-strong { border-left: 2px solid #333 !important; border-right: 2px solid #333 !important; }
+  		table td.b-y-strong, table th.b-y-strong { border-top:  2px solid #333 !important; border-bottom:2px solid #333 !important; }
+  
+  		table td.b-strong,   table th.b-strong   { border: 2px solid #333 !important; }
+  		table td.b-strong-1, table th.b-strong-1 { border: 1px solid #333 !important; }
+  		table td.b-r-strong-1, table th.b-r-strong-1 { border-right: 1px solid #333 !important; }
+  		
+        /* collapse境界で負けないよう、太線は左右/上下どちら側でも勝つように強制 */
+        table.table-compact-p td.b-r-strong, table.table-compact-p th.b-r-strong { border-right-width: 2px !important; border-right-style: solid !important; border-right-color: #333 !important; }
+        table.table-compact-p td.b-l-strong, table.table-compact-p th.b-l-strong { border-left-width:  2px !important; border-left-style:  solid !important; border-left-color:  #333 !important; }
+        table.table-compact-p td.b-t-strong, table.table-compact-p th.b-t-strong { border-top-width:   2px !important; border-top-style:   solid !important; border-top-color:   #333 !important; }
+        table.table-compact-p td.b-b-strong, table.table-compact-p th.b-b-strong { border-bottom-width:2px !important; border-bottom-style:solid !important; border-bottom-color:#333 !important; }
+
+　　　　/* collapse境界でも確実に消す（table-compact-p向け） */
+        table.table-compact-p td.b-none, table.table-compact-p th.b-none { border: none !important; }
+        table.table-compact-p td.b-t-no, table.table-compact-p th.b-t-no { border-top: none !important; }
+        table.table-compact-p td.b-r-no, table.table-compact-p th.b-r-no { border-right: none !important; }
+        table.table-compact-p td.b-b-no, table.table-compact-p th.b-b-no { border-bottom: none !important; }
+        table.table-compact-p td.b-l-no, table.table-compact-p th.b-l-no { border-left: none !important; }
+        table.table-compact-p td.b-x-no, table.table-compact-p th.b-x-no { border-left: none !important; border-right: none !important; }
+   
 /* --------------------------------------
   * タブ
   * ------------------------------------ */
@@ -1040,6 +1097,8 @@ table.table-compact-p14 th {
 .me-10 { margin-right: 48px !important; }
 .me-40 { margin-right: 192px !important; }
 .mt-10 { margin-top: 48px !important; }
+.mt-11 { margin-top: 54px !important; }
+.mt-20 { margin-top: 96px !important; }
 .mt-8 { margin-top: 36px !important;}
 
 /* padding top/bottom/左右のスケール */
@@ -1068,6 +1127,7 @@ table.table-compact-p14 th {
 .pe-0 { padding-right: 0 !important; }
 .pe-1 { padding-right: 4px !important; }
 .pe-2 { padding-right: 8px !important;} 
+.pe-3 { padding-right: 12px !important; }
 .pe-4 { padding-right: 16px !important; }
 .pe-5 { padding-right: 24px !important; }
 

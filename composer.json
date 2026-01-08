@@ -16,6 +16,8 @@
         "laravel/tinker": "^2.10.1",
         "league/flysystem-aws-s3-v3": "^3",
         "livewire/livewire": "^3.6.4",
+        "setasign/fpdf": "^1.8",
+        "setasign/fpdi": "^2.6",
         "spatie/laravel-activitylog": "^4.8",
         "spatie/laravel-health": "^1.34",
         "spatie/laravel-permission": "^6.21"

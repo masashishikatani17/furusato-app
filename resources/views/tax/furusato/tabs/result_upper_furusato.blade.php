@@ -4,6 +4,23 @@
     /** @var array<string,mixed>|null $kmax */
     $k = $kmax ?? [];
 
+    /**
+     * ▼ 実利上限（自己負担<=2,000円）探索の結果
+     * - FurusatoController が $furusato_upper を view に渡している想定
+     * - 存在しない場合でも壊れないように null ガード
+     */
+    /** @var array<string,mixed>|null $furusato_upper */
+    $upper = $furusato_upper ?? null;
+
+    // results から参照できる SoT（存在すれば表示）
+    $resultsPayload = $results['payload'] ?? $results['upper'] ?? [];
+    $getR = static function (string $key, $default = null) use ($resultsPayload) {
+        if (is_array($resultsPayload) && array_key_exists($key, $resultsPayload)) {
+            return $resultsPayload[$key];
+        }
+        return $default;
+    };
+
     $S40          = $k['S40']           ?? null;
     $S30          = $k['S30']           ?? null;
     $R            = $k['R']             ?? null;
@@ -21,6 +38,7 @@
     $remaining    = $k['remaining']     ?? null;
 
     $fmtYen = static fn($v) => $v === null ? '－' : number_format((int)$v) . ' 円';
+    $fmtInt = static fn($v) => $v === null ? '－' : number_format((int)$v);
     $fmtPercent = static function ($v, int $dec = 3): string {
         if ($v === null) {
             return '－';
@@ -29,9 +47,8 @@
     };
 @endphp
 
-<div class="container-blue mt-2">
+<div class="wrapper pt-2">
   <div class="card-header d-flex align-items-start">
-    <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">ふるさと納税の理論上限額</h0>
   </div>
 
@@ -43,6 +60,97 @@
       </p>
     @endif
 
+
+    {{-- ============================================================
+         ▼ デバッグ表示（実利上限探索）
+         - 表示位置は「どこかに適当に」でよいとのことなので末尾に配置
+         - 上限探索の前提値/重要値/結果を簡易に可視化
+       ============================================================ --}}
+    <hr>
+    <h6 class="mt-2">（参考）実利上限（自己負担 2,000 円）探索の計算値</h6>
+    @if (!is_array($upper))
+      <p class="text-muted mb-0">探索結果が未生成のため、参考情報は表示できません。</p>
+    @else
+      @php
+        $yMaxTotal = $upper['y_max_total'] ?? null;
+        $yCurrent  = $upper['y_current']   ?? null;
+        $yAdd      = $upper['y_add']       ?? null;
+        $payBase   = $upper['pay_base']    ?? null;
+        $payAtMax  = $upper['pay_at_max']  ?? null;
+        $taxSaved  = $upper['tax_saved']   ?? null;
+        $burden    = $upper['burden']      ?? null;
+        $ubound    = $upper['upper_bound'] ?? null;
+
+        // ベース（ふるさと=0）との差分での自己負担判定：burden = y - (pay_base - pay_y)
+        $payCurr = null;
+        $itaxPay = $getR('tax_gokei_shotoku_curr', null);
+        $rtaxPay = $getR('tax_gokei_jumin_curr', null);
+        if ($itaxPay !== null || $rtaxPay !== null) {
+            $payCurr = (int)($itaxPay ?? 0) + (int)($rtaxPay ?? 0);
+        }
+        $S40SoT = $getR('sum_for_sogoshotoku_etc_curr', null);
+      @endphp
+      <div class="table-responsive mb-2">
+        <table class="table-base table-bordered align-middle text-start">
+          <tr>
+            <th style="width:260px;">項目</th>
+            <th style="width:200px;" class="text-end">値</th>
+            <th>備考</th>
+          </tr>
+          <tr>
+            <td>探索上界（upper_bound）</td>
+            <td class="text-end">{{ $fmtYen($ubound) }}</td>
+            <td class="text-start ps-1">探索の上限（原則 0.4×S40 を採用）</td>
+          </tr>
+          <tr>
+            <td>S40（SoT: sum_for_sogoshotoku_etc_curr）</td>
+            <td class="text-end">{{ $fmtYen($S40SoT) }}</td>
+            <td class="text-start ps-1">探索上界の根拠となる総所得金額等（SoT）</td>
+          </tr>
+          <tr>
+            <td>当年ふるさと寄附の現在値（y_current）</td>
+            <td class="text-end">{{ $fmtYen($yCurrent) }}</td>
+            <td class="text-start ps-1">SoT: shotokuzei_shotokukojo_furusato_curr</td>
+          </tr>
+          <tr>
+            <td>当年ふるさと寄附の最大値（y_max_total）</td>
+            <td class="text-end"><strong>{{ $fmtYen($yMaxTotal) }}</strong></td>
+            <td class="text-start ps-1">自己負担≦2,000円かつNG条件を満たす最大値</td>
+          </tr>
+          <tr>
+            <td>追加で寄附可能（y_add）</td>
+            <td class="text-end"><strong>{{ $fmtYen($yAdd) }}</strong></td>
+            <td class="text-start ps-1">y_max_total − y_current</td>
+          </tr>
+          <tr>
+            <td>支払税額（ベース：ふるさと=0）pay_base</td>
+            <td class="text-end">{{ $fmtYen($payBase) }}</td>
+            <td class="text-start ps-1">tax_gokei_shotoku + tax_gokei_jumin の合計（ふるさと=0時）</td>
+          </tr>
+          <tr>
+            <td>支払税額（y_max_total時）pay_at_max</td>
+            <td class="text-end">{{ $fmtYen($payAtMax) }}</td>
+            <td class="text-start ps-1">tax_gokei_shotoku + tax_gokei_jumin の合計（上限時）</td>
+          </tr>
+          <tr>
+            <td>減税額（tax_saved）</td>
+            <td class="text-end">{{ $fmtYen($taxSaved) }}</td>
+            <td class="text-start ps-1">pay_base − pay_at_max</td>
+          </tr>
+          <tr>
+            <td>自己負担（burden）</td>
+            <td class="text-end"><strong>{{ $fmtYen($burden) }}</strong></td>
+            <td class="text-start ps-1">y_max_total − tax_saved（2,000円以下が条件）</td>
+          </tr>
+          <tr>
+            <td>参考：現在の支払税額（currのSoT）</td>
+            <td class="text-end">{{ $fmtYen($payCurr) }}</td>
+            <td class="text-start ps-1">results.payload の tax_gokei_* があれば表示</td>
+          </tr>
+        </table>
+      </div>
+    @endif
+    
     {{-- 1. 前提となる金額・率 --}}
     <h6 class="mt-2">1. 前提となる金額・率</h6>
     <div class="table-responsive mb-3">
@@ -65,7 +173,8 @@
           <td>住民税の総所得金額等</td>
           <td class="text-end">{{ $fmtYen($S30) }}</td>
           <td class="text-start align-middle ps-1">
-            住民税の計算に用いる「総所得」「山林所得」「退職所得」を合計した金額です。<br>
+            住民税の計算に用いる「総所得金額等」です。<br>
+            総合課税の所得に加え、山林所得・退職所得・分離課税の所得などを合計した金額です。<br>
             住民税側の上限判定で用いるベースの所得額になります。
           </td>
         </tr>
@@ -142,7 +251,7 @@
       <p class="mb-1">
         <strong>条件：</strong><br>
         寄附金合計（ふるさと納税＋その他の寄附）≦
-        住民税の対象所得（総所得＋退職＋山林）× 30％<br>
+        所得税の総所得金額等 × 30％<br>
         ふるさと納税額 ≦ 住民税の対象所得 × 30％ − ふるさと納税以外の寄附額
       </p>
       <p class="mb-0">
@@ -225,6 +334,195 @@
       </p>
     @endif
 
+    {{-- 4. 寄附金限度額計算の詳細（表） --}}
+    <h6 class="mt-4">4. 寄附金限度額計算の詳細</h6>
+
+    <style>
+      /* result_upper: 寄附金限度額詳細テーブル用 */
+      .kifu-limit-table { width: 100%; max-width: 100%; table-layout: fixed; }
+      .kifu-limit-table th,
+      .kifu-limit-table td { vertical-align: middle; }
+      .kifu-limit-table .th-center { text-align: center; }
+      .kifu-limit-table .td-center { text-align: center; }
+      .kifu-limit-table .td-end { text-align: end; }
+
+      /* 左の縦書き */
+      .kifu-limit-table .vtext {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        white-space: nowrap;
+        text-align: center;
+        letter-spacing: 0.05em;
+      }
+
+      /* 横線を消す対象（3～8列相当） */
+      .kifu-limit-table .detail-cell { background-clip: padding-box; }
+      .kifu-limit-table tr.no-bb .detail-cell { border-bottom: 0 !important; }
+      .kifu-limit-table tr.no-bt .detail-cell { border-top: 0 !important; }
+    </style>
+
+    <div class="table-responsive mb-3">
+      <table class="table-base align-middle">
+        <colgroup>
+          <col style="width:40px;">   {{-- 1列目（縦書き） --}}
+          <col style="width:90px;">   {{-- 2列目（所得控除/税額控除） --}}
+          <col style="width:140px;">  {{-- 3列目（上限/今まで/残り/差額） --}}
+          <col style="width:120px;">  {{-- 4列目（所得税） --}}
+          <col style="width:120px;">  {{-- 5列目（住民税：市） --}}
+          <col style="width:120px;">  {{-- 6列目（住民税：県） --}}
+          <col style="width:120px;">  {{-- 7列目（住民税：小計） --}}
+          <col style="width:120px;">  {{-- 8列目（合計） --}}
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="th-ccc diag-cell th-center" colspan="3" rowspan="2"></th>
+            <th class="th-ccc th-center" rowspan="2">所得税</th>
+            <th class="th-ccc th-center" colspan="3">住民税</th>
+            <th class="th-ccc th-center" rowspan="2">合計</th>
+          </tr>
+          <tr>
+            <th class="th-ccc th-center">市区町村民税</th>
+            <th class="th-ccc th-center">都道府県民税</th>
+            <th class="th-ccc th-center">小計</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{-- ふるさと納税（3～8行） --}}
+          <tr>
+            <th class="th-ccc vtext" rowspan="6">ふるさと納税</th>
+            <th class="th-ccc th-center" rowspan="3">所得控除</th>
+            <th class="th-ddd th-center detail-cell b-b-no">上限額</th>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-center detail-cell b-b-no">ー</td>
+            <td class="td-center detail-cell b-b-no">ー</td>
+            <td class="td-center detail-cell b-b-no">ー</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ddd th-center detail-cell b-t-no">今までに寄付した額</th>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-center detail-cell b-t-no">ー</td>
+            <td class="td-center detail-cell b-t-no">ー</td>
+            <td class="td-center detail-cell b-t-no">ー</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ddd th-center detail-cell">残りの寄付可能額</th>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-center detail-cell">ー</td>
+            <td class="td-center detail-cell">ー</td>
+            <td class="td-center detail-cell">ー</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ccc th-center" rowspan="3">税額控除</th>
+            <th class="th-ddd th-center detail-cell b-b-no">上限額</th>
+            <td class="td-center detail-cell b-b-no">ー</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ddd th-center detail-cell b-t-no">今までに寄付した額</th>
+            <td class="td-center detail-cell b-t-no">ー</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ddd th-center detail-cell">差額</th>
+            <td class="td-center detail-cell">ー</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+          </tr>
+
+          {{-- その他の寄付（9～14行） --}}
+          <tr>
+            <th class="th-ccc vtext" rowspan="6">その他の寄付</th>
+            <th class="th-ccc th-center" rowspan="3">所得控除</th>
+            <th class="th-ddd th-center detail-cell b-b-no">上限額</th>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-center detail-cell b-b-no">ー</td>
+            <td class="td-center detail-cell b-b-no">ー</td>
+            <td class="td-center detail-cell b-b-no">ー</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ddd th-center detail-cell b-t-no">今までに寄付した額</th>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-center detail-cell b-t-no">ー</td>
+            <td class="td-center detail-cell b-t-no">ー</td>
+            <td class="td-center detail-cell b-t-no">ー</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ddd th-center detail-cell">残りの寄付可能額</th>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-center detail-cell">ー</td>
+            <td class="td-center detail-cell">ー</td>
+            <td class="td-center detail-cell">ー</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ccc th-center" rowspan="3">税額控除</th>
+            <th class="th-ddd th-center detail-cell b-b-no">上限額</th>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ddd th-center detail-cell b-t-no">今までに寄付した額</th>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ddd th-center detail-cell">残りの寄付可能額</th>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+          </tr>
+
+          {{-- 合計（15～17行：列1-2結合） --}}
+          <tr>
+            <th class="th-ccc th-center" colspan="2" rowspan="3">合計</th>
+            <th class="th-ddd th-center detail-cell b-b-no">上限額</th>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+            <td class="td-end detail-cell b-b-no">&nbsp;</td>
+          </tr>
+          <tr>
+            <th class="th-ddd th-center detail-cell b-t-no">今までに寄付した額</th>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+            <td class="td-end detail-cell b-t-no">&nbsp;</td>
+
+          </tr>
+          <tr>
+            <th class="th-ddd th-center detail-cell">差額</th>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+            <td class="td-end detail-cell">&nbsp;</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <hr>
     <p class="p-small mb-0">
       ※ この画面で示しているふるさと納税上限額は、所得税法・地方税法に定められた上限式をベースとした

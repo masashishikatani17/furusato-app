@@ -29,20 +29,10 @@
     @font-face{ font-family:'ipaexm'; src:url('{{ public_path('fonts/ipaexm.ttf') }}') format('truetype'); font-weight:bold;  font-style:normal; }
     @font-face{ font-family:'ipaexm'; src:url('{{ public_path('fonts/ipaexm.ttf') }}') format('truetype'); font-weight:400;   font-style:italic; }
 
-    /* 既定：本文はゴシック、必要箇所は .mincho を付与 */
     body   { font-family: ipaexg, "DejaVu Sans", sans-serif; }
     .mincho{ font-family: ipaexm, serif; }
-    /* 用紙コンテナ（サイズは print.css / 各帳票の @page で決める） */
-    .page {
-      margin: 0 auto;       /* ★ 中央寄せの要 */
-      position: relative;   /* ★ 絶対配置の基準 */
-      background: #fff;
-    }
 
-    /* =========================================================
-     * Bundleでも崩れない共通ラッパー
-     * - max-width はページ側で CSS 変数 (--cover-max-width) を指定
-     * ========================================================= */
+    /* bundleでもページごとに max-width が衝突しない共通ラッパー */
     .cover {
       width: 100%;
       display: flex;
@@ -52,15 +42,12 @@
       width: 100%;
       text-align: center;
       max-width: var(--cover-max-width, 100%);
-    }  
-
+    }
   </style>
-  <!-- 帳票ごとの追加スタイル用フック -->
   @yield('head')
 </head>
 <body>
-  <main class="page">
-    @yield('content')
-  </main>
+  {{-- bundle は各ページ側が <main class="page"> を持つので、ここでは包まない --}}
+  @yield('content')
 </body>
 </html>

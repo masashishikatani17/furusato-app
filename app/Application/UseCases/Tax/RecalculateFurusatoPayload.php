@@ -109,6 +109,16 @@ class RecalculateFurusatoPayload
                 continue;
             }
 
+
+            // ▼ 表示専用（サーバ算出）キーは入力diffから除外して混入を防止（改ざん対策）
+            //    tax_kijun / tax_fukkou / tax_gokei は TaxGokeiCalculator が常に再生成する。
+            if (is_string($key) && (
+                str_starts_with($key, 'tax_kijun_') ||
+                str_starts_with($key, 'tax_fukkou_') ||
+                str_starts_with($key, 'tax_gokei_')
+            )) {
+                continue;
+            }
             $payload[$key] = $value;
         }
 

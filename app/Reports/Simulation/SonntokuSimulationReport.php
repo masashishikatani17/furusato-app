@@ -1,24 +1,25 @@
 <?php
 
-namespace App\Reports\Jinteki;
+namespace App\Reports\Simulation;
 
 use App\Models\Data;
 use App\Reports\Contracts\ReportInterface;
 
-class JintekikojosatyoseiReport implements ReportInterface
+class SonntokuSimulationReport implements ReportInterface
 {
     public function viewName(): string
     {
-        // resources/views/pdf/6_jintekikojosatyosei.blade.php
-        return 'pdf/6_jintekikojosatyosei';
+        // Blade名は番号付き、URLキーは数字なし（A案）
+        return 'pdf/5_sonntokusimulation';
     }
 
     public function buildViewData(Data $data): array
     {
+        // 現時点では帳票内の数値・文言は固定表示（送付Blade通り）
         $guestName = $data->guest?->name ?? '（名称未登録）';
         $year = (int)($data->kihu_year ?? now()->year);
         return [
-            'title'      => '人的控除差調整額',
+            'title'      => '寄附金額別損得シミュレーション',
             'year'       => $year,
             'guest_name' => $guestName,
             'data_id'    => (int)$data->id,
@@ -27,12 +28,11 @@ class JintekikojosatyoseiReport implements ReportInterface
 
     public function fileName(Data $data): string
     {
-        $guest = $data->guest?->name ?? '名称未登録';
-        $year  = (int)($data->kihu_year ?? now()->year);
-        return "人的控除差調整額_{$year}_{$guest}_data{$data->id}.pdf";
+        $year = (int)($data->kihu_year ?? now()->year);
+        return "寄附金額別損得シミュレーション_{$year}_data{$data->id}.pdf";
     }
 
-    /** PdfOutputController が存在確認して PdfRenderer に渡す（任意） */
+    // 全帳票：6_jintekikojosatyosei と同じ（A4横）
     public function pdfOptions(Data $data): array
     {
         return [
@@ -41,3 +41,5 @@ class JintekikojosatyoseiReport implements ReportInterface
         ];
     }
 }
+
+

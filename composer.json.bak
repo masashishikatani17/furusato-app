@@ -17,6 +17,7 @@
         "league/flysystem-aws-s3-v3": "^3",
         "livewire/livewire": "^3.6.4",
         "spatie/laravel-activitylog": "^4.8",
+        "spatie/laravel-csp": "^3.19",
         "spatie/laravel-health": "^1.34",
         "spatie/laravel-permission": "^6.21"
     },

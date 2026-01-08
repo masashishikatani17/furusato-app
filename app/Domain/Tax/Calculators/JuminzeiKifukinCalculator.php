@@ -19,6 +19,7 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
         KojoAggregationCalculator::ID,
         CommonTaxableBaseCalculator::ID,
         TokureiRateCalculator::ID,
+        JuminJutakuLoanCreditCalculator::ID,
     ];
 
     /** @var string[] */
@@ -163,23 +164,28 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $kazeisoushotoku = max(0, $this->n($payload[sprintf('tb_sogo_jumin_%s', $period)] ?? null));
             $out["kazeisoushotoku_{$period}"] = $kazeisoushotoku;
 
-            // ▼ 仕様3：旧合算キーは参照しない（pref/muni のみをSoTに固定）
+            // ▼ 住民税（pref/muni）入力を基礎に、各税目は「その税目に入力された寄付金額」だけで計算する。
+            //    ただし、ふるさと納税は UI で pref/muni に同額コピーされる運用のため、
+            //    合計キー（kifu_gaku / furusato_kifu_gaku）は二重計上しない値を保持する。
             $categories = ['furusato', 'kyodobokin_nisseki', 'npo', 'koueki', 'sonota'];
-            $sumKifuPref = 0; // 県分：表示用/内訳用（合算計算の材料にも使う）
-            $sumKifuMuni = 0; // 市分：表示用/内訳用（合算計算の材料にも使う）
+            $sumKifuPref = 0; // 県：入力額の合計（計算は県側でこの値を使う）
+            $sumKifuMuni = 0; // 市：入力額の合計（計算は市側でこの値を使う）
             foreach ($categories as $category) {
                 $pref = $this->n($payload["juminzei_zeigakukojo_pref_{$category}_{$period}"] ?? null);
                 $muni = $this->n($payload["juminzei_zeigakukojo_muni_{$category}_{$period}"] ?? null);
                 $sumKifuPref += $pref;
                 $sumKifuMuni += $muni;
             }
-            $sumKifu = $sumKifuPref + $sumKifuMuni;
-            $out["kifu_gaku_{$period}"] = $sumKifu;
-
-            // ▼ 仕様3：旧合算キーは参照しない（pref/muni のみ）
+            // ふるさと納税（pref/muni は同額コピー想定）：合計は max(pref,muni) を採用（同額ならその値）
             $prefF = $this->n($payload["juminzei_zeigakukojo_pref_furusato_{$period}"] ?? null);
             $muniF = $this->n($payload["juminzei_zeigakukojo_muni_furusato_{$period}"] ?? null);
-            $out["furusato_kifu_gaku_{$period}"] = $prefF + $muniF;
+            $furusatoTotal = max(0, max($prefF, $muniF));
+            $out["furusato_kifu_gaku_{$period}"] = $furusatoTotal;
+            // 寄付金合計（表示・他処理向け）：ふるさと分の二重計上を避ける
+            //  - pref/muni に同額コピーなら min(prefF,muniF) が重複分なので差し引く
+            $dupF = min(max(0, $prefF), max(0, $muniF));
+            $sumKifu = max(0, ($sumKifuPref + $sumKifuMuni) - $dupF);
+            $out["kifu_gaku_{$period}"] = $sumKifu;
 
             $prefApplied = $this->resolveAppliedRate($settings, $payload, 'pref', $period);
             $muniApplied = $this->resolveAppliedRate($settings, $payload, 'muni', $period);
@@ -213,22 +219,31 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $kihonMuniRate = $this->juminRate($rateRows, '基本控除', null, $shitei, 'city');
 
             /**
-             * ▼ 仕様変更：基本控除は「合計（県+市）で -2,000」を1回だけ行う
-             *   eligible = min(寄付合計, 30%cap) - 2,000
-             *   県 = ceil(eligible * 県率), 市 = ceil(eligible * 市率)
+             * ▼ 仕様（希望）：基本控除は「県は県入力の寄付合計」「市は市入力の寄付合計」をそれぞれ用いる。
+             *   - 30%cap も pref/muni それぞれに適用する（寄付金額の上限＝総所得金額等×30%）
+             *   - 2,000円控除も pref/muni それぞれで適用する（=それぞれの税目で控除対象額を作る）
+             *
+             *  eligiblePref = max( min(sumKifuPref, 0.3*mother) - 2,000, 0 )
+             *  eligibleMuni = max( min(sumKifuMuni, 0.3*mother) - 2,000, 0 )
+             *  pref = ceil(eligiblePref * prefRate), muni = ceil(eligibleMuni * muniRate)
              */
             $mother = $this->n($payload[sprintf('sum_for_sogoshotoku_etc_%s', $period)] ?? null);
             $guardedCap = $this->mulRate($mother, 0.3);
 
-            $eligible = 0;
-            if ($sumKifu > 2_000) {
-                $limit = min($sumKifu, $guardedCap);
-                $eligible = max($limit - 2_000, 0);
+            $eligiblePref = 0;
+            if ($sumKifuPref > 2_000) {
+                $limitPref = min($sumKifuPref, $guardedCap);
+                $eligiblePref = max($limitPref - 2_000, 0);
+            }
+            $eligibleMuni = 0;
+            if ($sumKifuMuni > 2_000) {
+                $limitMuni = min($sumKifuMuni, $guardedCap);
+                $eligibleMuni = max($limitMuni - 2_000, 0);
             }
 
             // 端数処理：県民税/市民税それぞれ「1円未満切上げ」
-            $kihonPrefRaw = $eligible > 0 ? ($eligible * $kihonPrefRate) : 0.0;
-            $kihonMuniRaw = $eligible > 0 ? ($eligible * $kihonMuniRate) : 0.0;
+            $kihonPrefRaw = $eligiblePref > 0 ? ($eligiblePref * $kihonPrefRate) : 0.0;
+            $kihonMuniRaw = $eligibleMuni > 0 ? ($eligibleMuni * $kihonMuniRate) : 0.0;
             $out[$kihonPrefKey] = $this->ceilPositive($kihonPrefRaw);
             $out[$kihonMuniKey] = $this->ceilPositive($kihonMuniRaw);
 
@@ -236,11 +251,13 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $tokureiMuniKey = sprintf('tokurei_kojo_muni_%s', $period);
 
             /**
-             * ▼ 特例控除も「合計（県+市）で -2,000」を1回だけ行う
-             *   base = (ふるさと(県+市) - 2,000)
+             * ▼ 特例控除（ふるさと納税）：
+             *   ふるさと納税は UI で pref/muni に同額コピーされる前提のため、
+             *   合計（寄付金額）は max(prefF, muniF) を採用して二重計上しない。
+             *
+             *   base = max(furusatoTotal - 2,000, 0)
              *   県 = ceil(base * final_rate * 県按分), 市 = ceil(base * final_rate * 市按分)
              */
-            $furusatoTotal = max(0, $prefF + $muniF);
             $tokureiBase = ($furusatoTotal > 2_000) ? ($furusatoTotal - 2_000) : 0;
 
             $tokureiRateFinalPercent = $this->decimal($payload[sprintf('tokurei_rate_final_%s', $period)] ?? null);
@@ -292,7 +309,6 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $out[$tokureiKojoJogenMuniKey] = $tokureiKojoJogenMuni;
 
             $oneStop = $this->resolveFlag($settings, $payload, 'one_stop_flag', $period);
-            $eligibleFurusato = max(($prefF + $muniF) - 2_000, 0);
             $humanAdjustedTaxable = $this->n($payload[sprintf('human_adjusted_taxable_%s', $period)] ?? null);
             $shinkokuRatio = $this->resolveShinkokutokureiRatio($shinkokuRateRows, $humanAdjustedTaxable);
 
@@ -316,8 +332,7 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
                 $upperPref = max((float) $shotokuwari20Pref, 0.0);
                 $upperMuni = max((float) $shotokuwari20Muni, 0.0);
 
-                // ふるさと納税（県+市）の合計から 2,000 円控除（1回だけ）
-                $furusatoTotal = max(0, $prefF + $muniF);
+                // ふるさと納税（同額コピー想定）の合計から 2,000 円控除（1回だけ）
                 $eligibleFurusatoTotal = max($furusatoTotal - 2_000, 0);
 
                 // ratio_a（例: 20.42）→比率(0.2042)
@@ -359,9 +374,38 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $muniTotal = max(0, (int) ($kihonMuni + $muniAddition));
             $gokeiTotal = $prefTotal + $muniTotal;
 
-            $out[$kifukinPrefKey] = $prefTotal;
-            $out[$kifukinMuniKey] = $muniTotal;
-            $out[$kifukinGokeiKey] = $gokeiTotal;
+            /**
+             * ▼ 天井（残税額）：
+             *   調整控除後所得割（税額）→ 配当控除 → 住宅ローン控除 → 残税額（マイナス不可）
+             *   の残額を上限に、寄附金税額控除合計（県+市）をキャップする。
+             */
+            $taxCeil = (int)($payload[sprintf('tax_after_jutaku_jumin_%s', $period)] ?? $payload[sprintf('tax_zeigaku_jumin_%s', $period)] ?? 0);
+            $taxCeil = max(0, $taxCeil);
+            $cappedTotal = min(max(0, $gokeiTotal), $taxCeil);
+
+            if ($cappedTotal < $gokeiTotal) {
+                // キャップ後は jumin_master（特例控除の按分比）で pref/muni に配賦（端数は muni に寄せる）
+                $sharePref = (float) $tokureiPrefRate;
+                $shareMuni = (float) $tokureiMuniRate;
+                $shareSum  = $sharePref + $shareMuni;
+                if ($shareSum <= 0.0) {
+                    // 保険（通常ここには来ない）
+                    $sharePref = 0.4;
+                    $shareMuni = 0.6;
+                    $shareSum  = 1.0;
+                }
+                $prefCapped = (int) floor($cappedTotal * ($sharePref / $shareSum));
+                $muniCapped = (int) max($cappedTotal - $prefCapped, 0); // 端数は muni に寄せる
+
+                $out[$kifukinPrefKey] = $prefCapped;
+                $out[$kifukinMuniKey] = $muniCapped;
+                $out[$kifukinGokeiKey] = $cappedTotal;
+            } else {
+                // 天井に当たらない場合は従来どおり（県市それぞれの算出結果をそのまま採用）
+                $out[$kifukinPrefKey] = $prefTotal;
+                $out[$kifukinMuniKey] = $muniTotal;
+                $out[$kifukinGokeiKey] = $gokeiTotal;
+            }
         }
 
         return array_replace($payload, $out);

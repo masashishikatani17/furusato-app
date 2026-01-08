@@ -57,8 +57,10 @@ class JutakuLoanCreditCalculator implements ProvidesKeys
             $theoretical = (int) floor(min($cap, $bal) * $rate);
             $out["itax_theoretical_credit_{$p}"] = $theoretical;
 
-            // 上限：税額控除適用前の所得税額（＝算出税額）
-            $baseTax   = max(0, (int) ($payload["tax_zeigaku_shotoku_{$p}"] ?? 0));
+            // 上限：配当控除後の残税額 → 住宅ローン控除（要件）
+            //   baseTax = tax_after_haito_shotoku_*（無ければ算出税額へフォールバック）
+            $baseTax = (int) ($payload["tax_after_haito_shotoku_{$p}"] ?? $payload["tax_zeigaku_shotoku_{$p}"] ?? 0);
+            $baseTax = max(0, $baseTax);
             $applied   = min($theoretical, $baseTax);
             $afterTax  = $baseTax - $applied;
             $unapplied = $theoretical - $applied;

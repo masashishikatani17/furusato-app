@@ -42,7 +42,9 @@ class JuminJutakuLoanCreditCalculator implements ProvidesKeys
         $out = array_fill_keys(self::provides(), 0);
 
         foreach (self::PERIODS as $p) {
-            $baseTax = max(0, (int) ($payload["tax_zeigaku_jumin_{$p}"] ?? 0)); // 住民税の算出税額
+            // 住民税の算出税額（調整控除後）→ 配当控除後残税額をベースにする
+            $baseTax = (int) ($payload["tax_after_haito_jumin_{$p}"] ?? $payload["tax_zeigaku_jumin_{$p}"] ?? 0);
+            $baseTax = max(0, $baseTax);
 
             // 住宅控除の母数：未控除額（所得税側）
             $unapplied = max(0, (int) ($payload["itax_unapplied_{$p}"] ?? 0));

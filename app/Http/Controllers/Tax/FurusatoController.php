@@ -670,6 +670,14 @@ final class FurusatoController extends Controller
             /** @var \App\Domain\Tax\Services\FurusatoPracticalUpperLimitService $upperSvc */
             $upperSvc = app(\App\Domain\Tax\Services\FurusatoPracticalUpperLimitService::class);
             $context['furusato_upper'] = $upperSvc->compute($previewPayload, $upperCtx);
+
+            // ▼ ①〜④の税額スナップショット（表示用）
+            $yMaxTotal = is_array($context['furusato_upper'])
+                ? (int)($context['furusato_upper']['y_max_total'] ?? 0)
+                : 0;
+            /** @var \App\Domain\Tax\Services\FurusatoScenarioTaxSummaryService $scSvc */
+            $scSvc = app(\App\Domain\Tax\Services\FurusatoScenarioTaxSummaryService::class);
+            $context['furusato_upper_scenarios'] = $scSvc->build($previewPayload, $upperCtx, $yMaxTotal);
         } catch (\Throwable $e) {
             // 失敗時は落とさず、表示側で非表示にできるよう null を入れる
             \Log::warning('[furusato.upper] failed to compute practical upper', [
@@ -677,6 +685,7 @@ final class FurusatoController extends Controller
                 'err' => $e->getMessage(),
             ]);
             $context['furusato_upper'] = null;
+            $context['furusato_upper_scenarios'] = null;
         }
 
         return $context;

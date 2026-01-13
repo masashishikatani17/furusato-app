@@ -1,3 +1,4 @@
+/*public/css/style.css*/
         /* ==========================================================================
            furusato style.css (Essential Set)
            - Based on 「ビル」から“必須セット”のみ抽出・再構成
@@ -17,54 +18,65 @@
     --sp-8: 36px;
     --sp-10: 48px;
 }
+        /* 用紙キャンバス */
+        .sheet {
+          width: 297mm;
+          height: 210mm;
+          margin: 0 auto;
+          position: relative;
+          background: #fff;
+          /* ★pdf/layouts/print.blade.php 側で定義している ipaexg を優先（404のNotoSans参照を排除） */
+          font-family: ipaexg, "Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;
+        }
+/*ここまでstyleから移動 */
 
-.form-control[readonly],
-input[readonly],
-textarea[readonly],
-select[readonly] {
-    background-color: var(--readonly-bg) !important;
-    color: var(--readonly-text) !important;
-    cursor: default;
-}
-
-.vtext {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    white-space: nowrap;
-}
-
-.readonly-span {
-    display: block;
-    width: 100%;
-    background-color: #e9ecef;
-    color: #212529;
-    padding: 4px;
-    box-sizing: border-box;
-    min-height: 26px;
-}
-
-.readonly-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.form-control[readonly]::placeholder,
-input[readonly]::placeholder,
-textarea[readonly]::placeholder,
-select[readonly]::placeholder {
-    color: var(--readonly-text);
-    opacity: 1;
-}
-
-.form-control.bg-light[readonly],
-input.bg-light[readonly],
-textarea.bg-light[readonly],
-select.bg-light[readonly] {
-    background-color: var(--readonly-bg) !important;
-    color: var(--readonly-text) !important;
-}
-        
+    .form-control[readonly],
+    input[readonly],
+    textarea[readonly],
+    select[readonly] {
+        background-color: var(--readonly-bg) !important;
+        color: var(--readonly-text) !important;
+        cursor: default;
+    }
+    
+    .vtext {
+        writing-mode: vertical-rl;
+        text-orientation: mixed;
+        white-space: nowrap;
+    }
+    
+    .readonly-span {
+        display: block;
+        width: 100%;
+        background-color: #e9ecef;
+        color: #212529;
+        padding: 4px;
+        box-sizing: border-box;
+        min-height: 26px;
+    }
+    
+    .readonly-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    
+    .form-control[readonly]::placeholder,
+    input[readonly]::placeholder,
+    textarea[readonly]::placeholder,
+    select[readonly]::placeholder {
+        color: var(--readonly-text);
+        opacity: 1;
+    }
+    
+    .form-control.bg-light[readonly],
+    input.bg-light[readonly],
+    textarea.bg-light[readonly],
+    select.bg-light[readonly] {
+        background-color: var(--readonly-bg) !important;
+        color: var(--readonly-text) !important;
+    }
+            
  /* --------------------------------------
   * レイアウト
   * ------------------------------------ */
@@ -176,8 +188,6 @@ select.bg-light[readonly] {
         }
         
         
-        
-        
     /* ※注 文字*/
         p-small {
             font-size: 12px;
@@ -192,39 +202,36 @@ select.bg-light[readonly] {
         .nowrap    { white-space: nowrap; }     
    
    /* 汎用ユーティリティ（どこに置いても効く） */
-		td.text-start,  th.text-start  { text-align: left   !important; }
-		td.text-center, th.text-center { text-align: center !important; }
-		td.text-end,    th.text-end    { text-align: right  !important; }     
+  		td.text-start,  th.text-start  { text-align: left   !important; }
+  		td.text-center, th.text-center { text-align: center !important; }
+  		td.text-end,    th.text-end    { text-align: right  !important; }     
 
-/* =========================================================
- * PDF/帳票向け “共通部品” 追記（furusato.css から必要最小限）
- * ========================================================= */
 
-/* 非標準タグ（h14u等）を使う前提：ブロック化 */
-h13,h14,h14u,h15,h15b,h16,h18,h18u,h20,h24,h30,p-small,hb,hs,hm,h0 {
-  display: block;
-}
 
-/* 非標準タグのサイズ（帳票で使う分だけ） */
-h30 { font-size: 30px; font-weight: bold; color: #000; }
-h24 { font-size: 24px; font-weight: bold; color: #000; }
-h20 { font-size: 20px; font-weight: bold; color: #000; }
-h18 { font-size: 18px; font-weight: bold; color: #000; }
-h18u{ font-size: 18px; color: #000; }
-h16 { font-size: 16px; font-weight: bold; color: #000; }
-h15 { font-size: 15px; color: #000; }
-h15b{ font-size: 15px; font-weight: bold; color: #000; }
-h14 { font-size: 14px; font-weight: bold; color: #000; }
-h14u{ font-size: 14px; color: #000; }
-h13 { font-size: 13px; color: #000; }
-h12 { font-size: 12px; color: #000; }
-h11 { font-size: 11px; color: #000; }
+   /* 非標準タグ（h14u等）を使う前提：ブロック化 */
+      h13,h14,h14u,h15,h15b,h16,h18,h18u,h20,h24,h30,p-small,hb,hs,hm,h0 {
+        display: block;
+      }
+   
+      h30 { font-size: 30px; font-weight: bold; color: #000; }
+      h24 { font-size: 24px; font-weight: bold; color: #000; }
+      h20 { font-size: 20px; font-weight: bold; color: #000; }
+      h18 { font-size: 18px; font-weight: bold; color: #000; }
+      h18u{ font-size: 18px; color: #000; }
+      h16 { font-size: 16px; font-weight: bold; color: #000; }
+      h15 { font-size: 15px; color: #000; }
+      h15b{ font-size: 15px; font-weight: bold; color: #000; }
+      h14 { font-size: 14px; font-weight: bold; color: #000; }
+      h14u{ font-size: 14px; color: #000; }
+      h13 { font-size: 13px; color: #000; }
+      h12 { font-size: 12px; color: #000; }
+      h11 { font-size: 11px; color: #000; }
+      
+      /* 背景色（帳票の見出しセル等） */
+      td.bg-grey, th.bg-grey { background: #ededed !important; }
+      tr.bg-grey > td, tr.bg-grey > th { background: #ededed !important; }
 
-/* 背景色（帳票の見出しセル等） */
-td.bg-grey, th.bg-grey { background: #ededed !important; }
-tr.bg-grey > td, tr.bg-grey > th { background: #ededed !important; }
-
-/* ===== 帳票用コンパクト ===== */
+  /* ===== 帳票用コンパクト ===== */
 		.table-compact-p {
 		  border-collapse: collapse;
 		  font-size: 13px;
@@ -254,23 +261,19 @@ tr.bg-grey > td, tr.bg-grey > th { background: #ededed !important; }
           vertical-align: middle;
         }
 
-/* ===== 外枠だけ太線（既存互換） ===== */
-		.table-frame {
-		  display: inline-block;
-		  border: 2px solid #333;
-		  vertical-align: top;
-		  background: transparent;
-		}
-		.table-frame > table {
-		  border: none !important;
-		  margin: 0;
-		}
+    /* ===== 外枠だけ太線（既存互換） ===== */
+    		.table-frame {
+    		  display: inline-block;
+    		  border: 2px solid #333;
+    		  vertical-align: top;
+    		  background: transparent;
+    		}
+    		.table-frame > table {
+    		  border: none !important;
+    		  margin: 0;
+    		}
 
-        /* 罫線ユーティリティの不足分 */
-        .b-y-no { border-top: none !important; border-bottom: none !important; }
-        .b-y-strong { border-top: 2px solid #333 !important; border-bottom: 2px solid #333 !important; }    
-        
-        
+       
     
 /* --------------------------------------
   * ボタン（独自クラス）
@@ -641,26 +644,7 @@ tr.bg-grey > td, tr.bg-grey > th { background: #ededed !important; }
             background-color: #F4F1E8 !important;
           }
     
-    /* --- 罫線をセル単位で透明化する --- */
-        .b-none     { border: none !important; }
-        .b-t-no   { border-top:    none !important; }
-        .b-r-no   { border-right:  none !important; }
-        .b-b-no   { border-bottom: none !important; }
-        .b-l-no   { border-left:   none !important; }
-        .b-x-no   { border-left:   none !important; border-right: none !important; }
-        
-    /* --- 罫線をセル単位で太線にする --- */
-        .b-t-strong { border-top:    2px solid #333 !important; }
-        .b-r-strong { border-right:  2px solid #333 !important; }
-        .b-b-strong { border-bottom: 2px solid #333 !important; }
-        .b-l-strong { border-left:   2px solid #333 !important; }
-
-	    table td.b-x-strong, table th.b-x-strong { border-left: 2px solid #333 !important; border-right: 2px solid #333 !important; }
-  		table td.b-y-strong, table th.b-y-strong { border-top:  2px solid #333 !important; border-bottom:2px solid #333 !important; }
-  
-  		table td.b-strong,   table th.b-strong   { border: 2px solid #333 !important; }
-  		table td.b-strong-1, table th.b-strong-1 { border: 1px solid #333 !important; }
-  		table td.b-r-strong-1, table th.b-r-strong-1 { border-right: 1px solid #333 !important; }
+    
   		
         /* collapse境界で負けないよう、太線は左右/上下どちら側でも勝つように強制 */
         table.table-compact-p td.b-r-strong, table.table-compact-p th.b-r-strong { border-right-width: 2px !important; border-right-style: solid !important; border-right-color: #333 !important; }
@@ -676,6 +660,14 @@ tr.bg-grey > td, tr.bg-grey > th { background: #ededed !important; }
         table.table-compact-p td.b-l-no, table.table-compact-p th.b-l-no { border-left: none !important; }
         table.table-compact-p td.b-x-no, table.table-compact-p th.b-x-no { border-left: none !important; border-right: none !important; }
    
+   
+
+	    table td.b-x-strong, table th.b-x-strong { border-left: 2px solid #333 !important; border-right: 2px solid #333 !important; }
+  		table td.b-y-strong, table th.b-y-strong { border-top:  2px solid #333 !important; border-bottom:2px solid #333 !important; }
+  
+  		table td.b-strong,   table th.b-strong   { border: 2px solid #333 !important; }
+  		table td.b-strong-1, table th.b-strong-1 { border: 1px solid #333 !important; }
+  		table td.b-r-strong-1, table th.b-r-strong-1 { border-right: 1px solid #333 !important; }
 /* --------------------------------------
   * タブ
   * ------------------------------------ */
@@ -1063,73 +1055,97 @@ tr.bg-grey > td, tr.bg-grey > th { background: #ededed !important; }
             height: 22px;
             line-height: 1.2;
             }
+  
+  /* --- 罫線をセル単位で透明化する --- */
+        .b-none   { border: none !important; }
+        .b-t-no   { border-top:    none !important; }
+        .b-r-no   { border-right:  none !important; }
+        .b-b-no   { border-bottom: none !important; }
+        .b-l-no   { border-left:   none !important; }
+        .b-x-no   { border-left:   none !important; border-right: none !important; }
+        .b-y-no { border-top: none !important; border-bottom: none !important; }
+        
+    /* --- 罫線をセル単位で太線にする --- */
+        .b-t-strong { border-top:    2px solid #333 !important; }
+        .b-r-strong { border-right:  2px solid #333 !important; }
+        .b-b-strong { border-bottom: 2px solid #333 !important; }
+        .b-l-strong { border-left:   2px solid #333 !important; }
+        .b-y-strong { border-top: 2px solid #333 !important; border-bottom: 2px solid #333 !important; }    
+   
+      table td.b-x-strong, table th.b-x-strong { border-left: 2px solid #333 !important; border-right: 2px solid #333 !important; }
+  		table td.b-y-strong, table th.b-y-strong { border-top:  2px solid #333 !important; border-bottom:2px solid #333 !important; }
+  
+  		table td.b-strong,   table th.b-strong   { border: 2px solid #333 !important; }
+  		table td.b-strong-1, table th.b-strong-1 { border: 1px solid #333 !important; }
+  		table td.b-r-strong-1, table th.b-r-strong-1 { border-right: 1px solid #333 !important; }
             
     /* margin-top/bottom/left/right */
-.mt-0 { margin-top: 0 !important; }
-.mt-1 { margin-top: 4px !important; }
-.mt-2 { margin-top: 8px !important; }
-.mt-3 { margin-top: 12px !important; }
-.mt-4 { margin-top: 16px !important;  }
-.mt-5 { margin-top: 24px !important;}
-.mb-0 { margin-bottom: 0 !important; }
-.mb-1 { margin-bottom: 4px !important; }
-.mb-2 { margin-bottom: 8px !important; }
-.mb-3 { margin-bottom: 12px !important;; }
-.mb-4 { margin-bottom: 16px !important; }
-.mb-5 { margin-bottom: 24px !important;}
-.mb-10 { margin-bottom: 48px !important; }
-/* 論理プロパティ（ms/me=inline start/end）。古い環境向けに左右も併記 */
-.ms-0 { margin-left: 0 !important; }
-.ms-1 { margin-left: 4px !important; }
-.ms-2 { margin-left: 8px !important; }
-.ms-3 { margin-left: 12px !important; }
-.ms-4 { margin-left: 16px !important;  }
-.ms-5 { margin-left: 24px !important; }
-.ms-10 { margin-left: 48px !important; }
-.ms-20 { margin-left: 96px !important; }
-.ms-40 { margin-left: 192px !important; }
-.me-0 { margin-right: 0 !important; }
-.me-1 { margin-right: 4px !important; }
-.me-2 { margin-right: 8px !important; }
-.me-3 { margin-right: 12px !important; }
-.me-4 { margin-right: 16px !important; }
-.me-5 { margin-right: 24px !important;}
-.me-10 { margin-right: 48px !important; }
-.me-40 { margin-right: 192px !important; }
-.mt-10 { margin-top: 48px !important; }
-.mt-11 { margin-top: 54px !important; }
-.mt-20 { margin-top: 96px !important; }
-.mt-8 { margin-top: 36px !important;}
+      .mt-0 { margin-top: 0 !important; }
+      .mt-1 { margin-top: 4px !important; }
+      .mt-2 { margin-top: 8px !important; }
+      .mt-3 { margin-top: 12px !important; }
+      .mt-4 { margin-top: 16px !important;  }
+      .mt-5 { margin-top: 24px !important;}
+      .mb-0 { margin-bottom: 0 !important; }
+      .mb-1 { margin-bottom: 4px !important; }
+      .mb-2 { margin-bottom: 8px !important; }
+      .mb-3 { margin-bottom: 12px !important;; }
+      .mb-4 { margin-bottom: 16px !important; }
+      .mb-5 { margin-bottom: 24px !important;}
+      .mb-10 { margin-bottom: 48px !important; }
 
-/* padding top/bottom/左右のスケール */
-.pt-0 { padding-top: 0 !important; }
-.pt-1 { padding-top: 4px !important; }
-.pt-2 { padding-top: 8px !important;  }
-.pt-3 { padding-top: 12px !important;  }
-.pt-4 { padding-top: 16px !important;}
-.pt-5 { padding-top: 24px !important; }
-.pt-10 { padding-top: 48px !important; }
-.pb-0 { padding-bottom: 0 !important; }
-.pb-1 { padding-bottom: 4px !important; }
-.pb-2 { padding-bottom: 8px !important;  }
-.pb-3 { padding-bottom: 12px !important; }
-.pb-4 { padding-bottom: 16px !important; }
-.pb-5 { padding-bottom: 24px !important; }
-.ps-0 { padding-left: 0 !important; }
-.ps-1 { padding-left: 4px !important;}
-.ps-2 { padding-left: 8px !important; }
-.ps-3 { padding-left: 12px !important;}
-.ps-4 { padding-left: 16px !important; }
-.ps-5 { padding-left: 24px !important; }
-.ps-10 { padding-left: 48px !important; }
-.ps-20 { padding-left: 80px !important; }
-.ps-130 { padding-left: 130px !important; }
-.pe-0 { padding-right: 0 !important; }
-.pe-1 { padding-right: 4px !important; }
-.pe-2 { padding-right: 8px !important;} 
-.pe-3 { padding-right: 12px !important; }
-.pe-4 { padding-right: 16px !important; }
-.pe-5 { padding-right: 24px !important; }
+      .ms-0 { margin-left: 0 !important; }
+      .ms-1 { margin-left: 4px !important; }
+      .ms-2 { margin-left: 8px !important; }
+      .ms-3 { margin-left: 12px !important; }
+      .ms-4 { margin-left: 16px !important;  }
+      .ms-5 { margin-left: 24px !important; }
+      .ms-10 { margin-left: 48px !important; }
+      .ms-12 { margin-left: 60px !important; }
+      .ms-20 { margin-left: 96px !important; }
+      .ms-40 { margin-left: 192px !important; }
+      .me-0 { margin-right: 0 !important; }
+      .me-1 { margin-right: 4px !important; }
+      .me-2 { margin-right: 8px !important; }
+      .me-3 { margin-right: 12px !important; }
+      .me-4 { margin-right: 16px !important; }
+      .me-5 { margin-right: 24px !important;}
+      .me-10 { margin-right: 48px !important; }
+      .me-40 { margin-right: 192px !important; }
+      .mt-10 { margin-top: 48px !important; }
+      .mt-11 { margin-top: 54px !important; }
+      .mt-20 { margin-top: 96px !important; }
+      .mt-8 { margin-top: 36px !important;}
 
-.pe-10 { padding-right: 48px !important; }
-.pe-11 { padding-right: 52px !important; }        
+      /* padding top/bottom/左右のスケール */
+      .pt-0 { padding-top: 0 !important; }
+      .pt-1 { padding-top: 4px !important; }
+      .pt-2 { padding-top: 8px !important;  }
+      .pt-3 { padding-top: 12px !important;  }
+      .pt-4 { padding-top: 16px !important;}
+      .pt-5 { padding-top: 24px !important; }
+      .pt-10 { padding-top: 48px !important; }
+      .pb-0 { padding-bottom: 0 !important; }
+      .pb-1 { padding-bottom: 4px !important; }
+      .pb-2 { padding-bottom: 8px !important;  }
+      .pb-3 { padding-bottom: 12px !important; }
+      .pb-4 { padding-bottom: 16px !important; }
+      .pb-5 { padding-bottom: 24px !important; }
+      .ps-0 { padding-left: 0 !important; }
+      .ps-1 { padding-left: 4px !important;}
+      .ps-2 { padding-left: 8px !important; }
+      .ps-3 { padding-left: 12px !important;}
+      .ps-4 { padding-left: 16px !important; }
+      .ps-5 { padding-left: 24px !important; }
+      .ps-10 { padding-left: 48px !important; }
+      .ps-20 { padding-left: 80px !important; }
+      .ps-130 { padding-left: 130px !important; }
+      .pe-0 { padding-right: 0 !important; }
+      .pe-1 { padding-right: 4px !important; }
+      .pe-2 { padding-right: 8px !important;} 
+      .pe-3 { padding-right: 12px !important; }
+      .pe-4 { padding-right: 16px !important; }
+      .pe-5 { padding-right: 24px !important; }
+      
+      .pe-10 { padding-right: 48px !important; }
+      .pe-11 { padding-right: 52px !important; }        

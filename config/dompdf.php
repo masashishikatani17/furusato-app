@@ -21,6 +21,8 @@ return [
     'convert_entities' => true,
 
     'options' => [
+        // ★既定フォント（@font-faceが失敗した場合の保険）
+        'defaultFont' => 'ipaexg',
         /**
          * The location of the DOMPDF font directory
          *
@@ -78,7 +80,9 @@ return [
          * direct class use like:
          * $dompdf = new DOMPDF();  $dompdf->load_html($htmldata); $dompdf->render(); $pdfdata = $dompdf->output();
          */
-        'chroot' => realpath(base_path()),
+        // ★file:// で参照するローカルファイルは chroot 配下のみ許可される
+        //   今回は public 配下（css/fonts）だけ読めれば良いので public に絞る
+        'chroot' => realpath(public_path()),
 
         /**
          * Protocol whitelist
@@ -179,7 +183,8 @@ return [
          *
          * @var string
          */
-        'default_font' => 'DejaVu Sans',
+        // ★DejaVu Sans は日本語が欠けることがあるため ipaexg に寄せる
+        'default_font' => 'ipaexg',
 
         /**
          * Image DPI setting

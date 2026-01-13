@@ -38,9 +38,16 @@
       </tr>
     </table>
 
-    <div style="width: 252mm; margin: 0 auto; display: flex; align-items: flex-start; gap: 6mm;">
-      <!-- 左側 -->
-      <div style="width: 123mm; margin: 0 auto;">
+    <table class="table b-none no-overlap"
+           style="width:252mm; table-layout:fixed; border-collapse:collapse; margin:0 auto;">
+      <colgroup>
+        <col style="width:123mm;">
+        <col style="width:6mm;">
+        <col style="width:123mm;">
+      </colgroup>
+     <tbody>
+      <tr>
+        <td class="b-none" style="vertical-align:top; padding:0;">
         <table class="table b-none no-overlap mt-3 mb-2"
                style="width: 123mm; table-layout: fixed; border-collapse: collapse;
                       margin: 0 auto; clear:both;">
@@ -48,8 +55,9 @@
             <td><h18>■５万円ごとの区分</h18></td>
           </tr>
         </table>
-        <div class="table-frame">
-          <table class="table table-compact-p no-overlap mb-tight table-123mm" style="font-size:13px;line-height:1.2;">
+        
+          <table class="table table-compact-p no-overlap mb-tight table-123mm" 
+          style="font-size:13px;line-height:1.2;outline:2px solid #000; outline-offset:-2px;">
             <colgroup>
               <col style="width:8mm">
               <col style="width:23mm">
@@ -106,79 +114,79 @@
               <tr><td class="text-end">30</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
             </tbody>
           </table>
-        </div>
-      </div><!-- /左側 -->
-
-      <!-- 右側 -->
-      <div style="width: 123mm; margin: 0 auto;">
-        <table class="table b-none no-overlap mt-3 mb-2"
-               style="width: 123mm; table-layout: fixed; border-collapse: collapse;
-                      margin: 0 auto; clear:both;">
-          <tr>
-            <td><h18>■１万円ごとの区分</h18></td>
-          </tr>
-        </table>
-        <div class="table-frame mb-0">
-          <table class="table table-compact-p no-overlap mb-tight table-123mm mb-0" style="font-size:13px;line-height:1.2;">
-            <colgroup>
-              <col style="width:8mm">
-              <col style="width:23mm">
-              <col style="width:23mm">
-              <col style="width:23mm">
-              <col style="width:23mm">
-              <col style="width:23mm">
-            </colgroup>
-            <tbody>
-              <tr>
-                <td rowspan="2"><h14>区分</h14></td>
-                <td><h14>寄附金額</h14></td>
-                <td><h14>減税額</h14></td>
-                <td><h14>差  引</h14></td>
-                <td><h14>返戻品額</h14></td>
-                <td><h14>実質負担額</h14></td>
-              </tr>
-              <tr>
-                <td>①</td>
-                <td>②</td>
-                <td>①－②＝③</td>
-                <td>①×30％＝④</td>
-                <td>③－④</td>
-              </tr>
-              <tr><td class="text-end">1</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">2</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">3</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">4</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">5</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">6</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">7</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">8</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">9</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">10</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">11</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">12</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">13</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">14</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">15</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">16</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">17</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">18</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">19</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">20</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">21</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">22</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">23</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">24</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">25</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">26</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">27</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">28</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">29</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-              <tr><td class="text-end">30</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
-            </tbody>
+        
+        </td>
+        <td class="b-none" style="padding:0;">&nbsp;</td>
+        <td class="b-none" style="vertical-align:top; padding:0;">
+          <table class="table b-none no-overlap mt-3 mb-2"
+                 style="width: 123mm; table-layout: fixed; border-collapse: collapse;
+                        margin: 0 auto; clear:both;">
+            <tr>
+              <td><h18>■１万円ごとの区分</h18></td>
+            </tr>
           </table>
-        </div>
-      </div>
-    </div>
+            <table class="table table-compact-p no-overlap mb-tight table-123mm mb-0" 
+            style="font-size:13px;line-height:1.2;outline:2px solid #000; outline-offset:-2px;">
+              <colgroup>
+                <col style="width:8mm">
+                <col style="width:23mm">
+                <col style="width:23mm">
+                <col style="width:23mm">
+                <col style="width:23mm">
+                <col style="width:23mm">
+              </colgroup>
+              <tbody>
+                <tr>
+                  <td rowspan="2"><h14>区分</h14></td>
+                  <td><h14>寄附金額</h14></td>
+                  <td><h14>減税額</h14></td>
+                  <td><h14>差  引</h14></td>
+                  <td><h14>返戻品額</h14></td>
+                  <td><h14>実質負担額</h14></td>
+                </tr>
+                <tr>
+                  <td>①</td>
+                  <td>②</td>
+                  <td>①－②＝③</td>
+                  <td>①×30％＝④</td>
+                  <td>③－④</td>
+                </tr>
+                <tr><td class="text-end">1</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">2</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">3</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">4</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">5</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">6</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">7</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">8</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">9</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">10</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">11</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">12</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">13</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">14</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">15</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">16</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">17</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">18</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">19</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">20</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">21</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">22</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">23</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">24</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">25</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">26</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">27</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">28</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">29</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+                <tr><td class="text-end">30</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td></tr>
+              </tbody>
+            </table>
+        </td>
+      </tr>
+     </tbody>
+    </table>
 
     <div class="page-footer">
         <div class="footer-inner">

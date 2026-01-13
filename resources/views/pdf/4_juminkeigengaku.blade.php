@@ -44,15 +44,16 @@
 @section('content')
  <div class="page-frame text-center"><!-- ここが実効幅281mmの中央寄せコンテナ -->
 
-  <table class="table b-none no-overlap mt-11 mb-1"
+  <table class="table b-none no-overlap mt-5 mb-1"
          style="width: 250mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto; clear:both;">
     <tr>
       <td class="text-start"><h16>★上限額まで寄附した場合</h16></td>
     </tr>
   </table>
 
-  <table class="table table-base b-strong"
-         style="width: 250mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto;">
+  <table class="table table-base"
+         style="width: 250mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto;
+         outline:2px solid #000; outline-offset:-2px;">
     <tr>
       <td class="text-center bg-grey"><h18>所得税・住民税の軽減額の計算過程</h18></td>
     </tr>
@@ -70,7 +71,7 @@
       <!-- 左側（140mm） -->
       <td class="b-none" style="vertical-align:top; padding:0; text-align:left;">
 
-        <table class="table b-none no-overlap ms-1 mt-5 mb-3"
+        <table class="table b-none no-overlap ms-1 mt-3 mb-1"
                style="width: 140mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto; clear:both;">
           <tr>
             <td class="text-start ps-0"><h18>■所得税の軽減額</h18></td>
@@ -106,7 +107,7 @@
       <!-- 右側（100mm） -->
       <td class="b-none" style="vertical-align:top; padding:0; text-align:left;">
 
-        <table class="table b-none no-overlap mt-5 mb-3"
+        <table class="table b-none no-overlap mt-3 mb-1"
                style="width: 100mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto; clear:both;">
           <tr>
             <td class="text-start"><h18>★寄附金額と減税額の比較</h18></td>
@@ -157,15 +158,15 @@
   </table>
 
 
-    <table class="table b-none no-overlap mt-8 mb-3"
+    <table class="table b-none no-overlap mt-3 mb-1"
            style="width: 250mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto; clear:both;">
       <tr>
         <td class="text-start"><h18>■住民税の軽減額</h18></td>
       </tr>
     </table>
-
-    <div class="table-frame w-252mm">
-      <table align="center" class="table table-compact-p14 text-center mt-0" style="width: 250mm; line-height:1.5;">
+   
+    <table class="table table-compact-p14 text-center mt-1" 
+      style="width: 250mm; line-height:1.5; outline:2px solid #000; outline-offset:-2px;">
         <colgroup>
           <col style="width:8mm">
           <col style="width:9mm">
@@ -301,9 +302,44 @@
             <td class="text-start b-t-no b-b-no">&nbsp;</td>
           </tr>
         </tbody>
+    </table>
+    <table class="table table-compact-p14 text-start table-160mm mt-2" 
+    style="width:160mm; line-height:1.5; margin: 0 auto; outline:2px solid #000; outline-offset:-2px;">
+	    <colgroup>
+	      <col style="width:79mm">
+	      <col style="width:27mm">
+	      <col style="width:27mm">
+	      <col style="width:27mm">	      
+        </colgroup>
+    	    <tbody>
+    	      <tr>
+    	        <td class="text-start">ふるさと納税以外の減税額</td>
+    	        <td class="text-end">&nbsp;</td>
+    	        <td class="text-end">&nbsp;</td>
+    	        <td class="text-end">&nbsp;</td>
+            </tr>
+            <tr>
+    	        <td class="text-start"><h14>ふるさと納税だけの減税額</h14></td>
+    	        <td class="text-end bg-cream">&nbsp;</td>
+    	        <td class="text-end bg-cream">&nbsp;</td>
+    	        <td class="text-end bg-cream b-strong"><h14>&nbsp;</h14></td>
+            </tr>
+    	      <tr>
+    	        <td class="text-start">税額控除不能分（３ページの★）</td>
+    	        <td class="text-end">&nbsp;</td>
+    	        <td class="text-end">&nbsp;</td>
+    	        <td class="text-end">&nbsp;</td>
+            </tr>
+    	      <tr>
+    	        <td class="text-start">住民税の最終減税額</td>
+    	        <td class="text-end bg-cream">&nbsp;</td>
+    	        <td class="text-end bg-cream">&nbsp;</td>
+    	        <td class="text-end bg-cream b-strong"><h14>&nbsp;</h14></td>
+            </tr>
+         </tbody>
       </table>
 
-    <div class="page-footer">
+      <div class="page-footer">
         <div class="footer-inner">
           <table class="table b-none no-overlap mb-0"
                  style="width: 248mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto; clear:both;">

@@ -1,3 +1,4 @@
+<!-- resources/views/layouts/min.blade.php -->
 <!doctype html>
 <html lang="ja">
 <head>

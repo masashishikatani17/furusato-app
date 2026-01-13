@@ -13,6 +13,7 @@
           width: calc(297mm - 12mm); /* 例：左右合計12mm を引く */
           margin: 0 auto;
           text-align: center; /* ← inline-block を中央に寄せるため */
+          padding-bottom: 18mm; 
         }
         
         /* テーブルの基本（これだけでよいことが多い） */
@@ -55,13 +56,13 @@
         <td class="text-start"><h16>★上限額まで寄附した場合</h16></td>
       </tr>
     </table>
-
-    <div class="table-frame">
+    
       <table class="table table-compact-p text-center mb-0"
-             style="width:235mm; font-size:15px; line-height:1.6; margin: 0 auto;">
+             style="width:235mm; font-size:15px; line-height:1.6; margin: 0 auto; outline:2px solid #000; outline-offset:-2px;">
         <colgroup>
           <col style="width:10mm">
-          <col style="width:49mm">
+          <col style="width:20mm">
+          <col style="width:29mm">
           <col style="width:30mm">
           <col style="width:30mm">
           <col style="width:29mm">
@@ -71,7 +72,7 @@
         </colgroup>
         <tbody>
           <tr style="line-height: 27px;">
-            <td colspan="2" rowspan="3" class="b-b-strong b-r-strong"><h14u>項　　目</h14u></td>
+            <td colspan="3" rowspan="3" class="b-b-strong b-r-strong"><h14u>項　　目</h14u></td>
             <td colspan="2" class="b-r-strong"><h18u>課税所得金額</h18u></td>
             <td colspan="4"><h18u>税　　額</h18u></td>
           </tr>
@@ -88,7 +89,7 @@
           </tr>
 
           <tr>
-            <td colspan="2" class="text-start b-r-strong b-b-no">総合課税</td>
+            <td colspan="3" class="text-start b-r-strong b-b-no">総合課税</td>
             <td class="text-end">40,050,000</td>
             <td class="text-end b-r-strong">41,430,000</td>
             <td class="text-end">13,226,500</td>
@@ -97,7 +98,7 @@
             <td class="text-end">4,143,000</td>
           </tr>
           <tr>
-            <td colspan="2" class="text-start b-r-strong b-y-no">短期譲渡</td>
+            <td colspan="3" class="text-start b-r-strong b-y-no">短期譲渡</td>
             <td class="text-end">&nbsp;</td>
             <td class="text-end b-r-strong">&nbsp;</td>
             <td class="text-end">&nbsp;</td>
@@ -106,7 +107,7 @@
             <td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td colspan="2" class="text-start b-r-strong b-y-no">長期譲渡</td>
+            <td colspan="3" class="text-start b-r-strong b-y-no">長期譲渡</td>
             <td class="text-end">&nbsp;</td>
             <td class="text-end b-r-strong">&nbsp;</td>
             <td class="text-end">&nbsp;</td>
@@ -115,7 +116,7 @@
             <td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td colspan="2" class="text-start b-r-strong b-y-no">一般・上場株式等の譲渡</td>
+            <td colspan="3" class="text-start b-r-strong b-y-no">一般・上場株式等の譲渡</td>
             <td class="text-end">&nbsp;</td>
             <td class="text-end b-r-strong">&nbsp;</td>
             <td class="text-end">&nbsp;</td>
@@ -124,7 +125,7 @@
             <td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td colspan="2" class="text-start b-r-strong b-y-no">上場株式の配当等</td>
+            <td colspan="3" class="text-start b-r-strong b-y-no">上場株式の配当等</td>
             <td class="text-end">&nbsp;</td>
             <td class="text-end b-r-strong">&nbsp;</td>
             <td class="text-end">&nbsp;</td>
@@ -133,7 +134,7 @@
             <td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td colspan="2" class="text-start b-r-strong b-y-no">先物取引</td>
+            <td colspan="3" class="text-start b-r-strong b-y-no">先物取引</td>
             <td class="text-end">&nbsp;</td>
             <td class="text-end b-r-strong">&nbsp;</td>
             <td class="text-end">&nbsp;</td>
@@ -142,7 +143,7 @@
             <td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td colspan="2" class="text-start b-r-strong b-y-no">山林</td>
+            <td colspan="3" class="text-start b-r-strong b-y-no">山林</td>
             <td class="text-end">&nbsp;</td>
             <td class="text-end b-r-strong">&nbsp;</td>
             <td class="text-end">&nbsp;</td>
@@ -151,7 +152,7 @@
             <td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td colspan="2" class="text-start b-r-strong b-y-no">退職</td>
+            <td colspan="3" class="text-start b-r-strong b-y-no">退職</td>
             <td class="text-end">&nbsp;</td>
             <td class="text-end b-r-strong">&nbsp;</td>
             <td class="text-end">&nbsp;</td>
@@ -160,7 +161,7 @@
             <td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td colspan="2" class="b-b-strong b-r-strong">合　　計</td>
+            <td colspan="3" class="b-b-strong b-r-strong">合　　計</td>
             <td colspan="2" class="diag-auto b-b-strong b-r-strong"
                 style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
             <td class="text-end b-b-strong">&nbsp;</td>
@@ -170,28 +171,71 @@
           </tr>
 
           <tr>
-            <td width="28" rowspan="6"><h14u>税<br>額<br>控<br>除</h14u></td>
-            <td class="text-start b-r-strong">調整控除</td>
+            <td rowspan="8"><h14u>税<br>額<br>控<br>除</h14u></td>
+            <td class="text-start b-r-strong" colspan="2">
+                <table style="width:100%; border-collapse:collapse; table-layout:fixed; border:0 !important;">
+                  <tr>
+                    <td style="border:0 !important; padding:0 !important; text-align:left;">調整控除</td>
+                    <td style="border:0 !important; padding:0 !important; text-align:right;">①</td>
+                  </tr>
+                </table>
+            </td>
             <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
             <td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td class="text-start b-r-strong">配当控除</td>
+            <td class="text-start b-r-strong" colspan="2">
+                <table style="width:100%; border-collapse:collapse; table-layout:fixed; border:0 !important;">
+                  <tr>
+                    <td style="border:0 !important; padding:0 !important; text-align:left;">配当控除</td>
+                    <td style="border:0 !important; padding:0 !important; text-align:right;">②</td>
+                  </tr>
+                </table>
+            </td>
             <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
             <td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td class="text-start b-r-strong">住宅借入金等特別控除</td>
+            <td class="text-start b-r-strong" colspan="2">
+                <table style="width:100%; border-collapse:collapse; table-layout:fixed; border:0 !important;">
+                  <tr>
+                    <td style="border:0 !important; padding:0 !important; text-align:left;" nowrap>住宅借入金等特別控除</td>
+                    <td style="border:0 !important; padding:0 !important; text-align:right;">③</td>
+                  </tr>
+                </table>
+            </td>
             <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
             <td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td class="text-start b-r-strong">政党等寄附金等特別控除</td>
+            <td class="text-start b-r-strong" colspan="2">
+                <table style="width:100%; border-collapse:collapse; table-layout:fixed; border:0 !important;">
+                  <tr>
+                    <td style="border:0 !important; padding:0 !important; text-align:left;" nowrap>政党等寄附金等特別控除</td>
+                    <td style="border:0 !important; padding:0 !important; text-align:right;">④</td>
+                  </tr>
+                </table>
+            </td>
             <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
             <td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td class="text-start b-r-strong">寄附金税額控除</td>
+            <td class="b-r-strong" colspan="2">上記①～④控除後の所得割額
+            </td>
+            <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
+            <td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td>
+          </tr>
+          <tr>
+            <td rowspan="2" class="text-start">寄附金税額<br>控除</td>
+            <td class="text-start b-r-strong">下記以外</td>
+            <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
+            <td class="text-end">&nbsp;</td>
+            <td class="text-end"><hb>0</hb></td>
+            <td class="text-end"><hb>0</hb></td>
+            <td class="text-end"><hb>0</hb></td>
+          </tr>
+          <tr>
+            <td class="text-start b-r-strong">ふるさと(※)</td>
             <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
             <td class="text-end">&nbsp;</td>
             <td class="text-end b-strong"><hb>0</hb></td>
@@ -199,24 +243,24 @@
             <td class="text-end b-t-strong b-b-strong"><hb>0</hb></td>
           </tr>
           <tr>
-            <td class="text-start b-r-strong">災害減免額</td>
+            <td class="text-start b-r-strong" colspan="2">災害減免額</td>
             <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
             <td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td>
           </tr>
 
           <tr>
-            <td rowspan="3"><h14u>税<br>額</h14u></td>
-            <td class="text-start b-r-strong">差引所得税額（所得割額）</td>
+            <td rowspan="3" class="b-t-strong"><h14u>税<br>額</h14u></td>
+            <td class="text-start b-r-strong b-t-strong" colspan="2">差引所得税額（所得割額）　★</td>
             <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
             <td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td>
           </tr>
           <tr>
-            <td class="text-start b-r-strong">復興特別所得税額</td>
-            <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
-            <td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td><td class="text-end">&nbsp;</td>
+            <td class="text-start b-r-strong" colspan="2">復興特別所得税額</td>
+            <td colspan="2" class="diag-auto b-r-strong b-t-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
+            <td class="text-end b-t-strong">&nbsp;</td><td class="text-end b-t-strong">&nbsp;</td><td class="text-end b-t-strong">&nbsp;</td><td class="text-end b-t-strong">&nbsp;</td>
           </tr>
           <tr>
-            <td class="b-r-strong">合　　計</td>
+            <td class="b-r-strong" colspan="2">合　　計</td>
             <td colspan="2" class="diag-auto b-r-strong" style="--diag-width:1px; --diag-color:#000;">&nbsp;</td>
             <td class="text-end b-t-strong b-l-strong b-r-strong">&nbsp;</td>
             <td class="text-end">&nbsp;</td>
@@ -225,28 +269,24 @@
           </tr>
         </tbody>
       </table>
-    </div>
 
     <table class="table b-none no-overlap mt-2"
            style="width: 225mm; table-layout: fixed; border-collapse: collapse;
                   margin: 0 auto; clear:both;">
       <tr>
-        <td class="text-start"><h13>
+        <td class="text-start" style="line-height:1.5;"><h13>
           ※寄附金税額控除の計算過程は「所得税・住民税の軽減額の計算過程(4ページ)」にあります。<br>
-          ※寄附金の上限額を計算することが目的なので納付税額までは計算しておりません。
+          ★この数値がマイナスの場合、本来であれば0と表示されますが、注意喚起のためマイナスのまま表示しています。
         </h13></td>
       </tr>
     </table>
-      <div class="page-footer">
-        <div class="footer-inner">
           <table class="table b-none no-overlap mb-0"
                  style="width: 248mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto; clear:both;">
             <tr>
               <td class="text-end"><h14u>３ページ</h14u></td>
             </tr>
           </table>
-        </div>
-      </div>
+        
   </div><!-- /.page-frame -->
 @endsection
 

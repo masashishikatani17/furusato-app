@@ -1,3 +1,4 @@
+<!-- resources/views/pdf/layouts/print.blade.php -->
 <!doctype html>
 <html lang="ja">
 <head>
@@ -7,8 +8,11 @@
   @php
     // HTMLプレビューでは asset()、PDF(DomPDF)では public_path() を使う
     $isPdf = !empty($is_pdf);
-    $cssStyle = $isPdf ? public_path('css/style.css') : asset('css/style.css');
-    $cssPrint = $isPdf ? public_path('css/pdf/print.css') : asset('css/pdf/print.css');
+    // ★プレビューとPDFを一致させる：CSS/フォントはURL(asset)で統一
+    $cssStyle = asset('css/style.css');
+    $cssPrint = asset('css/pdf/print.css');
+    $fontG = asset('fonts/ipaexg.ttf');
+    $fontM = asset('fonts/ipaexm.ttf');
   @endphp
   <link rel="stylesheet" href="{{ $cssStyle }}">
   <link rel="stylesheet" href="{{ $cssPrint }}">
@@ -16,18 +20,17 @@
     /* ★ フォントはレイアウトに集約（DomPDFが確実に埋め込めるように） */
     @font-face {
       font-family: 'ipaexg';
-      src: url('{{ public_path('fonts/ipaexg.ttf') }}') format('truetype');
+      src: url('{{ $fontG }}') format('truetype');
       font-weight: 400; font-style: normal;
     }
     @font-face {
       font-family: 'ipaexm';
-      src: url('{{ public_path('fonts/ipaexm.ttf') }}') format('truetype');
+      src: url('{{ $fontM }}') format('truetype');
       font-weight: 400; font-style: normal;
     }
-    @font-face{ font-family:'ipaexg'; src:url('{{ public_path('fonts/ipaexg.ttf') }}') format('truetype'); font-weight:bold;  font-style:normal; }
-    @font-face{ font-family:'ipaexg'; src:url('{{ public_path('fonts/ipaexg.ttf') }}') format('truetype'); font-weight:400;   font-style:italic; }
-    @font-face{ font-family:'ipaexm'; src:url('{{ public_path('fonts/ipaexm.ttf') }}') format('truetype'); font-weight:bold;  font-style:normal; }
-    @font-face{ font-family:'ipaexm'; src:url('{{ public_path('fonts/ipaexm.ttf') }}') format('truetype'); font-weight:400;   font-style:italic; }
+    /* ★DomPDF/ブラウザ両対応：太字は weight 700 に寄せる（bold 文字列は解釈差が出やすい） */
+    @font-face{ font-family:'ipaexg'; src:url('{{ $fontG }}') format('truetype'); font-weight:700; font-style:normal; }
+    @font-face{ font-family:'ipaexm'; src:url('{{ $fontM }}') format('truetype'); font-weight:700; font-style:normal; }
 
     /* 既定：本文はゴシック、必要箇所は .mincho を付与 */
     body   { font-family: ipaexg, "DejaVu Sans", sans-serif; }
@@ -45,12 +48,12 @@
      * ========================================================= */
     .cover {
       width: 100%;
-      display: flex;
-      justify-content: center;
+      /* ★DomPDFで flex が効かずズレるのを防止（ブラウザでも同様に中央寄せ可能） */
+      text-align: center;
     }
     .cover-frame {
+      display: inline-block; /* ★中央寄せの核 */
       width: 100%;
-      text-align: center;
       max-width: var(--cover-max-width, 100%);
     }  
 

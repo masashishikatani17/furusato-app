@@ -1,11 +1,18 @@
-/* 最小限の印刷スタイル（A4縦） */
-/* 用紙サイズ・余白の既定（個別帳票で @page を上書きOK） */
-@page { size: A4 portrait; margin: 14mm; }
+/* public/css/pdf/print.css*/
+/* 最小限の印刷スタイル */
+/* ★size/orientation は DomPDF(setPaper) または各帳票 @page に寄せる。
+ *   ここでは margin のみを共通指定し、縦横衝突を防ぐ。
+ */
+/* @page は各帳票側に寄せる（印刷プレビューでの競合を防ぐ） */
+/* @page { margin: 14mm; } */
 html, body { padding: 0; margin: 0; }
 /* フォント指定は layout 側に集約。ここではサイズと色のみ */
 body { font-size: 11pt; color: #000; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-.page { page-break-after: always; }
+/* ★最終ページの後ろに空白ページを作らない（FPDI結合時のズレ原因） */
+.page { page-break-after: auto; }
+.page:last-child { page-break-after: auto; }
+main.page:last-child { page-break-after: auto; }
 .sheet { width: 100%; }
 .title { font-size: 16pt; margin: 0 0 8px 0; }
 .meta { font-size: 10pt; margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }

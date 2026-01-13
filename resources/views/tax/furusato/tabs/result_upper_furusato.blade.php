@@ -12,6 +12,9 @@
     /** @var array<string,mixed>|null $furusato_upper */
     $upper = $furusato_upper ?? null;
 
+    /** @var array<string,mixed>|null $furusato_upper_scenarios */
+    $sc = $furusato_upper_scenarios ?? null;
+
     // results から参照できる SoT（存在すれば表示）
     $resultsPayload = $results['payload'] ?? $results['upper'] ?? [];
     $getR = static function (string $key, $default = null) use ($resultsPayload) {
@@ -150,7 +153,134 @@
         </table>
       </div>
     @endif
-    
+
+
+    {{-- ============================================================
+         ▼ ①〜④の税額スナップショット（当年）
+         - 減税額は「①−各ケース」（プラスが得）で表示
+         - 別枠で「②−③/④」も表示
+       ============================================================ --}}
+    <hr>
+    <h6 class="mt-2">（参考）①〜④の税額比較（当年）</h6>
+    @if (!is_array($sc))
+      <p class="text-muted mb-0">税額比較の結果が未生成のため表示できません。</p>
+    @else
+      @php
+        $c1 = $sc['case1'] ?? [];
+        $c2 = $sc['case2'] ?? [];
+        $c3 = $sc['case3'] ?? [];
+        $c4 = $sc['case4'] ?? [];
+        $s12 = $sc['saved_1_2'] ?? ['itax'=>0,'jumin'=>0];
+        $s13 = $sc['saved_1_3'] ?? ['itax'=>0,'jumin'=>0];
+        $s14 = $sc['saved_1_4'] ?? ['itax'=>0,'jumin'=>0];
+        $s23 = $sc['saved_2_3'] ?? ['itax'=>0,'jumin'=>0];
+        $s24 = $sc['saved_2_4'] ?? ['itax'=>0,'jumin'=>0];
+        $s34 = $sc['saved_3_4'] ?? ['itax'=>0,'jumin'=>0];
+
+        $row = static function(array $t, array $saved) use ($fmtYen) {
+          $itax = (int)($t['itax'] ?? 0);
+          $jm   = (int)($t['j_muni'] ?? 0);
+          $jp   = (int)($t['j_pref'] ?? 0);
+          $tot  = (int)($t['total'] ?? 0);
+          $sit  = (int)($saved['itax'] ?? 0);
+          $sjm  = (int)($saved['jumin'] ?? 0);
+          return [
+            $fmtYen($itax),
+            $fmtYen($jm),
+            $fmtYen($jp),
+            $fmtYen($tot),
+            $fmtYen($sit),
+            $fmtYen($sjm),
+          ];
+        };
+        [$r1_it,$r1_jm,$r1_jp,$r1_tot,$r1_sit,$r1_sjm] = $row($c1, ['itax'=>0,'jumin'=>0]);
+        [$r2_it,$r2_jm,$r2_jp,$r2_tot,$r2_sit,$r2_sjm] = $row($c2, $s12);
+        [$r3_it,$r3_jm,$r3_jp,$r3_tot,$r3_sit,$r3_sjm] = $row($c3, $s13);
+        [$r4_it,$r4_jm,$r4_jp,$r4_tot,$r4_sit,$r4_sjm] = $row($c4, $s14);
+      @endphp
+
+      <div class="table-responsive mb-3">
+        <table class="table-base table-bordered align-middle text-start">
+          <tr>
+            <th style="width:120px;">ケース</th>
+            <th class="text-end" style="width:140px;">所得税</th>
+            <th class="text-end" style="width:160px;">住民税（市）</th>
+            <th class="text-end" style="width:160px;">住民税（県）</th>
+            <th class="text-end" style="width:160px;">税額合計</th>
+            <th class="text-end" style="width:160px;">減税額（所得税）</th>
+            <th class="text-end" style="width:160px;">減税額（住民税）</th>
+          </tr>
+          <tr>
+            <td>① 寄付ゼロ</td>
+            <td class="text-end">{{ $r1_it }}</td>
+            <td class="text-end">{{ $r1_jm }}</td>
+            <td class="text-end">{{ $r1_jp }}</td>
+            <td class="text-end">{{ $r1_tot }}</td>
+            <td class="text-end">{{ $r1_sit }}</td>
+            <td class="text-end">{{ $r1_sjm }}</td>
+          </tr>
+          <tr>
+            <td>② その他のみ</td>
+            <td class="text-end">{{ $r2_it }}</td>
+            <td class="text-end">{{ $r2_jm }}</td>
+            <td class="text-end">{{ $r2_jp }}</td>
+            <td class="text-end">{{ $r2_tot }}</td>
+            <td class="text-end">{{ $r2_sit }}</td>
+            <td class="text-end">{{ $r2_sjm }}</td>
+          </tr>
+          <tr>
+            <td>③ 現在入力</td>
+            <td class="text-end">{{ $r3_it }}</td>
+            <td class="text-end">{{ $r3_jm }}</td>
+            <td class="text-end">{{ $r3_jp }}</td>
+            <td class="text-end">{{ $r3_tot }}</td>
+            <td class="text-end">{{ $r3_sit }}</td>
+            <td class="text-end">{{ $r3_sjm }}</td>
+          </tr>
+          <tr>
+            <td>④ 上限まで</td>
+            <td class="text-end"><strong>{{ $r4_it }}</strong></td>
+            <td class="text-end"><strong>{{ $r4_jm }}</strong></td>
+            <td class="text-end"><strong>{{ $r4_jp }}</strong></td>
+            <td class="text-end"><strong>{{ $r4_tot }}</strong></td>
+            <td class="text-end"><strong>{{ $r4_sit }}</strong></td>
+            <td class="text-end"><strong>{{ $r4_sjm }}</strong></td>
+          </tr>
+        </table>
+      </div>
+
+      <h6 class="mt-3">（参考）②を基準にした減税額（②−③ / ②−④）</h6>
+      <div class="table-responsive mb-2">
+        <table class="table-base table-bordered align-middle text-start">
+          <tr>
+            <th style="width:160px;">差分</th>
+            <th class="text-end" style="width:220px;">減税額（所得税）</th>
+            <th class="text-end" style="width:220px;">減税額（住民税）</th>
+          </tr>
+          <tr>
+            <td>① − ②</td>
+            <td class="text-end">{{ $fmtYen($s12['itax'] ?? 0) }}</td>
+            <td class="text-end">{{ $fmtYen($s12['jumin'] ?? 0) }}</td>
+          </tr>
+          <tr>
+            <td>② − ③</td>
+            <td class="text-end">{{ $fmtYen($s23['itax'] ?? 0) }}</td>
+            <td class="text-end">{{ $fmtYen($s23['jumin'] ?? 0) }}</td>
+          </tr>
+          <tr>
+            <td>③ − ④</td>
+            <td class="text-end">{{ $fmtYen($s34['itax'] ?? 0) }}</td>
+            <td class="text-end">{{ $fmtYen($s34['jumin'] ?? 0) }}</td>
+          </tr>
+          <tr>
+            <td>② − ④</td>
+            <td class="text-end"><strong>{{ $fmtYen($s24['itax'] ?? 0) }}</strong></td>
+            <td class="text-end"><strong>{{ $fmtYen($s24['jumin'] ?? 0) }}</strong></td>
+          </tr>
+        </table>
+      </div>
+    @endif
+
     {{-- 1. 前提となる金額・率 --}}
     <h6 class="mt-2">1. 前提となる金額・率</h6>
     <div class="table-responsive mb-3">

@@ -68,11 +68,17 @@
       </tr>
     </table>
 
-    <!-- 左：説明ブロック／右：控除一覧テーブル を横並びに -->
-    <div style="width: 260mm; margin: 0 auto; display: flex; align-items: flex-start; gap: 10mm;">
-
-      <!-- 左側：説明 -->
-      <div style="width: 125mm; text-align: left;">
+    <!-- ★ flex をやめて、横並びはレイアウト用テーブルで固定（DomPDF安定） -->
+    <table class="table b-none no-overlap"
+           style="width:260mm; table-layout:fixed; border-collapse:collapse; margin:0 auto;">
+      <colgroup>
+        <col style="width:125mm;">
+        <col style="width:10mm;">
+        <col style="width:125mm;">
+      </colgroup>
+      <tr>
+        <!-- 左側 -->
+        <td class="b-none" style="vertical-align:top; padding:0; text-align:left;">
         <h16 class="mb-3">■人的控除差調整額を創設した趣旨</h16>
         <div class="ms-4 mt-3 mb-10" style="line-height:1.8;">
           <h14u>
@@ -124,10 +130,13 @@
             </tr>
           </tbody>
         </table>
-      </div><!-- /左側 -->
+        </td>
 
-      <!-- 右側：控除の種類テーブル -->
-      <div style="flex: 1; margin-left: 4mm;">
+        <!-- gap -->
+        <td class="b-none" style="padding:0;">&nbsp;</td>
+
+        <!-- 右側 -->
+        <td class="b-none" style="vertical-align:top; padding:0; text-align:left;">
         <table class="table table-compact-p14 text-start no-overlap no-outer-border"
                style="width: 100%; font-size:14px; line-height:1.6; margin: 0 auto;">
           <colgroup>
@@ -165,7 +174,7 @@
 						  <td class="b-none">〇</td>
 					  </tr>
 						<tr>
-						  <td width="28" rowspan="2" class="text-start ps-3">ひとり親控除</td>
+						  <td rowspan="2" class="text-start ps-3">ひとり親控除</td>
 						  <td>父</td>
 						  <td>&nbsp;</td>
 						  <td class="text-end">1万円</td>
@@ -267,8 +276,9 @@
 					  </tr>
 	      	</tbody>
 	    	</table>		  
-      </div><!-- /右側 -->
-    </div><!-- /左右２カラム -->
+        </td>
+      </tr>
+    </table><!-- /左右２カラム -->
     <div class="page-footer">
         <div class="footer-inner">
           <table class="table b-none no-overlap mb-0"

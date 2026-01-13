@@ -13,6 +13,7 @@
           width: calc(297mm - 12mm); /* 例：左右合計12mm を引く */
           margin: 0 auto;
           text-align: center; /* ← inline-block を中央に寄せるため */
+          padding-bottom: 18mm;
         }
         
         /* テーブルの基本（これだけでよいことが多い） */
@@ -32,6 +33,7 @@
 
 @section('content')
   <div class="page-frame text-center"><!-- ここが実効幅281mmの中央寄せコンテナ -->
+    
     <table class="table table-base mt-8 mb-2"
            style="width: 250mm; border-collapse: collapse;">
       <tr>
@@ -44,9 +46,18 @@
       </tr>
     </table>
 
-    <div style="width: 250mm; margin: 0 auto; display: flex; align-items: flex-start; gap: 10mm;">
-      <!-- 左側 -->
-      <div style="width: 80mm; margin: 0 auto;">
+    <!-- ★ flex をやめて、横並びはレイアウト用テーブルで固定（DomPDF安定） -->
+    <div class="text-center">
+      <table class="table b-none no-overlap"
+           style="width:250mm; table-layout:fixed; border-collapse:collapse; margin:0 auto;">
+      <colgroup>
+        <col style="width:80mm;">
+        <col style="width:10mm;">
+        <col style="width:160mm;">
+      </colgroup>
+      <tr>
+        <!-- 左側 -->
+        <td class="b-none" style="vertical-align:top; padding:0;">
         <table class="table b-none no-overlap mt-5 mb-3"
                style="width: 80mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto; clear:both;">
           <tr>
@@ -71,25 +82,30 @@
             <td class="text-end"><h14></h14></td>
           </tr>
         </table>
-      </div><!-- /左側 -->
+        </td>
 
-      <!-- 右側 -->
-      <div style="width: 160mm; margin: 0 auto;">
+        <!-- gap -->
+        <td class="b-none" style="padding:0;">&nbsp;</td>
+
+        <!-- 右側 -->
+        <td class="b-none" style="vertical-align:top; padding:0;">
         <table class="table b-none no-overlap mt-8 mb-3"
-               style="width: 130mm; table-layout: fixed; border-collapse: collapse; margin: 0 auto; clear:both;">
+               style="width: 130mm; table-layout: fixed; border-collapse: collapse; 
+               margin: 0 auto; clear:both;">
           <tr>
             <td class="text-start ps-3 pt-5">
               ※ワンストップ特例では所得税の軽減の代わりに住民税から控除<br>&nbsp;&nbsp;&nbsp;されます。下記の申告特例控除額(⑯)の数値です。
             </td>
           </tr>
         </table>
-      </div>
-    </div>
+    </td> <!-- /右側 td -->
+      </tr>
+    </table> <!-- /横並びレイアウトtable(250mm) -->
+    </div>   <!-- /text-center（横並びブロック） -->
 
-    <div class="table-frame mt-5">
-      <table align="center"
-             class="table table-compact-p14 table-242mm mt-0"
-             style="line-height:1.5; width:242mm; table-layout:fixed;">
+    <div class="text-center">
+      <table class="table table-compact-p14 table-242mm mt-5"
+             style="line-height:1.5; width:242mm; margin:0 auto; table-layout:fixed;outline:2px solid #000; outline-offset:-2px;">
         <colgroup>
           <col style="width:9mm">
           <col style="width:54mm">
@@ -214,7 +230,7 @@
             <td class="text-start b-t-no b-b-no">１円未満切り上げ</td>
           </tr>
           <tr>
-            <td rowspan="3" style="lh-1">申控告除特額例&nbsp;&nbsp;&nbsp;&nbsp;</td>
+            <td rowspan="3" style="line-height:1;">申控告除特額例&nbsp;&nbsp;&nbsp;&nbsp;</td>
             <td class="text-start">特例控除額</td>
             <td>⑭</td>
             <td class="text-end">&nbsp;</td>
@@ -249,7 +265,7 @@
         </tbody>
       </table>
     </div>
-
+　
     <div class="page-footer">
         <div class="footer-inner">
           <table class="table b-none no-overlap mb-0"
@@ -259,7 +275,7 @@
             </tr>
           </table>
         </div>
-      </div>
+    </div>
   </div><!-- /.page-frame -->
 @endsection
 

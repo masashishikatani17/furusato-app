@@ -119,7 +119,7 @@
           {{-- ▼ 新規：PDF出力（現時点では「常時表示の再計算トリガ」） --}}
           @php
             $oneStopCurr = (string)($syoriSettings['one_stop_flag_curr'] ?? $syoriSettings['one_stop_flag'] ?? '1');
-            $bundleUrl = route('pdf.download', ['report' => 'furusato_bundle'])
+            $bundleUrl = route('pdf.preview', ['report' => 'furusato_bundle'])
               . '?data_id=' . urlencode((string)($dataId ?? ''))
               . '&one_stop_flag_curr=' . urlencode($oneStopCurr);
           @endphp

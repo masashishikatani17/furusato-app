@@ -1,3 +1,4 @@
+/*public/css/furusato.css*/
 @charset "utf-8";
 /* CSS Document */
         /* ==========================================================================
@@ -25,7 +26,8 @@
       margin: 0 auto;
       position: relative;
       background: #fff;
-      font-family: "Noto Sans JP","Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;
+      /* DomPDFではOSフォント参照が不安定なので埋め込みフォントを先頭に */
+      font-family: ipaexg, "Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;
     }
 /*ここまでstyleから移動 */
 
@@ -685,44 +687,13 @@
 		 * ここから下は「最優先」ブロック（太線・透明・点線）
 		 * 必ずCSSの一番最後に置く
 		 * ========================================================= */
-
-		/* --- 太線（最優先）--- */
-		table td.b-t-strong, table th.b-t-strong { border-top:    2px solid #333 !important; }
-		table td.b-r-strong, table th.b-r-strong { border-right:  2px solid #333 !important; }
-		table td.b-b-strong, table th.b-b-strong { border-bottom: 2px solid #333 !important; }
-		table td.b-l-strong, table th.b-l-strong { border-left:   2px solid #333 !important; }
-
-		table td.b-x-strong, table th.b-x-strong { border-left: 2px solid #333 !important; border-right: 2px solid #333 !important; }
-		table td.b-y-strong, table th.b-y-strong { border-top:  2px solid #333 !important; border-bottom:2px solid #333 !important; }
-
-		table td.b-strong,   table th.b-strong   { border: 2px solid #333 !important; }
-		table td.b-strong-1, table th.b-strong-1 { border: 1px solid #333 !important; }
-		table td.b-r-strong-1, table th.b-r-strong-1 { border-right: 1px solid #333 !important; }
-
-		/* --- 透明化（最優先）--- */
-		table td.b-none, table th.b-none { border: none !important; }
-		table td.b-t-no, table th.b-t-no { border-top: none !important; }
-		table td.b-r-no, table th.b-r-no { border-right: none !important; }
-		table td.b-b-no, table th.b-b-no { border-bottom: none !important; }
-		table td.b-l-no, table th.b-l-no { border-left: none !important; }
-		table td.b-x-no, table th.b-x-no { border-left: none !important; border-right: none !important; }
-		table td.b-y-no, table th.b-y-no { border-top: none !important; border-bottom: none !important; }
-
-		/* --- 点線（最優先）--- */
-		table td.b-dot, table th.b-dot { border: 1px dotted #000 !important; }
-		table td.b-t-dot, table th.b-t-dot { border-top: 1px dotted #000 !important; }
-		table td.b-r-dot, table th.b-r-dot { border-right: 1px dotted #000 !important; }
-		table td.b-b-dot, table th.b-b-dot { border-bottom: 1px dotted #000 !important; }
-		table td.b-l-dot, table th.b-l-dot { border-left: 1px dotted #000 !important; }
-		table td.b-x-dot, table th.b-x-dot { border-left: 1px dotted #000 !important; border-right: 1px dotted #000 !important; }
-		table td.b-y-dot, table th.b-y-dot { border-top: 1px dotted #000 !important; border-bottom: 1px dotted #000 !important; }
-
-        /* collapse境界で負けないよう、太線は左右/上下どちら側でも勝つように強制 */
+        /* --- collapse境界で負けないよう、太線は左右/上下どちら側でも勝つように強制 */
         table.table-compact-p td.b-r-strong, table.table-compact-p th.b-r-strong { border-right-width: 2px !important; border-right-style: solid !important; border-right-color: #333 !important; }
         table.table-compact-p td.b-l-strong, table.table-compact-p th.b-l-strong { border-left-width:  2px !important; border-left-style:  solid !important; border-left-color:  #333 !important; }
         table.table-compact-p td.b-t-strong, table.table-compact-p th.b-t-strong { border-top-width:   2px !important; border-top-style:   solid !important; border-top-color:   #333 !important; }
         table.table-compact-p td.b-b-strong, table.table-compact-p th.b-b-strong { border-bottom-width:2px !important; border-bottom-style:solid !important; border-bottom-color:#333 !important; }
 
+	
     
 /* --------------------------------------
   * タブ
@@ -1021,7 +992,39 @@
             height: 22px;
             line-height: 1.2;
             }
+       
+       	/* --- 太線（最優先）--- */
+		table td.b-t-strong, table th.b-t-strong { border-top:    2px solid #333 !important; }
+		table td.b-r-strong, table th.b-r-strong { border-right:  2px solid #333 !important; }
+		table td.b-b-strong, table th.b-b-strong { border-bottom: 2px solid #333 !important; }
+		table td.b-l-strong, table th.b-l-strong { border-left:   2px solid #333 !important; }
 
+		table td.b-x-strong, table th.b-x-strong { border-left: 2px solid #333 !important; border-right: 2px solid #333 !important; }
+		table td.b-y-strong, table th.b-y-strong { border-top:  2px solid #333 !important; border-bottom:2px solid #333 !important; }
+
+		table td.b-strong,   table th.b-strong   { border: 2px solid #333 !important; }
+		table td.b-strong-1, table th.b-strong-1 { border: 1px solid #333 !important; }
+		table td.b-r-strong-1, table th.b-r-strong-1 { border-right: 1px solid #333 !important; }
+
+		/* --- 透明化（最優先）--- */
+		table td.b-none, table th.b-none { border: none !important; }
+		table td.b-t-no, table th.b-t-no { border-top: none !important; }
+		table td.b-r-no, table th.b-r-no { border-right: none !important; }
+		table td.b-b-no, table th.b-b-no { border-bottom: none !important; }
+		table td.b-l-no, table th.b-l-no { border-left: none !important; }
+		table td.b-x-no, table th.b-x-no { border-left: none !important; border-right: none !important; }
+		table td.b-y-no, table th.b-y-no { border-top: none !important; border-bottom: none !important; }
+
+		/* --- 点線（最優先）--- */
+		table td.b-dot, table th.b-dot { border: 1px dotted #000 !important; }
+		table td.b-t-dot, table th.b-t-dot { border-top: 1px dotted #000 !important; }
+		table td.b-r-dot, table th.b-r-dot { border-right: 1px dotted #000 !important; }
+		table td.b-b-dot, table th.b-b-dot { border-bottom: 1px dotted #000 !important; }
+		table td.b-l-dot, table th.b-l-dot { border-left: 1px dotted #000 !important; }
+		table td.b-x-dot, table th.b-x-dot { border-left: 1px dotted #000 !important; border-right: 1px dotted #000 !important; }
+		table td.b-y-dot, table th.b-y-dot { border-top: 1px dotted #000 !important; border-bottom: 1px dotted #000 !important; }
+
+        
         /* margin-top/bottom */
         .mt-0  { margin-top: 0 !important; }
         .mt-1  { margin-top: 4px !important; }
@@ -1049,6 +1052,7 @@
         .ms-4  { margin-left: 16px !important; }
         .ms-5  { margin-left: 24px !important; }
         .ms-10 { margin-left: 48px !important; }
+        .ms-12 { margin-left: 60px !important; }
         
         .me-0  { margin-right: 0 !important; }
         .me-1  { margin-right: 4px !important; }

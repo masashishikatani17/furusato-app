@@ -246,5 +246,9 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 </script>
-@endpush
+@endpush 
+
+{{-- Enter移動（ふるさと全画面共通） --}}
+@include('tax.furusato.partials.enter_nav')
+
 @endsection

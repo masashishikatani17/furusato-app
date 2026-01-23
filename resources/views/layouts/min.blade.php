@@ -11,8 +11,11 @@
   @php
     $cssPath = public_path('css/style.css');
     $v = is_file($cssPath) ? filemtime($cssPath) : time();
+    $furusatoCssPath = public_path('css/furusato.css');
+    $vFurusato = is_file($furusatoCssPath) ? filemtime($furusatoCssPath) : time();
   @endphp
   <link href="{{ asset('css/style.css') }}?v={{ $v }}" rel="stylesheet">  
+  <link href="{{ asset('css/furusato.css') }}?v={{ $vFurusato }}" rel="stylesheet">
   @stack('styles')
 </head>
 <body class="bg-light">

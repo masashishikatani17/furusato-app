@@ -37,6 +37,7 @@ use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Domain\Tax\Providers\MasterProvider;
 use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Services\Tax\FurusatoMasterService;
+use App\Services\Pdf\FurusatoBundleHybridPdfBuilder;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\URL;
@@ -49,6 +50,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // PDF: ふるさと一括（表紙テンプレ＋fastのハイブリッド）
+        $this->app->singleton(FurusatoBundleHybridPdfBuilder::class, FurusatoBundleHybridPdfBuilder::class);
+
         // 予防的に 'files' を明示バインド（コンテナの基本バインドが読めない時の復旧策）
         $this->app->singleton('files', function () {
             return new Filesystem();

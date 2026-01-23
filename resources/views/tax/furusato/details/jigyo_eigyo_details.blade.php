@@ -37,7 +37,7 @@
           @endif
       
           <div class="table-responsive">
-            <table class="table-base align-middle">
+            <table class="table-input align-middle">
               <thead>
                 <tr>
                   <th class="th-ccc" colspan="2" style="height:30px;">項　目</th>
@@ -107,7 +107,7 @@
                 @php($expenseRowspan = count($expenseFields))
                 @php($field = array_shift($expenseFields))
                 <tr>
-                  <th scope="rowgroup" rowspan="{{ $expenseRowspan }}" class="text-start align-middle ps-1">経 費</th>
+                  <th scope="rowgroup" rowspan="{{ $expenseRowspan }}" class="align-middle ps-1" style="width:40px;">経 費</th>
                   <th class="{{ $field['headerClass'] ?? 'text-start u-nowrap th-ddd' }}">
                     @php($labelName = $field['labelInput'] ?? null)
                     @if($labelName)
@@ -116,7 +116,7 @@
                              name="{{ $labelName }}"
                              value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
                              maxlength="64"
-                             class="form-control form-control-sm"
+                             class="form-control kana10"
                              aria-label="経費項目名{{ $field['labelIndex'] ?? '' }}"
                              @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
                     @else
@@ -149,7 +149,7 @@
                                name="{{ $labelName }}"
                                value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
                                maxlength="64"
-                               class="form-control form-control-sm"
+                               class="form-control kana10"
                                aria-label="経費項目名{{ $field['labelIndex'] ?? '' }}"
                                @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
                       @else
@@ -421,4 +421,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+ 
+{{-- Enter移動（ふるさと全画面共通） --}}
+@include('tax.furusato.partials.enter_nav')
+
 @endsection

@@ -6,7 +6,7 @@
 @section('head')
 <style>
       /* A4横 + 余白（上 右 下 左） */
-        @page { size: A4 landscape; margin: 17mm 6mm 17mm 6mm; }
+        @page { size: A4 landscape; margin: 10mm 6mm 10mm 6mm; }
         
 
        /* 中央寄せしたい場合だけ（任意） */
@@ -33,16 +33,6 @@
           transform: none !important;
         } 
         
-      /* ページ右下の固定フッター（下から12mm） */
-        .page-footer{
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 12mm;          /* ← ここが「下から」 */
-          width: 100%;
-        }
-        
-        
       /* === 斜線（左上→右下）：DomPDF対応（JS不要） === */
         td.diag-auto, th.diag-auto {
           background-image: linear-gradient(to bottom left,
@@ -57,13 +47,30 @@
 @endsection
 
 @section('content')
+  @php
+    // Report から渡された差し込み値
+    $t = is_array($kifukin_upper_table ?? null) ? $kifukin_upper_table : [];
+    $limit   = is_array($t['limit'] ?? null)   ? $t['limit']   : ['donation'=>0,'itax'=>0,'jumin'=>0,'total'=>0,'burden'=>0];
+    $current = is_array($t['current'] ?? null) ? $t['current'] : ['donation'=>0,'itax'=>0,'jumin'=>0,'total'=>0,'burden'=>0];
+    $diff    = is_array($t['diff'] ?? null)    ? $t['diff']    : ['donation'=>0,'itax'=>0,'jumin'=>0,'total'=>0,'burden'=>0];
+
+    $bd = is_array($kifukin_breakdown_curr ?? null) ? $kifukin_breakdown_curr : [];
+    $wareki = $wareki_year ?? null;
+
+    $yen = static function ($v): string {
+      $n = is_numeric($v) ? (int)$v : 0;
+      return number_format($n);
+    };
+  @endphp
+
   <div class="page-frame text-center"><!-- ここが実効幅281mmの中央寄せコンテナ -->
-    <table align="center" class="table b-none no-overlap mt-10"
-           style="width: 232mm; table-layout: fixed; border-collapse: collapse; clear:both;">
+    <div class="page-content">
+    <table class="table b-none no-overlap mt-5"
+           style="width: 232mm; margin:0 auto; table-layout: fixed; border-collapse: collapse; clear:both;">
       <tr>
         <td class="text-start">
-          <h15>　令和７年度のふるさと納税による寄附金上限額は次の通りです。これ以上の額を寄附すると持ち出しとなります。具体的には<br>「<strong>寄附金額別損得シミュレーション</strong>」(５ページ)をご覧ください。
-        </td>
+          <h15 class="text-start">　令和７年度のふるさと納税による寄附金上限額は次の通りです。これ以上の額を寄附すると持ち出しとなります。<br>具体的には「<strong>寄附金額別損得シミュレーション</strong>」(５ページ)をご覧ください。
+        </h15></td>
       </tr>
     </table>
 
@@ -99,27 +106,27 @@
           </tr>
           <tr>
             <td class="text-start ps-1 b-b-no"><h18u>&nbsp;寄附金上限額(※)</h18u></td>
-            <td class="text-end b-b-no"><h18u>円</h18u></td>
-            <td class="text-end b-b-no"><h18u>円</h18u></td>
-            <td class="text-end b-b-no"><h18u>円</h18u></td>
-            <td class="text-end b-b-no"><h18u>円</h18u></td>
-            <td class="text-end b-b-no"><h18u>円</h18u></td>
+            <td class="text-end b-b-no"><h18u>{{ $yen($limit['donation']) }}円</h18u></td>
+            <td class="text-end b-b-no"><h18u>{{ $yen($limit['itax']) }}円</h18u></td>
+            <td class="text-end b-b-no"><h18u>{{ $yen($limit['jumin']) }}円</h18u></td>
+            <td class="text-end b-b-no"><h18u>{{ $yen($limit['total']) }}円</h18u></td>
+            <td class="text-end b-b-no"><h18u>{{ $yen($limit['burden']) }}円</h18u></td>
           </tr>
           <tr>
             <td class="text-start ps-1 b-t-no"><h18u>&nbsp;今までに寄附した額</h18u></td>
-            <td class="text-end b-t-no"><h18u>円</h18u></td>
-            <td class="text-end b-t-no"><h18u>円</h18u></td>
-            <td class="text-end b-t-no"><h18u>円</h18u></td>
-            <td class="text-end b-t-no"><h18u>円</h18u></td>
-            <td class="text-end b-t-no"><h18u>円</h18u></td>
+            <td class="text-end b-t-no"><h18u>{{ $yen($current['donation']) }}円</h18u></td>
+            <td class="text-end b-t-no"><h18u>{{ $yen($current['itax']) }}円</h18u></td>
+            <td class="text-end b-t-no"><h18u>{{ $yen($current['jumin']) }}円</h18u></td>
+            <td class="text-end b-t-no"><h18u>{{ $yen($current['total']) }}円</h18u></td>
+            <td class="text-end b-t-no"><h18u>{{ $yen($current['burden']) }}円</h18u></td>
           </tr>
           <tr>
             <td class="text-start ps-1"><h18u>&nbsp;差額(残りの寄附可能額)</h18u></td>
-            <td class="text-end"><h18u>円</h18u></td>
-            <td class="text-end"><h18u>円</h18u></td>
-            <td class="text-end"><h18u>円</h18u></td>
-            <td class="text-end"><h18u>円</h18u></td>
-            <td class="text-end"><h18u>円</h18u></td>
+            <td class="text-end"><h18u>{{ $yen($diff['donation']) }}円</h18u></td>
+            <td class="text-end"><h18u>{{ $yen($diff['itax']) }}円</h18u></td>
+            <td class="text-end"><h18u>{{ $yen($diff['jumin']) }}円</h18u></td>
+            <td class="text-end"><h18u>{{ $yen($diff['total']) }}円</h18u></td>
+            <td class="text-end"><h18u>{{ $yen($diff['burden']) }}円</h18u></td>
           </tr>
         </tbody>
       </table>
@@ -139,19 +146,19 @@
           <table class="table b-none no-overlap ps-5"
                  style="width: 162mm; table-layout:fixed; border-collapse:collapse; margin:0 auto;">
             <tr>
-              <td class="text-start"><h18>■今までに寄附した額の内訳（令和〇年）</h18></td>
+              <td class="text-start"><h18>■今までに寄附した額の内訳（{{ $wareki ?? '令和〇年' }}）</h18></td>
             </tr>
           </table>
   
-          <table class="table table-compact-p b-none no-overlap table-162mm" 
+          <table class="table table-compact-p no-overlap table-162mm" 
           style="font-size:13px;line-height:1.3;">
             <colgroup>
-              <col style="width:67mm">
+              <col style="width:59mm">
+              <col style="width:21mm">
               <col style="width:19mm">
-              <col style="width:19mm">
-              <col style="width:19mm">
-              <col style="width:19mm">
-              <col style="width:19mm">
+              <col style="width:21mm">
+              <col style="width:21mm">
+              <col style="width:21mm">
             </colgroup>
             <tbody>
               <tr>
@@ -172,67 +179,67 @@
               </tr>
               <tr class="bg-cream">
                 <td class="text-start"><hb>都道府県・市町村（ふるさと納税）</hb></td>
-                <td class="text-end"><hb></hb></td>
+                <td class="text-end"><hb>{{ $yen(($bd['furusato']['itax_income'] ?? 0)) }}</hb></td>
                 <td>－</td>
-                <td class="text-end"><hb></hb></td>
-                <td class="text-end"><hb></hb></td>
-                <td class="text-end"><hb></hb></td>
+                <td class="text-end"><hb>{{ $yen(($bd['furusato']['itax_total'] ?? 0)) }}</hb></td>
+                <td class="text-end"><hb>{{ $yen(($bd['furusato']['rtax_muni'] ?? 0)) }}</hb></td>
+                <td class="text-end"><hb>{{ $yen(($bd['furusato']['rtax_pref'] ?? 0)) }}</hb></td>
               </tr>
               <tr>
                 <td class="text-start bg-grey">住所地の共同募金、日赤等</td>
-                <td class="text-end"></td>
+                <td class="text-end">{{ $yen(($bd['kyodobokin_nisseki']['itax_income'] ?? 0)) }}</td>
                 <td>－</td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
+                <td class="text-end">{{ $yen(($bd['kyodobokin_nisseki']['itax_total'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['kyodobokin_nisseki']['rtax_muni'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['kyodobokin_nisseki']['rtax_pref'] ?? 0)) }}</td>
               </tr>
               <tr>
                 <td class="text-start bg-grey">政党等</td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
+                <td class="text-end">{{ $yen(($bd['seito']['itax_income'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['seito']['itax_credit'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['seito']['itax_total'] ?? 0)) }}</td>
                 <td>－</td>
                 <td>－</td>
               </tr>
               <tr>
                 <td class="text-start bg-grey">認定ＮＰＯ法人等</td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
+                <td class="text-end">{{ $yen(($bd['npo']['itax_income'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['npo']['itax_credit'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['npo']['itax_total'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['npo']['rtax_muni'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['npo']['rtax_pref'] ?? 0)) }}</td>
               </tr>
               <tr>
                 <td class="text-start bg-grey">公益社団法人等</td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
+                <td class="text-end">{{ $yen(($bd['koueki']['itax_income'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['koueki']['itax_credit'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['koueki']['itax_total'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['koueki']['rtax_muni'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['koueki']['rtax_pref'] ?? 0)) }}</td>
               </tr>
               <tr>
                 <td class="text-start bg-grey">国</td>
-                <td class="text-end"></td>
+                <td class="text-end">{{ $yen(($bd['kuni']['itax_income'] ?? 0)) }}</td>
                 <td>－</td>
-                <td class="text-end"></td>
+                <td class="text-end">{{ $yen(($bd['kuni']['itax_total'] ?? 0)) }}</td>
                 <td>－</td>
                 <td>－</td>
               </tr>
               <tr>
                 <td class="text-start bg-grey">その他</td>
-                <td class="text-end"></td>
+                <td class="text-end">{{ $yen(($bd['sonota']['itax_income'] ?? 0)) }}</td>
                 <td>－</td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
-                <td class="text-end"></td>
+                <td class="text-end">{{ $yen(($bd['sonota']['itax_total'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['sonota']['rtax_muni'] ?? 0)) }}</td>
+                <td class="text-end">{{ $yen(($bd['sonota']['rtax_pref'] ?? 0)) }}</td>
               </tr>
               <tr class="bg-cream">
                 <td><hb>合　　　計</hb></td>
-                <td class="text-end"><hb></hb></td>
-                <td class="text-end"><hb></hb></td>
-                <td class="text-end"><hb></hb></td>
-                <td class="text-end"><hb></hb></td>
-                <td class="text-end"><hb></hb></td>
+                <td class="text-end"><hb>{{ $yen(($bd['total']['itax_income'] ?? 0)) }}</hb></td>
+                <td class="text-end"><hb>{{ $yen(($bd['total']['itax_credit'] ?? 0)) }}</hb></td>
+                <td class="text-end"><hb>{{ $yen(($bd['total']['itax_total'] ?? 0)) }}</hb></td>
+                <td class="text-end"><hb>{{ $yen(($bd['total']['rtax_muni'] ?? 0)) }}</hb></td>
+                <td class="text-end"><hb>{{ $yen(($bd['total']['rtax_pref'] ?? 0)) }}</hb></td>
               </tr>
             </tbody>
           </table>
@@ -329,17 +336,15 @@
           </td>
         </tr>
       </table><!-- 左右ブロック横並び終り -->
-    
-      <div class="page-footer">
+     </div><!-- 本文終り -->
+     <div class="page-footer">
         <div class="footer-inner">
-          <table class="table b-none no-overlap mb-0"
-                 style="margin: 0 auto; width: 248mm; table-layout: fixed; border-collapse: collapse; clear:both;">
+          <table class="table b-none no-overlap mb-0">
             <tr>
-              <td class="text-end ps-0"><h14u>1ページ</h14u></td>
+              <td><h14u>1ページ</h14u></td>
             </tr>
           </table>
         </div>
       </div>
-    
   </div><!-- /.page-frame -->
 @endsection

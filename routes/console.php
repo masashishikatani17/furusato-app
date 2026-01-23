@@ -11,3 +11,5 @@ Artisan::command('inspire', function () {
 
 // === Health: Queue チェック用のテストジョブを毎分ディスパッチ ===
 Schedule::command(DispatchQueueCheckJobsCommand::class)->everyMinute();
+// 監査ログは1年保持（毎日深夜に削除）
+Schedule::command('audit:prune --days=365')->dailyAt('03:10');

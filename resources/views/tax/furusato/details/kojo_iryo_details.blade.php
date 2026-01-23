@@ -336,3 +336,6 @@
     });
   </script>
 @endpush
+ 
+{{-- Enter移動（ふるさと全画面共通） --}}
+@include('tax.furusato.partials.enter_nav')

@@ -18,10 +18,12 @@
         "livewire/livewire": "^3.6.4",
         "setasign/fpdf": "^1.8",
         "setasign/fpdi": "^2.6",
+        "setasign/fpdi-tcpdf": "^2.3",
         "spatie/browsershot": "^4.0",
         "spatie/laravel-activitylog": "^4.8",
         "spatie/laravel-health": "^1.34",
-        "spatie/laravel-permission": "^6.21"
+        "spatie/laravel-permission": "^6.21",
+        "tecnickcom/tcpdf": "^6.10"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.16",

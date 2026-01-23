@@ -81,24 +81,20 @@ class JintekiKojoDiffCalculator implements ProvidesKeys
 
             $sum = 0;
 
-            // 1) 基礎控除差（所得税 − 住民税）
-            //    SoT は KisoKojoCalculator が確定した
-            //      shotokuzei_kojo_kiso_{p}, juminzei_kojo_kiso_{p}
-            //    を優先し、互換として kojo_kiso_* も見る。
-            $kisoShotoku =
-                $this->n($payload["shotokuzei_kojo_kiso_{$period}"] ?? null)
-                ?: $this->n($payload["kojo_kiso_shotoku_{$period}"] ?? null);
-            $kisoJumin =
-                $this->n($payload["juminzei_kojo_kiso_{$period}"] ?? null)
-                ?: $this->n($payload["kojo_kiso_jumin_{$period}"] ?? null);
-            $sum += max(0, $kisoShotoku - $kisoJumin);
+            // ============================================================
+            // ▼ 方針変更（定義の固定）：
+            // 人的控除差調整額には「基礎控除差」を含める。
+            // ただし、基礎控除差は実際の差額に関わらず常に 50,000 円で固定する。
+            // （従来の「+50,000 加算」は JuminTaxCalculator 側で廃止する）
+            // ============================================================
+            $sum += 50_000;
 
-            // 2) 障害者控除差（人数×差額）
+            // 1) 障害者控除差（人数×差額）
             $sum += $this->n($payload["kojo_shogaisha_count_{$period}"] ?? null) * 10_000;          // 普通：1万円
             $sum += $this->n($payload["kojo_tokubetsu_shogaisha_count_{$period}"] ?? null) * 100_000; // 特別：10万円
             $sum += $this->n($payload["kojo_doukyo_tokubetsu_shogaisha_count_{$period}"] ?? null) * 220_000; // 同居特別：22万円
 
-            // 3) 寡婦／ひとり親（合計所得500万円以下の前提）
+            // 2) 寡婦／ひとり親（合計所得500万円以下の前提）
             if ($sumGokei <= 5_000_000) {
                 $kafu = ($payload["kojo_kafu_applicable_{$period}"] ?? null) === '〇';
                 $hitoVal = (string) ($payload["kojo_hitorioya_applicable_{$period}"] ?? '');
@@ -115,21 +111,21 @@ class JintekiKojoDiffCalculator implements ProvidesKeys
                 }
             }
 
-            // 4) 勤労学生（1万円：所得要件は入力側/別Calculatorで担保）
+            // 3) 勤労学生（1万円：所得要件は入力側/別Calculatorで担保）
             if (($payload["kojo_kinrogakusei_applicable_{$period}"] ?? null) === '〇') {
                 $sum += 10_000;
             }
 
-            // 5) 扶養控除（人数×差額）
+            // 4) 扶養控除（人数×差額）
             $sum += $this->n($payload["kojo_fuyo_ippan_count_{$period}"] ?? null) * 50_000;             // 一般：5万円
             $sum += $this->n($payload["kojo_fuyo_tokutei_count_{$period}"] ?? null) * 180_000;           // 特定：18万円
             $sum += $this->n($payload["kojo_fuyo_roujin_sonota_count_{$period}"] ?? null) * 100_000;     // 老人(その他)：10万円
             $sum += $this->n($payload["kojo_fuyo_roujin_doukyo_count_{$period}"] ?? null) * 130_000;     // 同居老親等：13万円
 
-            // 6) 配偶者控除・配偶者特別控除（差額表ベース）
+            // 5) 配偶者控除・配偶者特別控除（差額表ベース）
             $sum += $this->spouseHumanDiffByTable($payload, $ctx, $period, $sumGokei);
 
-            // 7) 特定親族特別控除は「調整控除の人的控除差」には含めない（差額表対象外）
+            // 6) 特定親族特別控除は「調整控除の人的控除差」には含めない（差額表対象外）
             //    ※控除額（所得控除）としては JintekiKojoCalculator で別途計算・課税所得に反映する。
 
             $out["human_diff_sum_{$period}"] = max(0, $sum);

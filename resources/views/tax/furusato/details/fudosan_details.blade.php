@@ -38,7 +38,7 @@
         @endif
     
         <div class="table-responsive">
-          <table class="table-base table-bordered align-middle">
+          <table class="table-input align-middle">
             <tbody>
               <tr>
                 <th colspan="2" class="th-ccc" style="height:30px;">項 目</th>
@@ -46,7 +46,7 @@
                 <th class="th-ccc">{{ $warekiCurr ?? '当年' }}</th>
               </tr>
               <tr>
-                <th class="text-start align-middle" colspan="2">収入金額</th>
+                <th class="text-start align-middle ps-1" colspan="2">収入金額</th>
                 <td>
                   @php($name = 'fudosan_syunyu_prev')
                   <input type="text" inputmode="numeric" autocomplete="off"
@@ -85,7 +85,7 @@
                            name="{{ $labelName }}"
                            value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
                            maxlength="64"
-                           class="form-control form-control-sm"
+                           class="form-control kana10"
                            aria-label="必要経費項目名{{ $field['labelIndex'] ?? '' }}"
                            @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
                   @else
@@ -118,7 +118,7 @@
                              name="{{ $labelName }}"
                              value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
                              maxlength="64"
-                             class="form-control form-control-sm"
+                             class="form-control kana10"
                              aria-label="必要経費項目名{{ $field['labelIndex'] ?? '' }}"
                              @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
                     @else
@@ -152,7 +152,7 @@
               ])
               @foreach ($footerFields as $field)
                 <tr>
-                  <th class="text-start align-middle" colspan="2">{{ $field['label'] }}</th>
+                  <th class="text-start align-middle ps-1" colspan="2">{{ $field['label'] }}</th>
                   <td>
                     @php($name = $field['name'] . '_prev')
                     @php($readonly = $field['readonly'] ?? false)
@@ -334,4 +334,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
+ 
+{{-- Enter移動（ふるさと全画面共通） --}}
+@include('tax.furusato.partials.enter_nav')
+
 @endsection

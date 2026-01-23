@@ -146,7 +146,17 @@ class UsersController extends Controller
             'invited_by' => $actor->id,
         ]);
 
-        Mail::to($invitation->email)->send(new UserInvitationMail($invitation));
+        // メール環境未設定でもユーザー追加操作自体は成功させる（開発環境の500回避）
+        try {
+            Mail::to($invitation->email)->send(new UserInvitationMail($invitation));
+        } catch (\Throwable $e) {
+            // 送信失敗はログだけ残す（本番ではMAIL設定を整える）
+            \Log::warning('[InvitationMail] send failed', [
+                'invitation_id' => $invitation->id ?? null,
+                'email' => $invitation->email ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         if (class_exists(AuditLogger::class)) {
             AuditLogger::log('invitation.created', [
@@ -157,7 +167,7 @@ class UsersController extends Controller
             ]);
         }
 
-        return redirect()->route('admin.users.index')->with('status', __('Invitation sent.'));
+        return redirect()->route('admin.users.index')->with('status', __('Invitation created.'));
     }
 
     public function edit(Request $request, $userId): View

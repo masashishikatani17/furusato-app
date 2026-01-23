@@ -6,7 +6,7 @@
   <div class="card-header d-flex justify-content-between gap-2">
     <div>
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-      <h0 class="mb-0 mt-2"> お客様・年度一覧</h0>
+      <h0 class="mb-0 ms-3 mt-2"> お客様・年度一覧</h0>
       @php
         $me = $me ?? auth()->user();
         $isClient = strtolower((string)($me->role ?? '')) === 'client';
@@ -65,13 +65,13 @@
       <div class="d-flex gap-3 flex-nowrap justify-content-center" style="overflow-x:auto;">
         <!-- 左：お客様一覧 -->
         <div class="flex-shrink-0" style="width: 300px;">
-          <table class="table table-bordered table-sm mb-2">
+          <table class="table table-base mb-2">
             <thead class="table-light">
             <tr><th class="text-center" style="width: 300px;height: 25px;background-color:#d0e5f4;">お客様名</th></tr>
             </thead>
           </table>
           <div class="border" style="max-height: 420px; overflow-y: auto;">
-            <table class="table table-sm mb-0">
+            <table class="table table-base mb-0">
               <tbody>
               <template x-for="g in filteredGuests" :key="g.id">
                 <tr :class="g.id===guestId ? 'table-primary' : ''" style="cursor:pointer;">
@@ -88,10 +88,10 @@
   
         <!-- 右：年度一覧 -->
         <div class="flex-shrink-0">
-          <table class="table table-bordered table-sm mb-2 align-middle">
+          <table class="table table-base mb-2 align-middle">
             <thead class="table-light">
             <tr style="height:25px;">
-              <th class="text-center" style="width: 150px;background-color:#d0e5f4;">
+              <th class="text-center" style="width: 100px;background-color:#d0e5f4;">
                 年　度
                 <button type="button" class="btn btn-sm btn-outline-primary ms-2 py-0 px-1"
                         style="font-size: 11px; height: 18px; line-height: 1;"
@@ -100,28 +100,32 @@
                   ⇅
                 </button>
               </th>
-              <th class="text-center" style="width: 150px;background-color:#d0e5f4;">選　択</th>
+              <th class="text-center" style="width: 100px;background-color:#d0e5f4;">選 択</th>
+              <th class="text-center" style="width: 100px;background-color:#d0e5f4;">選 択</th>
             </tr>
             </thead>
           </table>
           <div class="border" style="max-height: 300px; overflow-y: auto;">
-            <table class="table table-sm mb-0 align-middle">
+            <table class="table table-base mb-0 align-middle">
               <tbody>
               <template x-for="d in filteredDatas" :key="d.id">
-                <tr style="height: 25px; cursor:pointer;"
+                <tr style="height: 28px; cursor:pointer;"
                     :class="selectedDataId===d.id ? 'table-active' : ''"
                     @click="selectedDataId=d.id">
-                  <td class="text-end pe-3" style="width:150px;">
+                  <td class="text-end pe-3" style="width:100px;">
                     <template x-if="isPrivate(d)">
                       <span title="非共有（作成者のみ）">🔒</span>
                     </template>
                     <span x-text="formatYear(d.kihu_year)"></span>
                   </td>
-                  <td class="text-center" style="width:150px;" nowrap="nowrap">
-                    <div class="d-flex flex-column gap-1 align-items-center">
+                  <td class="text-center bg-cream" style="width:100px;" nowrap="nowrap">
+                    
                       <button type="button" class="btn-base-blue"
                               @click.stop="selectedDataId=d.id; openYearModal(d)">選 択</button>
-                    </div>
+                  </td>
+                  <td class="text-center bg-cream" style="width:100px;" nowrap="nowrap">
+                      <button type="button" class="btn-base-blue"
+                              @click.stop="window.location.href = `/data/${d.id}/edit`">編 集</button>
                   </td>
                 </tr>
               </template>
@@ -145,52 +149,43 @@
                          :title="selectedDataId ? '' : 'コピーするデータを選択してください'">
                         既存データのコピー
                       </a>
-                      <!-- ▼ PDF出力（分離課税） -->
-                      <a href="#"
-                         class="btn-base-blue"
-                         @click.prevent="openPdf('bunri')"
-                         :class="{'btn-disabled-link': !selectedDataId}"
-                         :title="selectedDataId ? '確定申告書（分離課税）PDFを出力' : '年度データを選択してください'">
-                        PDF出力（分離課税）
-                      </a>
                     </div>
                     <div class="d-flex align-items-center">
                       <a href="{{ route('data.index') }}" class="btn-base-blue">戻 る</a>
                     </div>
                   </div>
                 </div>
-                 
-      <!-- 年度変更モーダル（※ x-data の内側に配置することが重要） -->
-      <template x-if="showYearModal">
-        <div class="position-fixed top-0 start-0 w-100 h-100"
-             style="background: rgba(0,0,0,.35); z-index: 1055;"
-             @click.self="showYearModal=false">
-          <div class="bg-white rounded shadow p-3"
-               style="width:420px; max-width:90vw; margin:10vh auto;">
-            <hb class="mb-3">○年度の選択</hb>
-            <br>
-            <div class="mt-2 ms-5 mb-3">
-              <hs>
-                同じ年度を選ぶと既存データへ遷移します。
-                <br>別の年度を選ぶと複製して新しいデータへ遷移します。
-              </hs>
-            </div>
-            <div class="d-flex align-items-center gap-2 mt-3 ms-3">
-              <label class="ms-2 ms-2">年度</label>
-              <select class="form-select form-select-sm" style="width:200px;" x-model.number="yearSelected">
-                <template x-for="y in yearOptions" :key="y">
-                  <option :value="y" x-text="y + '年'"></option>
-                </template>
+                  
+      <!-- 年度変更モーダル（x-if だと select が先頭(2035)に寄ることがあるので x-show でDOMを保持する） -->
+      <div x-show="showYearModal" x-cloak
+           class="position-fixed top-0 start-0 w-100 h-100"
+           style="background: rgba(0,0,0,.35); z-index: 1055;"
+           @click.self="showYearModal=false">
+        <div class="bg-white rounded shadow p-3"
+             style="width:380px; max-width:90vw; margin:10vh auto;">
+          <hb class="mb-3">○年度の選択</hb>
+          <br>
+          <div class="mt-2 ms-5 mb-3">
+            <hs>
+              同じ年度を選ぶと既存データへ遷移します。
+              <br>別の年度を選ぶと複製して新しいデータへ遷移します。
+            </hs>
+          </div>
+          <div class="d-flex align-items-center gap-2 mt-3 ms-3">
+            <label class="ms-2 ms-5">年度</label>
+            <select class="form-select form-select-sm" style="width:100px;" x-model.number="yearSelected">
+              <template x-for="y in yearOptions" :key="y">
+                <option :value="y" x-text="y + '年'"></option>
+              </template>
             </select>
-            </div>
-            <hr>
-            <div class="d-flex justify-content-end gap-2">
+          </div>
+          <hr>
+          <div class="d-flex justify-content-end gap-2">
             <button type="button" class="btn btn-base-blue" @click="proceedByYear()">決 定</button>
-              <button type="button" class="btn btn-base-blue" @click="showYearModal=false">戻 る</button>
-            </div>
+            <button type="button" class="btn btn-base-blue" @click="showYearModal=false">戻 る</button>
           </div>
         </div>
-      </template>
+      </div>
     </div> <!-- /x-data="masterPane(...)" -->
   </div>
 </div>
@@ -284,26 +279,45 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
     formatYear(y){ return (Number(y)||0) ? `${y}年` : '—'; },
     isPrivate(row){ return String(row?.visibility || 'shared') === 'private'; },
     buildYearOptions(){
-      const now = new Date().getFullYear();
+      // 一旦：2025〜2035 に固定
+      const minY = 2025, maxY = 2035;
       const ys = [];
-      for(let y=now+10; y>=now-10; y--){ ys.push(y); }
+      for(let y=maxY; y>=minY; y--){ ys.push(y); }
       this.yearOptions = ys;
     },
     openYearModal(row){
       this.targetRow = row;
       this.selectedDataId = Number(row?.id) || this.selectedDataId;
-      this.yearSelected = Number(row?.kihu_year) || new Date().getFullYear();
+      // デフォルトは「選択したデータの年度」
+      const yRaw = Number(row?.kihu_year) || new Date().getFullYear();
+      // 年度候補が 2025〜2035 なので範囲外データはクランプ（古いデータが残っている場合の保険）
+      const y = Math.max(2025, Math.min(2035, yRaw));
+      this.yearSelected = y;
       this.showYearModal = true;
+      // x-show にしたので基本不要だが、念のため確定
+      this.$nextTick(() => { this.yearSelected = y; });
     },
     proceedByYear(){
       const cur = Number(this.targetRow?.kihu_year)||0;
       const sel = Number(this.yearSelected)||0;
       if(!this.targetRow?.id || !sel){ alert('年度を選択してください。'); return; }
+      if(sel < 2025 || sel > 2035){
+        alert('年度は 2025〜2035 の範囲で選択してください。');
+        return;
+      }
       if(cur === sel){
         // 既存データの処理メニューへ遷移
         window.location.href = `/furusato/syori?data_id=${this.targetRow.id}`;
         return;
       }
+
+      // 既にその年度のデータが存在する場合は、複製せず既存へ遷移
+      const existing = (this.datas || []).find(d => Number(d?.kihu_year) === sel);
+      if (existing && existing.id) {
+        window.location.href = `/furusato/syori?data_id=${existing.id}`;
+        return;
+      }
+
       // 複製 → 年度置換 → 新IDで遷移
       fetch(`/api/data/${this.targetRow.id}/clone-year`, {
         method : 'POST',

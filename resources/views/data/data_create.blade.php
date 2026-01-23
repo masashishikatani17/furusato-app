@@ -23,6 +23,10 @@
 
     <table class="table-base table-bordered align-middle w-auto mx-auto">
       <tbody>
+      @php
+        $today = now()->format('Y-m-d');
+        $proposalDefault = old('proposal_date', $today);
+      @endphp
       {{-- 1) お客様の指定 --}}
       <tr>
         <th class="text-start ps-2" style="width:100px;">お客様の指定</th>
@@ -90,15 +94,38 @@
         <th class="text-start ps-2">年 度</th>
         <td>
           @php
+            // 一旦：2025〜2035 に固定
+            $minY = 2025; $maxY = 2035;
             $now = (int)date('Y');
-            $minY = $now - 10; $maxY = $now + 10;
-            $oldYear = old('kihu_year', $now);
+            $default = min(max($now, $minY), $maxY);
+            $oldYear = (int) old('kihu_year', $default);
+            if ($oldYear < $minY) $oldYear = $minY;
+            if ($oldYear > $maxY) $oldYear = $maxY;
           @endphp
           <select name="kihu_year" id="kihu_year" class="form-select" style="max-width:200px;">
             @for ($y = $maxY; $y >= $minY; $y--)
               <option value="{{ $y }}" @selected((int)$oldYear === (int)$y)>{{ $y }}年</option>
             @endfor
           </select>
+        </td>
+      </tr>
+      {{-- データ作成日（編集不可） --}}
+      <tr>
+        <th class="text-start ps-2">データ作成日</th>
+        <td class="text-start ps-1">
+          <input type="date" class="form-control" value="{{ $today }}" readonly>
+        </td>
+      </tr>
+
+      {{-- 提案書日（編集可） --}}
+      <tr>
+        <th class="text-start ps-2">提案書日</th>
+        <td class="text-start ps-1">
+          <input type="date"
+                 name="proposal_date"
+                 id="proposal_date"
+                 class="form-control"
+                 value="{{ $proposalDefault }}">
         </td>
       </tr>
       </tbody>

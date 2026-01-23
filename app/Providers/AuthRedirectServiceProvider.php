@@ -21,7 +21,7 @@ class AuthRedirectServiceProvider extends ServiceProvider
                  */
                 public function toResponse($request): RedirectResponse
                 {
-                    return redirect()->intended('/admin/settings');
+                    return redirect()->intended('/data');
                 }
             };
         });

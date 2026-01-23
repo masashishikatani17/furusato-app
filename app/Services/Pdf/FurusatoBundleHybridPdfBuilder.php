@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Services\Pdf;
+
+use App\Models\Data;
+use App\Reports\Contracts\BundleReportInterface;
+use App\Services\Pdf\Templates\FurusatoHyoshiTemplateWriter;
+use setasign\Fpdi\Fpdi;
+use setasign\Fpdi\PdfParser\StreamReader;
+
+/**
+ * ふるさと帳票一括：ハイブリッド生成
+ * - 0表紙：背景テンプレPDF＋座標印字
+ * - それ以外：既存の FastBundlePdfBuilder（HTML結合→dompdf 1回）
+ * - 最後にFPDIで1本に結合
+ */
+final class FurusatoBundleHybridPdfBuilder
+{
+    public function __construct(
+        private readonly ReportRegistry $reports,
+        private readonly FastBundlePdfBuilder $fastBuilder,
+    ) {}
+
+    /**
+     * @param array<string,mixed> $context
+     * @param array<string,mixed> $options
+     */
+    public function build(Data $data, BundleReportInterface $bundle, array $context, array $options): string
+    {
+        $keys = $bundle->bundleKeys($data, $context);
+        $keys = array_values(array_filter(array_map('strval', $keys), fn($k) => $k !== ''));
+        $keys = array_values(array_unique($keys));
+
+        // 0表紙キー（現行bundleKeysでは 'hyoshi'）
+        $coverKey = 'hyoshi';
+
+        // --- 0表紙（テンプレ＋座標） ---
+        $coverPdf = $this->buildCoverPdf($data);
+
+        // --- 残り（表紙を除外してfast bundle 1回） ---
+        $restKeys = array_values(array_filter($keys, fn($k) => strtolower($k) !== $coverKey));
+        $restPdf = '';
+        if ($restKeys !== []) {
+            $restPdf = $this->fastBuilder->buildBundlePdfForKeys($data, $restKeys, $context, $options);
+        }
+
+        // --- 結合 ---
+        $fpdi = new Fpdi();
+        $fpdi->SetAutoPageBreak(false);
+        $fpdi->SetMargins(0, 0, 0);
+
+        // cover
+        $this->appendPdfString($fpdi, $coverPdf);
+        // rest
+        if ($restPdf !== '') {
+            $this->appendPdfString($fpdi, $restPdf);
+        }
+
+        return $fpdi->Output('S');
+    }
+
+    private function buildCoverPdf(Data $data): string
+    {
+        // 背景テンプレ
+        $tpl = resource_path('pdf_templates/furusato/0_hyoshi_bg.pdf');
+        // フォント（TTF）
+        $font = public_path('fonts/ipaexg.ttf');
+
+        $writer = new FurusatoHyoshiTemplateWriter($tpl, $font);
+
+        // 表紙に載せたい値（暫定）
+        $guestName = (string)($data->guest?->name ?? '');
+        $date = (string)($data->proposal_date ?? $data->data_created_on ?? now()->toDateString());
+        $org  = ''; // 必要なら会社名/事務所名を入れる
+
+        return $writer->render([
+            'guest_name' => $guestName !== '' ? ($guestName . '様') : '',
+            'date'       => $date,
+            'org'        => $org,
+        ]);
+    }
+
+    private function appendPdfString(Fpdi $fpdi, string $pdfStr): void
+    {
+        $pageCount = $fpdi->setSourceFile(StreamReader::createByString($pdfStr));
+        for ($i = 1; $i <= $pageCount; $i++) {
+            $tpl  = $fpdi->importPage($i);
+            $size = $fpdi->getTemplateSize($tpl);
+            $fpdi->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $fpdi->useTemplate($tpl, 0, 0, $size['width'], $size['height'], true);
+        }
+    }
+}

@@ -3,6 +3,12 @@
 namespace App\Reports\Shotoku;
 
 use App\Models\Data;
+use App\Models\FurusatoInput;
+use App\Models\FurusatoResult;
+use App\Domain\Tax\Factory\SyoriSettingsFactory;
+use App\Domain\Tax\Support\PayloadNormalizer;
+use App\Domain\Tax\Services\FurusatoDryRunCalculatorRunner;
+use App\Domain\Tax\Services\FurusatoPracticalUpperLimitService;
 use App\Reports\Contracts\ReportInterface;
 
 class SyotokukinKojyosokuReport implements ReportInterface
@@ -15,14 +21,202 @@ class SyotokukinKojyosokuReport implements ReportInterface
 
     public function buildViewData(Data $data): array
     {
-        // 現時点では帳票内の数値・文言は固定表示（送付Blade通り）
         $guestName = $data->guest?->name ?? '（名称未登録）';
         $year = (int)($data->kihu_year ?? now()->year);
+
+        // ------------------------------
+        // 1) SoT payload（優先：FurusatoResult.payload['payload'] → 次点：FurusatoInput.payload）
+        // ------------------------------
+        $payload = [];
+        $storedResults = FurusatoResult::query()
+            ->where('data_id', (int)$data->id)
+            ->value('payload');
+        if (is_array($storedResults)) {
+            $candidate = $storedResults['payload'] ?? $storedResults['upper'] ?? null;
+            if (is_array($candidate)) {
+                $payload = $candidate;
+            }
+        }
+        if ($payload === []) {
+            $storedInput = FurusatoInput::query()
+                ->where('data_id', (int)$data->id)
+                ->value('payload');
+            if (is_array($storedInput)) {
+                $payload = $storedInput;
+            }
+        }
+
+        /** @var PayloadNormalizer $normalizer */
+        $normalizer = app(PayloadNormalizer::class);
+        $payload = $normalizer->normalize($payload);
+
+        // ------------------------------
+        // 2) ctx（syori_settings + master year + company/data）
+        // ------------------------------
+        /** @var SyoriSettingsFactory $syoriFactory */
+        $syoriFactory = app(SyoriSettingsFactory::class);
+        $syoriSettings = $syoriFactory->buildInitial($data);
+
+        $ctx = [
+            'master_kihu_year' => 2025,
+            'kihu_year'        => $year,
+            'company_id'       => $data->company_id !== null ? (int)$data->company_id : null,
+            'data_id'          => $data->id !== null ? (int)$data->id : null,
+            'syori_settings'   => $syoriSettings,
+            // dry-run calculators が参照する可能性があるため、Recalculate と同様に渡す（保険）
+            'data'             => $data,
+            'guest_birth_date' => ($data->guest?->birth_date instanceof \DateTimeInterface)
+                ? $data->guest->birth_date->format('Y-m-d')
+                : (is_string($data->guest?->birth_date) ? $data->guest->birth_date : null),
+            'taxpayer_sex'     => data_get($data, 'guest.sex')
+                ?? data_get($data, 'guest.gender')
+                ?? data_get($data, 'guest.sex_code'),
+        ];
+
+        // ------------------------------
+        // 3) 実利上限（自己負担<=2,000円）を当年ふるさと寄附として注入（※帳票は千円未満切捨て）
+        // ------------------------------
+        // ★重要：
+        //   - 計算（控除額）は「実利上限の生値（1円単位）」で行う
+        //   - 帳票の“表示”だけ 1,000円未満切捨てを使う（表示と計算を混ぜない）
+        $yMaxTotalRaw = 0;
+        $yMaxTotalDisplay = 0;
+
+        /** @var FurusatoDryRunCalculatorRunner $runner */
+        $runner = app(FurusatoDryRunCalculatorRunner::class);
+        $out = $payload; // 失敗時でも後続が壊れないように初期化
+
+        try {
+            /** @var FurusatoPracticalUpperLimitService $upperSvc */
+            $upperSvc = app(FurusatoPracticalUpperLimitService::class);
+            $upper = $upperSvc->compute($payload, $ctx);
+            $yMaxTotalRaw = (int)($upper['y_max_total'] ?? 0);
+            $yMaxTotalDisplay = $this->floorToThousands($yMaxTotalRaw);
+
+            // ▼ 計算は「生値」で注入（控除額を正確にする）
+            $payloadAtMax = $this->withFurusato($payload, $yMaxTotalRaw);
+            $out = $runner->run($payloadAtMax, $ctx);
+        } catch (\Throwable $e) {
+            // 帳票生成は落とさない（0扱いで続行）
+            $yMaxTotalRaw = 0;
+            $yMaxTotalDisplay = 0;
+            $out = $runner->run($payload, $ctx);
+        }
+
+        // ------------------------------
+        // 4) 帳票（2ページ）用：所得金額等（当年）と所得控除額（当年）を組み立て
+        // ------------------------------
+        $p = 'curr';
+
+        $get = function (array $src, string $key) {
+            return $src[$key] ?? 0;
+        };
+        $I = function (array $src, string $key) {
+            return $this->n($src[$key] ?? 0);
+        };
+
+        // 所得金額等（左表）
+        $sogo = [
+            'jigyo_eigyo' => ['itax' => $I($out, "shotoku_jigyo_eigyo_shotoku_{$p}"), 'rtax' => $I($out, "shotoku_jigyo_eigyo_jumin_{$p}")],
+            'jigyo_nogyo' => ['itax' => $I($out, "shotoku_jigyo_nogyo_shotoku_{$p}"), 'rtax' => $I($out, "shotoku_jigyo_nogyo_jumin_{$p}")],
+            'fudosan'     => ['itax' => $I($out, "shotoku_fudosan_shotoku_{$p}"),     'rtax' => $I($out, "shotoku_fudosan_jumin_{$p}")],
+            'rishi'       => ['itax' => $I($out, "shotoku_rishi_shotoku_{$p}"),       'rtax' => $I($out, "shotoku_rishi_jumin_{$p}")],
+            'haito'       => ['itax' => $I($out, "shotoku_haito_shotoku_{$p}"),       'rtax' => $I($out, "shotoku_haito_jumin_{$p}")],
+            'kyuyo'       => ['itax' => $I($out, "shotoku_kyuyo_shotoku_{$p}"),       'rtax' => $I($out, "shotoku_kyuyo_jumin_{$p}")],
+            'zatsu_nenkin'=> ['itax' => $I($out, "shotoku_zatsu_nenkin_shotoku_{$p}"),'rtax' => $I($out, "shotoku_zatsu_nenkin_jumin_{$p}")],
+            'zatsu_gyomu' => ['itax' => $I($out, "shotoku_zatsu_gyomu_shotoku_{$p}"), 'rtax' => $I($out, "shotoku_zatsu_gyomu_jumin_{$p}")],
+            'zatsu_sonota'=> ['itax' => $I($out, "shotoku_zatsu_sonota_shotoku_{$p}"),'rtax' => $I($out, "shotoku_zatsu_sonota_jumin_{$p}")],
+            // 総合譲渡・一時（合算済みキーを優先。無い場合は内訳から合算）
+            'joto_ichiji' => [
+                'itax' => $I($out, "shotoku_joto_ichiji_shotoku_{$p}") ?: (
+                    $I($out, "shotoku_joto_tanki_sogo_{$p}") + $I($out, "shotoku_joto_choki_sogo_{$p}") + max(0, $I($out, "shotoku_ichiji_{$p}"))
+                ),
+                'rtax' => $I($out, "shotoku_joto_ichiji_jumin_{$p}") ?: (
+                    $I($out, "shotoku_joto_tanki_sogo_{$p}") + $I($out, "shotoku_joto_choki_sogo_{$p}") + max(0, $I($out, "shotoku_ichiji_{$p}"))
+                ),
+            ],
+        ];
+        $sogoTotal = ['itax'=>0,'rtax'=>0];
+        foreach ($sogo as $v) { $sogoTotal['itax'] += (int)$v['itax']; $sogoTotal['rtax'] += (int)$v['rtax']; }
+
+        $bunri = [
+            'tanki_ippan'   => ['itax' => $I($out, "bunri_shotoku_tanki_ippan_shotoku_{$p}"),   'rtax' => $I($out, "bunri_shotoku_tanki_ippan_jumin_{$p}")],
+            'tanki_keigen'  => ['itax' => $I($out, "bunri_shotoku_tanki_keigen_shotoku_{$p}"),  'rtax' => $I($out, "bunri_shotoku_tanki_keigen_jumin_{$p}")],
+            'choki_ippan'   => ['itax' => $I($out, "bunri_shotoku_choki_ippan_shotoku_{$p}"),   'rtax' => $I($out, "bunri_shotoku_choki_ippan_jumin_{$p}")],
+            'choki_tokutei' => ['itax' => $I($out, "bunri_shotoku_choki_tokutei_shotoku_{$p}"), 'rtax' => $I($out, "bunri_shotoku_choki_tokutei_jumin_{$p}")],
+            'choki_keika'   => ['itax' => $I($out, "bunri_shotoku_choki_keika_shotoku_{$p}"),   'rtax' => $I($out, "bunri_shotoku_choki_keika_jumin_{$p}")],
+            'ippan_kabu'    => ['itax' => $I($out, "bunri_shotoku_ippan_kabuteki_joto_shotoku_{$p}"), 'rtax' => $I($out, "bunri_shotoku_ippan_kabuteki_joto_jumin_{$p}")],
+            'jojo_kabu'     => ['itax' => $I($out, "bunri_shotoku_jojo_kabuteki_joto_shotoku_{$p}"),  'rtax' => $I($out, "bunri_shotoku_jojo_kabuteki_joto_jumin_{$p}")],
+            'jojo_haito'    => ['itax' => $I($out, "bunri_shotoku_jojo_kabuteki_haito_shotoku_{$p}"), 'rtax' => $I($out, "bunri_shotoku_jojo_kabuteki_haito_jumin_{$p}")],
+            'sakimono'      => ['itax' => $I($out, "bunri_shotoku_sakimono_shotoku_{$p}"),            'rtax' => $I($out, "bunri_shotoku_sakimono_jumin_{$p}")],
+            'sanrin'        => ['itax' => $I($out, "bunri_shotoku_sanrin_shotoku_{$p}"),              'rtax' => $I($out, "bunri_shotoku_sanrin_jumin_{$p}")],
+            'taishoku'      => ['itax' => $I($out, "bunri_shotoku_taishoku_shotoku_{$p}"),            'rtax' => $I($out, "bunri_shotoku_taishoku_jumin_{$p}")],
+        ];
+        $bunriTotal = ['itax'=>0,'rtax'=>0];
+        foreach ($bunri as $v) { $bunriTotal['itax'] += (int)$v['itax']; $bunriTotal['rtax'] += (int)$v['rtax']; }
+
+        $incomeTable = [
+            'sogo' => $sogo,
+            'sogo_total' => $sogoTotal,
+            'bunri' => $bunri,
+            'bunri_total' => $bunriTotal,
+            'grand_total' => [
+                'itax' => $sogoTotal['itax'] + $bunriTotal['itax'],
+                'rtax' => $sogoTotal['rtax'] + $bunriTotal['rtax'],
+            ],
+        ];
+
+        // 所得控除（右表）
+        $kojo = [
+            'shakaihoken' => ['itax'=>$I($out, "kojo_shakaihoken_shotoku_{$p}"), 'rtax'=>$I($out, "kojo_shakaihoken_jumin_{$p}")],
+            'shokibo'     => ['itax'=>$I($out, "kojo_shokibo_shotoku_{$p}"),     'rtax'=>$I($out, "kojo_shokibo_jumin_{$p}")],
+            'seimei'      => ['itax'=>$I($out, "kojo_seimei_shotoku_{$p}"),      'rtax'=>$I($out, "kojo_seimei_jumin_{$p}")],
+            'jishin'      => ['itax'=>$I($out, "kojo_jishin_shotoku_{$p}"),      'rtax'=>$I($out, "kojo_jishin_jumin_{$p}")],
+            'kafu'        => ['itax'=>$I($out, "kojo_kafu_shotoku_{$p}"),        'rtax'=>$I($out, "kojo_kafu_jumin_{$p}")],
+            'hitorioya'   => ['itax'=>$I($out, "kojo_hitorioya_shotoku_{$p}"),   'rtax'=>$I($out, "kojo_hitorioya_jumin_{$p}")],
+            'kinrogakusei'=> ['itax'=>$I($out, "kojo_kinrogakusei_shotoku_{$p}"),'rtax'=>$I($out, "kojo_kinrogakusei_jumin_{$p}")],
+            'shogaisha'   => ['itax'=>$I($out, "kojo_shogaisha_shotoku_{$p}"),   'rtax'=>$I($out, "kojo_shogaisha_jumin_{$p}")],
+            'haigusha'    => ['itax'=>$I($out, "kojo_haigusha_shotoku_{$p}"),    'rtax'=>$I($out, "kojo_haigusha_jumin_{$p}")],
+            'haigusha_tok'=> ['itax'=>$I($out, "kojo_haigusha_tokubetsu_shotoku_{$p}"), 'rtax'=>$I($out, "kojo_haigusha_tokubetsu_jumin_{$p}")],
+            'fuyo'        => ['itax'=>$I($out, "kojo_fuyo_shotoku_{$p}"),        'rtax'=>$I($out, "kojo_fuyo_jumin_{$p}")],
+            'tokutei_shinz'=> ['itax'=>$I($out, "kojo_tokutei_shinzoku_shotoku_{$p}"), 'rtax'=>$I($out, "kojo_tokutei_shinzoku_jumin_{$p}")],
+            // 基礎控除は override キー（shotokuzei_/juminzei_）
+            'kiso'        => ['itax'=>$I($out, "shotokuzei_kojo_kiso_{$p}"),     'rtax'=>$I($out, "juminzei_kojo_kiso_{$p}")],
+        ];
+        $shokei = ['itax'=>0,'rtax'=>0];
+        foreach ($kojo as $v) { $shokei['itax'] += (int)$v['itax']; $shokei['rtax'] += (int)$v['rtax']; }
+
+        $zasson = ['itax'=>$I($out, "kojo_zasson_shotoku_{$p}"), 'rtax'=>$I($out, "kojo_zasson_jumin_{$p}")];
+        $iryo   = ['itax'=>$I($out, "kojo_iryo_shotoku_{$p}"),   'rtax'=>$I($out, "kojo_iryo_jumin_{$p}")];
+        // 寄附金控除（所得控除）は所得税のみ表示（住民税は「-」固定）
+        $kifukinItax = $I($out, "shotokuzei_kojo_kifukin_{$p}");
+
+        $kojoTotal = [
+            'itax' => $shokei['itax'] + (int)$zasson['itax'] + (int)$iryo['itax'] + (int)$kifukinItax,
+            'rtax' => $shokei['rtax'] + (int)$zasson['rtax'] + (int)$iryo['rtax'],
+        ];
+
+        $kojoTable = [
+            'rows' => $kojo,
+            'shokei' => $shokei,
+            'zasson' => $zasson,
+            'iryo'   => $iryo,
+            'kifukin_itax' => $kifukinItax,
+            'total'  => $kojoTotal,
+        ];
+
         return [
             'title'      => '所得金額・所得控除額の予測',
             'year'       => $year,
+            'wareki_year'=> $this->toWarekiYear($year),
             'guest_name' => $guestName,
             'data_id'    => (int)$data->id,
+            // ▼ 表示用（帳票上の「上限まで寄附」見出しなどに使うならこちら）
+            'furusato_y_max_total'     => $yMaxTotalDisplay,
+            // ▼ 計算の生値（デバッグや将来の「円単位表示」が必要ならこちら）
+            'furusato_y_max_total_raw' => $yMaxTotalRaw,
+            'income_table_curr' => $incomeTable,
+            'kojo_table_curr'   => $kojoTable,
         ];
     }
 
@@ -39,6 +233,44 @@ class SyotokukinKojyosokuReport implements ReportInterface
             'paper'  => 'a4',
             'orient' => 'landscape',
         ];
+    }
+
+    private function withFurusato(array $payload, int $y): array
+    {
+        $y = max(0, $y);
+        // 所得税側（SoT）
+        $payload['shotokuzei_shotokukojo_furusato_curr'] = $y;
+        // 住民税側（pref/muni 同額コピー運用）
+        $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $y;
+        $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $y;
+        return $payload;
+    }
+
+    private function n(mixed $v): int
+    {
+        if ($v === null || $v === '') return 0;
+        if (is_string($v)) $v = str_replace([',',' '], '', $v);
+        return is_numeric($v) ? (int) floor((float) $v) : 0;
+    }
+
+    private function floorToThousands(int $v): int
+    {
+        if ($v <= 0) return 0;
+        return (int) (floor($v / 1000) * 1000);
+    }
+
+    private function toWarekiYear(int $year): string
+    {
+        if ($year >= 2019) {
+            return sprintf('令和%d年', $year - 2018);
+        }
+        if ($year >= 1989) {
+            return sprintf('平成%d年', $year - 1988);
+        }
+        if ($year >= 1926) {
+            return sprintf('昭和%d年', $year - 1925);
+        }
+        return (string) $year;
     }
 }
 

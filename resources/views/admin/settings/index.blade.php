@@ -75,6 +75,12 @@
             'route' => route('admin.data_download.index'),
             'roles' => ['owner', 'registrar', 'groupadmin', 'member'],
         ],
+        [
+            'title' => '操作履歴',
+            'description' => '新規作成/コピー/上書き/削除の履歴を確認できます',
+            'route' => route('admin.audit_logs.index'),
+            'roles' => ['owner', 'registrar'],
+        ],
     ];
 @endphp
 
@@ -82,10 +88,13 @@
     <div class="wrapper mt-3 ms-2" style="background-color:#E8EFF0;">
         <div class="d-flex align-items-center justify-content-between mt-2 mb-4">
             <hb class="mb-2">○設定TOP</hb>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" class="btn btn-base-blue me-2">ログアウト</button>
-            </form>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ route('data.index') }}" class="btn btn-base-blue">戻る</a>
+                <form method="POST" action="{{ route('logout') }}" class="m-0">
+                    @csrf
+                    <button type="submit" class="btn btn-base-blue me-2">ログアウト</button>
+                </form>
+            </div>
         </div>
     
         <div class="row g-4 g-md-4 mb-3">

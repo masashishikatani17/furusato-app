@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Response;
 use App\Jobs\Diagnostics\HelloQueueJob;
 use App\Http\Controllers\DataController;
 use App\Http\Controllers\DevTenantController;
+use App\Http\Controllers\InvitationAcceptController;
 use App\Http\Controllers\Tax\FurusatoController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\UsersController;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Admin\BillingReceiptsController;
 use App\Http\Controllers\Admin\OwnerTransferController;
 use App\Http\Controllers\Admin\DataDownloadController;
 use App\Http\Controllers\Billing\SetupController;
+use App\Http\Controllers\Admin\AuditLogsController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -64,7 +66,16 @@ Route::middleware(['auth', 'reject.client'])->group(function () {
     Route::get('/admin/owner-transfer', [OwnerTransferController::class, 'form'])->name('admin.ownerTransfer.form');
     Route::get('/admin/data-download', [DataDownloadController::class, 'index'])->name('admin.data_download.index');
     Route::get('/billing/setup', [SetupController::class, 'index'])->name('billing.setup');
+    // 監査ログ（Owner/Registrar のみ）
+    Route::get('/admin/audit-logs', [AuditLogsController::class, 'index'])->name('admin.audit_logs.index');
+    Route::get('/admin/audit-logs/{id}', [AuditLogsController::class, 'show'])->whereNumber('id')->name('admin.audit_logs.show');
 });
+
+// 招待承諾（ログイン不要）
+Route::get('/invitations/accept/{token}', [InvitationAcceptController::class, 'show'])
+    ->name('invitations.accept');
+Route::post('/invitations/accept/{token}', [InvitationAcceptController::class, 'store'])
+    ->name('invitations.accept.store');
 
 // ========== PDF サンプル ==========
 Route::get('/pdf/sample', [SamplePdfController::class, 'stream'])
@@ -83,9 +94,10 @@ Route::middleware('auth')->group(function () {
     // コピーフロー
     Route::get('/data/copyForm', [DataController::class, 'copyForm'])->name('data.copyForm');
     Route::post('/data/copy', [DataController::class, 'copy'])->name('data.copy');
-    // 編集（年度の変更に読み替え）
-    Route::get('/data/editForm', [DataController::class, 'editForm'])->name('data.editForm');
-    Route::post('/data/{id}/edit', [DataController::class, 'edit'])->name('data.edit');
+    // 編集（メタ編集＋年度変更（移動/上書き））
+    Route::get('/data/{data}/edit', [DataController::class, 'edit'])->name('data.edit');
+    Route::put('/data/{data}', [DataController::class, 'update'])->name('data.update');
+    Route::delete('/data/{data}', [DataController::class, 'destroy'])->name('data.destroy');
     Route::get('/upload', [UploadController::class, 'index'])->name('upload.index');
     Route::post('/upload', [UploadController::class, 'store'])->name('upload.store');
     Route::delete('/upload', [UploadController::class, 'destroy'])->name('upload.destroy');
@@ -146,6 +158,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/pdf/{report}/preview', [PdfOutputController::class, 'preview'])
         ->where('report', '[a-z0-9_\-]+')
         ->name('pdf.preview');
+    // ステータス（JSON）
+    Route::get('/pdf/{report}/status', [PdfOutputController::class, 'status'])
+        ->where('report', '[a-z0-9_\-]+')
+        ->name('pdf.status');
     // ダウンロード（PDF）
     Route::get('/pdf/{report}', [PdfOutputController::class, 'download'])
         ->where('report', '[a-z0-9_\-]+')

@@ -7,7 +7,7 @@
            ========================================================================== */
 
 :root {
-    --readonly-bg: #F3F3F3;
+    --readonly-bg: #C3C7CF;
     --readonly-text: #212529;
     /* spacing（帳票で var(--sp-3,20px) 等を使うため） */
     --sp-1: 4px;
@@ -17,17 +17,25 @@
     --sp-5: 24px;
     --sp-8: 36px;
     --sp-10: 48px;
+    /* 見出し高さ（重なり防止用／必要に応じて 8〜12mm で調整） */
+    --header-h: 8mm;
 }
-        /* 用紙キャンバス */
-        .sheet {
-          width: 297mm;
-          height: 210mm;
-          margin: 0 auto;
-          position: relative;
-          background: #fff;
-          /* ★pdf/layouts/print.blade.php 側で定義している ipaexg を優先（404のNotoSans参照を排除） */
-          font-family: ipaexg, "Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;
-        }
+   /* A4横／余白なし（印刷時）styleから移動 */
+    @page { size: A4 landscape; margin: 0; }
+    html, body { height: 100%; margin: 0; background: #fff; }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    
+    /* 用紙キャンバス */
+    .sheet {
+      width: 297mm;
+      height: 210mm;
+      margin: 0 auto;
+      position: relative;
+      background: #fff;
+      /* DomPDFではOSフォント参照が不安定なので埋め込みフォントを先頭に */
+      font-family: ipaexg, "Hiragino Kaku Gothic ProN","Meiryo",system-ui,sans-serif;
+    }
 /*ここまでstyleから移動 */
 
     .form-control[readonly],
@@ -48,8 +56,8 @@
     .readonly-span {
         display: block;
         width: 100%;
-        background-color: #e9ecef;
-        color: #212529;
+        background-color: #C3C7CF !important;
+        color: var(--readonly-text);
         padding: 4px;
         box-sizing: border-box;
         min-height: 26px;
@@ -76,7 +84,27 @@
         background-color: var(--readonly-bg) !important;
         color: var(--readonly-text) !important;
     }
-            
+   
+   /* ✅ ここが本丸：
+     - Bootstrap の .bg-light と衝突しやすいので「フォーム部品だけ」狙い撃ち
+     - readonly / :read-only / server-lock / 表示専用(data-*) を #e1e1e1 に統一 */
+      input.form-control.bg-light[readonly],
+      textarea.form-control.bg-light[readonly],
+      select.form-select.bg-light[readonly],
+      input.form-control.bg-light:read-only,
+      textarea.form-control.bg-light:read-only,
+      select.form-select.bg-light:read-only,
+      input.form-control[data-server-lock="1"],
+      textarea.form-control[data-server-lock="1"],
+      select.form-select[data-server-lock="1"],
+      input.form-control[data-display-only="1"],
+      textarea.form-control[data-display-only="1"],
+      input.form-control[data-ui-only="1"],
+      textarea.form-control[data-ui-only="1"] {
+        background-color: #e1e1e1 !important;
+        color: var(--readonly-text) !important;
+      }  
+      
  /* --------------------------------------
   * レイアウト
   * ------------------------------------ */
@@ -113,17 +141,6 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 軽い影 */
         }
         
-        .container-grey {
-            width: 700px;
-            margin: 0px auto;
-            padding: 0px;
-            font-size: 13px;
-            background-color: #ffffff; /* 白背景 */
-            border: 2px solid #7f7f7f;    /* 太い青枠 */
-            border-radius: 8px;        /* 角丸 */
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 軽い影 */
-        }
-        
         .wrapper {
           width: 95%;
           max-width: 1200px;
@@ -144,10 +161,10 @@
         /* htmlの指定はclass="bg-cream"*/
         }
         
-/* --------------------------------------
-  * 文字
-  * ------------------------------------ */        
-   /* インプット表タイトル　青 */
+      /* --------------------------------------
+        * 文字
+        * ------------------------------------ */        
+         /* インプット表タイトル　青 */
         h0 {
             font-size: 16px;
             font-weight: bold;
@@ -193,20 +210,28 @@
             font-size: 12px;
             text-align: left;
             color: #555555; /* 黒 */
-        }    
+        } 
+        
+    /* ※注 1文字下げる*/
+         .indent-1 { padding-left: 1em; }
    
-   /* --- 配置／書式 --- */
-        .text-center { text-align: center; }
-        .text-end  { text-align: right; }
-        .text-start   { text-align: left; }
-        .nowrap    { white-space: nowrap; }     
-   
-   /* 汎用ユーティリティ（どこに置いても効く） */
-  		td.text-start,  th.text-start  { text-align: left   !important; }
-  		td.text-center, th.text-center { text-align: center !important; }
-  		td.text-end,    th.text-end    { text-align: right  !important; }     
+   /* 丸囲み番号（フォント依存を回避） */
+      .marubox{
+        display: inline-block;
+        width: 2.6mm;
+        height: 2.6mm;
+        line-height: 2.6mm;
+        border: 0.1mm solid #000;
+        border-radius: 50%;
+        text-align: center;
+        font-size: 1.6mm;
+        font-weight: 600;
+        vertical-align: middle;
+        margin: 0;
+        padding: 0;
+      }
 
-
+ 
 
    /* 非標準タグ（h14u等）を使う前提：ブロック化 */
       h13,h14,h14u,h15,h15b,h16,h18,h18u,h20,h24,h30,p-small,hb,hs,hm,h0 {
@@ -227,53 +252,34 @@
       h12 { font-size: 12px; color: #000; }
       h11 { font-size: 11px; color: #000; }
       
-      /* 背景色（帳票の見出しセル等） */
-      td.bg-grey, th.bg-grey { background: #ededed !important; }
-      tr.bg-grey > td, tr.bg-grey > th { background: #ededed !important; }
-
-  /* ===== 帳票用コンパクト ===== */
-		.table-compact-p {
-		  border-collapse: collapse;
-		  font-size: 13px;
-		  border: 1px solid #999 !important;
+    /* ===== DomPDFでも太字を太く見せる（class不要） ===== */
+      h30, h24, h20, h18, h16, h15b, h14, hb {
+        font-weight: 700 !important;
+        text-shadow: 0 0 0 #000 !important;
+      }
+      
+      /* ※文字の下に波線*/
+        .u-wave {
+		  text-decoration-line: underline;
+		  text-decoration-style: wavy;  /* ← ここが“波線”の指定 */
+		  text-decoration-color: #999;  /* 色 */
+		  text-decoration-thickness: 0.4px; /* 太さ（お好みで） */
+		  text-underline-offset: 2px;  /* 文字からの距離（少し離す） */
 		}
-		/* セル格子線（ここが基準） */
-		table.table-compact-p td,
-		table.table-compact-p th {
-		  border: 1px solid #999 !important;
-		  padding: 1px 2px !important;
-		  font-size: 13px;
-		  text-align: center;
-		  vertical-align: middle;
-		}
+		/* 使い方　<p>ここが <span class="u-wave">波線の下線</span> です。</p>*/  
+      
+       /* --- 配置／書式 --- */
+        .text-center { text-align: center; }
+        .text-end  { text-align: right; }
+        .text-start   { text-align: left; }
+        .nowrap    { white-space: nowrap; }     
+   
+     /* 汎用ユーティリティ（どこに置いても効く） */
+    		td.text-start,  th.text-start  { text-align: left   !important; }
+    		td.text-center, th.text-center { text-align: center !important; }
+    		td.text-end,    th.text-end    { text-align: right  !important; }     
 
-        /* table-compact-p14（jintekikojosatyosei で使用） */
-        .table-compact-p14 {
-          border-collapse: collapse;
-          font-size: 14px;
-          border: none !important;
-        }
-        table.table-compact-p14 td,
-        table.table-compact-p14 th {
-          border: 1px solid #999;
-          padding: 1px 2px !important;
-          font-size: 14px;
-          vertical-align: middle;
-        }
-
-    /* ===== 外枠だけ太線（既存互換） ===== */
-    		.table-frame {
-    		  display: inline-block;
-    		  border: 2px solid #333;
-    		  vertical-align: top;
-    		  background: transparent;
-    		}
-    		.table-frame > table {
-    		  border: none !important;
-    		  margin: 0;
-    		}
-
-       
+      
     
 /* --------------------------------------
   * ボタン（独自クラス）
@@ -296,55 +302,39 @@
           line-height: 1.2;
         }
         
-        .btn-base-blue {
+        /* 共通：ベースボタン（button/a 両対応で高さが揃う） */
+        .btn-base-blue,
+        .btn-base-red,
+        .btn-base-green{
           display: inline-flex;
           align-items: center;
           justify-content: center;
           padding: 3px 10px;
           font-size: 13px;
-          font-weight: normal;
+          font-weight: 400;
           text-align: center;
           text-decoration: none;
           border-radius: 5px;
           transition: all 0.3s ease;
           border: 1px solid #ccc;
-          background-color: #e9eff7;
-          color: #000;
           cursor: pointer;
           line-height: 1.2;
+          min-height: 24px;              /* ★ここで高さを固定 */
+          box-sizing: border-box;
+          vertical-align: middle;
         }
         
-        .btn-base-red {
-          display: inline-block;
-          padding: 3px 10px;
-          font-size: 13px;
-          font-weight: normal;
-          text-align: center;
-          text-decoration: none;
-          border-radius: 5px;
-          transition: all 0.3s ease;
-          border: 1px solid #ccc;
-          background-color: #e9eff7;
-          color: #d90000;
-          cursor: pointer;
-          line-height: 1.2;
+        /* button のUAスタイル差を潰す（高さが伸びるのを防ぐ） */
+        button.btn-base-blue,
+        button.btn-base-red,
+        button.btn-base-green{
+          -webkit-appearance: none;
+          appearance: none;
         }
         
-        .btn-base-green {
-          display: inline-block;
-          padding: 3px 10px;
-          font-size: 13px;
-          font-weight: normal;
-          text-align: center;
-          text-decoration: none;
-          border-radius: 5px;
-          transition: all 0.3s ease;
-          border: 1px solid #ccc;
-          background-color: #C0DEC5;
-          color: #000;
-          cursor: pointer;
-          line-height: 1.2;
-        }
+        .btn-base-blue { background-color:#e9eff7; color:#000; }
+        .btn-base-red  { background-color:#e9eff7; color:#d90000; }
+        .btn-base-green{ background-color:#C0DEC5; color:#000; }
         
         .btn-base-low {
           display: inline-block;
@@ -362,27 +352,6 @@
           cursor: pointer;
         }
         
-        /* メニュー用ボタン_グレー地白字 */
-        .btn-menu {
-            display: inline-flex;              /* ← フレックスで中央寄せ */
-            align-items: center;               /* ← 縦中央 */
-            justify-content: center;           /* ← 横中央 */
-            width: 150px;
-            height: 40px;
-            line-height: 1;
-            font-size: 15px;
-            font-weight: bold;
-            text-align: center;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: all 0.3s ease;
-            border: 1px solid #ccc; 
-            background-color: #666666; 
-            color: #ffffff; 
-            cursor: pointer;
-            vertical-align: middle;            /* ← 行内での縦位置（隣の要素と揃える用） */
-        }
-
         
         /* 非活性リンク風（クリック不可） */
         .btn-disabled {
@@ -483,7 +452,8 @@
         	  border: 0.6mm solid #000;
             }
         
-            table.table-p td, th {
+             table.table-p td,
+             table.table-p th {
               border: 0.3mm solid #000;   /* 罫線太さは要件に応じ調整可 */
               padding: 0mm 0mm;           /* Excel見た目に合わせて微調整 */
               font-size: 13px;            /* おおむね9pt相当。必要に応じて調整 */
@@ -507,8 +477,9 @@
             .pl-1 { padding-left: 1mm !important; }
             .pl-2 { padding-left: 2mm !important; }
             .pl-3 { padding-left: 3mm !important; }
+            .pl-5 { padding-left: 5mm !important; }
             
-  /* インプット表テーブル */      
+      /* インプット表テーブル */      
         /* 選択系の軽量テーブル（行間詰め、左寄せ） */
         .table-m-sentaku {
           background-color: #fff;
@@ -517,6 +488,12 @@
           margin: 3px auto;
           border-bottom: 1px solid #999;
         }
+         .table-m-sentaku td {
+          vertical-align: middle !important;
+          text-align: left;
+          padding-left: 10px;
+        }
+        
         
         .table-base {
         /* 幅を100%にせず、テーブル自体を中央寄せ */
@@ -542,35 +519,70 @@
         
         table.table-base td {
           padding: 4px;           /* セル内余白 */
-          text-align: center;     /* 横方向中央寄せ */
-          vertical-align: middle; /* 縦方向中央寄せ */
-          line-height: 1.2;
-        }
-
-        table.table-base td {
-          padding: 4px;           /* セル内余白 */
           border: 1px solid #999;
           text-align: center;     /* 横方向中央寄せ */
           vertical-align: middle; /* 縦方向中央寄せ */
           line-height: 1.2;
         }
-
-        /* ---------------------------
-           セルの色そのthだけに適用
-        --------------------------- */
-        .table-base .th-ccc   { background-color: #a6a6a6; color: #333; }  /* 薄グレー地＋黒文字 */
-        .table-base .th-ddd   { background-color: #F7F9FB; color: #333; }  /* 薄ボタン地色＋黒文字 */
-        .table-base .th-cream { background-color: #F4F1E8; color: #333; } /* クリーム地＋黒文字 */
-         
-          /* html側の指定 <th class="u-nowrap th-ccc">続柄</th> */
-          
-        table.table-base th.th-ccc { background-color:#ccc !important; color:#333 !important; }
-
-            /* html側の指定 
-            　　 <th class="u-nowrap th-ccc">番号</th>
-        　　　　　<th class="u-nowrap th-cream">氏　名</th> */
-               table.table-base th.th-ccc { background-color:#ccc !important; color:#000 !important; }　
         
+        /* 上下の余白0のインプット表のテーブル */
+        .table-input {
+        /* 幅を100%にせず、テーブル自体を中央寄せ */
+          border-collapse: collapse;
+          margin: 0px auto; /* 上下0px, 左右0px */
+          font-size: 13px;
+          border: 1px solid #999;
+        }
+        
+        /* ★セルの上下余白を消すのはここ */
+          table.table-input td,
+          table.table-input th{
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            vertical-align: middle !important;
+          }
+        
+        /* table-input：セル余白だけ 0、それ以外は同様 */
+          table.table-input th {
+            background-color: #e9eff7;
+            border: 1px solid #999;
+            color: #333;
+            font-weight: bold;
+            padding: 0 !important;
+            text-align: center;
+            vertical-align: middle;
+            line-height: 1.2;
+          }
+          
+          table.table-input td {
+            border: 1px solid #999;
+            padding: 0 !important;
+            text-align: center;
+            vertical-align: middle;
+            line-height: 1.2;
+          }
+     
+      /* table-input 内では ps-* を確実に勝たせる（th/td限定） */
+          table.table-input th.ps-0, table.table-input td.ps-0 { padding-left: 0 !important; }
+          table.table-input th.ps-1, table.table-input td.ps-1 { padding-left: 4px !important; }
+          table.table-input th.ps-2, table.table-input td.ps-2 { padding-left: 8px !important; }
+          table.table-input th.ps-3, table.table-input td.ps-3 { padding-left: 12px !important; }
+
+
+       /* ===========================
+         セル背景色（テーブル非依存・汎用）
+         使い方：<th class="th-ccc">...</th> / <td class="th-cream">...</td>
+         =========================== */
+            th.th-ccc,  td.th-ccc  { background-color: #ccc !important;     color: #000 !important; }
+            th.th-ddd,  td.th-ddd  { background-color: #F7F9FB !important; color: #333 !important; }
+            th.th-cream,td.th-cream{ background-color: #F4F1E8 !important; color: #333 !important; }
+            
+            
+          /* 背景色（帳票の見出しセル等） */
+            td.bg-grey, th.bg-grey { background: #ededed !important; }
+            tr.bg-grey > td, tr.bg-grey > th { background: #ededed !important; }
+      
+      
         /* ============================
          *  縦書きTH（rowgroup見出し用）
          * ============================ */
@@ -583,19 +595,66 @@
           min-width: 28px;               /* 縦書き列の最小幅（必要なら調整） */
         }
         
-        .table-m-sentaku td {
-          vertical-align: middle !important;
-          text-align: left;
-          padding-left: 10px;
-        }
+       
         
+      /* ===== 帳票用コンパクト ===== */
+    		.table-compact-p {
+    		  border-collapse: collapse;
+    		  font-size: 13px;
+    		  border: 1px solid #999 !important;
+    		}
+    		/* セル格子線（ここが基準） */
+    		table.table-compact-p td,
+    		table.table-compact-p th {
+    		  border: 1px solid #999 !important;
+    		  padding: 1px 2px !important;
+    		  font-size: 13px;
+    		  text-align: center;
+    		  vertical-align: middle;
+    		}
+
+        /* table-compact-p14（jintekikojosatyosei で使用） */
+        .table-compact-p14 {
+          border-collapse: collapse;
+          font-size: 14px;
+          border: none !important;
+        }
+        table.table-compact-p14 td,
+        table.table-compact-p14 th {
+          border: 1px solid #999;
+          padding: 1px 2px !important;
+          font-size: 14px;
+          vertical-align: middle;
+        }
+
+ 
         /* コンパクト化ユーティリティ */
         .table-compact td,
         .table-compact th {
           padding: 1px 2px !important;
         }
         
-        
+      		/* ===== 全透明テーブル（既存互換） ===== */
+    		.g-table--none {
+    		  table-layout: fixed;
+    		  border: 0 !important;
+    		  outline: 0 !important;
+    		  font-size: 12pt;
+    		  line-height: 1.2;
+    		  margin-left: auto;
+    		  margin-right: auto;
+    		}
+    		.g-table--none th,
+    		.g-table--none td {
+    		  border: 0 !important;
+    		}
+    		/* g-table--none の中でそのtdだけ囲む */
+    		.g-table--none td.box-strong {
+    		  border: 1px solid #000 !important;
+    		  border-collapse: separate;
+    		}
+    		
+		
         /* 偶数ストライプ/ホバーを無効化（他所の指定がある場合に打消し） */
         .no-stripe tbody tr:nth-child(even),
         .no-stripe tbody tr:hover {
@@ -619,6 +678,7 @@
           table-layout: fixed;
         }
         
+      /* 下部バー */  
         .table-i-bottom {
           background-color: #666666;
           color: #ffffff;
@@ -632,7 +692,8 @@
           text-align: right;
           border-bottom: 1px solid #ddd;
         }
-        
+      
+      /* ベージュ */  
         .table-beige {
             border-collapse: collapse;
             margin: 10px auto;     /* 上下10px, 左右 auto */
@@ -662,12 +723,13 @@
    
    
 
-	    table td.b-x-strong, table th.b-x-strong { border-left: 2px solid #333 !important; border-right: 2px solid #333 !important; }
-  		table td.b-y-strong, table th.b-y-strong { border-top:  2px solid #333 !important; border-bottom:2px solid #333 !important; }
-  
-  		table td.b-strong,   table th.b-strong   { border: 2px solid #333 !important; }
-  		table td.b-strong-1, table th.b-strong-1 { border: 1px solid #333 !important; }
-  		table td.b-r-strong-1, table th.b-r-strong-1 { border-right: 1px solid #333 !important; }
+  	    table td.b-x-strong, table th.b-x-strong { border-left: 2px solid #333 !important; border-right: 2px solid #333 !important; }
+    		table td.b-y-strong, table th.b-y-strong { border-top:  2px solid #333 !important; border-bottom:2px solid #333 !important; }
+    
+    		table td.b-strong,   table th.b-strong   { border: 2px solid #333 !important; }
+    		table td.b-strong-1, table th.b-strong-1 { border: 1px solid #333 !important; }
+    		table td.b-r-strong-1, table th.b-r-strong-1 { border-right: 1px solid #333 !important; }
+    		
 /* --------------------------------------
   * タブ
   * ------------------------------------ */
@@ -732,12 +794,12 @@
   * ------------------------------------ */
         .form-control {
             font-size: 13px;
-            height: 22px;
-            line-height: 1.2;
+            height: 30px;
             text-align: right;
             display: inline-block;
-            border-radius: 5px;
+            border-radius: 0px;
             border-color:#d0d0d0;
+            margin: 0 !important; /* ★外側余白をゼロ */
         }
         
        /* さらに個別に“部品だけ”を締めたい場合の補助クラス */
@@ -748,6 +810,7 @@
           margin-top: 0 !important;
           margin-bottom: 0 !important;
           height: calc(1em + 4px) !important;
+          margin: 0 !important; /* ★外側余白をゼロ */
         }
         /* 使用法 
         <input type="text" class="form-control form-control-compact">*/
@@ -898,45 +961,37 @@
         
         .kana2 {
             font-size: 13px;
-            margin: auto;
             height: 22px;
             width: 57px;
             text-align: left;
-            line-height: 1.3;
-            border-radius: 5px;
             border-color:#d0d0d0;
+            margin: 0 !important; /* ★外側余白をゼロ */
         }
         .kana3 {
             font-size: 13px;
-            margin: auto;
             height: 22px;
             width: 70px;
             text-align: left;
-            line-height: 1.3;
-            border-radius: 5px;
             border-color:#d0d0d0;
+            margin: 0 !important; /* ★外側余白をゼロ */
         }  
         
         .kana9 {
             font-size: 13px;
-            margin: auto;
             height: 22px;
             width: 150px;
             text-align: left;
-            line-height: 1.3;
-            border-radius: 5px;
             border-color:#d0d0d0;
+            margin: 0 !important; /* ★外側余白をゼロ */
         }
         
         .kana10 {
             font-size: 13px;
-            margin: auto;
             height: 22px;
             width: 160px;
             text-align: left;
-            line-height: 1.3;
-            border-radius: 5px;
             border-color:#d0d0d0;
+            margin: 0 !important; /* ★外側余白をゼロ */
         }
   
         .suji2 {
@@ -1041,7 +1096,6 @@
             flex: 0 0 auto !important; /* 横幅を自動拡張しない */
             width: 110px !important;    /* 幅を強制固定 */
             height: 22px;
-            line-height: 1.2;
         }
         
        .suji10 {
@@ -1052,9 +1106,9 @@
             
         .suji11 {
             width: 132px !important;
-            height: 22px;
-            line-height: 1.2;
-            }
+            height: 22px !important;
+            line-height: 1.2 !important;
+                  }
   
   /* --- 罫線をセル単位で透明化する --- */
         .b-none   { border: none !important; }
@@ -1072,13 +1126,23 @@
         .b-l-strong { border-left:   2px solid #333 !important; }
         .b-y-strong { border-top: 2px solid #333 !important; border-bottom: 2px solid #333 !important; }    
    
-      table td.b-x-strong, table th.b-x-strong { border-left: 2px solid #333 !important; border-right: 2px solid #333 !important; }
-  		table td.b-y-strong, table th.b-y-strong { border-top:  2px solid #333 !important; border-bottom:2px solid #333 !important; }
-  
-  		table td.b-strong,   table th.b-strong   { border: 2px solid #333 !important; }
-  		table td.b-strong-1, table th.b-strong-1 { border: 1px solid #333 !important; }
-  		table td.b-r-strong-1, table th.b-r-strong-1 { border-right: 1px solid #333 !important; }
-            
+        table td.b-x-strong, table th.b-x-strong { border-left: 2px solid #333 !important; border-right: 2px solid #333 !important; }
+    		table td.b-y-strong, table th.b-y-strong { border-top:  2px solid #333 !important; border-bottom:2px solid #333 !important; }
+    
+    		table td.b-strong,   table th.b-strong   { border: 2px solid #333 !important; }
+    		table td.b-strong-1, table th.b-strong-1 { border: 1px solid #333 !important; }
+    		table td.b-r-strong-1, table th.b-r-strong-1 { border-right: 1px solid #333 !important; }
+    
+    /* --- 点線（最優先）--- */
+    		table td.b-dot, table th.b-dot { border: 1px dotted #000 !important; }
+    		table td.b-t-dot, table th.b-t-dot { border-top: 1px dotted #000 !important; }
+    		table td.b-r-dot, table th.b-r-dot { border-right: 1px dotted #000 !important; }
+    		table td.b-b-dot, table th.b-b-dot { border-bottom: 1px dotted #000 !important; }
+    		table td.b-l-dot, table th.b-l-dot { border-left: 1px dotted #000 !important; }
+    		table td.b-x-dot, table th.b-x-dot { border-left: 1px dotted #000 !important; border-right: 1px dotted #000 !important; }
+    		table td.b-y-dot, table th.b-y-dot { border-top: 1px dotted #000 !important; border-bottom: 1px dotted #000 !important; }
+
+          
     /* margin-top/bottom/left/right */
       .mt-0 { margin-top: 0 !important; }
       .mt-1 { margin-top: 4px !important; }
@@ -1086,6 +1150,12 @@
       .mt-3 { margin-top: 12px !important; }
       .mt-4 { margin-top: 16px !important;  }
       .mt-5 { margin-top: 24px !important;}
+      .mt-8 { margin-top: 36px !important;}
+      .mt-10 { margin-top: 48px !important; }
+      .mt-11 { margin-top: 54px !important; }
+      .mt-12 { margin-top: 60px !important; }
+      .mt-20 { margin-top: 96px !important; }
+      
       .mb-0 { margin-bottom: 0 !important; }
       .mb-1 { margin-bottom: 4px !important; }
       .mb-2 { margin-bottom: 8px !important; }
@@ -1101,9 +1171,10 @@
       .ms-4 { margin-left: 16px !important;  }
       .ms-5 { margin-left: 24px !important; }
       .ms-10 { margin-left: 48px !important; }
-      .ms-12 { margin-left: 60px !important; }
+      .ms-12 { margin-left: 62px !important; }
       .ms-20 { margin-left: 96px !important; }
       .ms-40 { margin-left: 192px !important; }
+      
       .me-0 { margin-right: 0 !important; }
       .me-1 { margin-right: 4px !important; }
       .me-2 { margin-right: 8px !important; }
@@ -1112,10 +1183,7 @@
       .me-5 { margin-right: 24px !important;}
       .me-10 { margin-right: 48px !important; }
       .me-40 { margin-right: 192px !important; }
-      .mt-10 { margin-top: 48px !important; }
-      .mt-11 { margin-top: 54px !important; }
-      .mt-20 { margin-top: 96px !important; }
-      .mt-8 { margin-top: 36px !important;}
+      
 
       /* padding top/bottom/左右のスケール */
       .pt-0 { padding-top: 0 !important; }
@@ -1125,12 +1193,14 @@
       .pt-4 { padding-top: 16px !important;}
       .pt-5 { padding-top: 24px !important; }
       .pt-10 { padding-top: 48px !important; }
+      
       .pb-0 { padding-bottom: 0 !important; }
       .pb-1 { padding-bottom: 4px !important; }
       .pb-2 { padding-bottom: 8px !important;  }
       .pb-3 { padding-bottom: 12px !important; }
       .pb-4 { padding-bottom: 16px !important; }
       .pb-5 { padding-bottom: 24px !important; }
+      
       .ps-0 { padding-left: 0 !important; }
       .ps-1 { padding-left: 4px !important;}
       .ps-2 { padding-left: 8px !important; }
@@ -1140,12 +1210,14 @@
       .ps-10 { padding-left: 48px !important; }
       .ps-20 { padding-left: 80px !important; }
       .ps-130 { padding-left: 130px !important; }
+      
       .pe-0 { padding-right: 0 !important; }
       .pe-1 { padding-right: 4px !important; }
       .pe-2 { padding-right: 8px !important;} 
       .pe-3 { padding-right: 12px !important; }
       .pe-4 { padding-right: 16px !important; }
       .pe-5 { padding-right: 24px !important; }
-      
       .pe-10 { padding-right: 48px !important; }
-      .pe-11 { padding-right: 52px !important; }        
+      .pe-11 { padding-right: 52px !important; }
+      
+      

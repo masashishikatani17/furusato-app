@@ -29,11 +29,63 @@ class PdfRenderer
      */
     public function renderToString(string $view, array $data = [], array $options = []): string
     {
-        $engine = (string) config('pdf_renderer.engine', 'dompdf');
+        // options['engine'] があればリクエスト単位で上書き可能
+        $engine = (string) ($options['engine'] ?? config('pdf_renderer.engine', 'dompdf'));
         if ($engine === 'chrome') {
             return $this->renderByChrome($view, $data, $options);
         }
         return $this->render($view, $data, $options)->output();
+    }
+
+    /**
+     * HTML文字列をPDF化して返す（bundle fast 用）
+     * - engine=chrome: Browsershot
+     * - engine=dompdf: DomPDF
+     */
+    public function renderHtmlToString(string $html, array $options = []): string
+    {
+        $engine = (string) ($options['engine'] ?? config('pdf_renderer.engine', 'dompdf'));
+        if ($engine === 'chrome') {
+            // ChromeはHTMLをそのまま渡せる
+            return $this->renderHtmlByChrome($html, $options);
+        }
+
+        $paper  = $options['paper']  ?? 'a4';
+        $orient = $options['orient'] ?? 'portrait';
+        $pdf = Pdf::loadHTML($html)->setPaper($paper, $orient);
+        return $pdf->output();
+    }
+
+    private function renderHtmlByChrome(string $html, array $options = []): string
+    {
+        if (!class_exists(\Spatie\Browsershot\Browsershot::class)) {
+            throw new \RuntimeException('Browsershot が未インストールです。composer require spatie/browsershot を実行してください。');
+        }
+        $paper  = (string) ($options['paper']  ?? 'a4');
+        $orient = (string) ($options['orient'] ?? 'portrait');
+
+        $bs = \Spatie\Browsershot\Browsershot::html($html)
+            ->showBackground()
+            ->waitUntilNetworkIdle();
+        $bs->setNodeBinary((string) config('pdf_renderer.node_bin', 'node'));
+        $bs->setNpmBinary((string) config('pdf_renderer.npm_bin', 'npm'));
+        $bs->setNodeModulePath((string) config('pdf_renderer.node_modules_path', base_path('node_modules')));
+        $bs->addChromiumArguments([
+            'no-sandbox',
+            'disable-setuid-sandbox',
+            'disable-dev-shm-usage',
+        ]);
+        $chromeBin = (string) config('pdf_renderer.chrome_bin', '');
+        if ($chromeBin !== '') {
+            $bs->setChromePath($chromeBin);
+        }
+        if (strtolower($paper) === 'a4') {
+            $bs->format('A4');
+        }
+        if (strtolower($orient) === 'landscape') {
+            $bs->landscape();
+        }
+        return $bs->pdf();
     }
 
     private function renderByChrome(string $view, array $data = [], array $options = []): string

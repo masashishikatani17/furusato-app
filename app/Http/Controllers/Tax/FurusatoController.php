@@ -126,10 +126,6 @@ final class FurusatoController extends Controller
             'shotoku' => 'kojo_fuyo_shotoku',
             'jumin' => 'kojo_fuyo_jumin',
         ],
-        'tokutei_shinzoku' => [
-            'shotoku' => 'kojo_tokutei_shinzoku_shotoku',
-            'jumin' => 'kojo_tokutei_shinzoku_jumin',
-        ],
         'kiso' => [
             'shotoku' => 'shotokuzei_kojo_kiso',
             'jumin' => 'juminzei_kojo_kiso',
@@ -655,37 +651,20 @@ final class FurusatoController extends Controller
             $resultsUpper,
         );
 
-
         // ------------------------------------------------------------
-        // ▼ 実利上限（自己負担<=2,000円）のふるさと納税上限（dry-run探索）
-        //   - SoT は previewPayload（サーバで確定したキー群）を使用
-        //   - DB保存はしない（表示用途）
+        // ▼ 実利上限（自己負担<=2,000円）＆①〜④スナップショットは
+        //   RecalculateFurusatoPayload で「1回だけ」生成し FurusatoResult に保存済み。
+        //   画面表示では dry-run を回さず、保存済みを読むだけにする。
         // ------------------------------------------------------------
-        try {
-            $upperCtx = array_replace($calculatorCtx, [
-                'syori_settings' => $syoriSettings,
-                'data_id'        => $data?->id,
-                'company_id'     => $companyId,
-            ]);
-            /** @var \App\Domain\Tax\Services\FurusatoPracticalUpperLimitService $upperSvc */
-            $upperSvc = app(\App\Domain\Tax\Services\FurusatoPracticalUpperLimitService::class);
-            $context['furusato_upper'] = $upperSvc->compute($previewPayload, $upperCtx);
-
-            // ▼ ①〜④の税額スナップショット（表示用）
-            $yMaxTotal = is_array($context['furusato_upper'])
-                ? (int)($context['furusato_upper']['y_max_total'] ?? 0)
-                : 0;
-            /** @var \App\Domain\Tax\Services\FurusatoScenarioTaxSummaryService $scSvc */
-            $scSvc = app(\App\Domain\Tax\Services\FurusatoScenarioTaxSummaryService::class);
-            $context['furusato_upper_scenarios'] = $scSvc->build($previewPayload, $upperCtx, $yMaxTotal);
-        } catch (\Throwable $e) {
-            // 失敗時は落とさず、表示側で非表示にできるよう null を入れる
-            \Log::warning('[furusato.upper] failed to compute practical upper', [
-                'data_id' => $dataId,
-                'err' => $e->getMessage(),
-            ]);
-            $context['furusato_upper'] = null;
-            $context['furusato_upper_scenarios'] = null;
+        $context['furusato_upper'] = null;
+        $context['furusato_upper_scenarios'] = null;
+        if (isset($context['results']) && is_array($context['results'])) {
+            if (array_key_exists('furusato_upper', $context['results'])) {
+                $context['furusato_upper'] = $context['results']['furusato_upper'];
+            }
+            if (array_key_exists('furusato_upper_scenarios', $context['results'])) {
+                $context['furusato_upper_scenarios'] = $context['results']['furusato_upper_scenarios'];
+            }
         }
 
         return $context;
@@ -2179,10 +2158,17 @@ Log::info('[furusato debug] final inputs snapshot', [
                 $shotokuKey = sprintf('%s_%s', $entry['shotoku'], $period);
                 $juminKey = sprintf('%s_%s', $entry['jumin'], $period);
 
-                $shotoku = $this->valueOrZero($this->toNullableInt($payload[$shotokuKey] ?? null));
-                $jumin = $this->valueOrZero($this->toNullableInt($payload[$juminKey] ?? null));
-
-                $diff = $shotoku - $jumin;
+                // ============================================================
+                // ▼ 方針変更（定義の固定）：
+                // 基礎控除の人的控除差は「実際の控除差」ではなく、常に 50,000 円で固定して表示・合計する。
+                // ============================================================
+                if ($key === 'kiso') {
+                    $diff = 50_000;
+                } else {
+                    $shotoku = $this->valueOrZero($this->toNullableInt($payload[$shotokuKey] ?? null));
+                    $jumin = $this->valueOrZero($this->toNullableInt($payload[$juminKey] ?? null));
+                    $diff = $shotoku - $jumin;
+                }
                 $diffs[$key][$period] = $diff;
                 $totals[$period] += $diff;
             }

@@ -96,13 +96,17 @@ final class TaxGokeiCalculator implements ProvidesKeys
             $r6Tokubetsu = $this->n($payload["tax_tokubetsu_R6_shotoku_{$p}"] ?? null);
             $kijunItax = max(0, $baseItax - max(0, $saigaiItax) - max(0, $r6Tokubetsu));
 
-            // 復興特別所得税（2.1%）…UI同様に trunc
-            $fukkou = (int) floor($kijunItax * 0.021);
-            $gokeiItax = $kijunItax + $fukkou;
+            // ▼ 新仕様
+            // - 基準所得税額は 100円未満切捨て（従来どおり：表示/探索SoTを100円単位へ寄せる）
+            // - 復興特別所得税額は 1円単位（100円未満切捨てしない）
+            // - 合計税額のみ 100円未満切捨て
+            $kijunItax100 = $this->floorToStep($kijunItax, 100);
+            $fukkouRaw    = (int) floor($kijunItax100 * 0.021); // 1円単位
+            $gokeiItax100 = $this->floorToStep($kijunItax100 + $fukkouRaw, 100);
 
-            $out["tax_kijun_shotoku_{$p}"]  = $kijunItax;
-            $out["tax_fukkou_shotoku_{$p}"] = $fukkou;
-            $out["tax_gokei_shotoku_{$p}"]  = $gokeiItax;
+            $out["tax_kijun_shotoku_{$p}"]  = $kijunItax100;
+            $out["tax_fukkou_shotoku_{$p}"] = max(0, $fukkouRaw);
+            $out["tax_gokei_shotoku_{$p}"]  = $gokeiItax100;
 
             // --- 住民税（支払額：所得割） ---
             // 住民税は「調整控除後所得割（pref/muni）」を基礎に、
@@ -146,14 +150,18 @@ final class TaxGokeiCalculator implements ProvidesKeys
             $finalPref = max(0, $afterKifukinPref - $saigaiPref);
             $finalMuni = max(0, $afterKifukinMuni - $saigaiMuni);
 
-            $finalTotal = $finalPref + $finalMuni;
+            // 100円未満切捨て（合計→按分し直して pref/muni も 100円単位で揃える）
+            $finalTotalRaw = $finalPref + $finalMuni;
+            $finalTotal100 = $this->floorToStep($finalTotalRaw, 100);
+            [$finalPref100, $finalMuni100] = $this->splitByShare($finalTotal100, $prefShare, $muniShare);
+            // splitByShare は muni 残り寄せなので合計一致は保証される
 
             // tax_kijun_jumin は UI 上「最終の残税額（所得割）」として扱う
-            $out["tax_kijun_jumin_{$p}"] = $finalTotal;
+            $out["tax_kijun_jumin_{$p}"] = $finalTotal100;
             $out["tax_fukkou_jumin_{$p}"] = 0;
-            $out["tax_gokei_jumin_{$p}"] = $finalTotal;
-            $out["tax_gokei_jumin_pref_{$p}"] = $finalPref;
-            $out["tax_gokei_jumin_muni_{$p}"] = $finalMuni;
+            $out["tax_gokei_jumin_{$p}"] = $finalTotal100;
+            $out["tax_gokei_jumin_pref_{$p}"] = $finalPref100;
+            $out["tax_gokei_jumin_muni_{$p}"] = $finalMuni100;
         }
 
         return array_replace($payload, $out);
@@ -207,7 +215,8 @@ final class TaxGokeiCalculator implements ProvidesKeys
         $t = max(0, $total);
         if ($t === 0) return [0, 0];
         // muni 残り寄せ
-        $pref = (int) floor($t * $prefShare);
+        // pref は 100円未満切捨て（totalが100単位なら muni も100単位になる）
+        $pref = $this->floorToStep((int) floor($t * $prefShare), 100);
         $muni = $t - $pref;
         return [max(0, $pref), max(0, $muni)];
     }
@@ -259,5 +268,16 @@ final class TaxGokeiCalculator implements ProvidesKeys
         if ($v === null || $v === '') return 0;
         if (is_string($v)) $v = str_replace([',',' '], '', $v);
         return is_numeric($v) ? (int) floor((float) $v) : 0;
+    }
+
+    /**
+     * 指定step未満切捨て（0下限）
+     * 例: step=100 のとき 12,349 -> 12,300
+     */
+    private function floorToStep(int $v, int $step): int
+    {
+        if ($v <= 0) return 0;
+        if ($step <= 0) return $v;
+        return (int) (floor($v / $step) * $step);
     }
 }

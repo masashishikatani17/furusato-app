@@ -28,7 +28,6 @@ class FurusatoResultCalculator implements ProvidesKeys
         'kojo_haigusha',
         'kojo_haigusha_tokubetsu',
         'kojo_fuyo',
-        'kojo_tokutei_shinzoku',
         'kojo_kiso',
     ];
 
@@ -208,6 +207,15 @@ class FurusatoResultCalculator implements ProvidesKeys
         $sum = 0;
 
         foreach (self::HUMAN_DIFF_BASES as $base) {
+            // ============================================================
+            // ▼ 方針変更（定義の固定）：
+            // 基礎控除の人的控除差は「実際の控除差」ではなく、常に 50,000 円で固定して合算する。
+            // ============================================================
+            if ($base === 'kojo_kiso') {
+                $sum += 50_000;
+                continue;
+            }
+
             // 基本キー（新SoT）
             $shotokuKeys = [sprintf('%s_shotoku_%s', $base, $period)];
             $juminKeys   = [sprintf('%s_jumin_%s',   $base, $period)];

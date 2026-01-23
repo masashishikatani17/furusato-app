@@ -42,6 +42,10 @@
     @csrf
     <input type="hidden" name="selected_data_id" value="{{ $source->id }}">
     <br>
+    @php
+      $today = now()->format('Y-m-d');
+      $proposalDefault = old('proposal_date', $today);
+    @endphp
     <h1 class="ms-2 mb-2">○コピー先の指定</h1>
       <div class="card-body">
         {{-- 1) コピー先お客様の指定 --}}
@@ -90,18 +94,24 @@
                  style="width:180px;"
                  placeholder="YYYY-MM-DD"
                  value="{{ old('birth_date', $defaultBirthDate) }}">
-        </div
-        {{-- 3) 年度（複数選択：今年±10年） --}}
+        </div>
+        {{-- 3) 年度（複数選択：今年+10年） --}}
         <div class="mt-3">
           <label class="form-label d-block">
           <hb class="ms-4">・年度（複数可）</hb></label>
           @php
+            // 一旦：2025〜2035 に固定
+            $minY = 2025; $maxY = 2035;
             $now = (int)date('Y');
-            $minY = $now - 10; $maxY = $now + 10;
-            $defaultY = $source->kihu_year ?: $now;
+            $default = min(max($now, $minY), $maxY);
+            $defaultY = (int)($source->kihu_year ?: $default);
+            if ($defaultY < $minY) $defaultY = $minY;
+            if ($defaultY > $maxY) $defaultY = $maxY;
             $years = [];
             for($y=$maxY; $y>=$minY; $y--){ $years[] = $y; }
-            $oldYears = collect(old('years', [$defaultY]))->unique()->values()->all();
+            $oldYearsRaw = collect(old('years', [$defaultY]))->map(fn($v)=>(int)$v)->unique()->values()->all();
+            $oldYears = array_values(array_filter($oldYearsRaw, fn($y)=>$y >= $minY && $y <= $maxY));
+            if (count($oldYears) === 0) { $oldYears = [$defaultY]; }
           @endphp
           <div class="d-flex flex-wrap gap-2 ms-5" id="year-checkboxes">
             @foreach($years as $y)
@@ -142,6 +152,27 @@
             </table>
         </div>
         @endif
+
+        {{-- データ作成日（編集不可） --}}
+        <div class="mt-3">
+          <label class="form-label">
+            <hb class="ms-4 me-3">・データ作成日</hb>
+          </label>
+          <input type="date" class="form-control" style="width:180px;" value="{{ $today }}" readonly>
+        </div>
+
+        {{-- 提案書日（編集可）：コピーで作られる全データに適用 --}}
+        <div class="mt-3">
+          <label for="proposal_date" class="form-label">
+            <hb class="ms-4 me-3">・提案書日　</hb>
+          </label>
+          <input type="date"
+                 name="proposal_date"
+                 id="proposal_date"
+                 class="form-control"
+                 style="width:180px;"
+                 value="{{ $proposalDefault }}">
+        </div>
     <hr>
     <div class="d-flex justify-content-end gap-2 mb-3">
       <button type="submit" class="btn btn-base-blue">コピー</button>

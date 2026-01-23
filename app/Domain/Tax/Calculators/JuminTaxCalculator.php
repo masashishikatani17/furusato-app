@@ -31,6 +31,19 @@ class JuminTaxCalculator implements ProvidesKeys
             // 合計課税所得金額（調整控除・Tokurei用）
             'jumin_kazeishotoku_total_prev',
             'jumin_kazeishotoku_total_curr',
+             // 調整控除（314条の6）中間SoT（帳票6ページ用）
+             'jumin_chosei_case_prev',
+             'jumin_chosei_case_curr',
+             'jumin_chosei_a_prev',
+             'jumin_chosei_a_curr',
+             'jumin_chosei_b_prev',
+             'jumin_chosei_b_curr',
+             'jumin_chosei_c_base_prev',
+             'jumin_chosei_c_base_curr',
+             'jumin_chosei_c_amount_prev',
+             'jumin_chosei_c_amount_curr',
+             'jumin_chosei_max_prev',
+             'jumin_chosei_max_curr',
             // 調整控除前の所得割額（都道府県・市区町村）
             'chosei_mae_shotokuwari_pref_prev',
             'chosei_mae_shotokuwari_pref_curr',
@@ -185,34 +198,64 @@ class JuminTaxCalculator implements ProvidesKeys
 
             // ===== 5) 調整控除額（合計） A_total =====
             $A_total = 0;
+            // 帳票6ページ用 中間SoT（a/b/c）
+            // 方針：
+            //  - >25,000,000（対象外）は空欄でOK → case=0
+            //  - 対象内は humanDiff=0 でも a/b/c を必ず算出（a=50,000 + humanDiff）
+            $choseiCase  = 0;   // 0=対象外, 1=200万円以下, 2=200万円超
+            $choseiA     = 0;   // a（caseにより意味が変わる：case1は(5万+差額), case2はrawBase）
+            $choseiB     = 0;   // b（合計課税所得金額）
+            $choseiCBase = 0;   // c の母数（min/max 後）
+            $choseiCAmt  = 0;   // c（= c_base×5%：上限キャップ前）
+            $choseiMax   = 0;   // 上限（調整控除前所得割額：市＋県）
 
-            if ($sumGokei <= 25_000_000 && $totalTaxable > 0 && $humanDiff > 0) {
+            // NOTE:
+            //  - totalTaxable が 0 でも「a/b/c の箱に 0 を表示したい」要件のため、
+            //    ここでは totalTaxable > 0 を条件にしない。
+            if ($sumGokei <= 25_000_000) {
+                $choseiB   = $totalTaxable;
+                $choseiMax = max(0, $beforePref + $beforeMuni);
+
+                // ★人的控除差調整額（定義の固定）
+                //   human_diff_sum_* には「基礎控除差（固定50,000円）」を含める方針に変更したため、
+                //   ここでの +50,000 加算は行わない（= 二重計上防止）。
+                $aBase = max(0, $humanDiff);
+
                 if ($totalTaxable <= 2_000_000) {
                     // (1) 合計課税所得金額が 200 万円以下
-                    //     min(人的控除差の合計額, 合計課税所得金額) × 5%
-                    $base = min($humanDiff, $totalTaxable);
-                    if ($base > 0) {
-                        $A_total = $this->mulRate($base, 0.05);
-                    }
+                    //     min(a, 合計課税所得金額) × 5%
+                    $choseiCase  = 1;
+                    $choseiA     = $aBase;
+                    $choseiCBase = min($aBase, $totalTaxable);
+                    $choseiCAmt  = $this->mulRate($choseiCBase, 0.05);
+                    $A_total     = $choseiCAmt;
                 } else {
                     // (2) 合計課税所得金額が 200 万円超
-                    //     {人的控除差の合計額 − (合計課税所得金額 − 200 万円)}
-                    //     が 5 万円を下回る場合には 5 万円として 5% を乗じる。
-                    $rawBase = $humanDiff - ($totalTaxable - 2_000_000);
-                    // 法令上「5万円を下回る場合には5万円」とされているため、
-                    // 差がマイナスであっても 5 万円フロアを適用する。
-                    $base = max($rawBase, 50_000);
-                    $A_total = $this->mulRate($base, 0.05);
+                    //     rawBase = a − (合計課税所得金額 − 200 万円)
+                    //     base    = max(rawBase, 50,000)
+                    //     base × 5%
+                    $choseiCase  = 2;
+                    $rawBase     = $aBase - ($totalTaxable - 2_000_000);
+                    $choseiA     = $rawBase;                 // 帳票の a に rawBase を出す
+                    $choseiCBase = max($rawBase, 50_000);     // 5万円フロア
+                    $choseiCAmt  = $this->mulRate($choseiCBase, 0.05);
+                    $A_total     = $choseiCAmt;
                 }
 
                 // 調整控除額は「調整控除前所得割額（市＋県）」を超えない
-                $maxDeductible = max(0, $beforePref + $beforeMuni);
-                if ($A_total > $maxDeductible) {
-                    $A_total = $maxDeductible;
+                if ($A_total > $choseiMax) {
+                    $A_total = $choseiMax;
                 }
             }
 
             $updates[sprintf('jumin_choseikojo_total_%s', $period)] = $A_total;
+             // 中間SoTを書き戻し（対象外は 0 のまま）
+             $updates[sprintf('jumin_chosei_case_%s', $period)] = $choseiCase;
+             $updates[sprintf('jumin_chosei_a_%s', $period)] = $choseiA;
+             $updates[sprintf('jumin_chosei_b_%s', $period)] = $choseiB;
+             $updates[sprintf('jumin_chosei_c_base_%s', $period)] = $choseiCBase;
+             $updates[sprintf('jumin_chosei_c_amount_%s', $period)] = $choseiCAmt;
+             $updates[sprintf('jumin_chosei_max_%s', $period)] = $choseiMax;
 
             // 都道府県／市区町村への按分（指定都市 2:8, 非指定 4:6）
             if ($A_total === 0) {

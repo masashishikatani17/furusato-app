@@ -450,7 +450,11 @@
 
 <div class="wrapper pt-2">
   <div class="table-responsive">
-    <table class="table table-base align-middle" style="width:580px">
+    <table class="table table-base align-middle" style="width:370px">
+            <colgroup>
+              <col style="width:250px">
+              <col style="width:120px">
+            </colgroup>
         <tr>
           <th class="text-center th-ccc" style="height:30px;">人的控除額の差</th>
           @if($showPrev)
@@ -470,7 +474,6 @@
             ['label' => '配偶者控除', 'key' => 'haigusha', 'input' => 'human_diff_haigusha'],
             ['label' => '配偶者特別控除', 'key' => 'haigusha_tokubetsu', 'input' => 'human_diff_haigusha_tokubetsu'],
             ['label' => '扶養控除', 'key' => 'fuyo', 'input' => 'human_diff_fuyo'],
-            ['label' => '特定親族特別控除', 'key' => 'tokutei_shinzoku', 'input' => 'human_diff_tokutei_shinzoku'],
             ['label' => '基礎控除', 'key' => 'kiso', 'input' => 'human_diff_kiso'],
             ['label' => '人的控除額の差の合計額', 'key' => 'sum', 'input' => 'human_diff_sum'],
           ];
@@ -487,8 +490,15 @@
             @if($showPrev)
               <td class="text-end">
                 @php
-                  $raw = $rawInt($inputs, $inputPrev, $fallbackPrev);
-                  $displayValue = $fallbackPrev !== null ? (int) $fallbackPrev : (is_numeric($raw) ? (int) $raw : null);
+                  // ▼ 方針変更（定義の固定）：
+                  // 基礎控除の人的控除差は常に 50,000 円で固定して表示する。
+                  if (($row['key'] ?? '') === 'kiso') {
+                      $raw = '50000';
+                      $displayValue = 50000;
+                  } else {
+                      $raw = $rawInt($inputs, $inputPrev, $fallbackPrev);
+                      $displayValue = $fallbackPrev !== null ? (int) $fallbackPrev : (is_numeric($raw) ? (int) $raw : null);
+                  }
                 @endphp
                 <input type="hidden" name="{{ $inputPrev }}" value="{{ $raw }}">{{ $dispInt($displayValue) }}
               </td>
@@ -496,8 +506,15 @@
             @if($showCurr)
               <td class="text-end">
                 @php
-                  $raw = $rawInt($inputs, $inputCurr, $fallbackCurr);
-                  $displayValue = $fallbackCurr !== null ? (int) $fallbackCurr : (is_numeric($raw) ? (int) $raw : null);
+                  // ▼ 方針変更（定義の固定）：
+                  // 基礎控除の人的控除差は常に 50,000 円で固定して表示する。
+                  if (($row['key'] ?? '') === 'kiso') {
+                      $raw = '50000';
+                      $displayValue = 50000;
+                  } else {
+                      $raw = $rawInt($inputs, $inputCurr, $fallbackCurr);
+                      $displayValue = $fallbackCurr !== null ? (int) $fallbackCurr : (is_numeric($raw) ? (int) $raw : null);
+                  }
                 @endphp
                 <input type="hidden" name="{{ $inputCurr }}" value="{{ $raw }}">{{ $dispInt($displayValue) }}
               </td>
@@ -505,7 +522,7 @@
           </tr>
         @endforeach
         <tr>
-          <th class="text-start ps-1 th-cream">課税総所得金額-人的控除差調整額</th>
+          <th class="th-cream">課税総所得金額-人的控除差調整額</th>
           @php
             // ▼ 表示は「サーバ確定(human_adjusted_taxable_*)」が最優先
             //   無い場合のみ「住民税 tb_sogo_jumin − 人的控除差」を千円切捨てで計算
@@ -727,7 +744,11 @@
     }
   @endphp
   <div class="table-responsive">
-    <table class="table table-base align-middle" style="width:580px">
+    <table class="table table-base align-middle" style="width:370px">
+            <colgroup>
+              <col style="width:250px">
+              <col style="width:120px">
+            </colgroup>
         <tr>
           <th scope="col" class="w-50 th-ccc" style="height:30px;">項  目</th>
           @if($showPrev)
@@ -899,9 +920,9 @@
     @foreach ($warekiTables as $suffix => $label)
       @php $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff; @endphp
       <div class="mt-4">
-        <div class="fw-bold ms-5">（{{ $label }}）</div>
+        <div class="fw-bold ms-10">（{{ $label }}）</div>
         <div class="table-responsive">
-          <table class="table table-base align-middle" style="width:700px">
+          <table class="table table-input align-middle" style="width:737px">
             <tbody>
               <tr>
                 <th colspan="3" class="th-ccc" style="height:30px;">所得の種類</th>
@@ -913,67 +934,67 @@
               <tr>
                 <th rowspan="2" style="width:40px">譲渡</th>
                 <th style="width:40px">短期</th>
-                <th class="text-start ps-1 th-ddd" style="width:130px">総合</th>
-                <td class="text-end" style="width:100px">
+                <th class="th-ddd" style="width:40px">総合</th>
+                <td class="text-end">
                   <input type="text"
                          readonly
                          name="sashihiki_joto_tanki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('sashihiki_joto_tanki_sogo_' . $suffix) }}">
                 </td>
                 <th rowspan="2" class="vtext" style="width:35px">通算</th>
-                <td class="text-end" style="width:100px">
+                <td class="text-end">
                   <input type="text"
                          readonly
                          name="tsusango_joto_tanki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('tsusango_joto_tanki_sogo_' . $suffix) }}">
                 </td>
-                <td class="text-end" style="width:100px">
+                <td class="text-end">
                   <input type="text"
                          readonly
                          name="tokubetsukojo_joto_tanki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('tokubetsukojo_joto_tanki_sogo_' . $suffix) }}">
                 </td>
-                <th rowspan="4" class="vtext" style="width:35px">譲渡・一時所得の通算</th>
-                <td class="text-end" style="width:100px">
+                <th rowspan="4" class="lh-1" style="width:50px">所譲<br>得渡<br>の  ・<br>通一<br>算時</th>
+                <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_joto_ichiji_tousan_joto_tanki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_joto_ichiji_tousan_joto_tanki_sogo_' . $suffix) }}">
                 </td>
               </tr>
               <tr>
                 <th>長期</th>
-                <th class="text-start ps-1 th-ddd">総合</th>
+                <th class="th-ddd">総合</th>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="sashihiki_joto_choki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('sashihiki_joto_choki_sogo_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                         name="tsusango_joto_choki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('tsusango_joto_choki_sogo_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                         name="tokubetsukojo_joto_choki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('tokubetsukojo_joto_choki_sogo_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                         name="after_joto_ichiji_tousan_joto_choki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_joto_ichiji_tousan_joto_choki_sogo_' . $suffix) }}">
                 </td>
               </tr>
@@ -991,21 +1012,21 @@
                   <input type="text"
                          readonly
                          name="tsusango_ichiji_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ number_format($sashihikiIchiji) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="tokubetsukojo_ichiji_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('tokubetsukojo_ichiji_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_joto_ichiji_tousan_ichiji_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_joto_ichiji_tousan_ichiji_' . $suffix) }}">
                 </td>
               </tr>
@@ -1018,9 +1039,9 @@
   <div class="mt-4">
     @foreach ($warekiTables as $suffix => $label)
       <div class="mt-4">
-        <div class="fw-bold ms-5">（{{ $label }}）</div>
+        <div class="fw-bold ms-10">（{{ $label }}）</div>
         <div class="table-responsive">
-          <table class="table table-base align-middle" style="width: 780px;">
+          <table class="table table-input align-middle" style="width:885px">
             <tbody>
               <tr>
                 <th colspan="3" class="th-ccc" style="height:30px;">所得の種類</th>
@@ -1032,49 +1053,49 @@
               </tr>
               <tr>
                 <th class="text-start ps-1" colspan="3">経常所得</th>
-                <td class="text-end">
+                <td class="text-end" style="width:132px">
                   <input type="text"
                          readonly
                          name="tsusanmae_keijo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('tsusanmae_keijo_' . $suffix) }}">
                 </td>
-                <th rowspan="4" style="width:35px">第<br>1<br>次<br>通<br>算</th>
-                <td class="text-end">
+                <th rowspan="4" class="lh-1" style="width:35px">第<br>1<br>次<br>通<br>算</th>
+                <td class="text-end" style="width:132px">
                   <input type="text"
                          readonly
                          name="after_1jitsusan_keijo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_1jitsusan_keijo_' . $suffix) }}">
                 </td>
                 <th rowspan="5" style="width:35px">第<br>2<br>次<br>通<br>算</th>
-                <td class="text-end">
+                <td class="text-end" style="width:132px">
                   <input type="text"
                          readonly
                          name="after_2jitsusan_keijo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_2jitsusan_keijo_' . $suffix) }}">
                 </td>
                 <th rowspan="6" style="width:35px">第<br>3<br>次<br>通<br>算</th>
-                <td class="text-end">
+                <td class="text-end" style="width:132px">
                   <input type="text"
                          readonly
                          name="after_3jitsusan_keijo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_3jitsusan_keijo_' . $suffix) }}">
                 </td>
-                <td class="text-end">
+                <td class="text-end" style="width:132px">
                   <input type="text"
                          readonly
                          name="shotoku_keijo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('shotoku_keijo_' . $suffix) }}">
                 </td>
               </tr>
               <tr>
-                <th class="text-start ps-1" rowspan="2" style="width:40px">譲渡</th>
-                <th class="text-start ps-1" style="width:40px">短期</th>
-                <th class="text-start ps-1 th-ddd" style="width:130px">総合</th>
+                <th rowspan="2" style="width:40px">譲渡</th>
+                <th style="width:40px">短期</th>
+                <th class="th-ddd" style="width:40px">総合</th>
                 <td class="text-end">
                   @php
                     $tsusanmaeJotoTankiValue = $readonlyValue('tsusanmae_joto_tanki_sogo_' . $suffix);
@@ -1085,41 +1106,41 @@
                   <input type="text"
                          readonly
                          name="tsusanmae_joto_tanki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $tsusanmaeJotoTankiValue }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_1jitsusan_joto_tanki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_1jitsusan_joto_tanki_sogo_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_2jitsusan_joto_tanki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_2jitsusan_joto_tanki_sogo_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_3jitsusan_joto_tanki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_3jitsusan_joto_tanki_sogo_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                         name="shotoku_joto_tanki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_3jitsusan_joto_tanki_sogo_' . $suffix) }}">
                 </td>
               </tr>
               <tr>
-                <th class="text-start ps-1">長期</th>
-                <th class="text-start ps-1 th-ddd">総合</th>
+                <th>長期</th>
+                <th class="th-ddd">総合</th>
                 <td class="text-end">
                   @php
                     $tsusanmaeJotoChokiValue = $readonlyValue('tsusanmae_joto_choki_sogo_' . $suffix);
@@ -1130,35 +1151,35 @@
                   <input type="text"
                          readonly
                          name="tsusanmae_joto_choki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $tsusanmaeJotoChokiValue }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_1jitsusan_joto_choki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_1jitsusan_joto_choki_sogo_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_2jitsusan_joto_choki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_2jitsusan_joto_choki_sogo_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_3jitsusan_joto_choki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_3jitsusan_joto_choki_sogo_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="shotoku_joto_choki_sogo_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('shotoku_joto_choki_sogo_' . $suffix) }}">
                 </td>
               </tr>
@@ -1174,35 +1195,35 @@
                   <input type="text"
                          readonly
                          name="tsusanmae_ichiji_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $tsusanmaeIchijiValue }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_1jitsusan_ichiji_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_1jitsusan_ichiji_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_2jitsusan_ichiji_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_2jitsusan_ichiji_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="after_3jitsusan_ichiji_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_3jitsusan_ichiji_' . $suffix) }}">
                 </td>
                 <td class="text-end">
                   <input type="text"
                          readonly
                          name="shotoku_ichiji_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('shotoku_ichiji_' . $suffix) }}">
                 </td>
               </tr>
@@ -1211,7 +1232,7 @@
                 <td colspan="2" class="text-center">⇒</td>
                 <td class="text-end">
                   @if($isBunriOff)
-                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="text" readonly class="form-control suji11 text-center bg-light" value="－">
                     <input type="hidden" name="after_1jitsusan_sanrin_{{ $suffix }}" value="0">
                   @else
                   @php
@@ -1225,37 +1246,37 @@
                   <input type="text"
                          readonly
                          name="after_1jitsusan_sanrin_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ number_format($after1Calc) }}">
                   @endif
                 </td>
                 <td class="text-end">
                   @if($isBunriOff)
-                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="text" readonly class="form-control suji11 text-center bg-light" value="－">
                     <input type="hidden" name="after_2jitsusan_sanrin_{{ $suffix }}" value="0">
                   @else
                     <input type="text"
                            readonly
                            name="after_2jitsusan_sanrin_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
+                           class="form-control suji11 text-end bg-light"
                            value="{{ $readonlyValue('after_2jitsusan_sanrin_' . $suffix) }}">
                   @endif
                 </td>
                 <td class="text-end">
                   @if($isBunriOff)
-                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="text" readonly class="form-control suji11 text-center bg-light" value="－">
                     <input type="hidden" name="after_3jitsusan_sanrin_{{ $suffix }}" value="0">
                   @else
                     <input type="text"
                            readonly
                            name="after_3jitsusan_sanrin_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
+                           class="form-control suji11 text-end bg-light"
                            value="{{ $readonlyValue('after_3jitsusan_sanrin_' . $suffix) }}">
                   @endif
                 </td>
                 <td class="text-end">
                   @if($isBunriOff)
-                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="text" readonly class="form-control suji11 text-center bg-light" value="－">
                     <input type="hidden" name="shotoku_sanrin_{{ $suffix }}" value="0">
                   @else
                     @php
@@ -1271,7 +1292,7 @@
                     <input type="text"
                            readonly
                            name="shotoku_sanrin_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
+                           class="form-control suji11 text-end bg-light"
                            value="{{ $valSanrinDisp }}">
                   @endif
                 </td>
@@ -1281,31 +1302,31 @@
                 <td colspan="4" class="text-center">⇒</td>
                 <td class="text-end">
                   @if($isBunriOff)
-                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="text" readonly class="form-control suji11 text-center bg-light" value="－">
                     <input type="hidden" name="after_2jitsusan_taishoku_{{ $suffix }}" value="0">
                   @else
                     <input type="text"
                            readonly
                            name="after_2jitsusan_taishoku_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
+                           class="form-control suji11 text-end bg-light"
                            value="{{ $readonlyValue('after_2jitsusan_taishoku_' . $suffix) }}">
                   @endif
                 </td>
                 <td class="text-end">
                   @if($isBunriOff)
-                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="text" readonly class="form-control suji11 text-center bg-light" value="－">
                     <input type="hidden" name="after_3jitsusan_taishoku_{{ $suffix }}" value="0">
                   @else
                     <input type="text"
                            readonly
                            name="after_3jitsusan_taishoku_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
+                           class="form-control suji11 text-end bg-light"
                            value="{{ $readonlyValue('after_3jitsusan_taishoku_' . $suffix) }}">
                   @endif
                 </td>
                 <td class="text-end">
                   @if($isBunriOff)
-                    <input type="text" readonly class="form-control form-control-compact-05 text-center bg-light" value="－">
+                    <input type="text" readonly class="form-control suji11 text-center bg-light" value="－">
                     <input type="hidden" name="shotoku_taishoku_{{ $suffix }}" value="0">
                   @else
                     @php
@@ -1320,7 +1341,7 @@
                     <input type="text"
                            readonly
                            name="shotoku_taishoku_{{ $suffix }}"
-                           class="form-control form-control-compact-05 text-end bg-light"
+                           class="form-control suji11 text-end bg-light"
                            value="{{ $valTaishokuDisp }}">
                   @endif
                 </td>
@@ -1331,7 +1352,7 @@
                   <input type="text"
                          readonly
                          name="shotoku_gokei_{{ $suffix }}"
-                         class="form-control form-control-compact-05 text-end bg-light"
+                         class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('shotoku_gokei_' . $suffix) }}">
                 </td>
               </tr>
@@ -1346,15 +1367,15 @@
   <div class="mt-5">
     <h5 class="fw-bold">分離課税所得の損益通算</h5>
     <div class="mt-3">
-      <div class="fw-bold">譲渡所得に係る所得の損益通算</div>
+      <div class="fw-bold ms-5">譲渡所得に係る所得の損益通算</div>
       @foreach ($warekiTables as $suffix => $label)
         @php
           $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff;
         @endphp
         <div class="mt-3">
-          <div class="fw-bold ms-5">（{{ $label }}）</div>
+          <div class="fw-bold ms-10">（{{ $label }}）</div>
           <div class="table-responsive">
-            <table class="table table-base align-middle" style="width: 680px;">
+            <table class="table table-input align-middle" style="width: 546px;">
               <tbody>
                 <tr>
                   <th colspan="2" class="th-ccc" style="height:30px;">所得の種類</th>
@@ -1363,112 +1384,112 @@
                   <th colspan="2" class="th-ccc">第2次通算後</th>
                 </tr>
                 <tr>
-                  <th rowspan="2" style="width:60px">短期</th>
-                  <th class="text-start ps-1 th-ddd" style="width:140px">一般</th>
-                  <td class="text-end" style="width:120px">
+                  <th rowspan="2" style="width:40px">短期</th>
+                  <th class="ps-1 th-ddd" style="width:40px">一般</th>
+                  <td class="text-end" style="width:132px">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $serverDisplay('before_tsusan_tanki_ippan_' . $suffix) }}">
                   </td>
                   <th rowspan="2" class="vtext" style="width:35px">通算</th>
-                  <td class="text-end" style="width:120px">
+                  <td class="text-end" style="width:132px">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $serverDisplay('after_1jitsusan_tanki_ippan_' . $suffix) }}">
                   </td>
                   <th rowspan="5" class="vtext" style="width:35px">通算</th>
-                  <td class="text-end" style="width:120px">
+                  <td class="text-end" style="width:132px">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $serverDisplay('after_2jitsusan_tanki_ippan_' . $suffix) }}">
                   </td>
                 </tr>
                 <tr>
-                  <th class="text-start ps-1 th-ddd">軽減</th>
+                  <th class="ps-1 th-ddd">軽減</th>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_tanki_keigen_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('after_1jitsusan_tanki_keigen_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('after_2jitsusan_tanki_keigen_' . $suffix) }}">
                   </td>
                 </tr>
                 <tr>
                   <th rowspan="3" style="width:60px">長期</th>
-                  <th class="text-start ps-1 th-ddd">一般</th>
+                  <th class="ps-1 th-ddd">一般</th>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_choki_ippan_' . $suffix) }}">
                   </td>
                   <th rowspan="3" class="vtext" style="width:35px">通算</th>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('after_1jitsusan_choki_ippan_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('after_2jitsusan_choki_ippan_' . $suffix) }}">
                   </td>
                 </tr>
                 <tr>
-                  <th class="text-start ps-1 th-ddd">特定</th>
+                  <th class="ps-1 th-ddd">特定</th>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_choki_tokutei_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('after_1jitsusan_choki_tokutei_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('after_2jitsusan_choki_tokutei_' . $suffix) }}">
                   </td>
                 </tr>
                 <tr>
-                  <th class="text-start ps-1 th-ddd">軽課</th>
+                  <th class="ps-1 th-ddd">軽課</th>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_choki_keika_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('after_1jitsusan_choki_keika_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('after_2jitsusan_choki_keika_' . $suffix) }}">
                   </td>
                 </tr>
@@ -1479,15 +1500,15 @@
       @endforeach
     </div>
     <div class="mt-4">
-      <div class="fw-bold">上場株式等に係る所得の損益通算</div>
+      <div class="fw-bold ms-5">上場株式等に係る所得の損益通算</div>
       @foreach ($warekiTables as $suffix => $label)
         @php
           $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff;
         @endphp
         <div class="mt-3">
-          <div class="fw-bold ms-5">（{{ $label }}）</div>
+          <div class="fw-bold ms-10">（{{ $label }}）</div>
           <div class="table-responsive">
-            <table class="table table-base align-middle" style="width: 560px;">
+            <table class="table table-input align-middle" style="width: 519px;">
               <tbody>
                 <tr>
                   <th class="th-ccc" style="height:30px;">所得の種類</th>
@@ -1495,20 +1516,20 @@
                   <th colspan="2" class="th-ccc">通算後</th>
                 </tr>
                 <tr>
-                  <th class="text-start ps-1">上場株式等に係る譲渡所得の金額</th>
-                  <td class="text-end" style="width:160px">
+                  <th class="text-start ps-1" style="width:220px">上場株式等に係る譲渡所得の金額</th>
+                  <td class="text-end" style="width:132px">
                     <input type="text"
                            readonly
                            name="before_tsusan_jojo_joto_{{ $suffix }}"
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_jojo_joto_' . $suffix) }}">
                   </td>
                   <th rowspan="2" class="vtext" style="width:35px">通算</th>
-                  <td class="text-end" style="width:160px">
+                  <td class="text-end" style="width:132px">
                     <input type="text"
                            readonly
                            name="after_tsusan_jojo_joto_{{ $suffix }}"
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('after_tsusan_jojo_joto_' . $suffix) }}">
                   </td>
                 </tr>
@@ -1518,14 +1539,14 @@
                     <input type="text"
                            readonly
                            name="before_tsusan_jojo_haito_{{ $suffix }}"
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('before_tsusan_jojo_haito_' . $suffix) }}">
                   </td>
                   <td class="text-end">
                     <input type="text"
                            readonly
                            name="after_tsusan_jojo_haito_{{ $suffix }}"
-                           class="form-control form-control-compact-05 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
+                           class="form-control suji11 {{ $isBunriOff ? 'text-center' : 'text-end' }} bg-light"
                            value="{{ $isBunriOff ? '－' : $readonlyValue('after_tsusan_jojo_haito_' . $suffix) }}">
                   </td>
                 </tr>
@@ -1541,7 +1562,7 @@
   <div class="mt-5">
     <h5 class="fw-bold">寄附金税額控除の算定</h5>
     <div class="table-responsive">
-      <table class="table table-base align-middle" style="width:720px;">
+      <table class="table table-input align-middle" style="width:584px;">
         <tbody>
           <tr>
             <th colspan="2" class="th-ccc" style="height:30px;"></th>
@@ -1564,14 +1585,14 @@
               <input type="text"
                      readonly
                      name="kazeisoushotoku_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ number_format((int)($inputs['tb_sogo_jumin_prev'] ?? 0)) }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="kazeisoushotoku_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ number_format((int)($inputs['tb_sogo_jumin_curr'] ?? 0)) }}">
             </td>
           </tr>
@@ -1606,18 +1627,18 @@
 
           {{-- ふるさと納税寄付金額（都道府県／市区町村） --}}
           <tr>
-            <th rowspan="2" class="text-start ps-1 align-middle">ふるさと納税寄付金額</th>
-            <th class="text-start ps-1">都道府県</th>
-            <td class="text-end">
+            <th rowspan="2" class="text-start ps-1 align-middle" style="width:200px;">ふるさと納税寄付金額</th>
+            <th class="text-start ps-1" style="width:120px;">都道府県</th>
+            <td class="text-end" style="width:132px;">
               <input type="text"
                      readonly
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ number_format($furPrevPref3) }}">
             </td>
-            <td class="text-end">
+            <td class="text-end" style="width:132px;">
               <input type="text"
                      readonly
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ number_format($furCurrPref3) }}">
             </td>
           </tr>
@@ -1626,13 +1647,13 @@
             <td class="text-end">
               <input type="text"
                      readonly
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ number_format($furPrevMuni3) }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ number_format($furCurrMuni3) }}">
             </td>
           </tr>
@@ -1644,13 +1665,13 @@
             <td class="text-end">
               <input type="text"
                      readonly
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ number_format($othPrevPref3) }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ number_format($othCurrPref3) }}">
             </td>
           </tr>
@@ -1659,13 +1680,13 @@
             <td class="text-end">
               <input type="text"
                      readonly
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ number_format($othPrevMuni3) }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ number_format($othCurrMuni3) }}">
             </td>
           </tr>
@@ -1676,14 +1697,14 @@
               <input type="text"
                      readonly
                      name="chosei_mae_shotokuwari_pref_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('chosei_mae_shotokuwari_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="chosei_mae_shotokuwari_pref_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('chosei_mae_shotokuwari_pref_curr') }}">
             </td>
           </tr>
@@ -1693,14 +1714,14 @@
               <input type="text"
                      readonly
                      name="chosei_mae_shotokuwari_muni_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('chosei_mae_shotokuwari_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="chosei_mae_shotokuwari_muni_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('chosei_mae_shotokuwari_muni_curr') }}">
             </td>
           </tr>
@@ -1711,14 +1732,14 @@
               <input type="text"
                      readonly
                      name="chosei_kojo_pref_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('chosei_kojo_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="chosei_kojo_pref_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('chosei_kojo_pref_curr') }}">
             </td>
           </tr>
@@ -1728,14 +1749,14 @@
               <input type="text"
                      readonly
                      name="chosei_kojo_muni_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('chosei_kojo_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="chosei_kojo_muni_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('chosei_kojo_muni_curr') }}">
             </td>
           </tr>
@@ -1746,14 +1767,14 @@
               <input type="text"
                      readonly
                      name="choseigo_shotokuwari_pref_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('choseigo_shotokuwari_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="choseigo_shotokuwari_pref_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('choseigo_shotokuwari_pref_curr') }}">
             </td>
           </tr>
@@ -1763,14 +1784,14 @@
               <input type="text"
                      readonly
                      name="choseigo_shotokuwari_muni_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('choseigo_shotokuwari_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="choseigo_shotokuwari_muni_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('choseigo_shotokuwari_muni_curr') }}">
             </td>
           </tr>
@@ -1781,14 +1802,14 @@
               <input type="text"
                      readonly
                      name="kihon_kojo_pref_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('kihon_kojo_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="kihon_kojo_pref_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('kihon_kojo_pref_curr') }}">
             </td>
           </tr>
@@ -1798,14 +1819,14 @@
               <input type="text"
                      readonly
                      name="kihon_kojo_muni_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('kihon_kojo_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="kihon_kojo_muni_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('kihon_kojo_muni_curr') }}">
             </td>
           </tr>
@@ -1816,14 +1837,14 @@
               <input type="text"
                      readonly
                      name="tokurei_kojo_pref_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('tokurei_kojo_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="tokurei_kojo_pref_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('tokurei_kojo_pref_curr') }}">
             </td>
           </tr>
@@ -1833,14 +1854,14 @@
               <input type="text"
                      readonly
                      name="tokurei_kojo_muni_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('tokurei_kojo_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="tokurei_kojo_muni_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('tokurei_kojo_muni_curr') }}">
             </td>
           </tr>
@@ -1851,14 +1872,14 @@
               <input type="text"
                      readonly
                      name="shotokuwari20_pref_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('shotokuwari20_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="shotokuwari20_pref_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('shotokuwari20_pref_curr') }}">
             </td>
           </tr>
@@ -1868,14 +1889,14 @@
               <input type="text"
                      readonly
                      name="shotokuwari20_muni_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('shotokuwari20_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="shotokuwari20_muni_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('shotokuwari20_muni_curr') }}">
             </td>
           </tr>
@@ -1886,14 +1907,14 @@
               <input type="text"
                      readonly
                      name="tokurei_kojo_jogen_pref_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('tokurei_kojo_jogen_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="tokurei_kojo_jogen_pref_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('tokurei_kojo_jogen_pref_curr') }}">
             </td>
           </tr>
@@ -1903,14 +1924,14 @@
               <input type="text"
                      readonly
                      name="tokurei_kojo_jogen_muni_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('tokurei_kojo_jogen_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="tokurei_kojo_jogen_muni_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('tokurei_kojo_jogen_muni_curr') }}">
             </td>
           </tr>
@@ -1921,14 +1942,14 @@
               <input type="text"
                      readonly
                      name="shinkokutokurei_kojo_pref_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('shinkokutokurei_kojo_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="shinkokutokurei_kojo_pref_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('shinkokutokurei_kojo_pref_curr') }}">
             </td>
           </tr>
@@ -1938,14 +1959,14 @@
               <input type="text"
                      readonly
                      name="shinkokutokurei_kojo_muni_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('shinkokutokurei_kojo_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="shinkokutokurei_kojo_muni_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('shinkokutokurei_kojo_muni_curr') }}">
             </td>
           </tr>
@@ -1956,14 +1977,14 @@
               <input type="text"
                      readonly
                      name="kifukin_zeigaku_kojo_pref_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('kifukin_zeigaku_kojo_pref_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="kifukin_zeigaku_kojo_pref_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('kifukin_zeigaku_kojo_pref_curr') }}">
             </td>
           </tr>
@@ -1973,14 +1994,14 @@
               <input type="text"
                      readonly
                      name="kifukin_zeigaku_kojo_muni_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('kifukin_zeigaku_kojo_muni_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="kifukin_zeigaku_kojo_muni_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('kifukin_zeigaku_kojo_muni_curr') }}">
             </td>
           </tr>
@@ -1990,14 +2011,14 @@
               <input type="text"
                      readonly
                      name="kifukin_zeigaku_kojo_gokei_prev"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('kifukin_zeigaku_kojo_gokei_prev') }}">
             </td>
             <td class="text-end">
               <input type="text"
                      readonly
                      name="kifukin_zeigaku_kojo_gokei_curr"
-                     class="form-control form-control-sm text-end bg-light"
+                     class="form-control suji11 bg-light"
                      value="{{ $readonlyValue('kifukin_zeigaku_kojo_gokei_curr') }}">
             </td>
           </tr>

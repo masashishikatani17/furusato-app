@@ -14,6 +14,40 @@ body { font-size: 11pt; color: #000; -webkit-print-color-adjust: exact; print-co
 .page:last-child { page-break-after: auto; }
 main.page:last-child { page-break-after: auto; }
 .sheet { width: 100%; }
+        
+        /* ===== ブラウザ印刷プレビューでの「空白ページ増殖」対策 =====
+         * 目的：
+         *  - 固定高さ/100%高さ/余計な余白/改ページ指定があると、印刷時だけ溢れて空白ページが出る
+         *  - 最小限の「強制打ち消し」を print 時だけ適用して安定させる
+         */
+        @media print {
+          html, body {
+            height: auto !important;
+            min-height: 0 !important;
+          }
+        
+          /* “固定高さ”や“余計な下padding”があると次ページを作りやすいので無効化 */
+          .sheet, .page-frame, main, section {
+            height: auto !important;
+            min-height: 0 !important;
+            padding-bottom: 0 !important;
+            margin-bottom: 0 !important;
+          }
+        
+          /* 先頭の空白ページは page-break-before が原因のことが多いので強制解除 */
+          .sheet:first-child, .page:first-child, main.page:first-child {
+            page-break-before: auto !important;
+            break-before: auto !important;
+          }
+        
+          /* 固定フッターは“本文の流れ”に入れない（CSSが壊れていると通常要素扱いで次ページ化する） */
+          .page-footer {
+            position: fixed !important;
+            left: 0 !important;
+            right: 0 !important;
+            bottom: 8mm !important; /* ←必要なら微調整 */
+          }
+        }
 .title { font-size: 16pt; margin: 0 0 8px 0; }
 .meta { font-size: 10pt; margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
 .muted { color: #666; }

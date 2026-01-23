@@ -16,6 +16,8 @@ use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Models\Data;
 use App\Models\FurusatoInput;
 use App\Models\FurusatoResult;
+use App\Domain\Tax\Services\FurusatoPracticalUpperLimitService;
+use App\Domain\Tax\Services\FurusatoScenarioTaxSummaryService;
 use App\Services\Tax\Contracts\ProvidesKeys;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
@@ -128,11 +130,37 @@ class RecalculateFurusatoPayload
     private function persistResults(Data $data, array $payload, array $ctx, ?int $userId, bool $shouldFlashResults): void
     {
         $details = $this->resultCalculator->buildDetails($payload, $ctx);
+
+        // ▼ 追加：上限探索＋①〜④スナップショットを「再計算時に1回だけ」生成して results に同梱する
+        //   - 画面表示やPDF帳票で毎回dry-runしないためのSoT
+        $furusatoUpper = null;
+        $furusatoUpperScenarios = null;
+        try {
+            /** @var FurusatoPracticalUpperLimitService $upperSvc */
+            $upperSvc = app(FurusatoPracticalUpperLimitService::class);
+            $furusatoUpper = $upperSvc->compute($payload, $ctx);
+
+            $yMax = is_array($furusatoUpper) ? (int)($furusatoUpper['y_max_total'] ?? 0) : 0;
+            /** @var FurusatoScenarioTaxSummaryService $scSvc */
+            $scSvc = app(FurusatoScenarioTaxSummaryService::class);
+            $furusatoUpperScenarios = $scSvc->build($payload, $ctx, $yMax);
+        } catch (\Throwable $e) {
+            Log::warning('[furusato.upper] compute failed in recalc', [
+                'data_id' => (int)$data->id,
+                'err' => $e->getMessage(),
+            ]);
+            $furusatoUpper = null;
+            $furusatoUpperScenarios = null;
+        }
         $results = [
             'details' => $details,
             'payload' => $payload,
             // TODO: Remove the legacy key once all consumers migrate to `payload`.
             'upper' => $payload,
+            // 新規：保存済みSoT（画面・帳票はここを読む）
+            'furusato_upper' => $furusatoUpper,
+            'furusato_upper_scenarios' => $furusatoUpperScenarios,
+            'furusato_upper_generated_at' => now()->toIso8601String(),
         ];
 
         $this->storeResults($data, $results, $userId);

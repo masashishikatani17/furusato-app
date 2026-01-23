@@ -6,11 +6,29 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\Data;
+use App\Models\FurusatoResult;
 use Illuminate\Support\Facades\Auth;
 use App\Services\Pdf\ReportRegistry;
 use App\Services\Pdf\PdfRenderer;
+use App\Services\Pdf\PdfCacheService;
+use App\Services\Pdf\FastBundlePdfBuilder;
+use App\Services\Pdf\Templates\FurusatoHyoshiTemplateWriter;
+use App\Services\Pdf\Templates\FurusatoKifukinGendogakuTemplateWriter;
+use App\Services\Pdf\Templates\FurusatoSyotokukinKojyosokuTemplateWriter;
+use App\Services\Pdf\Templates\FurusatoKazeigakuZeigakuYosokuTemplateWriter;
+use App\Services\Pdf\Templates\FurusatoJuminKeigengakuTemplateWriter;
+use App\Services\Pdf\Templates\FurusatoSonntokuSimulationTemplateWriter;
+use App\Services\Pdf\Templates\FurusatoJintekiKojoSaTyoseiTemplateWriter;
+use App\Services\Pdf\Templates\FurusatoTokureiKojowariaiTemplateWriter;
+use App\Domain\Tax\Services\FurusatoSonntokuSimulationService;
+use App\Domain\Tax\Factory\SyoriSettingsFactory;
+use App\Models\FurusatoInput;
+use App\Jobs\Pdf\BuildFurusatoBundlePdfCacheJob;
 use App\Reports\Contracts\BundleReportInterface;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use Symfony\Component\HttpFoundation\Cookie;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use setasign\Fpdi\Fpdi;
 use setasign\Fpdi\PdfParser\StreamReader;
 
@@ -19,7 +37,73 @@ class PdfOutputController extends Controller
     public function __construct(
         private ReportRegistry $reports,
         private PdfRenderer $renderer,
+        private PdfCacheService $cache,
+        private FastBundlePdfBuilder $fastBuilder,
     ) {}
+ 
+    /**
+     * ステータス（JSON）
+     * GET /pdf/{report}/status?data_id=...&one_stop_flag_curr=...&mode=fast&engine=dompdf
+     */
+    public function status(Request $request, string $report): JsonResponse
+    {
+        $data = $this->resolveAuthorizedDataOrFail($request);
+
+        // 標準：fast + dompdf（必要ならクエリで切替）
+        $context = [
+            'one_stop_flag_curr' => (string)$request->query('one_stop_flag_curr', '1'),
+            'mode' => (string)$request->query('mode', 'fast'),
+            'engine' => (string)$request->query('engine', 'dompdf'),
+        ];
+        $cacheKey = $this->cache->cacheKey($report, $data, $context);
+
+        // - download側で未生成なら同期生成→キャッシュ保存する
+        if (
+            in_array(strtolower($report), [
+                'hyoshi',
+                'kifukingendogaku',
+                'syotokukinkojyosoku',
+                'kazeigakuzeigakuyosoku',
+                'juminkeigengaku',
+                'juminkeigengaku_onestop',
+                'sonntokusimulation',
+                'jintekikojosatyosei',
+                'tokureikojowariai',
+            ], true)
+            || (strtolower($report) === 'furusato_bundle' && ((string)$request->query('mode','') === 'fast'))
+        ) {
+            $downloadUrl = route('pdf.download', ['report' => $report])
+                . '?data_id=' . urlencode((string)$data->id)
+                . '&one_stop_flag_curr=' . urlencode((string)$context['one_stop_flag_curr'])
+                . '&mode=' . urlencode((string)$context['mode'])
+                . '&engine=' . urlencode((string)$context['engine']);
+            return response()->json([
+                'status' => 'ready',
+                'cache_key' => $cacheKey,
+                'download_url' => $downloadUrl,
+                'message' => null,
+            ]);
+        }
+
+        // 実ファイルがあれば ready 扱い
+        if ($this->cache->exists($cacheKey)) {
+            $this->cache->setStatus($cacheKey, ['status' => 'ready']);
+        }
+
+        $st = $this->cache->getStatus($cacheKey);
+        $downloadUrl = route('pdf.download', ['report' => $report])
+            . '?data_id=' . urlencode((string)$data->id)
+            . '&one_stop_flag_curr=' . urlencode((string)$context['one_stop_flag_curr'])
+            . '&mode=' . urlencode((string)$context['mode'])
+            . '&engine=' . urlencode((string)$context['engine']);
+
+        return response()->json([
+            'status' => (string)($st['status'] ?? 'none'),
+            'cache_key' => $cacheKey,
+            'download_url' => $downloadUrl,
+            'message' => $st['message'] ?? null,
+        ]);
+    }
 
     /** HTMLプレビュー: GET /pdf/{report}/preview?data_id=◯◯ */
     public function preview(Request $request, string $report)
@@ -123,6 +207,510 @@ class PdfOutputController extends Controller
     {
         $data = $this->resolveAuthorizedDataOrFail($request);
         $reportObj = $this->reports->resolve($report);
+ 
+        // 標準：fast + dompdf（必要ならクエリで切替）
+        $mode = (string)$request->query('mode', 'fast');
+        $engine = (string)$request->query('engine', 'dompdf'); // .env が chrome でもここは dompdf を標準にする
+        $contextBase = [
+            'one_stop_flag_curr' => (string)$request->query('one_stop_flag_curr', '1'),
+            'mode' => $mode,
+            'engine' => $engine,
+        ];
+        $cacheKey = $this->cache->cacheKey($report, $data, $contextBase);
+
+        // ============================================================
+        // ★ 特例控除割合（tokureikojowariai）：背景テンプレPDF＋mm座標印字（まずは仮置き）
+        // ============================================================
+        if (strtolower($report) === 'tokureikojowariai') {
+            if ($this->cache->exists($cacheKey)) {
+                $file = $reportObj->fileName($data);
+                $resp = response()->download(
+                    $this->cache->absolutePath($cacheKey),
+                    $file,
+                    ['Content-Type' => 'application/pdf']
+                );
+                return $this->attachDownloadCookie($request, $resp);
+            }
+
+            // ★方針：7ページ（特例控除割合）は「サーバ値を一切載せない」ため、
+            //   背景テンプレPDFをそのまま返す（印字処理は行わない）
+            $tplPath = resource_path('pdf_templates/furusato/7_tokureikojowariai_bg.pdf');
+            if (!is_file($tplPath)) {
+                throw new \RuntimeException('Template PDF not found: ' . $tplPath);
+            }
+            $pdfStr = file_get_contents($tplPath);
+            if (!is_string($pdfStr) || $pdfStr === '') {
+                throw new \RuntimeException('Failed to read template PDF: ' . $tplPath);
+            }
+
+            $this->cache->put($cacheKey, $pdfStr);
+
+            $file = $reportObj->fileName($data);
+            $resp = response($pdfStr, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $file . '"',
+            ]);
+            return $this->attachDownloadCookie($request, $resp);
+        }
+
+        // ============================================================
+        // ★ 人的控除差調整額（jintekikojosatyosei）：背景テンプレPDF＋mm座標印字（まずは仮置き）
+        // ============================================================
+        if (strtolower($report) === 'jintekikojosatyosei') {
+            if ($this->cache->exists($cacheKey)) {
+                $file = $reportObj->fileName($data);
+                $resp = response()->download(
+                    $this->cache->absolutePath($cacheKey),
+                    $file,
+                    ['Content-Type' => 'application/pdf']
+                );
+                return $this->attachDownloadCookie($request, $resp);
+            }
+
+            // 既存Reportの buildViewData() を流用（年/氏名など）
+            $vars = $reportObj->buildViewData($data);
+
+            $tplPath  = resource_path('pdf_templates/furusato/6_jintekikojosatyosei_bg.pdf');
+            $fontPath = public_path('fonts/ipaexg.ttf');
+
+            $writer = new FurusatoJintekiKojoSaTyoseiTemplateWriter($tplPath, $fontPath);
+            // デバッグ印字は一切しない
+            $pdfStr = $writer->render($vars);
+
+            $this->cache->put($cacheKey, $pdfStr);
+
+            $file = $reportObj->fileName($data);
+            $resp = response($pdfStr, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $file . '"',
+            ]);
+            return $this->attachDownloadCookie($request, $resp);
+        }
+
+        // ============================================================
+        // ★ 寄附金額別損得シミュレーション（sonntokusimulation）：背景テンプレPDF＋mm座標印字（まずは仮置き）
+        // - Reportは固定値なので、Controller側で sonntoku を組み立てて Writer に渡す
+        // ============================================================
+        if (strtolower($report) === 'sonntokusimulation') {
+            if ($this->cache->exists($cacheKey)) {
+                $file = $reportObj->fileName($data);
+                $resp = response()->download(
+                    $this->cache->absolutePath($cacheKey),
+                    $file,
+                    ['Content-Type' => 'application/pdf']
+                );
+                return $this->attachDownloadCookie($request, $resp);
+            }
+
+            // SoT payload（優先：FurusatoResult.payload['payload'] → 次点：FurusatoInput.payload）
+            $payload = [];
+            $stored = FurusatoResult::query()->where('data_id', (int)$data->id)->value('payload');
+            if (is_array($stored)) {
+                $candidate = $stored['payload'] ?? $stored['upper'] ?? $stored;
+                $payload = is_array($candidate) ? $candidate : [];
+            }
+            if ($payload === []) {
+                $inp = FurusatoInput::query()->where('data_id', (int)$data->id)->value('payload');
+                $payload = is_array($inp) ? $inp : [];
+            }
+
+            /** @var SyoriSettingsFactory $syoriFactory */
+            $syoriFactory = app(SyoriSettingsFactory::class);
+            $syoriSettings = $syoriFactory->buildInitial($data);
+
+            // ctx（dry-run runner 用）
+            $guestBirth = $data->guest?->birth_date ?? null;
+            $guestBirthYmd = null;
+            if ($guestBirth instanceof \DateTimeInterface) {
+                $guestBirthYmd = $guestBirth->format('Y-m-d');
+            } elseif (is_string($guestBirth)) {
+                $guestBirthYmd = preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($guestBirth)) === 1 ? trim($guestBirth) : null;
+            }
+            $taxpayerSex = data_get($data, 'guest.sex') ?? data_get($data, 'guest.gender') ?? data_get($data, 'guest.sex_code');
+
+            $ctx = [
+                'syori_settings'   => $syoriSettings,
+                'data'             => $data,
+                'data_id'          => (int)$data->id,
+                'company_id'       => $data->company_id !== null ? (int)$data->company_id : null,
+                'kihu_year'        => $data->kihu_year ? (int)$data->kihu_year : 0,
+                'master_kihu_year' => 2025,
+                'guest_birth_date' => $guestBirthYmd,
+                'taxpayer_sex'     => $taxpayerSex,
+            ];
+
+            /** @var FurusatoSonntokuSimulationService $svc */
+            $svc = app(FurusatoSonntokuSimulationService::class);
+            $sonntoku = $svc->build($payload, $ctx);
+
+            $tplPath  = resource_path('pdf_templates/furusato/5_sonntokusimulation_bg.pdf');
+            $fontPath = public_path('fonts/ipaexg.ttf');
+            $writer = new FurusatoSonntokuSimulationTemplateWriter($tplPath, $fontPath);
+            $pdfStr = $writer->render([
+                'sonntoku'   => $sonntoku,
+                'show_test'  => true,
+            ]);
+
+            $this->cache->put($cacheKey, $pdfStr);
+
+            $file = $reportObj->fileName($data);
+            $resp = response($pdfStr, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $file . '"',
+            ]);
+            return $this->attachDownloadCookie($request, $resp);
+        }
+
+        // ============================================================
+        // ★ 住民税の軽減額（通常/ワンストップ）：背景テンプレPDF＋mm座標印字（まずは仮置き）
+        // ============================================================
+        if (in_array(strtolower($report), ['juminkeigengaku', 'juminkeigengaku_onestop'], true)) {
+            if ($this->cache->exists($cacheKey)) {
+                $file = $reportObj->fileName($data);
+                $resp = response()->download(
+                    $this->cache->absolutePath($cacheKey),
+                    $file,
+                    ['Content-Type' => 'application/pdf']
+                );
+                return $this->attachDownloadCookie($request, $resp);
+            }
+
+            // 既存Reportの buildViewData() を流用（数値生成は捨てない）
+            $vars = $reportObj->buildViewData($data);
+
+            $tplPath = (strtolower($report) === 'juminkeigengaku_onestop')
+                ? resource_path('pdf_templates/furusato/4_juminkeigengaku_onestop_bg.pdf')
+                : resource_path('pdf_templates/furusato/4_juminkeigengaku_bg.pdf');
+            $fontPath = public_path('fonts/ipaexg.ttf');
+
+            $writer = new FurusatoJuminKeigengakuTemplateWriter($tplPath, $fontPath);
+            $pdfStr = $writer->render($vars);
+
+            $this->cache->put($cacheKey, $pdfStr);
+
+            $file = $reportObj->fileName($data);
+            $resp = response($pdfStr, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $file . '"',
+            ]);
+            return $this->attachDownloadCookie($request, $resp);
+        }
+
+        // ============================================================
+        // 課税所得金額・税額の予測（kazeigakuzeigakuyosoku）：背景テンプレPDF＋mm座標印字（まずは仮置き）
+        // ============================================================
+        if (strtolower($report) === 'kazeigakuzeigakuyosoku') {
+            if ($this->cache->exists($cacheKey)) {
+                $file = $reportObj->fileName($data);
+                $resp = response()->download(
+                    $this->cache->absolutePath($cacheKey),
+                    $file,
+                    ['Content-Type' => 'application/pdf']
+                );
+                return $this->attachDownloadCookie($request, $resp);
+            }
+
+            // 既存Reportの buildViewData() を流用（数値生成は捨てない）
+            $vars = $reportObj->buildViewData($data);
+
+            $tplPath  = resource_path('pdf_templates/furusato/3_kazeigakuzeigakuyosoku_bg.pdf');
+            $fontPath = public_path('fonts/ipaexg.ttf');
+
+            $writer = new FurusatoKazeigakuZeigakuYosokuTemplateWriter($tplPath, $fontPath);
+            $pdfStr = $writer->render($vars);
+
+            $this->cache->put($cacheKey, $pdfStr);
+
+            $file = $reportObj->fileName($data);
+            $resp = response($pdfStr, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $file . '"',
+            ]);
+            return $this->attachDownloadCookie($request, $resp);
+        }
+
+        // ============================================================
+        // 所得金額・所得控除額の予測（syotokukinkojyosoku）：背景テンプレPDF＋mm座標印字（まずは仮置き）
+        // ============================================================
+        if (strtolower($report) === 'syotokukinkojyosoku') {
+            if ($this->cache->exists($cacheKey)) {
+                $file = $reportObj->fileName($data);
+                $resp = response()->download(
+                    $this->cache->absolutePath($cacheKey),
+                    $file,
+                    ['Content-Type' => 'application/pdf']
+                );
+                return $this->attachDownloadCookie($request, $resp);
+            }
+
+            // 既存Reportの buildViewData() を流用（数値生成は捨てない）
+            $vars = $reportObj->buildViewData($data);
+
+            $tplPath  = resource_path('pdf_templates/furusato/2_syotokukinkojyosoku_bg.pdf');
+            $fontPath = public_path('fonts/ipaexg.ttf');
+
+            $writer = new FurusatoSyotokukinKojyosokuTemplateWriter($tplPath, $fontPath);
+            $pdfStr = $writer->render($vars);
+
+            $this->cache->put($cacheKey, $pdfStr);
+
+            $file = $reportObj->fileName($data);
+            $resp = response($pdfStr, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $file . '"',
+            ]);
+            return $this->attachDownloadCookie($request, $resp);
+        }
+
+        // ============================================================
+        // furusato_bundle (fast)：いったん「表紙＋寄附金上限額（1ページ目）」の2ページをテンプレ方式で結合して返す
+        //   - ここが“つなげてほしい”の対応
+        //   - 後で 2〜7ページも同じ方式で拡張していく
+        // ============================================================
+        if (strtolower($report) === 'furusato_bundle' && $mode === 'fast') {
+            // キャッシュがあれば即DL
+            if ($this->cache->exists($cacheKey)) {
+                $file = ($reportObj instanceof BundleReportInterface)
+                    ? $reportObj->bundleFileName($data, ['one_stop_flag_curr' => $contextBase['one_stop_flag_curr']])
+                    : $reportObj->fileName($data);
+                $resp = response()->download(
+                    $this->cache->absolutePath($cacheKey),
+                    $file,
+                    ['Content-Type' => 'application/pdf']
+                );
+                return $this->attachDownloadCookie($request, $resp);
+            }
+
+            // 0) 表紙（テンプレ + XY）
+            $tplHyoshi = resource_path('pdf_templates/furusato/0_hyoshi_bg.pdf');
+            $fontPath  = public_path('fonts/ipaexg.ttf');
+            $hyoshiWriter = new FurusatoHyoshiTemplateWriter($tplHyoshi, $fontPath);
+            $guest = (string)($data->guest?->name ?? '');
+            $date  = (string)($data->proposal_date ?? $data->data_created_on ?? now()->toDateString());
+            $pdfHyoshi = $hyoshiWriter->render([
+                'guest_name' => $guest !== '' ? ($guest . '様') : '',
+                'date'       => $date,
+                'org'        => '',
+                // 表紙は今は不要なら false にしてOK（必要なら true）
+                'show_test'  => false,
+            ]);
+
+            // 1) 寄附金上限額（テンプレ + XY）
+            //    既存Reportの buildViewData() を流用する（数値生成は捨てない）
+            $page1Report = $this->reports->resolve('kifukingendogaku');
+            $vars1 = $page1Report->buildViewData($data);
+            $tpl1 = resource_path('pdf_templates/furusato/1_kifukingendogaku_bg.pdf');
+            $page1Writer = new FurusatoKifukinGendogakuTemplateWriter($tpl1, $fontPath);
+            $pdfPage1 = $page1Writer->render($vars1);
+
+            // 2) 所得金額・所得控除額（2ページ目：テンプレ + XY）
+            $page2Report = $this->reports->resolve('syotokukinkojyosoku');
+            $vars2 = $page2Report->buildViewData($data);
+            $tpl2 = resource_path('pdf_templates/furusato/2_syotokukinkojyosoku_bg.pdf');
+            $page2Writer = new FurusatoSyotokukinKojyosokuTemplateWriter($tpl2, $fontPath);
+            $pdfPage2 = $page2Writer->render($vars2);
+
+            // 3) 課税所得金額・税額の予測（3ページ目：テンプレ + XY）
+            $page3Report = $this->reports->resolve('kazeigakuzeigakuyosoku');
+            $vars3 = $page3Report->buildViewData($data);
+            $tpl3 = resource_path('pdf_templates/furusato/3_kazeigakuzeigakuyosoku_bg.pdf');
+            $page3Writer = new FurusatoKazeigakuZeigakuYosokuTemplateWriter($tpl3, $fontPath);
+            $pdfPage3 = $page3Writer->render($vars3);
+
+            // 4) 住民税の軽減額（4ページ目：通常/ワンストップでテンプレ切替）
+            $oneStop = (string)($contextBase['one_stop_flag_curr'] ?? '1');
+            $page4Key = ($oneStop === '1') ? 'juminkeigengaku_onestop' : 'juminkeigengaku';
+            $page4Report = $this->reports->resolve($page4Key);
+            $vars4 = $page4Report->buildViewData($data);
+            $tpl4 = ($oneStop === '1')
+                ? resource_path('pdf_templates/furusato/4_juminkeigengaku_onestop_bg.pdf')
+                : resource_path('pdf_templates/furusato/4_juminkeigengaku_bg.pdf');
+            $page4Writer = new FurusatoJuminKeigengakuTemplateWriter($tpl4, $fontPath);
+            $pdfPage4 = $page4Writer->render($vars4);
+
+            // 5) 損得シミュレーション（5ページ目：テンプレ + XY）
+            //    ※ここだけ Report の buildViewData() に数値が無いので controller で組み立てる
+            $page5Report = $this->reports->resolve('sonntokusimulation');
+
+            // SoT payload
+            $payload5 = [];
+            $stored5 = FurusatoResult::query()->where('data_id', (int)$data->id)->value('payload');
+            if (is_array($stored5)) {
+                $candidate5 = $stored5['payload'] ?? $stored5['upper'] ?? $stored5;
+                $payload5 = is_array($candidate5) ? $candidate5 : [];
+            }
+            if ($payload5 === []) {
+                $inp5 = FurusatoInput::query()->where('data_id', (int)$data->id)->value('payload');
+                $payload5 = is_array($inp5) ? $inp5 : [];
+            }
+
+            /** @var SyoriSettingsFactory $syoriFactory5 */
+            $syoriFactory5 = app(SyoriSettingsFactory::class);
+            $syoriSettings5 = $syoriFactory5->buildInitial($data);
+            $guestBirth5 = $data->guest?->birth_date ?? null;
+            $guestBirthYmd5 = null;
+            if ($guestBirth5 instanceof \DateTimeInterface) {
+                $guestBirthYmd5 = $guestBirth5->format('Y-m-d');
+            } elseif (is_string($guestBirth5)) {
+                $guestBirthYmd5 = preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($guestBirth5)) === 1 ? trim($guestBirth5) : null;
+            }
+            $taxpayerSex5 = data_get($data, 'guest.sex') ?? data_get($data, 'guest.gender') ?? data_get($data, 'guest.sex_code');
+            $ctx5 = [
+                'syori_settings'   => $syoriSettings5,
+                'data'             => $data,
+                'data_id'          => (int)$data->id,
+                'company_id'       => $data->company_id !== null ? (int)$data->company_id : null,
+                'kihu_year'        => $data->kihu_year ? (int)$data->kihu_year : 0,
+                'master_kihu_year' => 2025,
+                'guest_birth_date' => $guestBirthYmd5,
+                'taxpayer_sex'     => $taxpayerSex5,
+            ];
+            /** @var FurusatoSonntokuSimulationService $svc5 */
+            $svc5 = app(FurusatoSonntokuSimulationService::class);
+            $sonntoku5 = $svc5->build($payload5, $ctx5);
+
+            $tpl5 = resource_path('pdf_templates/furusato/5_sonntokusimulation_bg.pdf');
+            $page5Writer = new FurusatoSonntokuSimulationTemplateWriter($tpl5, $fontPath);
+            $pdfPage5 = $page5Writer->render([
+                'sonntoku'  => $sonntoku5,
+                'show_test' => true,
+            ]);
+
+            // 6) 人的控除差調整額（6ページ目：テンプレ + XY）
+            $page6Report = $this->reports->resolve('jintekikojosatyosei');
+            $vars6 = $page6Report->buildViewData($data);
+            $tpl6 = resource_path('pdf_templates/furusato/6_jintekikojosatyosei_bg.pdf');
+            $page6Writer = new FurusatoJintekiKojoSaTyoseiTemplateWriter($tpl6, $fontPath);
+            // デバッグ印字は一切しない
+            $pdfPage6 = $page6Writer->render($vars6);
+
+            // 7) 特例控除割合（7ページ目：テンプレ + XY）
+            $tpl7 = resource_path('pdf_templates/furusato/7_tokureikojowariai_bg.pdf');
+            if (!is_file($tpl7)) {
+                throw new \RuntimeException('Template PDF not found: ' . $tpl7);
+            }
+            $pdfPage7 = file_get_contents($tpl7);
+            if (!is_string($pdfPage7) || $pdfPage7 === '') {
+                throw new \RuntimeException('Failed to read template PDF: ' . $tpl7);
+            }
+
+            // 2) 2つのPDF（各1ページ）を結合
+            $m = new \setasign\Fpdi\Tcpdf\Fpdi('L', 'mm', 'A4', true, 'UTF-8', false);
+            $m->SetAutoPageBreak(false);
+            $m->SetMargins(0, 0, 0);
+            $m->setPrintHeader(false);
+            $m->setPrintFooter(false);
+
+            foreach ([$pdfHyoshi, $pdfPage1, $pdfPage2, $pdfPage3, $pdfPage4, $pdfPage5, $pdfPage6, $pdfPage7] as $bin) {
+                $pageCount = $m->setSourceFile(StreamReader::createByString($bin));
+                for ($i = 1; $i <= $pageCount; $i++) {
+                    $tpl = $m->importPage($i);
+                    $size = $m->getTemplateSize($tpl);
+                    $m->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                    $m->useTemplate($tpl, 0, 0, $size['width'], $size['height'], true);
+                }
+            }
+
+            $merged = $m->Output('', 'S');
+            $this->cache->put($cacheKey, $merged);
+
+            $file = ($reportObj instanceof BundleReportInterface)
+                ? $reportObj->bundleFileName($data, ['one_stop_flag_curr' => $contextBase['one_stop_flag_curr']])
+                : $reportObj->fileName($data);
+            $resp = response($merged, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $file . '"',
+            ]);
+            return $this->attachDownloadCookie($request, $resp);
+        }
+
+        // ============================================================
+        // 寄附金上限額（kifukingendogaku）：背景テンプレPDF＋mm座標印字（まずは仮置き）
+        // ============================================================
+        if (strtolower($report) === 'kifukingendogaku') {
+            if ($this->cache->exists($cacheKey)) {
+                $file = $reportObj->fileName($data);
+                $resp = response()->download(
+                    $this->cache->absolutePath($cacheKey),
+                    $file,
+                    ['Content-Type' => 'application/pdf']
+                );
+                return $this->attachDownloadCookie($request, $resp);
+            }
+
+            // buildViewData() は「既存の数値生成をそのまま流用」するために使う
+            $vars = $reportObj->buildViewData($data);
+
+            $tplPath  = resource_path('pdf_templates/furusato/1_kifukingendogaku_bg.pdf');
+            $fontPath = public_path('fonts/ipaexg.ttf');
+
+            $writer = new FurusatoKifukinGendogakuTemplateWriter($tplPath, $fontPath);
+            $pdfStr = $writer->render($vars);
+
+            $this->cache->put($cacheKey, $pdfStr);
+
+            $file = $reportObj->fileName($data);
+            $resp = response($pdfStr, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $file . '"',
+            ]);
+            return $this->attachDownloadCookie($request, $resp);
+        }
+
+        // ============================================================
+        // 表紙(hyoshi)：背景テンプレPDF＋mm座標印字
+        // - まずは表紙だけ新方式で出す（bundle統合は次段階）
+        // ============================================================
+        if (strtolower($report) === 'hyoshi') {
+            if ($this->cache->exists($cacheKey)) {
+                $file = $reportObj->fileName($data);
+                $resp = response()->download(
+                    $this->cache->absolutePath($cacheKey),
+                    $file,
+                    ['Content-Type' => 'application/pdf']
+                );
+                return $this->attachDownloadCookie($request, $resp);
+            }
+
+            $tplPath  = resource_path('pdf_templates/furusato/0_hyoshi_bg.pdf');
+            $fontPath = public_path('fonts/ipaexg.ttf');
+
+            $writer = new FurusatoHyoshiTemplateWriter($tplPath, $fontPath);
+
+            $guest = (string)($data->guest?->name ?? '');
+            $date  = (string)($data->proposal_date ?? $data->data_created_on ?? now()->toDateString());
+            $org   = ''; // 必要ならここに事務所名等
+
+            $pdfStr = $writer->render([
+                'guest_name' => $guest !== '' ? ($guest . '様') : '',
+                'date'       => $date,
+                'org'        => $org,
+                // 初期はtrue（TEST-XYを表示）。座標が合ったらfalseにしてOK
+                'show_test'  => true,
+            ]);
+
+            $this->cache->put($cacheKey, $pdfStr);
+
+            $file = $reportObj->fileName($data);
+            $resp = response($pdfStr, 200, [
+                'Content-Type'        => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="' . $file . '"',
+            ]);
+            return $this->attachDownloadCookie($request, $resp);
+        }
+
+        // キャッシュがあれば即DL
+        if ($this->cache->exists($cacheKey)) {
+            $file = ($reportObj instanceof BundleReportInterface)
+                ? $reportObj->bundleFileName($data, ['one_stop_flag_curr' => $contextBase['one_stop_flag_curr']])
+                : $reportObj->fileName($data);
+            $resp = response()->download(
+                $this->cache->absolutePath($cacheKey),
+                $file,
+                ['Content-Type' => 'application/pdf']
+            );
+            return $this->attachDownloadCookie($request, $resp);
+        }
 
         // Bundle（1本HTML → 複数ページPDF）の場合
         if ($reportObj instanceof BundleReportInterface) {
@@ -133,6 +721,36 @@ class PdfOutputController extends Controller
 
             //  先にファイル名を確定（後段の response ヘッダで使う）
             $file = $reportObj->bundleFileName($data, $context);
+            // 未生成：fast 標準は「ジョブ投入→202（building）」にする
+            if ($mode === 'fast') {
+                // 二重投入を避ける（statusがbuildingなら触らない）
+                $st = $this->cache->getStatus($cacheKey);
+                if (($st['status'] ?? 'none') !== 'building') {
+                    $this->cache->setStatus($cacheKey, ['status' => 'building']);
+                    BuildFurusatoBundlePdfCacheJob::dispatch(
+                        (int)$data->id,
+                        (string)$context['one_stop_flag_curr'],
+                        'fast',
+                        $engine
+                    )->onQueue('default');
+                }
+
+                // JSON要求なら 202 を返す（フロントがポーリング）
+                if ((string)$request->query('format') === 'json' || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 'building',
+                        'cache_key' => $cacheKey,
+                        'status_url' => route('pdf.status', ['report' => $report])
+                            . '?data_id=' . urlencode((string)$data->id)
+                            . '&one_stop_flag_curr=' . urlencode((string)$context['one_stop_flag_curr'])
+                            . '&mode=fast&engine=' . urlencode($engine),
+                    ], 202);
+                }
+
+                // 画面遷移（通常クリック）でも 202 JSON を返すとブラウザ表示されてしまうため、
+                // 最低限のテキストを返す（input側JSで抑止する想定）
+                return response('PDF is building. Please retry shortly.', 202);
+            }
 
             $keys = $reportObj->bundleKeys($data, $context);
 
@@ -184,6 +802,7 @@ class PdfOutputController extends Controller
                     }
 
                     // ★単体PDFを生成（engine=chrome ならブラウザ同等、engine=dompdf なら従来通り）
+                    $options['engine'] = $engine;
                     $pdfStr = $this->renderer->renderToString($view, $vars, $options);
 
                     // FPDIでページを取り込み結合
@@ -213,11 +832,15 @@ class PdfOutputController extends Controller
             }
 
             $merged = $fpdi->Output('S');
-            return response($merged, 200, [
+            // strictは生成結果をキャッシュに保存（次回高速化）
+            $this->cache->put($cacheKey, $merged);
+            $resp = response($merged, 200, [
                 'Content-Type'        => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="' . $file . '"',
             ]);
+            return $this->attachDownloadCookie($request, $resp);
         }
+        // 単体レポート（今回は bundle だけプリ生成対象なので、単体は同期生成→キャッシュ保存）
         $vars = $reportObj->buildViewData($data);
         $view = $reportObj->viewName();
         $file = $reportObj->fileName($data);
@@ -226,11 +849,74 @@ class PdfOutputController extends Controller
         if (method_exists($reportObj, 'pdfOptions')) {
             $options = (array)$reportObj->pdfOptions($data);
         }
+        $options['engine'] = $engine;
         $pdfStr = $this->renderer->renderToString($view, $vars, $options);
-        return response($pdfStr, 200, [
+        $this->cache->put($cacheKey, $pdfStr);
+        $resp = response($pdfStr, 200, [
             'Content-Type'        => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="' . $file . '"',
         ]);
+        return $this->attachDownloadCookie($request, $resp);
+    }
+
+    /**
+     * ダウンロード開始検知用 Cookie を付与する。
+     * - クライアントが iframe.src をセットし、レスポンスヘッダを受け取った時点で cookie が立つ
+     * - JS は cookie を検知してオーバーレイを閉じる
+     */
+    private function attachDownloadCookie(Request $request, SymfonyResponse $resp): SymfonyResponse
+    {
+        // download（BinaryFileResponse）は条件付き(304)になりやすいので潰す
+        if ($resp instanceof BinaryFileResponse) {
+            // 自動ETag/Last-Modifiedを無効化して 304 を出しにくくする
+            if (method_exists($resp, 'setAutoEtag')) {
+                $resp->setAutoEtag(false);
+            }
+            if (method_exists($resp, 'setAutoLastModified')) {
+                $resp->setAutoLastModified(false);
+            }
+            $resp->headers->remove('ETag');
+            $resp->headers->remove('Last-Modified');
+        }
+
+        // 必ずブラウザキャッシュさせない（cookieでDL開始合図を確実に返すため）
+        $resp = $this->noStore($resp);
+
+        $token = (string)$request->query('dl_token', '');
+        if ($token === '') {
+            return $resp;
+        }
+        // token はURL由来なので cookie名に安全な範囲へ寄せる
+        $safe = preg_replace('/[^a-zA-Z0-9_\-]/', '', $token) ?: '';
+        if ($safe === '') {
+            return $resp;
+        }
+
+        $name = 'pdf_dl_' . $safe;
+        $secure = app()->environment('production');
+        // JSで読むので httpOnly=false、SameSite=Lax（同一サイトiframeなら問題なし）
+        // BinaryFileResponse には cookie() が無いので headers に直接 setCookie する
+        $cookie = Cookie::create($name)
+            ->withValue('1')
+            ->withExpires(time() + 300) // 5 minutes
+            ->withPath('/')
+            ->withSecure($secure)
+            ->withHttpOnly(false)
+            ->withSameSite('Lax');
+
+        $resp->headers->setCookie($cookie);
+        return $resp;
+    }
+
+    /**
+     * PDFレスポンスはブラウザキャッシュさせない（cookieでDL開始合図を確実に返すため）
+     */
+    private function noStore(SymfonyResponse $resp): SymfonyResponse
+    {
+        $resp->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0, private');
+        $resp->headers->set('Pragma', 'no-cache');
+        $resp->headers->set('Expires', '0');
+        return $resp;
     }
 
     /** 親ファースト：Dataのview認可（会社一致＋必要なら部署一致） */

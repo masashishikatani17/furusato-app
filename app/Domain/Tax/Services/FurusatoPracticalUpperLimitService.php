@@ -60,16 +60,31 @@ final class FurusatoPracticalUpperLimitService
                 $hi = $mid - 1;
             }
         }
-        $yMaxTotal = $lo;
+        // ★ まずは 1円単位の最大OK
+        $yMaxTotalRaw = $lo;
+
+        // ★ 最終仕様：千円未満切捨てを「最終上限額」とする
+        $yMaxTotal = $this->floorToThousands($yMaxTotalRaw);
+
+        // 念のため：切捨て後でもOKか再確認し、NGなら 1,000円単位で下げる
+        // （段差や丸めでレアケースが出ても破綻しないように）
+        while ($yMaxTotal > 0 && ! $this->isOk($basePayload, $ctx, $yMaxTotal, $payBase, $creditBase)) {
+            $yMaxTotal = max(0, $yMaxTotal - 1000);
+        }
 
         // 仕上げ：yMaxでの支払額/自己負担（参考）
         $outMax = $this->runner->run($this->withFurusato($basePayload, $yMaxTotal), $ctx);
         $payMax = $this->payTotalCurr($outMax);
-        $taxSaved = max(0, $payBase - $payMax);
+        // 減税額も 100円未満切捨て（表示と探索を一致させる）
+        $taxSavedRaw = max(0, $payBase - $payMax);
+        $taxSaved = $this->floorToStep($taxSavedRaw, 100);
         $burden = $yMaxTotal - $taxSaved;
 
         return [
+            // ▼ 最終上限（千円未満切捨て後）
             'y_max_total' => $yMaxTotal,
+            // ▼ 参考：探索で得た 1円単位の最大OK（必要ならデバッグ表示に使う）
+            'y_max_total_raw' => $yMaxTotalRaw,
             'y_current'   => $yCurrent,
             'y_add'       => max(0, $yMaxTotal - $yCurrent),
             // デバッグ・表示拡張用（必要なら使う）
@@ -99,7 +114,9 @@ final class FurusatoPracticalUpperLimitService
 
         // 自己負担判定：burden = y - (payBase - payY)
         $payY = $this->payTotalCurr($out);
-        $taxSaved = max(0, $payBase - $payY);
+        // 減税額は 100円未満切捨てで判定（表示と一致）
+        $taxSavedRaw = max(0, $payBase - $payY);
+        $taxSaved = $this->floorToStep($taxSavedRaw, 100);
         $burden = $y - $taxSaved;
 
         return $burden <= 2000;
@@ -133,5 +150,25 @@ final class FurusatoPracticalUpperLimitService
         if ($v === null || $v === '') return 0;
         if (is_string($v)) $v = str_replace([',',' '], '', $v);
         return is_numeric($v) ? (int) floor((float) $v) : 0;
+    }
+
+    /**
+     * 千円未満切捨て（0下限）
+     */
+    private function floorToThousands(int $v): int
+    {
+        if ($v <= 0) return 0;
+        return (int) (floor($v / 1000) * 1000);
+    }
+
+    /**
+     * 指定step未満切捨て（0下限）
+     * 例: step=100 のとき 12,349 -> 12,300
+     */
+    private function floorToStep(int $v, int $step): int
+    {
+        if ($v <= 0) return 0;
+        if ($step <= 0) return $v;
+        return (int) (floor($v / $step) * $step);
     }
 }

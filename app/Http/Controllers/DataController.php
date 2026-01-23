@@ -11,6 +11,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
+use App\Support\AuditLogger;
+use Illuminate\Validation\ValidationException;
 
 class DataController extends Controller
 {
@@ -38,6 +41,32 @@ class DataController extends Controller
         return ($gid === null) ? null : (int)$gid;
     }
 
+    /** Dataの閲覧/編集スコープ（簡易） */
+    private function assertCanAccessData(Data $data): void
+    {
+        $me = auth()->user();
+        if (!$me) abort(403);
+        if ((int)$data->company_id !== (int)$me->company_id) abort(403);
+        if (!$this->isOwnerOrRegistrar() && (int)$data->group_id !== (int)($me->group_id ?? 0)) abort(403);
+    }
+
+    /** 削除可否：shared=部署内OK / private=作成者のみ */
+    private function canDeleteData(Data $data): bool
+    {
+        $me = auth()->user();
+        if (!$me) return false;
+        if ((int)$data->company_id !== (int)$me->company_id) return false;
+        if (!$this->isOwnerOrRegistrar() && (int)$data->group_id !== (int)($me->group_id ?? 0)) return false;
+
+        $vis = (string)($data->visibility ?? 'shared');
+        if ($vis !== 'private') {
+            // shared（または未設定）は部署内なら削除OK
+            return true;
+        }
+        // private は作成者のみ（owner_user_id優先、なければuser_id）
+        $creatorId = (int)($data->owner_user_id ?? 0) ?: (int)($data->user_id ?? 0);
+        return (int)$me->id === $creatorId;
+    }
 
     /**
      * 画面本体：/data
@@ -113,6 +142,17 @@ class DataController extends Controller
     }
 
     /**
+     * Data作成日/提案日の初期値（パターンB）
+     * - data_created_on: 実際に作成した日（当日）
+     * - proposal_date  : 初期は作成日と同日（当日）、後でユーザーが変更できる想定
+     */
+    private function defaultCreatedAndProposalDates(): array
+    {
+        $today = now()->toDateString();
+        return [$today, $today];
+    }
+
+    /**
      * 年度変更（複製＋年度置換）：POST /api/data/{data}/clone-year
      * Request: { kihu_year:int(2010..2100) }
      * Response: { id, guest_id }
@@ -125,47 +165,327 @@ class DataController extends Controller
         if (!$this->isOwnerOrRegistrar() && (int)$data->group_id !== (int)$me->group_id) abort(403);
 
         $validated = $request->validate([
-            'kihu_year' => ['required','integer','between:2010,2100'],
+            'kihu_year' => ['required','integer','between:2025,2035'],
         ],[
             'kihu_year.required' => '年度を選択してください。',
-            'kihu_year.between'  => '年度の指定が不正です（2010〜2100）。',
+            'kihu_year.between'  => '年度の指定が不正です（2025〜2035）。',
         ]);
         $year = (int)$validated['kihu_year'];
 
-        // 同一ゲスト×同一年の重複を禁止
-        $exists = Data::query()
+        // 同一ゲスト×同一年が既にある場合は「既存へ遷移」させたいのでIDを返す
+        $existing = Data::query()
             ->where('guest_id', $data->guest_id)
             ->where('kihu_year', $year)
-            ->exists();
-        if ($exists) {
+            ->first();
+        if ($existing) {
+            AuditLogger::log('data.year_select.existing', [
+                'guest_id' => (int)$data->guest_id,
+                'from_data_id' => (int)$data->id,
+                'to_data_id' => (int)$existing->id,
+                'to_year' => (int)$year,
+            ], $existing);
             return response()->json([
-                'message' => '同じお客様について同一の年度のデータは登録できません。'
-            ], 422);
+                'id'       => $existing->id,
+                'guest_id' => $existing->guest_id,
+                'action'   => 'existing',
+            ], 200);
         }
 
-        // DeepCopyService があれば使い、無ければ replicate で最小クローン
+        // 入力だけコピーして、結果は再計算で生成する
         $new = DB::transaction(function () use ($data, $year) {
-            if (class_exists(\App\Services\Data\DeepCopyService::class)) {
-                /** @var \App\Services\Data\DeepCopyService $svc */
-                $svc = app(\App\Services\Data\DeepCopyService::class);
-                $cloned = $svc->deepCopy($data, $data->guest_id);
-            } else {
-                $cloned = $data->replicate(); // Data本体のみ複製
-                $cloned->exists = false;
-                $cloned->push();
-            }
+            // 1) Data本体を複製（datasテーブルの1行）
+            $cloned = $data->replicate();
+            $cloned->exists = false;
+            $cloned->save(); // ← まずIDを確定させる
+
             $cloned->kihu_year = $year;
             $cloned->owner_user_id = Auth::id();
+
+            // 複製で作られる新データの「データ作成日」は複製した日（当日）
+            [$createdOn, $proposalDate] = $this->defaultCreatedAndProposalDates();
+            if (property_exists($cloned, 'data_created_on') || array_key_exists('data_created_on', $cloned->getAttributes())) {
+                $cloned->data_created_on = $createdOn;
+            } else {
+                // Eloquentの属性が未ロードでも setAttribute は効くので保険
+                $cloned->setAttribute('data_created_on', $createdOn);
+            }
+            $cloned->setAttribute('proposal_date', $proposalDate);
+
             $cloned->save();
+
+            // 2) 入力テーブルを旧data_id→新data_idへコピー
+            $this->copyTableByDataId('furusato_inputs', (int)$data->id, (int)$cloned->id);
+            $this->copyTableByDataId('furusato_syori_settings', (int)$data->id, (int)$cloned->id);
+
+            // 3) 結果はコピーしない（保険で削除）
+            DB::table('furusato_results')->where('data_id', (int)$cloned->id)->delete();
+
             return $cloned;
         });
 
         return response()->json([
             'id'       => $new->id,
             'guest_id' => $new->guest_id,
+            'action'   => 'cloned',
         ], 201);
     }
 
+    /**
+     * data_id を持つ「入力テーブル」を、旧data_id→新data_idへコピーする（結果系は対象外）
+     * - テーブル列は Schema から自動取得（ハードコードしない）
+     * - id / data_id / timestamps はコピーしない（新規行として作る）
+     */
+    private function copyTableByDataId(string $table, int $fromDataId, int $toDataId): void
+    {
+        if (!Schema::hasTable($table)) {
+            return;
+        }
+        if (!Schema::hasColumn($table, 'data_id')) {
+            return;
+        }
+
+        // 既存があれば削除（基本は新規data_idなので0件だが、冪等性のため）
+        DB::table($table)->where('data_id', $toDataId)->delete();
+
+        $columns = Schema::getColumnListing($table);
+        if (empty($columns)) {
+            return;
+        }
+
+        // コピー対象列（id/data_id/timestamps等は除外）
+        $exclude = ['id', 'data_id', 'created_at', 'updated_at', 'deleted_at'];
+        $copyCols = array_values(array_filter($columns, fn($c) => !in_array($c, $exclude, true)));
+
+        // 元データ取得
+        $rows = DB::table($table)->where('data_id', $fromDataId)->get();
+        if ($rows->isEmpty()) {
+            return;
+        }
+
+        $now = now();
+        foreach ($rows as $r) {
+            $ins = ['data_id' => $toDataId];
+
+            foreach ($copyCols as $c) {
+                // stdClass → 配列化
+                $ins[$c] = $r->{$c} ?? null;
+            }
+
+            // timestamps があるなら埋める
+            if (in_array('created_at', $columns, true)) $ins['created_at'] = $now;
+            if (in_array('updated_at', $columns, true)) $ins['updated_at'] = $now;
+
+            DB::table($table)->insert($ins);
+        }
+    }
+
+    /** 編集画面：GET /data/{data}/edit */
+    public function edit(Request $request, Data $data)
+    {
+        $this->assertCanAccessData($data);
+
+        $data->loadMissing('guest');
+
+        $minY = 2025;
+        $maxY = 2035;
+        $years = [];
+        for ($y = $maxY; $y >= $minY; $y--) $years[] = $y;
+
+        $canDelete = $this->canDeleteData($data);
+
+        return view('data.data_edit', [
+            'data' => $data,
+            'guest' => $data->guest,
+            'years' => $years,
+            'canDelete' => $canDelete,
+        ]);
+    }
+
+    /**
+     * 更新：PUT /data/{data}
+     * - proposal_date 必須
+     * - visibility 更新
+     * - 年度変更：存在しなければ移動 / 存在すれば上書き確認→承諾でA→B上書き＆A削除（Bを残す）
+     */
+    public function update(Request $request, Data $data)
+    {
+        $this->assertCanAccessData($data);
+        $data->loadMissing('guest');
+
+        $rules = [
+            'proposal_date' => ['required','date_format:Y-m-d'],
+            'kihu_year'     => ['required','integer','between:2025,2035'],
+        ];
+        if (config('feature.data_privacy')) {
+            $rules['visibility'] = ['required','in:shared,private'];
+        }
+        $messages = [
+            'proposal_date.required' => '提案書日を入力してください。',
+            'proposal_date.date_format' => '提案書日は YYYY-MM-DD 形式で入力してください。',
+            'kihu_year.required' => '年度を選択してください。',
+            'kihu_year.between'  => '年度の指定が不正です（2025〜2035）。',
+            'visibility.required' => '共有設定を選択してください。',
+            'visibility.in' => '共有設定が不正です。',
+        ];
+        $validated = $request->validate($rules, $messages);
+
+        $newYear = (int)$validated['kihu_year'];
+        $oldYear = (int)($data->kihu_year ?? 0);
+        $newVis  = config('feature.data_privacy') ? (string)$validated['visibility'] : (string)($data->visibility ?? 'shared');
+        $newProposal = (string)$validated['proposal_date'];
+
+        $confirmOverwrite = (int)$request->input('confirm_overwrite', 0) === 1;
+
+        // 年度変更なし：メタ更新のみ
+        if ($newYear === $oldYear) {
+            $data->proposal_date = $newProposal;
+            if (config('feature.data_privacy')) {
+                $data->visibility = $newVis;
+            }
+            $data->save();
+
+            AuditLogger::log('data.updated', [
+                'guest_id' => (int)$data->guest_id,
+                'data_id' => (int)$data->id,
+                'kihu_year' => (int)$data->kihu_year,
+                'visibility' => (string)($data->visibility ?? 'shared'),
+                'proposal_date' => (string)($data->proposal_date ?? ''),
+            ], $data);
+
+            return redirect()
+                ->route('data.index', ['guest_id' => $data->guest_id])
+                ->with('success', 'データ情報を更新しました。');
+        }
+
+        // 年度変更あり：同一guest内のターゲットを探す
+        $target = Data::query()
+            ->where('guest_id', (int)$data->guest_id)
+            ->where('kihu_year', $newYear)
+            ->first();
+
+        // 変更先が存在しない → 移動（data_idはそのまま、結果は削除）
+        if (!$target) {
+            DB::transaction(function () use ($data, $newYear, $newProposal, $newVis) {
+                $data->kihu_year = $newYear;
+                $data->proposal_date = $newProposal;
+                if (config('feature.data_privacy')) {
+                    $data->visibility = $newVis;
+                }
+                $data->save();
+
+                // 年度が変わるので結果は破棄（未計算へ）
+                DB::table('furusato_results')->where('data_id', (int)$data->id)->delete();
+            });
+
+            AuditLogger::log('data.year_moved', [
+                'guest_id' => (int)$data->guest_id,
+                'data_id' => (int)$data->id,
+                'from_year' => $oldYear,
+                'to_year' => $newYear,
+                'visibility' => (string)($data->visibility ?? 'shared'),
+                'proposal_date' => (string)($data->proposal_date ?? ''),
+                'note' => 'results cleared; inputs/syori kept (same data_id)',
+            ], $data);
+
+            return redirect()
+                ->to('/furusato/syori?data_id='.$data->id)
+                ->with('success', '年度を変更しました（計算結果は再計算されます）。');
+        }
+
+        // 変更先が存在する → 上書き確認
+        if (!$confirmOverwrite) {
+            return back()
+                ->withInput()
+                ->with('overwrite_conflict', [
+                    'from_data_id' => (int)$data->id,
+                    'from_year' => $oldYear,
+                    'to_data_id' => (int)$target->id,
+                    'to_year' => $newYear,
+                    'guest_id' => (int)$data->guest_id,
+                ]);
+        }
+
+        // 上書き実行：B（target）を残してA（data）を削除
+        DB::transaction(function () use ($data, $target, $newProposal, $newVis) {
+            // 1) Bの入力/設定をAで全置換
+            $this->copyTableByDataId('furusato_inputs', (int)$data->id, (int)$target->id);
+            $this->copyTableByDataId('furusato_syori_settings', (int)$data->id, (int)$target->id);
+
+            // 2) Bの結果は破棄（未計算へ）
+            DB::table('furusato_results')->where('data_id', (int)$target->id)->delete();
+
+            // 3) BのメタもAで上書き（ユーザー承諾済み）
+            $target->proposal_date = $newProposal;
+            if (config('feature.data_privacy')) {
+                $target->visibility = $newVis;
+            }
+            // data_created_on もAの値で上書き（編集不可項目だが、A→Bの完全上書き要件）
+            if (!empty($data->data_created_on)) {
+                $target->data_created_on = (string)$data->data_created_on;
+            }
+            // private削除権限の基準（作成者）はA側に寄せるのが自然なので引き継ぐ
+            if (Schema::hasColumn($target->getTable(), 'owner_user_id')) {
+                $target->owner_user_id = $data->owner_user_id ?? $data->user_id;
+            }
+            $target->user_id = $data->user_id;
+            $target->save();
+
+            // 4) A配下を削除してA本体を削除（Bを残す）
+            DB::table('furusato_inputs')->where('data_id', (int)$data->id)->delete();
+            DB::table('furusato_syori_settings')->where('data_id', (int)$data->id)->delete();
+            DB::table('furusato_results')->where('data_id', (int)$data->id)->delete();
+            $data->delete();
+        });
+
+        AuditLogger::log('data.overwritten', [
+            'guest_id' => (int)$target->guest_id,
+            'from_data_id' => (int)$request->input('source_data_id', (int)$data->id),
+            'to_data_id' => (int)$target->id,
+            'from_year' => $oldYear,
+            'to_year' => $newYear,
+            'overwrite' => [
+                'inputs' => true,
+                'syori_settings' => true,
+                'results_cleared' => true,
+                'meta_overwritten' => ['proposal_date','visibility','data_created_on','user_id','owner_user_id'],
+            ],
+        ], $target);
+
+        return redirect()
+            ->to('/furusato/syori?data_id='.$target->id)
+            ->with('success', '年度データを上書きしました（計算結果は再計算されます）。');
+    }
+
+    /** 削除（Web）: DELETE /data/{data} */
+    public function destroy(Request $request, Data $data)
+    {
+        $this->assertCanAccessData($data);
+        if (!$this->canDeleteData($data)) {
+            abort(403);
+        }
+
+        $guestId = (int)$data->guest_id;
+        $year = (int)($data->kihu_year ?? 0);
+        $vis = (string)($data->visibility ?? 'shared');
+
+        DB::transaction(function () use ($data) {
+            DB::table('furusato_inputs')->where('data_id', (int)$data->id)->delete();
+            DB::table('furusato_syori_settings')->where('data_id', (int)$data->id)->delete();
+            DB::table('furusato_results')->where('data_id', (int)$data->id)->delete();
+            $data->delete();
+        });
+
+        AuditLogger::log('data.deleted', [
+            'guest_id' => $guestId,
+            'data_id' => (int)$data->id,
+            'kihu_year' => $year,
+            'visibility' => $vis,
+        ], $data);
+
+        return redirect()
+            ->route('data.index', ['guest_id' => $guestId])
+            ->with('success', "{$year}年のデータを削除しました。");
+    }
     /** 担当者プルダウン：GET /api/group/{group}/users  */
     public function groupUsersJson(Request $request, int $group): JsonResponse
     {
@@ -209,13 +529,34 @@ class DataController extends Controller
         if ((int)$data->company_id !== (int)$me->company_id) abort(403);
         if (!$this->isOwnerOrRegistrar() && (int)$data->group_id !== (int)$me->group_id) abort(403);
 
+        // visibility=private は作成者のみ削除OK（owner_user_id優先、無ければuser_id）
+        $vis = (string)($data->visibility ?? 'shared');
+        if ($vis === 'private') {
+            $creatorId = (int)($data->owner_user_id ?? 0) ?: (int)($data->user_id ?? 0);
+            if ((int)$me->id !== $creatorId) {
+                abort(403);
+            }
+        }
+
         DB::transaction(function () use ($data) {
             $guest = $data->guest;
+            // 入力・設定・結果も削除（data_id配下を掃除）
+            DB::table('furusato_inputs')->where('data_id', (int)$data->id)->delete();
+            DB::table('furusato_syori_settings')->where('data_id', (int)$data->id)->delete();
+            DB::table('furusato_results')->where('data_id', (int)$data->id)->delete();
             $data->delete();
             if ($guest && $guest->datas()->count() === 0) {
                 $guest->delete();
             }
         });
+
+        AuditLogger::log('data.deleted', [
+            'guest_id' => (int)$data->guest_id,
+            'data_id' => (int)$data->id,
+            'kihu_year' => (int)($data->kihu_year ?? 0),
+            'visibility' => (string)($data->visibility ?? 'shared'),
+        ], $data);
+
         return response()->json(['message'=>'deleted'], 200);
     }
 
@@ -246,8 +587,9 @@ class DataController extends Controller
             'guest_mode' => ['required','in:new,existing'],
             'guest_id'   => ['required_if:guest_mode,existing','nullable','integer','exists:guests,id'],
             'guest_name' => ['required_if:guest_mode,new','nullable','string','max:25'],
-            'kihu_year'  => ['required','integer','between:2010,2100'],
+            'kihu_year'  => ['required','integer','between:2025,2035'],
             'birth_date' => ['nullable','date_format:Y-m-d'],
+            'proposal_date' => ['nullable','date_format:Y-m-d'],
         ];
         if (config('feature.data_privacy')) {
             $rules['visibility'] = ['nullable','in:shared,private'];
@@ -260,9 +602,10 @@ class DataController extends Controller
             'guest_name.required_if' => 'お客様名を入力してください。',
             'guest_name.max'         => 'お客様名は25文字以内で入力してください。',
             'kihu_year.required'  => '年度を選択してください。',
-            'kihu_year.between'   => '年度の指定が不正です（2010〜2100）。',
+            'kihu_year.between'   => '年度の指定が不正です（2025〜2035）。',
             'visibility.in'       => '共有設定が不正です。',
             'birth_date.date_format' => '生年月日は YYYY-MM-DD 形式で入力してください。',
+            'proposal_date.date_format' => '提案書日は YYYY-MM-DD 形式で入力してください。',
         ];
         $validated = $request->validate($rules, $messages);
 
@@ -312,12 +655,28 @@ class DataController extends Controller
         $data->group_id   = (int)$guest->group_id;
         $data->user_id    = $me->id;
         $data->kihu_year  = (int)$validated['kihu_year'];
+
+        // データ作成日（当日・編集不可）／提案日（初期＝当日・後で編集可）
+        [$createdOn, $proposalDate] = $this->defaultCreatedAndProposalDates();
+        $data->setAttribute('data_created_on', $createdOn);
+        $proposalIn = $validated['proposal_date'] ?? null;
+        $data->setAttribute('proposal_date', $proposalIn ?: $proposalDate);
+
         if (config('feature.data_privacy')) {
             $vis = strtolower((string)($request->input('visibility','shared')));
             $data->visibility    = in_array($vis, ['shared','private'], true) ? $vis : 'shared';
             $data->owner_user_id = $me->id;
         }
         $data->save();
+
+        AuditLogger::log('data.created', [
+            'guest_id' => (int)$guest->id,
+            'data_id' => (int)$data->id,
+            'kihu_year' => (int)$data->kihu_year,
+            'visibility' => (string)($data->visibility ?? 'shared'),
+            'proposal_date' => (string)($data->proposal_date ?? ''),
+            'data_created_on' => (string)($data->data_created_on ?? ''),
+        ], $data);
 
         return redirect()
             ->route('data.index', ['guest_id' => $guest->id])
@@ -357,8 +716,9 @@ class DataController extends Controller
             'target_guest_id'  => ['nullable','integer','required_if:copy_mode,existing','exists:guests,id'],
             'target_guest_name'=> ['nullable','string','max:25','required_if:copy_mode,new'],
             'years'            => ['required','array','min:1','max:21'],
-            'years.*'          => ['integer','between:2010,2100'],
+            'years.*'          => ['integer','between:2025,2035'],
             'birth_date'       => ['nullable','date_format:Y-m-d'],
+            'proposal_date'    => ['nullable','date_format:Y-m-d'],
         ];
         if (config('feature.data_privacy')) {
             $rules['visibility'] = ['nullable','in:shared,private'];
@@ -372,8 +732,9 @@ class DataController extends Controller
             'target_guest_name.max'         => 'お客様名は25文字以内で入力してください。',
             'years.required' => '年度を1つ以上選択してください。',
             'years.array'    => '年度の指定が不正です。',
-            'years.*.between'=> '年度の指定が不正です（2010〜2100）。',
+            'years.*.between'=> '年度の指定が不正です（2025〜2035）。',
             'birth_date.date_format' => '生年月日は YYYY-MM-DD 形式で入力してください。',
+            'proposal_date.date_format' => '提案書日は YYYY-MM-DD 形式で入力してください。',
         ];
         $validated = $request->validate($rules, $messages);
 
@@ -381,6 +742,7 @@ class DataController extends Controller
         $companyId = (int)$me->company_id;
         $userGroupId = (int)($me->group_id ?? 0);
         $birthDate = $validated['birth_date'] ?? null;
+        $proposalIn = $validated['proposal_date'] ?? null;
 
         // 2) コピー元
         $source = Data::with('guest')->findOrFail((int)$validated['selected_data_id']);
@@ -439,6 +801,13 @@ class DataController extends Controller
                 $cloned->group_id   = (int)$targetGuest->group_id;
                 $cloned->user_id    = $me->id;
                 $cloned->kihu_year  = (int)$yy;
+
+                // コピーで作られる新データの「データ作成日」はコピー実行日（当日）
+                $today = now()->toDateString();
+                $cloned->setAttribute('data_created_on', $today);
+                // 提案書日は入力があれば優先。無ければ当日。
+                $cloned->setAttribute('proposal_date', request()->input('proposal_date') ?: $today);
+
                 if (config('feature.data_privacy')) {
                     $vis = strtolower((string)request()->input('visibility','shared'));
                     $cloned->visibility    = in_array($vis, ['shared','private'], true) ? $vis : 'shared';
@@ -448,6 +817,18 @@ class DataController extends Controller
                 return $cloned;
             });
             $created[] = $new->id;
+        }
+
+        if (count($created) > 0) {
+            AuditLogger::log('data.copied', [
+                'from_data_id' => (int)$source->id,
+                'from_guest_id' => (int)$source->guest_id,
+                'to_guest_id' => (int)$targetGuest->id,
+                'years' => $years,
+                'created_data_ids' => $created,
+                'skipped_years' => $duplicated,
+                'proposal_date' => (string)($proposalIn ?? ''),
+            ], $source);
         }
 
         // 5) 結果の返却
@@ -527,7 +908,6 @@ class DataController extends Controller
         return null;
     }
 
-    /* ===== 以降は未実装リンクの安全なフォールバック ===== */
-    public function editForm(Request $r){ return redirect()->route('data.index')->with('info','未実装です'); }
-    public function edit(Request $r, $id){ return redirect()->route('data.index')->with('info','未実装です'); }
+    // editForm は廃止（ルートも削除）。残っているリンクがあれば /data へ寄せる
+    public function editForm(Request $r){ return redirect()->route('data.index')->with('info','編集は年度行の「編集」から行ってください。'); }
 }

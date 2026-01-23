@@ -85,161 +85,167 @@
           </ul>
         </div>
       @endif
-
-      <hb class="mb-2 ms-10">給与所得</hb>
-      <div class="table-responsive mb-2">
-        <table class="table-base table-bordered align-middle text-center">
-          <tbody>
-            <tr>
-              <th style="width:260px;"></th>
-              <th style="width:180px">{{ $warekiPrev }}</th>
-              <th style="width:180px">{{ $warekiCurr }}</th>
-            </tr>
-            <tr>
-              <th class="text-start align-middle ps-2">給与収入金額</th>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="kyuyo_syunyu_prev"
-                       value="{{ $value('kyuyo_syunyu_prev','') }}">
-              </td>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="kyuyo_syunyu_curr"
-                       value="{{ $value('kyuyo_syunyu_curr','') }}">
-              </td>
-            </tr>
-            <tr>
-              <th class="text-start align-middle ps-2">子育て・介護世帯向け所得金額調整控除</th>
-              <td>
-                <div class="form-check d-inline-flex align-items-center">
-                  <input type="checkbox" class="form-check-input" id="adj-prev"
-                         data-hidden-target="kyuyo_chosei_applicable_prev"
-                         @checked($prevChecked) @disabled(! $prevAllow)>
-                  <label for="adj-prev" class="form-check-label">適用する</label>
-                </div>
-              </td>
-              <td>
-                <div class="form-check d-inline-flex align-items-center">
-                  <input type="checkbox" class="form-check-input" id="adj-curr"
-                         data-hidden-target="kyuyo_chosei_applicable_curr"
-                         @checked($currChecked) @disabled(! $currAllow)>
-                  <label for="adj-curr" class="form-check-label">適用する</label>
-                </div>
-              </td>
-            </tr>
-          </tbody>
+      <div class="wrapper">
+        <hb class="mb-1 ms-10">給与所得</hb>
+        <div class="table-responsive mb-2">
+          <table class="table-input align-middle">
+            <tbody>
+              <tr>
+                <th style="width:260px;height:30px;"></th>
+                <th style="width:180px">{{ $warekiPrev }}</th>
+                <th style="width:180px">{{ $warekiCurr }}</th>
+              </tr>
+              <tr>
+                <th class="text-start align-middle ps-2">給与収入金額</th>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="kyuyo_syunyu_prev"
+                         value="{{ $value('kyuyo_syunyu_prev','') }}">
+                </td>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="kyuyo_syunyu_curr"
+                         value="{{ $value('kyuyo_syunyu_curr','') }}">
+                </td>
+              </tr>
+              <tr>
+                <th class="text-start align-middle ps-2">子育て・介護世帯向け所得金額調整控除</th>
+                <td>
+                  <div class="form-check d-inline-flex align-items-center">
+                    <input type="checkbox" class="form-check-input" id="adj-prev"
+                           data-hidden-target="kyuyo_chosei_applicable_prev"
+                           @checked($prevChecked) @disabled(! $prevAllow)>
+                    <label for="adj-prev" class="form-check-label">適用する</label>
+                  </div>
+                </td>
+                <td>
+                  <div class="form-check d-inline-flex align-items-center">
+                    <input type="checkbox" class="form-check-input" id="adj-curr"
+                           data-hidden-target="kyuyo_chosei_applicable_curr"
+                           @checked($currChecked) @disabled(! $currAllow)>
+                    <label for="adj-curr" class="form-check-label">適用する</label>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <table class="g-table--none mb-4 ms-12 me-10">
+          <tr>
+            <td><h12>
+          給与収入金額（支払金額）が850万円を超え、次のいずれかの要件に該当する場合（給与所得の源泉徴収票の所得金額調整控除額欄に記載がある場合）、「適用」にチェックをつけてください。<br>
+          <div class="indent-1">・本人が特別障害者に該当する</div>
+          <div class="indent-1">・年齢23歳未満の扶養親族がいる</div>
+          <div class="indent-1">・特別障害者である同一生計配偶者または扶養親族がいる</div>
+          </h12>
+           </td>
+          </tr>
         </table>
-      </div>
-      <div class="small text-muted mb-4 ms-40 me-40">
-        給与収入金額（支払金額）が850万円を超え、次のいずれかの要件に該当する場合（給与所得の源泉徴収票の所得金額調整控除額欄に記載がある場合）、「適用」にチェックをつけてください。<br>
-        ・本人が特別障害者に該当する<br>
-        ・年齢23歳未満の扶養親族がいる<br>
-        ・特別障害者である同一生計配偶者または扶養親族がいる
-      </div>
-
-      <hb class="mb-2 ms-10">雑所得（公的年金等・業務・その他）</hb>
-      <div class="table-responsive mb-3">
-        <table class="table-base table-bordered align-middle text-center">
-          <tbody>
-            <tr>
-              <th colspan="2" style="width:260px;"></th>
-              <th style="width:180px">{{ $warekiPrev }}</th>
-              <th style="width:180px">{{ $warekiCurr }}</th>
-            </tr>
-            <tr>
-              <th colspan="2" class="text-start align-middle ps-2">公的年金等収入金額</th>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="zatsu_nenkin_syunyu_prev"
-                       value="{{ $value('zatsu_nenkin_syunyu_prev','') }}">
-              </td>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="zatsu_nenkin_syunyu_curr"
-                       value="{{ $value('zatsu_nenkin_syunyu_curr','') }}">
-              </td>
-            </tr>
-            <tr>
-              <th rowspan="2" class="text-start align-middle ps-2">業務</th>
-              <th class="text-start align-middle ps-2">収入金額</th>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="zatsu_gyomu_syunyu_prev"
-                       value="{{ $value('zatsu_gyomu_syunyu_prev','') }}">
-              </td>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="zatsu_gyomu_syunyu_curr"
-                       value="{{ $value('zatsu_gyomu_syunyu_curr','') }}">
-              </td>
-            </tr>
-            <tr>
-              <th class="text-start align-middle ps-2">支払金額</th>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="zatsu_gyomu_shiharai_prev"
-                       value="{{ $value('zatsu_gyomu_shiharai_prev','') }}">
-              </td>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="zatsu_gyomu_shiharai_curr"
-                       value="{{ $value('zatsu_gyomu_shiharai_curr','') }}">
-              </td>
-            </tr>
-            <tr>
-              <th rowspan="2" class="text-start align-middle ps-2">その他</th>
-              <th class="text-start align-middle ps-2">収入金額</th>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="zatsu_sonota_syunyu_prev"
-                       value="{{ $value('zatsu_sonota_syunyu_prev','') }}">
-              </td>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="zatsu_sonota_syunyu_curr"
-                       value="{{ $value('zatsu_sonota_syunyu_curr','') }}">
-              </td>
-            </tr>
-            <tr>
-              <th class="text-start align-middle ps-2">支払金額</th>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="zatsu_sonota_shiharai_prev"
-                       value="{{ $value('zatsu_sonota_shiharai_prev','') }}">
-              </td>
-              <td>
-                <input type="text" inputmode="numeric" autocomplete="off"
-                       class="form-control text-end"
-                       data-format="comma-int" data-name="zatsu_sonota_shiharai_curr"
-                       value="{{ $value('zatsu_sonota_shiharai_curr','') }}">
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="text-end me-2 mb-2">
-        <!-- 戻る: 再計算+保存して第一表へ（redirect_to=input を明示） -->
-        <button type="submit"
-                class="btn-base-blue"
-                name="redirect_to"
-                value="input"
-                onclick="this.form.stay_on_details.value='0';">戻 る</button>
-        <!-- 再計算: 再計算+保存して内訳に留まる -->
-        <button type="submit"
-                class="btn-base-green"
-                onclick="this.form.stay_on_details.value='1';">再計算</button>
+  
+        <hb class="mb-1 ms-10">雑所得（公的年金等・業務・その他）</hb>
+        <div class="table-responsive mb-3">
+          <table class="table-input align-middle">
+            <tbody>
+              <tr>
+                <th colspan="2" style="width:260px;"></th>
+                <th style="width:180px">{{ $warekiPrev }}</th>
+                <th style="width:180px">{{ $warekiCurr }}</th>
+              </tr>
+              <tr>
+                <th colspan="2" class="text-start align-middle ps-2">公的年金等収入金額</th>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="zatsu_nenkin_syunyu_prev"
+                         value="{{ $value('zatsu_nenkin_syunyu_prev','') }}">
+                </td>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="zatsu_nenkin_syunyu_curr"
+                         value="{{ $value('zatsu_nenkin_syunyu_curr','') }}">
+                </td>
+              </tr>
+              <tr>
+                <th rowspan="2" class="text-start align-middle ps-2">業務</th>
+                <th class="text-start align-middle ps-2">収入金額</th>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="zatsu_gyomu_syunyu_prev"
+                         value="{{ $value('zatsu_gyomu_syunyu_prev','') }}">
+                </td>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="zatsu_gyomu_syunyu_curr"
+                         value="{{ $value('zatsu_gyomu_syunyu_curr','') }}">
+                </td>
+              </tr>
+              <tr>
+                <th class="text-start align-middle ps-2">支払金額</th>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="zatsu_gyomu_shiharai_prev"
+                         value="{{ $value('zatsu_gyomu_shiharai_prev','') }}">
+                </td>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="zatsu_gyomu_shiharai_curr"
+                         value="{{ $value('zatsu_gyomu_shiharai_curr','') }}">
+                </td>
+              </tr>
+              <tr>
+                <th rowspan="2" class="text-start align-middle ps-2">その他</th>
+                <th class="text-start align-middle ps-2">収入金額</th>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="zatsu_sonota_syunyu_prev"
+                         value="{{ $value('zatsu_sonota_syunyu_prev','') }}">
+                </td>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="zatsu_sonota_syunyu_curr"
+                         value="{{ $value('zatsu_sonota_syunyu_curr','') }}">
+                </td>
+              </tr>
+              <tr>
+                <th class="text-start align-middle ps-2">支払金額</th>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="zatsu_sonota_shiharai_prev"
+                         value="{{ $value('zatsu_sonota_shiharai_prev','') }}">
+                </td>
+                <td>
+                  <input type="text" inputmode="numeric" autocomplete="off"
+                         class="form-control text-end"
+                         data-format="comma-int" data-name="zatsu_sonota_shiharai_curr"
+                         value="{{ $value('zatsu_sonota_shiharai_curr','') }}">
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      <hr>
+        <div class="text-end me-2 mb-2">
+          <!-- 戻る: 再計算+保存して第一表へ（redirect_to=input を明示） -->
+          <button type="submit"
+                  class="btn-base-blue"
+                  name="redirect_to"
+                  value="input"
+                  onclick="this.form.stay_on_details.value='0';">戻 る</button>
+          <!-- 再計算: 再計算+保存して内訳に留まる -->
+          <button type="submit"
+                  class="btn-base-green"
+                  onclick="this.form.stay_on_details.value='1';">再計算</button>
+        </div>
       </div>
     </form>
   </div>
@@ -395,4 +401,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 @endpush
+
+{{-- Enter移動（ふるさと全画面共通） --}}
+@include('tax.furusato.partials.enter_nav')
+
 @endsection
+ 

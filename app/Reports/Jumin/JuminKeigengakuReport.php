@@ -22,6 +22,15 @@ class JuminKeigengakuReport implements ReportInterface
 
     public function buildViewData(Data $data): array
     {
+        // 既定：上限額まで寄付（従来互換）
+        return $this->buildViewDataWithContext($data, ['report_key' => 'juminkeigengaku']);
+    }
+
+    /**
+     * @param array<string,mixed> $context
+     */
+    public function buildViewDataWithContext(Data $data, array $context): array
+    {
         $guestName = $data->guest?->name ?? '（名称未登録）';
         $year = (int)($data->kihu_year ?? now()->year);
 
@@ -93,8 +102,18 @@ class JuminKeigengakuReport implements ReportInterface
             $yMax = 0;
         }
 
-        $payloadNoFuru = $this->withFurusato($payload, 0);
-        $payloadAtMax  = $this->withFurusato($payload, $yMax);
+        $reportKey = strtolower((string)($context['report_key'] ?? ''));
+        $mode = str_ends_with($reportKey, '_curr') ? 'current' : 'max';
+
+        $payloadNoFuru = $this->withFurusatoMax($payload, 0);
+        if ($mode === 'current') {
+            $payloadAt = $this->withFurusatoCurrent($payload);
+            $y = $this->resolveCurrentFurusatoDonationCurr($payloadAt);
+            $payloadAtMax = $payloadAt;
+            $yMax = $y;
+        } else {
+            $payloadAtMax  = $this->withFurusatoMax($payload, $yMax);
+        }
 
         $outNoFuru = $runner->run($payloadNoFuru, $ctx);
         $outAtMax  = $runner->run($payloadAtMax,  $ctx);
@@ -273,13 +292,35 @@ class JuminKeigengakuReport implements ReportInterface
     // ------------------------------
     // helpers
     // ------------------------------
-    private function withFurusato(array $payload, int $y): array
+    private function withFurusatoMax(array $payload, int $y): array
     {
         $y = max(0, $y);
         $payload['shotokuzei_shotokukojo_furusato_curr'] = $y;
         $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $y;
         $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $y;
         return $payload;
+    }
+
+    private function withFurusatoCurrent(array $payload): array
+    {
+        $itax = $this->n($payload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
+        $pref = $this->n($payload['juminzei_zeigakukojo_pref_furusato_curr'] ?? 0);
+        $muni = $this->n($payload['juminzei_zeigakukojo_muni_furusato_curr'] ?? 0);
+        $j = max(0, max($pref, $muni));
+        if ($j > 0) {
+            $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $j;
+            $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $j;
+        }
+        $payload['shotokuzei_shotokukojo_furusato_curr'] = max(0, $itax);
+        return $payload;
+    }
+
+    private function resolveCurrentFurusatoDonationCurr(array $payload): int
+    {
+        $itax = $this->n($payload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
+        $pref = $this->n($payload['juminzei_zeigakukojo_pref_furusato_curr'] ?? 0);
+        $muni = $this->n($payload['juminzei_zeigakukojo_muni_furusato_curr'] ?? 0);
+        return max(0, max($itax, $pref, $muni));
     }
 
     private function sumJuminDonationSide(array $payload, string $side, string $period): int

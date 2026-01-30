@@ -16,6 +16,11 @@
 ])
 
 @php
+  $u = auth()->user();
+  $role = strtolower((string)($u->role ?? ''));
+  // client は設定TOPへ到達させない（gear非表示）
+  $visible = (bool)$visible && ($role !== 'client');
+
   $topVal = is_numeric($top) ? $top.'px' : $top;
   $rightVal = is_numeric($right) ? $right.'px' : $right;
   $sizeVal  = is_numeric($size)  ? $size.'px'  : $size;

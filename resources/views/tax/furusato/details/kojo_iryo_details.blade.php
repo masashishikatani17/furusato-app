@@ -11,7 +11,7 @@
     $originTab = 'input';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', 'kojo_iryo'));
 @endphp
-<div class="container-blue mt-2" style="width:720px;">
+<div class="container-blue mt-2" style="width:600px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">医療費控除の内訳</h0>
@@ -38,12 +38,12 @@
         <input type="hidden" name="stay_on_details" id="stay-on-details-flag" value="0">
     
         <div class="table-responsive">
-          <table class="table-base table-bordered align-middle">
+          <table class="table-input align-middle">
               <tr>
                 <th scope="col" class="text-center th-ccc" style="width: 230px;height:30px;">項  目</th>
-                <th scope="col" class="th-ccc" style="width: 150px;">{{ $warekiPrevLabel }}</th>
-                <th scope="col" class="th-ccc" style="width: 150px;">{{ $warekiCurrLabel }}</th>
-                <th scope="col" class="th-ccc" style="width: 50px;"></th>
+                <th scope="col" class="th-ccc">{{ $warekiPrevLabel }}</th>
+                <th scope="col" class="th-ccc">{{ $warekiCurrLabel }}</th>
+                <th scope="col" class="th-ccc" style="width: 40px;"></th>
               </tr>
             <tbody>
               <tr>

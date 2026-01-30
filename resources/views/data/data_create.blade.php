@@ -20,6 +20,17 @@
 
   <form action="{{ route('data.store') }}" method="POST" id="data-create-form" class="mt-3">
     @csrf
+    @php
+      $me = auth()->user();
+      $isClient = strtolower((string)($me->role ?? '')) === 'client';
+      $clientGuest = $clientGuest ?? null;
+    @endphp
+
+    @if ($isClient && $clientGuest)
+      {{-- client：お客様は固定 --}}
+      <input type="hidden" name="guest_mode" value="existing">
+      <input type="hidden" name="guest_id" value="{{ (int)$clientGuest->id }}">
+    @endif
 
     <table class="table-base table-bordered align-middle w-auto mx-auto">
       <tbody>
@@ -31,16 +42,20 @@
       <tr>
         <th class="text-start ps-2" style="width:100px;">お客様の指定</th>
         <td class="th-cream text-start ps-1 pb-0">
-          <div class="form-check form-check-inline pt-1">
-            <input class="form-check-input" type="radio" name="guest_mode" id="gm_new" value="new"
-                   {{ old('guest_mode','new') === 'new' ? 'checked' : '' }}>
-            <label class="form-check-label" for="gm_new">新規で登録</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="guest_mode" id="gm_existing" value="existing"
-                   {{ old('guest_mode') === 'existing' ? 'checked' : '' }}>
-            <label class="form-check-label" for="gm_existing">登録済から選択</label>
-          </div>
+          @if ($isClient)
+            <div class="pt-1 ps-1"></div>
+          @else
+            <div class="form-check form-check-inline pt-1">
+              <input class="form-check-input" type="radio" name="guest_mode" id="gm_new" value="new"
+                     {{ old('guest_mode','new') === 'new' ? 'checked' : '' }}>
+              <label class="form-check-label" for="gm_new">新規で登録</label>
+            </div>
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="guest_mode" id="gm_existing" value="existing"
+                     {{ old('guest_mode') === 'existing' ? 'checked' : '' }}>
+              <label class="form-check-label" for="gm_existing">登録済から選択</label>
+            </div>
+          @endif
         </td>
       </tr>
 
@@ -50,10 +65,13 @@
         <td class="text-start ps-1">
           <input type="text" name="guest_name" id="guest_name"
                  class="form-control kana10"
-                 value="{{ old('guest_name') }}"
+                 value="{{ $isClient && $clientGuest ? $clientGuest->name : old('guest_name') }}"
                  maxlength="25"
-                 placeholder="（新規登録時は入力）">
-          <input type="hidden" name="guest_id" id="guest_id" value="{{ old('guest_id') }}">
+                 placeholder="（新規登録時は入力）"
+                 {{ $isClient ? 'readonly' : '' }}>
+          {{-- JSが参照するので、clientでも #guest_id は常に置く（値は固定） --}}
+          <input type="hidden" name="guest_id" id="guest_id"
+                 value="{{ $isClient && $clientGuest ? (int)$clientGuest->id : old('guest_id') }}">
         </td>
       </tr>
 
@@ -66,7 +84,8 @@
                  id="birth_date"
                  class="form-control"
                  placeholder="YYYY-MM-DD"
-                 value="{{ old('birth_date', $defaultBirthDate) }}">
+                 value="{{ $isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate) }}"
+                 {{ $isClient ? 'readonly' : '' }}>
         </td>
       </tr>
 
@@ -138,7 +157,8 @@
   </form>
 </div>
 
-{{-- ▼ 既存ゲスト選択モーダル --}}
+{{-- ▼ 既存ゲスト選択モーダル（client は使用しない） --}}
+@if (! $isClient)
 <div class="modal fade" id="guestModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
@@ -165,8 +185,8 @@
       </div>
     </div>
   </div>
-  </div>
-
+</div>
+@endif
 {{-- ▼ 年度重複エラー用の専用モーダル（ページ上部のエラーとは別扱い） --}}
 <div class="modal fade" id="duplicateYearModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -198,6 +218,9 @@
   const guestList = document.getElementById('guestListBody');
   const birthInput = document.getElementById('birth_date');
 
+  // client などで「登録済選択UI」が無い場合は、以降のモーダル処理を無効化（null参照回避）
+  const hasGuestSelectorUi = !!(gmNew || gmExist || guestList);
+
   const setBirthDate = (value) => {
     if (!birthInput) {
       return;
@@ -223,41 +246,47 @@
     modal.show();
   };
 
-  // ラジオ切替
-  gmNew?.addEventListener('change', () => {
-    if (gmNew.checked) {
-      gId.value = '';
-      gName.readOnly = false;
-      gName.focus();
-      setBirthDate('');
-    }
-  });
-  gmExist?.addEventListener('change', () => {
-    if (gmExist.checked) {
-      gName.readOnly = true;
+  if (hasGuestSelectorUi) {
+    // ラジオ切替
+    gmNew?.addEventListener('change', () => {
+      if (gmNew.checked) {
+        if (gId) gId.value = '';
+        if (gName) {
+          gName.readOnly = false;
+          gName.focus();
+        }
+        setBirthDate('');
+      }
+    });
+    gmExist?.addEventListener('change', () => {
+      if (gmExist.checked) {
+        if (gName) gName.readOnly = true;
+        openGuestModal();
+      }
+    });
+
+    // 「登録済から選ぶ」ボタン（存在する場合のみ）
+    btnOpen?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (gmExist) gmExist.checked = true;
+      if (gmNew) gmNew.checked = false;
+      if (gName) gName.readOnly = true;
       openGuestModal();
-    }
-  });
+    });
 
-  // 「登録済から選ぶ」ボタン
-  btnOpen?.addEventListener('click', (e) => {
-    e.preventDefault();
-    if (gmExist) gmExist.checked = true;
-    if (gmNew) gmNew.checked = false;
-    gName.readOnly = true;
-    openGuestModal();
-  });
-
-  // ゲスト選択
-  guestList?.addEventListener('click', (e) => {
-    const row = e.target.closest('tr.selectable-guest');
-    if (!row) return;
-    gId.value = row.dataset.id || '';
-    gName.value = row.dataset.name || '';
-    gName.readOnly = true;
-    setBirthDate(row.dataset.birthDate || '');
-    bootstrap.Modal.getInstance(document.getElementById('guestModal'))?.hide();
-  });
+    // ゲスト選択
+    guestList?.addEventListener('click', (e) => {
+      const row = e.target.closest('tr.selectable-guest');
+      if (!row) return;
+      if (gId) gId.value = row.dataset.id || '';
+      if (gName) {
+        gName.value = row.dataset.name || '';
+        gName.readOnly = true;
+      }
+      setBirthDate(row.dataset.birthDate || '');
+      bootstrap.Modal.getInstance(document.getElementById('guestModal'))?.hide();
+    });
+  }
 
   if (gId?.value) {
     const selectedRow = guestList?.querySelector(`tr.selectable-guest[data-id="${gId.value}"]`);

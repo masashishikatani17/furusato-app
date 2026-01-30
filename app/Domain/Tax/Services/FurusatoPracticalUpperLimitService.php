@@ -23,8 +23,11 @@ final class FurusatoPracticalUpperLimitService
      */
     public function compute(array $basePayload, array $ctx): array
     {
-        // y_current（当年ふるさと寄付：SoT）
-        $yCurrent = $this->n($basePayload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
+        // y_current（当年ふるさと寄付：帳票/上限制御の実体）
+        // - ワンストップ等で「所得税側=0 / 住民税側だけ入力」のケースがあり得るため、
+        //   ふるさと寄付額は (所得税SoT, 住民税pref, 住民税muni) の最大値を採用する。
+        // - pref/muni は同額コピー運用が前提なので max() で二重計上にならない。
+        $yCurrent = $this->resolveFurusatoDonationCurrent($basePayload);
 
         // (A) NG判定の基準：現在yでの政党/NPO/公益の所得税税額控除
         $payloadAtCurrent = $this->withFurusato($basePayload, $yCurrent);
@@ -96,6 +99,18 @@ final class FurusatoPracticalUpperLimitService
         ];
     }
 
+    /**
+     * 当年ふるさと寄付（curr）を「入力実体」で解決する。
+     * - 所得税側が 0 でも、住民税側が入っていれば拾う（ワンストップ等）
+     * - pref/muni 同額コピー運用のため max() で二重計上しない
+     */
+    private function resolveFurusatoDonationCurrent(array $payload): int
+    {
+        $itax = $this->n($payload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
+        $pref = $this->n($payload['juminzei_zeigakukojo_pref_furusato_curr'] ?? 0);
+        $muni = $this->n($payload['juminzei_zeigakukojo_muni_furusato_curr'] ?? 0);
+        return max(0, max($itax, $pref, $muni));
+    }
     /**
      * OK判定：
      *  - burden<=2000

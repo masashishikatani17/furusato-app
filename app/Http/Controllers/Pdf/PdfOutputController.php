@@ -50,8 +50,14 @@ class PdfOutputController extends Controller
         $data = $this->resolveAuthorizedDataOrFail($request);
 
         // 標準：fast + dompdf（必要ならクエリで切替）
+        $variant = strtolower((string)$request->query('pdf_variant', 'max'));
+        if (!in_array($variant, ['max','current','both'], true)) {
+            $variant = 'max';
+        }
+
         $context = [
             'one_stop_flag_curr' => (string)$request->query('one_stop_flag_curr', '1'),
+            'pdf_variant'        => $variant,
             'mode' => (string)$request->query('mode', 'fast'),
             'engine' => (string)$request->query('engine', 'dompdf'),
         ];
@@ -75,6 +81,7 @@ class PdfOutputController extends Controller
             $downloadUrl = route('pdf.download', ['report' => $report])
                 . '?data_id=' . urlencode((string)$data->id)
                 . '&one_stop_flag_curr=' . urlencode((string)$context['one_stop_flag_curr'])
+                . '&pdf_variant=' . urlencode((string)$context['pdf_variant'])
                 . '&mode=' . urlencode((string)$context['mode'])
                 . '&engine=' . urlencode((string)$context['engine']);
             return response()->json([
@@ -94,6 +101,7 @@ class PdfOutputController extends Controller
         $downloadUrl = route('pdf.download', ['report' => $report])
             . '?data_id=' . urlencode((string)$data->id)
             . '&one_stop_flag_curr=' . urlencode((string)$context['one_stop_flag_curr'])
+            . '&pdf_variant=' . urlencode((string)$context['pdf_variant'])
             . '&mode=' . urlencode((string)$context['mode'])
             . '&engine=' . urlencode((string)$context['engine']);
 
@@ -116,6 +124,8 @@ class PdfOutputController extends Controller
             $context = [
                 // 当年度ワンストップ（input側からクエリで渡す）
                 'one_stop_flag_curr' => (string)$request->query('one_stop_flag_curr', '1'),
+                // PDFの出力条件（max|current|both）
+                'pdf_variant'        => (string)$request->query('pdf_variant', 'max'),
             ];
 
             $keys = $reportObj->bundleKeys($data, $context);
@@ -136,7 +146,14 @@ class PdfOutputController extends Controller
                         $tKey0 = microtime(true);
                         $obj  = $this->reports->resolve((string)$key);
                         $tBuild0 = microtime(true);
-                        $vars = $obj->buildViewData($data);
+                        // ★ report_key を context に含めて渡す（_curr の判定などに使用）
+                        $ctxPerKey = array_merge($context, ['report_key' => (string)$key]);
+                        if (method_exists($obj, 'buildViewDataWithContext')) {
+                            /** @var array $vars */
+                            $vars = $obj->buildViewDataWithContext($data, $ctxPerKey);
+                        } else {
+                            $vars = $obj->buildViewData($data);
+                        }
                         $tBuild1 = microtime(true);
                         $view = $obj->viewName();
                         $vars = array_merge($vars, $context);
@@ -188,6 +205,7 @@ class PdfOutputController extends Controller
             $pagesUrl = route('pdf.preview', ['report' => (string)$report])
                 . '?data_id=' . urlencode((string)$data->id)
                 . '&one_stop_flag_curr=' . urlencode((string)$context['one_stop_flag_curr'])
+                . '&pdf_variant=' . urlencode((string)$context['pdf_variant'])
                 . '&format=json';
 
             return view('pdf.bundle_preview', [
@@ -211,10 +229,15 @@ class PdfOutputController extends Controller
         // 標準：fast + dompdf（必要ならクエリで切替）
         $mode = (string)$request->query('mode', 'fast');
         $engine = (string)$request->query('engine', 'dompdf'); // .env が chrome でもここは dompdf を標準にする
+        $variant = strtolower((string)$request->query('pdf_variant', 'max'));
+        if (!in_array($variant, ['max','current','both'], true)) {
+            $variant = 'max';
+        }
         $contextBase = [
             'one_stop_flag_curr' => (string)$request->query('one_stop_flag_curr', '1'),
             'mode' => $mode,
             'engine' => $engine,
+            'pdf_variant' => $variant,
         ];
         $cacheKey = $this->cache->cacheKey($report, $data, $contextBase);
 
@@ -471,7 +494,10 @@ class PdfOutputController extends Controller
             // キャッシュがあれば即DL
             if ($this->cache->exists($cacheKey)) {
                 $file = ($reportObj instanceof BundleReportInterface)
-                    ? $reportObj->bundleFileName($data, ['one_stop_flag_curr' => $contextBase['one_stop_flag_curr']])
+                    ? $reportObj->bundleFileName($data, [
+                        'one_stop_flag_curr' => (string)$contextBase['one_stop_flag_curr'],
+                        'pdf_variant'        => (string)$contextBase['pdf_variant'],
+                    ])
                     : $reportObj->fileName($data);
                 $resp = response()->download(
                     $this->cache->absolutePath($cacheKey),
@@ -481,117 +507,193 @@ class PdfOutputController extends Controller
                 return $this->attachDownloadCookie($request, $resp);
             }
 
-            // 0) 表紙（テンプレ + XY）
-            $tplHyoshi = resource_path('pdf_templates/furusato/0_hyoshi_bg.pdf');
-            $fontPath  = public_path('fonts/ipaexg.ttf');
-            $hyoshiWriter = new FurusatoHyoshiTemplateWriter($tplHyoshi, $fontPath);
-            $guest = (string)($data->guest?->name ?? '');
-            $date  = (string)($data->proposal_date ?? $data->data_created_on ?? now()->toDateString());
-            $pdfHyoshi = $hyoshiWriter->render([
-                'guest_name' => $guest !== '' ? ($guest . '様') : '',
-                'date'       => $date,
-                'org'        => '',
-                // 表紙は今は不要なら false にしてOK（必要なら true）
-                'show_test'  => false,
-            ]);
-
-            // 1) 寄附金上限額（テンプレ + XY）
-            //    既存Reportの buildViewData() を流用する（数値生成は捨てない）
-            $page1Report = $this->reports->resolve('kifukingendogaku');
-            $vars1 = $page1Report->buildViewData($data);
-            $tpl1 = resource_path('pdf_templates/furusato/1_kifukingendogaku_bg.pdf');
-            $page1Writer = new FurusatoKifukinGendogakuTemplateWriter($tpl1, $fontPath);
-            $pdfPage1 = $page1Writer->render($vars1);
-
-            // 2) 所得金額・所得控除額（2ページ目：テンプレ + XY）
-            $page2Report = $this->reports->resolve('syotokukinkojyosoku');
-            $vars2 = $page2Report->buildViewData($data);
-            $tpl2 = resource_path('pdf_templates/furusato/2_syotokukinkojyosoku_bg.pdf');
-            $page2Writer = new FurusatoSyotokukinKojyosokuTemplateWriter($tpl2, $fontPath);
-            $pdfPage2 = $page2Writer->render($vars2);
-
-            // 3) 課税所得金額・税額の予測（3ページ目：テンプレ + XY）
-            $page3Report = $this->reports->resolve('kazeigakuzeigakuyosoku');
-            $vars3 = $page3Report->buildViewData($data);
-            $tpl3 = resource_path('pdf_templates/furusato/3_kazeigakuzeigakuyosoku_bg.pdf');
-            $page3Writer = new FurusatoKazeigakuZeigakuYosokuTemplateWriter($tpl3, $fontPath);
-            $pdfPage3 = $page3Writer->render($vars3);
-
-            // 4) 住民税の軽減額（4ページ目：通常/ワンストップでテンプレ切替）
-            $oneStop = (string)($contextBase['one_stop_flag_curr'] ?? '1');
-            $page4Key = ($oneStop === '1') ? 'juminkeigengaku_onestop' : 'juminkeigengaku';
-            $page4Report = $this->reports->resolve($page4Key);
-            $vars4 = $page4Report->buildViewData($data);
-            $tpl4 = ($oneStop === '1')
-                ? resource_path('pdf_templates/furusato/4_juminkeigengaku_onestop_bg.pdf')
-                : resource_path('pdf_templates/furusato/4_juminkeigengaku_bg.pdf');
-            $page4Writer = new FurusatoJuminKeigengakuTemplateWriter($tpl4, $fontPath);
-            $pdfPage4 = $page4Writer->render($vars4);
-
-            // 5) 損得シミュレーション（5ページ目：テンプレ + XY）
-            //    ※ここだけ Report の buildViewData() に数値が無いので controller で組み立てる
-            $page5Report = $this->reports->resolve('sonntokusimulation');
-
-            // SoT payload
-            $payload5 = [];
-            $stored5 = FurusatoResult::query()->where('data_id', (int)$data->id)->value('payload');
-            if (is_array($stored5)) {
-                $candidate5 = $stored5['payload'] ?? $stored5['upper'] ?? $stored5;
-                $payload5 = is_array($candidate5) ? $candidate5 : [];
-            }
-            if ($payload5 === []) {
-                $inp5 = FurusatoInput::query()->where('data_id', (int)$data->id)->value('payload');
-                $payload5 = is_array($inp5) ? $inp5 : [];
-            }
-
-            /** @var SyoriSettingsFactory $syoriFactory5 */
-            $syoriFactory5 = app(SyoriSettingsFactory::class);
-            $syoriSettings5 = $syoriFactory5->buildInitial($data);
-            $guestBirth5 = $data->guest?->birth_date ?? null;
-            $guestBirthYmd5 = null;
-            if ($guestBirth5 instanceof \DateTimeInterface) {
-                $guestBirthYmd5 = $guestBirth5->format('Y-m-d');
-            } elseif (is_string($guestBirth5)) {
-                $guestBirthYmd5 = preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($guestBirth5)) === 1 ? trim($guestBirth5) : null;
-            }
-            $taxpayerSex5 = data_get($data, 'guest.sex') ?? data_get($data, 'guest.gender') ?? data_get($data, 'guest.sex_code');
-            $ctx5 = [
-                'syori_settings'   => $syoriSettings5,
-                'data'             => $data,
-                'data_id'          => (int)$data->id,
-                'company_id'       => $data->company_id !== null ? (int)$data->company_id : null,
-                'kihu_year'        => $data->kihu_year ? (int)$data->kihu_year : 0,
-                'master_kihu_year' => 2025,
-                'guest_birth_date' => $guestBirthYmd5,
-                'taxpayer_sex'     => $taxpayerSex5,
+            // ★bundleKeys() を唯一のSoTとして使う（pdf_variant に応じて keys が変わる）
+            abort_unless($reportObj instanceof BundleReportInterface, 500, 'furusato_bundle must implement BundleReportInterface');
+            $context = [
+                'one_stop_flag_curr' => (string)$contextBase['one_stop_flag_curr'],
+                'pdf_variant'        => (string)$contextBase['pdf_variant'],
+                'mode'               => (string)$contextBase['mode'],
+                'engine'             => (string)$contextBase['engine'],
             ];
-            /** @var FurusatoSonntokuSimulationService $svc5 */
-            $svc5 = app(FurusatoSonntokuSimulationService::class);
-            $sonntoku5 = $svc5->build($payload5, $ctx5);
+            $keys = $reportObj->bundleKeys($data, $context);
+            $keys = array_values(array_filter(array_map('strval', $keys), fn($k) => $k !== ''));
+            // 重複排除（順序維持）
+            $seen = [];
+            $keys = array_values(array_filter($keys, function ($k) use (&$seen) {
+                $lk = strtolower($k);
+                if (isset($seen[$lk])) return false;
+                $seen[$lk] = true;
+                return true;
+            }));
 
-            $tpl5 = resource_path('pdf_templates/furusato/5_sonntokusimulation_bg.pdf');
-            $page5Writer = new FurusatoSonntokuSimulationTemplateWriter($tpl5, $fontPath);
-            $pdfPage5 = $page5Writer->render([
-                'sonntoku'  => $sonntoku5,
-                'show_test' => true,
-            ]);
+            $fontPath = public_path('fonts/ipaexg.ttf');
+            $bins = [];
 
-            // 6) 人的控除差調整額（6ページ目：テンプレ + XY）
-            $page6Report = $this->reports->resolve('jintekikojosatyosei');
-            $vars6 = $page6Report->buildViewData($data);
-            $tpl6 = resource_path('pdf_templates/furusato/6_jintekikojosatyosei_bg.pdf');
-            $page6Writer = new FurusatoJintekiKojoSaTyoseiTemplateWriter($tpl6, $fontPath);
-            // デバッグ印字は一切しない
-            $pdfPage6 = $page6Writer->render($vars6);
+            // 共通：テンプレWriterで落ちたら Blade(dompdf/chrome) にフォールバック
+            $renderByBlade = function (string $key, $obj, array $vars) use ($data, $engine) : string {
+                $view = $obj->viewName();
+                $options = [];
+                if (method_exists($obj, 'pdfOptions')) {
+                    $options = (array) $obj->pdfOptions($data);
+                }
+                $options['engine'] = $engine;
+                return $this->renderer->renderToString($view, array_merge($vars, ['is_pdf' => true]), $options);
+            };
 
-            // 7) 特例控除割合（7ページ目：テンプレ + XY）
-            $tpl7 = resource_path('pdf_templates/furusato/7_tokureikojowariai_bg.pdf');
-            if (!is_file($tpl7)) {
-                throw new \RuntimeException('Template PDF not found: ' . $tpl7);
-            }
-            $pdfPage7 = file_get_contents($tpl7);
-            if (!is_string($pdfPage7) || $pdfPage7 === '') {
-                throw new \RuntimeException('Failed to read template PDF: ' . $tpl7);
+            // ★ *_curr なら「今まで(ima)」の背景テンプレを使う
+            $tplPathFor = function (string $key) : string {
+                $k = strtolower($key);
+                $isCurr = str_ends_with($k, '_curr');
+                // 0,1,5,6,7 は共通テンプレ（今まで/上限で見出しを分けない）
+                if ($k === 'hyoshi') return resource_path('pdf_templates/furusato/0_hyoshi_bg.pdf');
+                if ($k === 'kifukingendogaku') return resource_path('pdf_templates/furusato/1_kifukingendogaku_bg.pdf');
+                if ($k === 'sonntokusimulation') return resource_path('pdf_templates/furusato/5_sonntokusimulation_bg.pdf');
+                if ($k === 'jintekikojosatyosei') return resource_path('pdf_templates/furusato/6_jintekikojosatyosei_bg.pdf');
+                if ($k === 'tokureikojowariai') return resource_path('pdf_templates/furusato/7_tokureikojowariai_bg.pdf');
+
+                // 2〜4 は current/max で背景が変わる（*_ima_bg.pdf）
+                if ($k === 'syotokukinkojyosoku' || $k === 'syotokukinkojyosoku_curr') {
+                    return $isCurr
+                        ? resource_path('pdf_templates/furusato/2_syotokukinkojyosoku_ima_bg.pdf')
+                        : resource_path('pdf_templates/furusato/2_syotokukinkojyosoku_bg.pdf');
+                }
+                if ($k === 'kazeigakuzeigakuyosoku' || $k === 'kazeigakuzeigakuyosoku_curr') {
+                    return $isCurr
+                        ? resource_path('pdf_templates/furusato/3_kazeigakuzeigakuyosoku_ima_bg.pdf')
+                        : resource_path('pdf_templates/furusato/3_kazeigakuzeigakuyosoku_bg.pdf');
+                }
+                if (in_array($k, ['juminkeigengaku','juminkeigengaku_curr'], true)) {
+                    return $isCurr
+                        ? resource_path('pdf_templates/furusato/4_juminkeigengaku_ima_bg.pdf')
+                        : resource_path('pdf_templates/furusato/4_juminkeigengaku_bg.pdf');
+                }
+                if (in_array($k, ['juminkeigengaku_onestop','juminkeigengaku_onestop_curr'], true)) {
+                    return $isCurr
+                        ? resource_path('pdf_templates/furusato/4_juminkeigengaku_onestop_ima_bg.pdf')
+                        : resource_path('pdf_templates/furusato/4_juminkeigengaku_onestop_bg.pdf');
+                }
+                // fallback（使わない想定だが保険）
+                return '';
+            };
+
+            foreach ($keys as $key) {
+                $k = strtolower((string)$key);
+
+                // 7ページ（特例控除割合）は背景そのまま
+                if ($k === 'tokureikojowariai') {
+                    $tpl7 = $tplPathFor($k);
+                    if (!is_file($tpl7)) {
+                        throw new \RuntimeException('Template PDF not found: ' . $tpl7);
+                    }
+                    $pdf = file_get_contents($tpl7);
+                    if (!is_string($pdf) || $pdf === '') {
+                        throw new \RuntimeException('Failed to read template PDF: ' . $tpl7);
+                    }
+                    $bins[] = $pdf;
+                    continue;
+                }
+
+                // 5ページ（損得）は controller 組み立て
+                if ($k === 'sonntokusimulation') {
+                    $payload5 = [];
+                    $stored5 = FurusatoResult::query()->where('data_id', (int)$data->id)->value('payload');
+                    if (is_array($stored5)) {
+                        $candidate5 = $stored5['payload'] ?? $stored5['upper'] ?? $stored5;
+                        $payload5 = is_array($candidate5) ? $candidate5 : [];
+                    }
+                    if ($payload5 === []) {
+                        $inp5 = FurusatoInput::query()->where('data_id', (int)$data->id)->value('payload');
+                        $payload5 = is_array($inp5) ? $inp5 : [];
+                    }
+                    $syoriFactory5 = app(SyoriSettingsFactory::class);
+                    $syoriSettings5 = $syoriFactory5->buildInitial($data);
+                    $guestBirth5 = $data->guest?->birth_date ?? null;
+                    $guestBirthYmd5 = null;
+                    if ($guestBirth5 instanceof \DateTimeInterface) {
+                        $guestBirthYmd5 = $guestBirth5->format('Y-m-d');
+                    } elseif (is_string($guestBirth5)) {
+                        $guestBirthYmd5 = preg_match('/^\d{4}-\d{2}-\d{2}$/', trim($guestBirth5)) === 1 ? trim($guestBirth5) : null;
+                    }
+                    $taxpayerSex5 = data_get($data, 'guest.sex') ?? data_get($data, 'guest.gender') ?? data_get($data, 'guest.sex_code');
+                    $ctx5 = [
+                        'syori_settings'   => $syoriSettings5,
+                        'data'             => $data,
+                        'data_id'          => (int)$data->id,
+                        'company_id'       => $data->company_id !== null ? (int)$data->company_id : null,
+                        'kihu_year'        => $data->kihu_year ? (int)$data->kihu_year : 0,
+                        'master_kihu_year' => 2025,
+                        'guest_birth_date' => $guestBirthYmd5,
+                        'taxpayer_sex'     => $taxpayerSex5,
+                    ];
+                    $svc5 = app(FurusatoSonntokuSimulationService::class);
+                    $sonntoku5 = $svc5->build($payload5, $ctx5);
+                    $tpl5 = resource_path('pdf_templates/furusato/5_sonntokusimulation_bg.pdf');
+                    $writer5 = new FurusatoSonntokuSimulationTemplateWriter($tpl5, $fontPath);
+                    try {
+                        $bins[] = $writer5->render(['sonntoku' => $sonntoku5, 'show_test' => true]);
+                    } catch (\Throwable $e) {
+                        Log::warning('pdf.fast.bundle.template_failed', ['key'=>$k,'err'=>get_class($e),'msg'=>$e->getMessage()]);
+                        $obj = $this->reports->resolve($k);
+                        $bins[] = $renderByBlade($k, $obj, $obj->buildViewData($data));
+                    }
+                    continue;
+                }
+
+                // 通常：report_key を渡して build（*_curr切替を効かせる）
+                $obj = $this->reports->resolve($k);
+                $ctxPerKey = array_merge($context, ['report_key' => $k]);
+                if (method_exists($obj, 'buildViewDataWithContext')) {
+                    $vars = $obj->buildViewDataWithContext($data, $ctxPerKey);
+                } else {
+                    $vars = $obj->buildViewData($data);
+                }
+
+                try {
+                    // キーごとにテンプレWriterを選択
+                    if ($k === 'hyoshi') {
+                        $tpl = $tplPathFor($k);
+                        $w = new FurusatoHyoshiTemplateWriter($tpl, $fontPath);
+                        $bins[] = $w->render($vars);
+                        continue;
+                    }
+                    if ($k === 'kifukingendogaku') {
+                        $tpl = $tplPathFor($k);
+                        $w = new FurusatoKifukinGendogakuTemplateWriter($tpl, $fontPath);
+                        $bins[] = $w->render($vars);
+                        continue;
+                    }
+                    if ($k === 'syotokukinkojyosoku' || $k === 'syotokukinkojyosoku_curr') {
+                        $tpl = $tplPathFor($k);
+                        $w = new FurusatoSyotokukinKojyosokuTemplateWriter($tpl, $fontPath);
+                        $bins[] = $w->render($vars);
+                        continue;
+                    }
+                    if ($k === 'kazeigakuzeigakuyosoku' || $k === 'kazeigakuzeigakuyosoku_curr') {
+                        $tpl = $tplPathFor($k);
+                        $w = new FurusatoKazeigakuZeigakuYosokuTemplateWriter($tpl, $fontPath);
+                        $bins[] = $w->render($vars);
+                        continue;
+                    }
+                    if (in_array($k, ['juminkeigengaku','juminkeigengaku_curr','juminkeigengaku_onestop','juminkeigengaku_onestop_curr'], true)) {
+                        $tpl = $tplPathFor($k);
+                        $w = new FurusatoJuminKeigengakuTemplateWriter($tpl, $fontPath);
+                        $bins[] = $w->render($vars);
+                        continue;
+                    }
+                    if ($k === 'jintekikojosatyosei') {
+                        $tpl = $tplPathFor($k);
+                        $w = new FurusatoJintekiKojoSaTyoseiTemplateWriter($tpl, $fontPath);
+                        $bins[] = $w->render($vars);
+                        continue;
+                    }
+
+                    // ここまで来たら Blade へ（念のため）
+                    $bins[] = $renderByBlade($k, $obj, $vars);
+                } catch (\Throwable $e) {
+                    // ★テンプレがFPDI圧縮などで落ちても bundle を落とさない
+                    Log::warning('pdf.fast.bundle.template_failed', ['key'=>$k,'err'=>get_class($e),'msg'=>$e->getMessage()]);
+                    $bins[] = $renderByBlade($k, $obj, $vars);
+                }
             }
 
             // 2) 2つのPDF（各1ページ）を結合
@@ -601,7 +703,7 @@ class PdfOutputController extends Controller
             $m->setPrintHeader(false);
             $m->setPrintFooter(false);
 
-            foreach ([$pdfHyoshi, $pdfPage1, $pdfPage2, $pdfPage3, $pdfPage4, $pdfPage5, $pdfPage6, $pdfPage7] as $bin) {
+            foreach ($bins as $bin) {
                 $pageCount = $m->setSourceFile(StreamReader::createByString($bin));
                 for ($i = 1; $i <= $pageCount; $i++) {
                     $tpl = $m->importPage($i);
@@ -614,9 +716,7 @@ class PdfOutputController extends Controller
             $merged = $m->Output('', 'S');
             $this->cache->put($cacheKey, $merged);
 
-            $file = ($reportObj instanceof BundleReportInterface)
-                ? $reportObj->bundleFileName($data, ['one_stop_flag_curr' => $contextBase['one_stop_flag_curr']])
-                : $reportObj->fileName($data);
+            $file = $reportObj->bundleFileName($data, $context);
             $resp = response($merged, 200, [
                 'Content-Type'        => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="' . $file . '"',
@@ -717,6 +817,8 @@ class PdfOutputController extends Controller
             $context = [
                 // 当年度ワンストップ（input側からクエリで渡す）
                 'one_stop_flag_curr' => (string)$request->query('one_stop_flag_curr', '1'),
+                // PDFの出力条件（max|current|both）
+                'pdf_variant'        => (string)$request->query('pdf_variant', 'max'),
             ];
 
             //  先にファイル名を確定（後段の response ヘッダで使う）
@@ -782,7 +884,14 @@ class PdfOutputController extends Controller
                 $view = null;
                 try {
                     $obj  = $this->reports->resolve((string)$key);
-                    $vars = $obj->buildViewData($data);
+                    // ★ report_key を context に含めて渡す（_curr の判定などに使用）
+                    $ctxPerKey = array_merge($context, ['report_key' => (string)$key]);
+                    if (method_exists($obj, 'buildViewDataWithContext')) {
+                        /** @var array $vars */
+                        $vars = $obj->buildViewDataWithContext($data, $ctxPerKey);
+                    } else {
+                        $vars = $obj->buildViewData($data);
+                    }
                     $view = $obj->viewName();
 
                     // bundleの文脈を各帳票に渡す（必要な帳票があるため）

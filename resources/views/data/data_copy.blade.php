@@ -2,6 +2,11 @@
 @extends('layouts.min')
 
 @section('content')
+@php
+  $me = auth()->user();
+  $isClient = strtolower((string)($me->role ?? '')) === 'client';
+  $clientGuest = $clientGuest ?? null;
+@endphp
 <div class="container">
   <div class="d-flex justify-content-between align-items-center py-3">
     <hb class="ms-3">▶ 既存データのコピー（年度指定）</hb>
@@ -24,7 +29,6 @@
 
   {{-- コピー元の参照（読み取り専用） --}}
   <div class="wrapper">
-    
       <h1 class="ms-2 mt-1 mb-3">○コピー元</h1>
       <table class="table-base table-bordered align-middle w-auto mx-auto">
         <tbody>
@@ -41,6 +45,9 @@
   <form action="{{ route('data.copy') }}" method="POST" id="data-copy-form">
     @csrf
     <input type="hidden" name="selected_data_id" value="{{ $source->id }}">
+    {{-- JSが参照するので、clientでも #target_guest_id は常に置く（初期はコピー元guest） --}}
+    <input type="hidden" name="target_guest_id" id="target_guest_id"
+           value="{{ old('target_guest_id', (int)$source->guest_id) }}">
     <br>
     @php
       $today = now()->format('Y-m-d');
@@ -60,14 +67,16 @@
                     <input class="form-check-input" type="radio" name="copy_mode" id="mode_same" value="same" checked>
                     <label class="form-check-label" for="mode_same">同じお客様</label>
                   </div>
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="copy_mode" id="mode_existing" value="existing">
-                    <label class="form-check-label" for="mode_existing">登録済から選択</label>
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="copy_mode" id="mode_new" value="new">
-                    <label class="form-check-label" for="mode_new">新規のお客様</label>
-                  </div>
+                  @if (! $isClient)
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="copy_mode" id="mode_existing" value="existing">
+                      <label class="form-check-label" for="mode_existing">登録済から選択</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="copy_mode" id="mode_new" value="new">
+                      <label class="form-check-label" for="mode_new">新規のお客様</label>
+                    </div>
+                  @endif
                 </td> 
               </tr>   
             </table>
@@ -79,8 +88,8 @@
             <hb class="ms-4 me-5">・お客様名</hb></label>
               <input type="text" name="target_guest_name" id="target_guest_name" class="form-control kana10"
                      maxlength="25" placeholder="（新規のお客様の場合は入力）"
-                     value="{{ old('target_guest_name') }}">
-              <input type="hidden" name="target_guest_id" id="target_guest_id" value="{{ old('target_guest_id') }}">
+                     value="{{ $isClient && $clientGuest ? $clientGuest->name : old('target_guest_name') }}"
+                     {{ $isClient ? 'readonly' : '' }}>
         </div>
 
         <div class="mt-3">
@@ -93,7 +102,8 @@
                  class="form-control"
                  style="width:180px;"
                  placeholder="YYYY-MM-DD"
-                 value="{{ old('birth_date', $defaultBirthDate) }}">
+                 value="{{ $isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate) }}"
+                 {{ $isClient ? 'readonly' : '' }}>
         </div>
         {{-- 3) 年度（複数選択：今年+10年） --}}
         <div class="mt-3">
@@ -182,6 +192,7 @@
 </div>
 
 {{-- 既存お客様選択モーダル --}}
+@if (! $isClient)
 <div class="modal fade" id="guestModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
@@ -208,7 +219,8 @@
       </div>
     </div>
   </div>
-  </div>
+</div>
+@endif
 
 {{-- 年度重複エラー（全件重複で1件も作成されなかった場合のみモーダル表示） --}}
 <div class="modal fade" id="duplicateYearsModal" tabindex="-1" aria-hidden="true">
@@ -261,19 +273,21 @@
 
   // 初期：same → 元のお客様名（読み取り）
   function setSame(force = false) {
-    targetId.value = '{{ $source->guest_id }}';
-    targetName.value = '{{ $source->guest?->name }}';
-    targetName.readOnly = true;
+    if (targetId) targetId.value = '{{ (int)$source->guest_id }}';
+    if (targetName) {
+      targetName.value = '{{ $source->guest?->name }}';
+      targetName.readOnly = true;
+    }
     if (selectedLbl) selectedLbl.textContent = '';
     if (force || !birthInput || birthInput.value === '') {
       setBirthDate(defaultBirthDate);
     }
   }
   function setExisting() {
-    targetName.readOnly = true;
+    if (targetName) targetName.readOnly = true;
     if (!guestList || guestList.querySelectorAll('tr.selectable-guest').length === 0) {
       alert('登録済のお客様がいません。新規で登録してください。');
-      modeNew.checked = true;
+      if (modeNew) modeNew.checked = true;
       setNew();
       return;
     }
@@ -291,25 +305,27 @@
     }
   }
   function setNew() {
-    targetId.value = '';
-    targetName.value = '';
-    targetName.readOnly = false;
-    targetName.focus();
+    if (targetId) targetId.value = '';
+    if (targetName) {
+      targetName.value = '';
+      targetName.readOnly = false;
+      targetName.focus();
+    }
     if (selectedLbl) selectedLbl.textContent = '';
     setBirthDate('');
   }
 
   modeSame?.addEventListener('change', () => { if (modeSame.checked) setSame(true); });
-  modeExisting?.addEventListener('change', () => { if (modeExisting.checked) setExisting(); });
-  modeNew?.addEventListener('change', () => { if (modeNew.checked) setNew(); });
+  modeExisting?.addEventListener('change', () => { if (modeExisting && modeExisting.checked) setExisting(); });
+  modeNew?.addEventListener('change', () => { if (modeNew && modeNew.checked) setNew(); });
 
   guestList?.addEventListener('click', (e) => {
     const row = e.target.closest('tr.selectable-guest');
     if (!row) return;
-    targetId.value = row.dataset.id || '';
-    targetName.value = row.dataset.name || '';
+    if (targetId) targetId.value = row.dataset.id || '';
+    if (targetName) targetName.value = row.dataset.name || '';
     if (selectedLbl) selectedLbl.textContent = `選択中: ${targetName.value}`;
-    targetName.readOnly = true;
+    if (targetName) targetName.readOnly = true;
     setBirthDate(row.dataset.birthDate || '');
     bootstrap.Modal.getInstance(document.getElementById('guestModal'))?.hide();
   });

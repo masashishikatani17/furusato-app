@@ -45,7 +45,7 @@
         ],
     ];
 @endphp
-<div class="container-blue mt-2" style="width: 1100px;">
+<div class="container-blue mt-2" style="width: 1050px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
@@ -78,10 +78,10 @@
           <div class="fw-bold mb-1">{{ $label }}</div>
           @php $off = ($period === 'prev') ? $bunriPrevOff : $bunriCurrOff; @endphp
           <div class="table-responsive mb-2">
-            <table class="table-base table-bordered align-middle text-center">
+            <table class="table-input align-middle text-center">
               <thead>
                 <tr>
-                  <th colspan="2" style="height:30px; width:200px;"></th>
+                  <th colspan="2" style="height:30px;"></th>
                   <th>収入金額</th>
                   <th>必要経費</th>
                   <th>差引金額</th>
@@ -101,11 +101,11 @@
                   @endphp
                   <tr>
                     @if ($index === 0)
-                      <th scope="rowgroup" rowspan="{{ $rowspan }}" class="text-center align-middle" style="width:40px;">
+                      <th scope="rowgroup" rowspan="{{ $rowspan }}" class="text-center align-middle ps-1 pe-1" style="width:38px;">
                         {{ $group['title'] }}
                       </th>
                     @endif
-                    <th class="text-start align-middle th-ddd ps-1" nowrap="nowrap">{{ $row['label'] }}</th>
+                    <th class="text-center align-middle th-ddd" nowrap="nowrap" style="width:54px;">{{ $row['label'] }}</th>
                     {{-- 収入 --}}
                     @php $name = 'syunyu_' . $base; @endphp
                     <td>

@@ -1,3 +1,4 @@
+<!-- views/auth/invitation_accept.blade.php -->
 <!doctype html>
 <html lang="ja">
 <head>

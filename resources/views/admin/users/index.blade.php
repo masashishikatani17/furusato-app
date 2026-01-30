@@ -1,3 +1,4 @@
+<!-- resources/views/admin/users/index.blade.php -->
 @extends('layouts.min')
 
 @section('title', 'ユーザー管理')
@@ -72,9 +73,22 @@
         <div class="mb-3 mb-md-0">
             <hb class="mt-3 ms-2">ユーザー管理</hb>
         </div>
-        @if ($canInviteUsers)
-            <a href="{{ $createRoute }}" class="btn-base-blue">ユーザーを招待</a>
-        @endif
+        <div class="d-flex gap-2 align-items-center">
+            {{-- 設定TOPへ --}}
+            @if (\Illuminate\Support\Facades\Route::has('admin.settings'))
+                <a href="{{ route('admin.settings') }}" class="btn-base-blue">設定TOPへ</a>
+            @endif
+
+            {{-- 招待一覧 --}}
+            @if (\Illuminate\Support\Facades\Route::has('admin.invitations.index'))
+                <a href="{{ route('admin.invitations.index') }}" class="btn-base-blue">招待一覧</a>
+            @endif
+
+            {{-- ユーザー招待 --}}
+            @if ($canInviteUsers)
+                <a href="{{ $createRoute }}" class="btn-base-blue">ユーザーを招待</a>
+            @endif
+        </div>
     </div>
         <hs class="ms-3 me-3">
             在籍ユーザーや招待状況を確認し、新しいユーザーの招待・編集を行います。

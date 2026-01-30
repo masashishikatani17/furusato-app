@@ -1,3 +1,4 @@
+<!-- resources/views/admin/audit_logs/index.blade.php -->
 @extends('layouts.min')
 
 @section('title', '操作履歴')

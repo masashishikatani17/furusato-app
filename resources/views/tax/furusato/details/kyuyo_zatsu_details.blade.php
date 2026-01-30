@@ -56,7 +56,7 @@
   $warekiPrev = $warekiPrev ?? '前年';
   $warekiCurr = $warekiCurr ?? '当年';
 @endphp
-<div class="container-blue mt-2" style="width: 750px;">
+<div class="container-blue mt-2" style="width: 630px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
@@ -86,26 +86,26 @@
         </div>
       @endif
       <div class="wrapper">
-        <hb class="mb-1 ms-10">給与所得</hb>
+        <hb class="mb-1 ms-5">■ 給与所得</hb>
         <div class="table-responsive mb-2">
           <table class="table-input align-middle">
             <tbody>
               <tr>
-                <th style="width:260px;height:30px;"></th>
-                <th style="width:180px">{{ $warekiPrev }}</th>
-                <th style="width:180px">{{ $warekiCurr }}</th>
+                <th style="width:250px;height:30px;"></th>
+                <th>{{ $warekiPrev }}</th>
+                <th>{{ $warekiCurr }}</th>
               </tr>
               <tr>
                 <th class="text-start align-middle ps-2">給与収入金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="kyuyo_syunyu_prev"
                          value="{{ $value('kyuyo_syunyu_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="kyuyo_syunyu_curr"
                          value="{{ $value('kyuyo_syunyu_curr','') }}">
                 </td>
@@ -144,26 +144,26 @@
           </tr>
         </table>
   
-        <hb class="mb-1 ms-10">雑所得（公的年金等・業務・その他）</hb>
+        <hb class="mb-1 ms-5">■ 雑所得（公的年金等・業務・その他）</hb>
         <div class="table-responsive mb-3">
           <table class="table-input align-middle">
             <tbody>
               <tr>
-                <th colspan="2" style="width:260px;"></th>
-                <th style="width:180px">{{ $warekiPrev }}</th>
-                <th style="width:180px">{{ $warekiCurr }}</th>
+                <th colspan="2" style="width:250px;"></th>
+                <th>{{ $warekiPrev }}</th>
+                <th>{{ $warekiCurr }}</th>
               </tr>
               <tr>
                 <th colspan="2" class="text-start align-middle ps-2">公的年金等収入金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_nenkin_syunyu_prev"
                          value="{{ $value('zatsu_nenkin_syunyu_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_nenkin_syunyu_curr"
                          value="{{ $value('zatsu_nenkin_syunyu_curr','') }}">
                 </td>
@@ -173,13 +173,13 @@
                 <th class="text-start align-middle ps-2">収入金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_gyomu_syunyu_prev"
                          value="{{ $value('zatsu_gyomu_syunyu_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_gyomu_syunyu_curr"
                          value="{{ $value('zatsu_gyomu_syunyu_curr','') }}">
                 </td>
@@ -188,13 +188,13 @@
                 <th class="text-start align-middle ps-2">支払金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_gyomu_shiharai_prev"
                          value="{{ $value('zatsu_gyomu_shiharai_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_gyomu_shiharai_curr"
                          value="{{ $value('zatsu_gyomu_shiharai_curr','') }}">
                 </td>
@@ -204,13 +204,13 @@
                 <th class="text-start align-middle ps-2">収入金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_sonota_syunyu_prev"
                          value="{{ $value('zatsu_sonota_syunyu_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_sonota_syunyu_curr"
                          value="{{ $value('zatsu_sonota_syunyu_curr','') }}">
                 </td>
@@ -219,13 +219,13 @@
                 <th class="text-start align-middle ps-2">支払金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_sonota_shiharai_prev"
                          value="{{ $value('zatsu_sonota_shiharai_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         class="form-control text-end"
+                         class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_sonota_shiharai_curr"
                          value="{{ $value('zatsu_sonota_shiharai_curr','') }}">
                 </td>

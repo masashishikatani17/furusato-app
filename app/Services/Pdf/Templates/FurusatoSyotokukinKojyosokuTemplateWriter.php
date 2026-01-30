@@ -27,6 +27,7 @@ final class FurusatoSyotokukinKojyosokuTemplateWriter
     //  - まずは「だいたい当たる」初期値。最終調整は mm 単位で詰めてください。
     // ============================================================
     private const LAYOUT = [
+
         // 旧Bladeのレイアウト幅（250mm）をページ中央へ
         'page' => [
             'w' => 297.0,
@@ -49,29 +50,33 @@ final class FurusatoSyotokukinKojyosokuTemplateWriter
 
         // 左ブロック（所得金額等）：幅 118mm、gap 10mm、右ブロック 122mm
         'left' => [
-            'x' => 20,
+            'x' => 21,
             'y' =>32, // ★仮：左表 上端（要調整）
             'w' => 118.0,
             // colgroup: [11,11,11,27,29,29]
             // 数値列（所得税/住民税）は最後の2列
-            'cols' => [11.0, 11.0, 11.0, 27.0, 26.5, 26.5],
+            'cols' => [11.0, 11.0, 11.0, 24.0, 27.2, 27.2],
             'header_h' => 8.0, // ★仮：ヘッダー1行（要調整）
             'row_h' => 6.28,    // ★仮：データ行高（要調整）
-            'pad_r' => 1.8,
-            'font' => 11.0,
+            'pad_r' => 0,
+            'font' => 10.0,
+            // ★数値の横幅が厳しい時だけ：%ストレッチ（例 90.0）
+            'stretch' => 90.0,
         ],
 
         // 右ブロック（所得控除）：幅 122mm（背景上の右表は 119〜122mm 相当）
         'right' => [
-            'x' => 23.5 + 118.0 + 10.0,
+            'x' => 24.5 + 118.0 + 10.0,
             'y' => 32, // ★仮：右表 上端（要調整）
-            'w' => 122.0,
+            'w' => 120.0,
             // colgroup: [11,54,27,27]
-            'cols' => [11.0, 54.0, 27.0, 27.0],
+            'cols' => [11.0, 51.0, 27.5, 27.5],
             'header_h' => 8.0, // ★仮：ヘッダー1行（要調整）
             'row_h' => 6.28,    // ★仮：データ行高（要調整）
-            'pad_r' => 1.6,
-            'font' => 11.0,
+            'pad_r' => 0,
+            'font' => 10.0,
+            // ★数値の横幅が厳しい時だけ：%ストレッチ（例 90.0）
+            'stretch' => 90.0,
         ],
 
         // Debug枠（show_test=true のときだけ Rect を描く）
@@ -122,7 +127,6 @@ final class FurusatoSyotokukinKojyosokuTemplateWriter
         $tpl = $pdf->importPage(1);
         $size = $pdf->getTemplateSize($tpl);
         $pdf->useTemplate($tpl, 0, 0, $size['width'], $size['height'], true);
-
         $showTest = (bool)($vars['show_test'] ?? false);
 
         // ============================================================
@@ -165,7 +169,7 @@ final class FurusatoSyotokukinKojyosokuTemplateWriter
         $lRowH = (float)$L['row_h'];
         $lPadR = (float)$L['pad_r'];
         $lFont = (float)$L['font'];
-
+        $lStretch = array_key_exists('stretch', $L) ? (float)$L['stretch'] : null;
         // 数値列 index（所得税=4, 住民税=5）
         $itaxColIdx = 4;
         $rtaxColIdx = 5;
@@ -209,8 +213,8 @@ final class FurusatoSyotokukinKojyosokuTemplateWriter
             $rx = (float)$lcolX[$rtaxColIdx];
             $rw = (float)$lcols[$rtaxColIdx];
 
-            $this->textBox($pdf, $font, $ix, $rowY, $iw, $lRowH, $this->fmtYen((int)$pair['itax']), 'R', $lFont, $lPadR);
-            $this->textBox($pdf, $font, $rx, $rowY, $rw, $lRowH, $this->fmtYen((int)$pair['rtax']), 'R', $lFont, $lPadR);
+             $this->textBox($pdf, $font, $ix, $rowY, $iw, $lRowH, $this->fmtYen((int)$pair['itax']), 'R', $lFont, $lPadR, 0.0, '', $lStretch);
+             $this->textBox($pdf, $font, $rx, $rowY, $rw, $lRowH, $this->fmtYen((int)$pair['rtax']), 'R', $lFont, $lPadR, 0.0, '', $lStretch);
             if ($showTest) {
                 $this->debugRect($pdf, $ix, $rowY, $iw, $lRowH);
                 $this->debugRect($pdf, $rx, $rowY, $rw, $lRowH);
@@ -232,6 +236,7 @@ final class FurusatoSyotokukinKojyosokuTemplateWriter
         $rRowH = (float)$R['row_h'];
         $rPadR = (float)$R['pad_r'];
         $rFont = (float)$R['font'];
+        $rStretch = array_key_exists('stretch', $R) ? (float)$R['stretch'] : null;
 
         // 数値列 index（所得税=2, 住民税=3）
         $ritaxColIdx = 2;
@@ -272,10 +277,10 @@ final class FurusatoSyotokukinKojyosokuTemplateWriter
 
            // ★寄附金控除（所得税のみ）は太字にしたい
             $style = ((string)$r['key'] === 'kifukin_itax_only') ? 'B' : '';
-            $this->textBox($pdf, $font, $ix, $rowY, $iw, $rRowH, $this->fmtYen((int)$pair['itax']), 'R', $rFont, $rPadR, 0.0, $style);
+            $this->textBox($pdf, $font, $ix, $rowY, $iw, $rRowH, $this->fmtYen((int)$pair['itax']), 'R', $rFont, $rPadR, 0.0, $style, $rStretch);
 
             if ($pair['rtax'] !== null) {
-                $this->textBox($pdf, $font, $jx, $rowY, $jw, $rRowH, $this->fmtYen((int)$pair['rtax']), 'R', $rFont, $rPadR);
+                $this->textBox($pdf, $font, $jx, $rowY, $jw, $rRowH, $this->fmtYen((int)$pair['rtax']), 'R', $rFont, $rPadR, 0.0, '', $rStretch);
             }
             if ($showTest) {
                 $this->debugRect($pdf, $ix, $rowY, $iw, $rRowH);
@@ -382,7 +387,8 @@ final class FurusatoSyotokukinKojyosokuTemplateWriter
         float $fontSize = 11.0,
         float $padRight = 0.0,
         float $padLeft = 0.0,
-        string $fontStyle = ''   // ★追加: '' or 'B'
+        string $fontStyle = '',   // '' or 'B'
+        ?float $stretchPct = null // ★追加: 例 90.0（%）
     ): void {
         // NOTE: IPAex等は Bold 面を持たず 'B' が効きにくい場合があるため、
         //       'B' は「疑似太字（2回描画）」で対応する
@@ -390,6 +396,13 @@ final class FurusatoSyotokukinKojyosokuTemplateWriter
         $pdf->SetFont($font, '', $fontSize);
      
         $pdf->SetTextColor(0, 0, 0);
+
+         // ★ストレッチ（指定がある時だけ効かせ、最後に必ず戻す）
+         $stretchInt = null;
+         if ($stretchPct !== null) {
+             $stretchInt = (int)max(50, min(150, round($stretchPct))); // 安全域: 50%〜150%
+             $pdf->SetFontStretching($stretchInt);
+         }
 
         $innerX = $x + max(0.0, $padLeft);
         $innerW = $w - max(0.0, $padLeft) - max(0.0, $padRight);
@@ -402,6 +415,11 @@ final class FurusatoSyotokukinKojyosokuTemplateWriter
             $pdf->SetXY($innerX + 0.2, $y); // 0.2mm（必要なら 0.15〜0.30 で調整）
             $pdf->MultiCell($innerW, $h, $text, 0, $align, false, 0, '', '', true, 0, false, true, $h, 'M', false);
         }
+         
+         // ★ストレッチを戻す（他の出力に影響させない）
+         if ($stretchInt !== null) {
+             $pdf->SetFontStretching(100);
+         }
     }
 
     private function debugRect(TcpdfFpdi $pdf, float $x, float $y, float $w, float $h): void

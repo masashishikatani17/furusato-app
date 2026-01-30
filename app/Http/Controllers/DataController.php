@@ -17,6 +17,50 @@ use Illuminate\Validation\ValidationException;
 
 class DataController extends Controller
 {
+    /** client 判定（顧問先アカウント） */
+    private function isClient(): bool
+    {
+        $u = auth()->user();
+        $role = strtolower((string)($u->role ?? ''));
+        return $role === 'client';
+    }
+
+    /**
+     * client → 自分に紐付く guest を1件取得（無ければ403）
+     * - guests.client_user_id が SoT
+     * - client は必ず部署に所属（users.group_id 必須）
+     * - guest.group_id と users.group_id は一致していること（不一致は設定不備として403）
+     */
+    private function resolveClientGuestOrFail(): Guest
+    {
+        $me = auth()->user();
+        if (!$me) {
+            abort(403);
+        }
+        if (!$this->isClient()) {
+            abort(403);
+        }
+        $companyId = (int)($me->company_id ?? 0);
+        $myGroupId = (int)($me->group_id ?? 0);
+        if ($companyId <= 0 || $myGroupId <= 0) {
+            abort(403, '顧客アカウントが顧客に紐づいていません。担当者に連絡してください。');
+        }
+
+        $guest = Guest::query()
+            ->where('company_id', $companyId)
+            ->where('client_user_id', (int)$me->id)
+            ->first();
+
+        if (!$guest) {
+            abort(403, '顧客アカウントが顧客に紐づいていません。担当者に連絡してください。');
+        }
+
+        if ((int)($guest->group_id ?? 0) !== $myGroupId) {
+            abort(403, '顧客アカウントの部署設定に不整合があります。担当者に連絡してください。');
+        }
+
+        return $guest;
+    }
     /** Owner / Registrar 判定（簡易版） */
     private function isOwnerOrRegistrar(): bool
     {
@@ -47,7 +91,29 @@ class DataController extends Controller
         $me = auth()->user();
         if (!$me) abort(403);
         if ((int)$data->company_id !== (int)$me->company_id) abort(403);
-        if (!$this->isOwnerOrRegistrar() && (int)$data->group_id !== (int)($me->group_id ?? 0)) abort(403);
+
+        // client：自分の guest に紐付く data のみ
+        if ($this->isClient()) {
+            $data->loadMissing('guest');
+            $guest = $data->guest;
+            if (!$guest || (int)($guest->client_user_id ?? 0) !== (int)$me->id) {
+                abort(403);
+            }
+        } else {
+            // owner/registrar 以外は自部署のみ
+            if (!$this->isOwnerOrRegistrar() && (int)$data->group_id !== (int)($me->group_id ?? 0)) abort(403);
+        }
+
+        // 共有設定（private は作成者のみ）
+        if (config('feature.data_privacy')) {
+            $vis = (string)($data->visibility ?? 'shared');
+            if ($vis === 'private') {
+                $creatorId = (int)($data->owner_user_id ?? 0) ?: (int)($data->user_id ?? 0);
+                if ((int)$me->id !== $creatorId) {
+                    abort(403);
+                }
+            }
+        }
     }
 
     /** 削除可否：shared=部署内OK / private=作成者のみ */
@@ -81,8 +147,14 @@ class DataController extends Controller
 
         // お客様一覧
         $guestQuery = Guest::query()->where('company_id', $companyId);
-        if ($ctxGroupId !== null) {
-            $guestQuery->where('group_id', $ctxGroupId);
+        if ($this->isClient()) {
+            // client は自分の顧客（1件）に固定
+            $clientGuest = $this->resolveClientGuestOrFail();
+            $guestQuery->where('id', (int)$clientGuest->id);
+        } else {
+            if ($ctxGroupId !== null) {
+                $guestQuery->where('group_id', $ctxGroupId);
+            }
         }
         $guests = $guestQuery->orderBy('created_at')->get();
 
@@ -100,12 +172,29 @@ class DataController extends Controller
         // 右ペイン初期データ（id / kihu_year のみ）
         $datas = collect();
         if ($guest) {
-            $datas = Data::query()
+            $dq = Data::query()
                 ->select('id', 'guest_id', 'kihu_year', 'owner_user_id', 'user_id', 'visibility')
                 ->where('guest_id', $guest->id)
                 ->whereNotNull('kihu_year')
-                ->orderByDesc('kihu_year')->orderByDesc('id')
-                ->get();
+                ->orderByDesc('kihu_year')->orderByDesc('id');
+
+            // private は作成者のみ（一覧にも出さない）
+            if (config('feature.data_privacy')) {
+                $me = auth()->user();
+                $dq->where(function($q) use ($me){
+                    $q->whereNull('visibility')
+                      ->orWhere('visibility', '!=', 'private')
+                      ->orWhere(function($qq) use ($me){
+                          $qq->where('visibility', 'private')
+                             ->where(function($qqq) use ($me){
+                                 $qqq->where('owner_user_id', (int)$me->id)
+                                     ->orWhere('user_id', (int)$me->id);
+                             });
+                      });
+                });
+            }
+
+            $datas = $dq->get();
         }
 
         return view('data.data_master', [
@@ -114,6 +203,7 @@ class DataController extends Controller
             'guestId'    => $guestId,
             'companyId'  => $companyId,
             'ctxGroupId' => $ctxGroupId, // null=横断
+            'clientGuest' => $this->isClient() ? ($guest ?? null) : null,
         ]);
     }
 
@@ -125,16 +215,40 @@ class DataController extends Controller
         if ((int)$guest->company_id !== (int)$me->company_id) {
             abort(403);
         }
-        if (!$this->isOwnerOrRegistrar() && (int)$guest->group_id !== (int)$me->group_id) {
-            abort(403);
+        if ($this->isClient()) {
+            // client は自分の顧客のみ
+            if ((int)($guest->client_user_id ?? 0) !== (int)$me->id) {
+                abort(403);
+            }
+        } else {
+            if (!$this->isOwnerOrRegistrar() && (int)$guest->group_id !== (int)$me->group_id) {
+                abort(403);
+            }
         }
 
-        $list = Data::query()
+        $q = Data::query()
             ->select('id', 'guest_id', 'kihu_year', 'owner_user_id', 'user_id', 'visibility')
             ->where('guest_id', $guest->id)
             ->whereNotNull('kihu_year')
             ->orderByDesc('kihu_year')->orderByDesc('id')
-            ->get();
+            ;
+
+        // private は作成者のみ（一覧にも出さない）
+        if (config('feature.data_privacy')) {
+            $q->where(function($qq) use ($me){
+                $qq->whereNull('visibility')
+                   ->orWhere('visibility', '!=', 'private')
+                   ->orWhere(function($qq2) use ($me){
+                       $qq2->where('visibility', 'private')
+                           ->where(function($qq3) use ($me){
+                               $qq3->where('owner_user_id', (int)$me->id)
+                                   ->orWhere('user_id', (int)$me->id);
+                           });
+                   });
+            });
+        }
+
+        $list = $q->get();
 
         // 選択保持
         session(['selected_guest_id' => $guest->id]);
@@ -160,9 +274,8 @@ class DataController extends Controller
     public function cloneWithYear(Request $request, Data $data): JsonResponse
     {
         $me = auth()->user();
-        // 簡易認可
-        if ((int)$data->company_id !== (int)$me->company_id) abort(403);
-        if (!$this->isOwnerOrRegistrar() && (int)$data->group_id !== (int)$me->group_id) abort(403);
+        // 共通のアクセス制御（client/部署/private を含む）
+        $this->assertCanAccessData($data);
 
         $validated = $request->validate([
             'kihu_year' => ['required','integer','between:2025,2035'],
@@ -513,6 +626,9 @@ class DataController extends Controller
     {
         $me = auth()->user();
         if ((int)$guest->company_id !== (int)$me->company_id) abort(403);
+        if ($this->isClient()) {
+            abort(403);
+        }
         if (!$this->isOwnerOrRegistrar() && (int)$guest->group_id !== (int)$me->group_id) abort(403);
 
         DB::transaction(function () use ($guest) {
@@ -526,8 +642,8 @@ class DataController extends Controller
     public function destroyData(Data $data): JsonResponse
     {
         $me = auth()->user();
-        if ((int)$data->company_id !== (int)$me->company_id) abort(403);
-        if (!$this->isOwnerOrRegistrar() && (int)$data->group_id !== (int)$me->group_id) abort(403);
+        // 共通のアクセス制御（client/部署/private を含む）
+        $this->assertCanAccessData($data);
 
         // visibility=private は作成者のみ削除OK（owner_user_id優先、無ければuser_id）
         $vis = (string)($data->visibility ?? 'shared');
@@ -567,6 +683,17 @@ class DataController extends Controller
         $companyId = (int)($me?->company_id);
         $ctxGroupId = $this->ctxGroupIdOrNull(); // Owner/Registrar=null(横断), 他ロールは自部署
 
+        if ($this->isClient()) {
+            $clientGuest = $this->resolveClientGuestOrFail();
+            $guests = collect([$clientGuest]);
+            $defaultBirthDate = $this->formatBirthDateForView($clientGuest->birth_date ?? null);
+            return view('data.data_create', [
+                'guests' => $guests,
+                'defaultBirthDate' => $defaultBirthDate,
+                'clientGuest' => $clientGuest,
+            ]);
+        }
+
         $q = Guest::query()
             ->select('id','name','company_id','group_id','user_id','birth_date')
             ->where('company_id', $companyId);
@@ -582,6 +709,15 @@ class DataController extends Controller
     /* ===== 新規作成：POST /data（保存） ===== */
     public function store(Request $request)
     {
+        // client：顧客は固定（ゲスト新規作成や他ゲスト選択は不可）
+        if ($this->isClient()) {
+            $clientGuest = $this->resolveClientGuestOrFail();
+            // request値は信用せず固定化
+            $request->merge([
+                'guest_mode' => 'existing',
+                'guest_id' => (int)$clientGuest->id,
+            ]);
+        }
         // 1) バリデーション（基本）
         $rules = [
             'guest_mode' => ['required','in:new,existing'],
@@ -617,6 +753,10 @@ class DataController extends Controller
         $birthDate = $validated['birth_date'] ?? null;
 
         if ($validated['guest_mode'] === 'new') {
+            // client は new を許可しない（固定）
+            if ($this->isClient()) {
+                abort(403);
+            }
             // 作成者の company/group を継承
             $guest = new Guest();
             $guest->name       = (string)$validated['guest_name'];
@@ -629,7 +769,11 @@ class DataController extends Controller
             // 会社一致
             if ((int)$guest->company_id !== $companyId) abort(403);
             // 所属チェック（Owner/Registrar は横断可、他ロールは自部署のみ）
-            if (!$this->isOwnerOrRegistrar() && (int)$guest->group_id !== $groupIdOfUser) abort(403);
+            if ($this->isClient()) {
+                if ((int)($guest->client_user_id ?? 0) !== (int)$me->id) abort(403);
+            } else {
+                if (!$this->isOwnerOrRegistrar() && (int)$guest->group_id !== $groupIdOfUser) abort(403);
+            }
         }
 
         $this->updateGuestBirthDate($guest, $birthDate);
@@ -688,27 +832,45 @@ class DataController extends Controller
     {
         $dataId = (int)$request->integer('data_id');
         $source = Data::with('guest')->findOrFail($dataId);
+        // 共通のアクセス制御（client/部署/private を含む）
+        $this->assertCanAccessData($source);
         $me = auth()->user();
-        // 認可（会社一致 + 所属）
-        if ((int)$source->company_id !== (int)$me->company_id) abort(403);
-        if (!$this->isOwnerOrRegistrar() && (int)$source->group_id !== (int)($me->group_id ?? 0)) abort(403);
 
         // コピー先候補（Owner/Registrar=横断、自ロール=自部署のみ）
-        $q = Guest::query()
-            ->select('id','name','company_id','group_id','user_id','birth_date')
-            ->where('company_id', (int)$me->company_id);
-        if (!$this->isOwnerOrRegistrar()) {
-            $q->where('group_id', (int)($me->group_id ?? 0));
+        if ($this->isClient()) {
+            $clientGuest = $this->resolveClientGuestOrFail();
+            $guests = collect([$clientGuest]);
+        } else {
+            $q = Guest::query()
+                ->select('id','name','company_id','group_id','user_id','birth_date')
+                ->where('company_id', (int)$me->company_id);
+            if (!$this->isOwnerOrRegistrar()) {
+                $q->where('group_id', (int)($me->group_id ?? 0));
+            }
+            $guests = $q->orderBy('created_at','asc')->get();
         }
-        $guests = $q->orderBy('created_at','asc')->get();
         $defaultBirthDate = $this->formatBirthDateForView($source->guest?->birth_date ?? null);
 
-        return view('data.data_copy', compact('source', 'guests', 'defaultBirthDate'));
+        return view('data.data_copy', [
+            'source' => $source,
+            'guests' => $guests,
+            'defaultBirthDate' => $defaultBirthDate,
+            'clientGuest' => $this->isClient() ? ($this->resolveClientGuestOrFail()) : null,
+        ]);
     }
 
     /** コピー実行：POST /data/copy（複数年度対応） */
     public function copy(Request $request)
     {
+        // client：コピー先は必ず同じ顧客（same固定）
+        if ($this->isClient()) {
+            $clientGuest = $this->resolveClientGuestOrFail();
+            $request->merge([
+                'copy_mode' => 'same',
+                'target_guest_id' => (int)$clientGuest->id,
+                'target_guest_name' => null,
+            ]);
+        }
         // 1) 入力検証
         $rules = [
             'selected_data_id' => ['required','integer','exists:datas,id'],
@@ -746,18 +908,25 @@ class DataController extends Controller
 
         // 2) コピー元
         $source = Data::with('guest')->findOrFail((int)$validated['selected_data_id']);
-        if ((int)$source->company_id !== $companyId) abort(403);
-        if (!$this->isOwnerOrRegistrar() && (int)$source->group_id !== $userGroupId) abort(403);
+        $this->assertCanAccessData($source);
 
         // 3) コピー先ゲスト決定（スコープ整合）
         $mode = (string)$validated['copy_mode'];
         if ($mode === 'same') {
             $targetGuest = $source->guest;
+            if ($this->isClient()) {
+                // client：source の guest が自分の顧客であることを厳密化
+                if ((int)($targetGuest->client_user_id ?? 0) !== (int)$me->id) {
+                    abort(403);
+                }
+            }
         } elseif ($mode === 'existing') {
+            if ($this->isClient()) abort(403);
             $targetGuest = Guest::findOrFail((int)$validated['target_guest_id']);
             if ((int)$targetGuest->company_id !== $companyId) abort(403);
             if (!$this->isOwnerOrRegistrar() && (int)$targetGuest->group_id !== $userGroupId) abort(403);
         } else { // new
+            if ($this->isClient()) abort(403);
             $targetGuest = new Guest();
             $targetGuest->name       = (string)$validated['target_guest_name'];
             $targetGuest->company_id = $companyId;

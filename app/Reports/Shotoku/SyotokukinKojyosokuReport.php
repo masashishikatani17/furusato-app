@@ -21,6 +21,18 @@ class SyotokukinKojyosokuReport implements ReportInterface
 
     public function buildViewData(Data $data): array
     {
+        // 既定：上限額まで寄付（従来互換）
+        return $this->buildViewDataWithContext($data, ['report_key' => 'syotokukinkojyosoku']);
+    }
+
+    /**
+     * Bundle から「今までの寄付額（_curr）」と「上限額（通常）」を切り替えるための拡張
+     * - PdfOutputController から report_key が渡される
+     *
+     * @param array<string,mixed> $context
+     */
+    public function buildViewDataWithContext(Data $data, array $context): array
+    {
         $guestName = $data->guest?->name ?? '（名称未登録）';
         $year = (int)($data->kihu_year ?? now()->year);
 
@@ -86,16 +98,35 @@ class SyotokukinKojyosokuReport implements ReportInterface
         $runner = app(FurusatoDryRunCalculatorRunner::class);
         $out = $payload; // 失敗時でも後続が壊れないように初期化
 
-        try {
-            /** @var FurusatoPracticalUpperLimitService $upperSvc */
-            $upperSvc = app(FurusatoPracticalUpperLimitService::class);
-            $upper = $upperSvc->compute($payload, $ctx);
-            $yMaxTotalRaw = (int)($upper['y_max_total'] ?? 0);
-            $yMaxTotalDisplay = $this->floorToThousands($yMaxTotalRaw);
+        // --------------------------------------------
+        // ★出力モード判定
+        //   - report_key が *_curr なら「今までに寄付した額」
+        //   - それ以外は「上限額まで寄付」
+        // --------------------------------------------
+        $reportKey = strtolower((string)($context['report_key'] ?? ''));
+        $mode = str_ends_with($reportKey, '_curr') ? 'current' : 'max';
 
-            // ▼ 計算は「生値」で注入（控除額を正確にする）
-            $payloadAtMax = $this->withFurusato($payload, $yMaxTotalRaw);
-            $out = $runner->run($payloadAtMax, $ctx);
+        try {
+            if ($mode === 'current') {
+                // ▼ 今までに寄付した額（当年）：
+                //   - 所得税側が 0 でも、住民税側（pref/muni）に入力があれば“その額”で計算・表示したい
+                //   - ただし current では「所得税側まで勝手に同額コピーしない」（ワンストップを壊すため）
+                $payloadAt = $this->withFurusatoCurrent($payload);
+                $yCurrent = $this->resolveCurrentFurusatoDonationCurr($payloadAt);
+                $yMaxTotalRaw = $yCurrent;
+                $yMaxTotalDisplay = $yCurrent;
+                $out = $runner->run($payloadAt, $ctx);
+            } else {
+                /** @var FurusatoPracticalUpperLimitService $upperSvc */
+                $upperSvc = app(FurusatoPracticalUpperLimitService::class);
+                $upper = $upperSvc->compute($payload, $ctx);
+                $yMaxTotalRaw = (int)($upper['y_max_total'] ?? 0);
+                $yMaxTotalDisplay = $this->floorToThousands($yMaxTotalRaw);
+
+                // ▼ 計算は「生値」で注入（控除額を正確にする）
+                $payloadAtMax = $this->withFurusatoMax($payload, $yMaxTotalRaw);
+                $out = $runner->run($payloadAtMax, $ctx);
+            }
         } catch (\Throwable $e) {
             // 帳票生成は落とさない（0扱いで続行）
             $yMaxTotalRaw = 0;
@@ -215,6 +246,8 @@ class SyotokukinKojyosokuReport implements ReportInterface
             'furusato_y_max_total'     => $yMaxTotalDisplay,
             // ▼ 計算の生値（デバッグや将来の「円単位表示」が必要ならこちら）
             'furusato_y_max_total_raw' => $yMaxTotalRaw,
+            // ▼ どちらで出したか（帳票ヘッダ文言を変えるなら Blade 側で参照）
+            'furusato_pdf_variant'     => $mode,
             'income_table_curr' => $incomeTable,
             'kojo_table_curr'   => $kojoTable,
         ];
@@ -237,13 +270,55 @@ class SyotokukinKojyosokuReport implements ReportInterface
 
     private function withFurusato(array $payload, int $y): array
     {
+        // 旧互換：外部から呼ばれない想定にし、max/current を明示関数へ分離
+        return $this->withFurusatoMax($payload, $y);
+    }
+
+    /**
+     * 上限額（max）用：所得税側/住民税側とも「同額」で注入する（従来互換）
+     */
+    private function withFurusatoMax(array $payload, int $y): array
+    {
         $y = max(0, $y);
-        // 所得税側（SoT）
         $payload['shotokuzei_shotokukojo_furusato_curr'] = $y;
-        // 住民税側（pref/muni 同額コピー運用）
         $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $y;
         $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $y;
         return $payload;
+    }
+
+    /**
+     * 今まで（current）用：
+     * - 住民税側の pref/muni は「どちらか入っていれば同額コピー」で揃える
+     * - 所得税側は“現状の入力”を尊重（0なら0のまま）
+     */
+    private function withFurusatoCurrent(array $payload): array
+    {
+        $itax = $this->n($payload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
+        $pref = $this->n($payload['juminzei_zeigakukojo_pref_furusato_curr'] ?? 0);
+        $muni = $this->n($payload['juminzei_zeigakukojo_muni_furusato_curr'] ?? 0);
+
+        // 住民税側は「どちらか入っていれば同額コピー」で同期（UIの運用に合わせる）
+        $j = max(0, max($pref, $muni));
+        if ($j > 0) {
+            $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $j;
+            $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $j;
+        }
+
+        // 所得税側は current では勝手に上書きしない（ワンストップを壊さない）
+        $payload['shotokuzei_shotokukojo_furusato_curr'] = max(0, $itax);
+        return $payload;
+    }
+
+    /**
+     * 「今までに寄付した額（当年）」を安全に解決する
+     * - ワンストップ等で所得税側が 0 でも、住民税側（pref/muni）に入力があればそれを採用
+     */
+    private function resolveCurrentFurusatoDonationCurr(array $payload): int
+    {
+        $itax = $this->n($payload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
+        $pref = $this->n($payload['juminzei_zeigakukojo_pref_furusato_curr'] ?? 0);
+        $muni = $this->n($payload['juminzei_zeigakukojo_muni_furusato_curr'] ?? 0);
+        return max(0, max($itax, $pref, $muni));
     }
 
     private function n(mixed $v): int

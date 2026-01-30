@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Mail\UserInvitationMail;
 use App\Models\Group;
+use App\Models\Guest;
 use App\Models\Invitation;
 use App\Models\User;
 use App\Services\License\SeatService;
@@ -58,9 +59,20 @@ class UsersController extends Controller
         $actor = Auth::user();
         [$groups, $roleOptions] = $this->formOptionsForActor($actor);
 
+        // client 招待用：選択可能な顧客（guest）
+        $guestQuery = Guest::query()
+            ->select('id','name','company_id','group_id','client_user_id')
+            ->where('company_id', (int)$actor->company_id)
+            ->orderBy('name');
+        if (method_exists($actor, 'isGroupAdmin') && $actor->isGroupAdmin()) {
+            $guestQuery->where('group_id', (int)$actor->group_id);
+        }
+        $guestsForClient = $guestQuery->get();
+
         return view('admin.users.create', [
             'groups' => $groups,
             'roleOptions' => $roleOptions,
+            'guestsForClient' => $guestsForClient,
         ]);
     }
 
@@ -79,10 +91,82 @@ class UsersController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'role' => ['required', Rule::in($roleKeys)],
             'group_id' => ['nullable', Rule::in($groupIds)],
+            // client招待のみ使用
+            'client_mode' => ['nullable', 'in:existing,new'],
+            'guest_id' => ['nullable', 'integer'],
+            'guest_name' => ['nullable', 'string', 'max:25'],
         ]);
 
         $role = $data['role'];
         $groupId = $data['group_id'] ?? null;
+        $clientMode = (string)($data['client_mode'] ?? '');
+        $guestId = isset($data['guest_id']) ? (int)$data['guest_id'] : 0;
+        $guestName = trim((string)($data['guest_name'] ?? ''));
+
+        // client招待：existing（既存紐付け） or new（新規顧問先作成）
+        if ($role === 'client') {
+            if (!in_array($clientMode, ['existing','new'], true)) {
+                throw ValidationException::withMessages([
+                    'client_mode' => __('顧問先の指定方法を選択してください。'),
+                ]);
+            }
+
+            if ($clientMode === 'existing') {
+                if ($guestId <= 0) {
+                    throw ValidationException::withMessages([
+                        'guest_id' => __('既存の顧問先（お客様）を選択してください。'),
+                    ]);
+                }
+                $guest = Guest::query()
+                    ->where('company_id', (int)$actor->company_id)
+                    ->where('id', $guestId)
+                    ->first();
+                if (!$guest) {
+                    throw ValidationException::withMessages([
+                        'guest_id' => __('顧問先（お客様）が見つかりません。'),
+                    ]);
+                }
+                // GroupAdminは自部署のguestのみ
+                if (method_exists($actor, 'isGroupAdmin') && $actor->isGroupAdmin()) {
+                    if ((int)$guest->group_id !== (int)($actor->group_id ?? 0)) {
+                        throw ValidationException::withMessages([
+                            'guest_id' => __('自部署のお客様のみ招待できます。'),
+                        ]);
+                    }
+                }
+                // 既に client が紐付いているなら招待不可
+                if ((int)($guest->client_user_id ?? 0) > 0) {
+                    throw ValidationException::withMessages([
+                        'guest_id' => __('このお客様には既に顧客アカウントが紐付いています。'),
+                    ]);
+                }
+                // 部署は guest に従属（ユーザー入力は無視）
+                $groupId = (int)($guest->group_id ?? 0);
+                if ($groupId <= 0) {
+                    throw ValidationException::withMessages([
+                        'guest_id' => __('このお客様の部署が未設定です。先に部署を設定してください。'),
+                    ]);
+                }
+            } else { // new
+                if ($guestName === '') {
+                    throw ValidationException::withMessages([
+                        'guest_name' => __('顧問先名（お客様名）を入力してください。'),
+                    ]);
+                }
+                // 部署：GroupAdminは自部署固定、Owner/Registrarは選択必須
+                if (method_exists($actor, 'isGroupAdmin') && $actor->isGroupAdmin()) {
+                    $groupId = (int)($actor->group_id ?? 0);
+                }
+                if (!$groupId) {
+                    throw ValidationException::withMessages([
+                        'group_id' => __('部署を選択してください。'),
+                    ]);
+                }
+                $groupId = (int)$groupId;
+                // guestId は使わない
+                $guestId = 0;
+            }
+        }      
 
         if ($role === 'registrar') {
             $groupId = null;
@@ -125,20 +209,24 @@ class UsersController extends Controller
             ]);
         }
 
-        $seatService = app(SeatService::class);
-        $seatLimit = $seatService->getActiveSeats((int) $actor->company_id);
-
-        try {
-            $seatService->assertCanInvite((int) $actor->company_id, $seatLimit, 1);
-        } catch (\Throwable $e) {
-            throw ValidationException::withMessages([
-                'email' => __('招待可能な席数の上限に達しています。'),
-            ]);
+        // Seat：client は対象外。社員招待のみチェック。
+        if ($role !== 'client') {
+            $seatService = app(SeatService::class);
+            $seatLimit = $seatService->getActiveSeats((int) $actor->company_id);
+            try {
+                $seatService->assertCanInvite((int) $actor->company_id, $seatLimit, 1);
+            } catch (\Throwable $e) {
+                throw ValidationException::withMessages([
+                    'email' => __('招待可能な席数の上限に達しています。'),
+                ]);
+            }
         }
 
         $invitation = Invitation::create([
             'company_id' => $actor->company_id,
             'group_id' => $groupId,
+            'guest_id' => ($role === 'client' && $clientMode === 'existing') ? $guestId : null,
+            'guest_name' => ($role === 'client' && $clientMode === 'new') ? $guestName : null,
             'email' => $data['email'],
             'role' => $role,
             'token' => Str::random(40),
@@ -164,6 +252,8 @@ class UsersController extends Controller
                 'invitation_id' => $invitation->id ?? null,
                 'email' => $invitation->email,
                 'role' => $invitation->role,
+                'guest_id' => $invitation->guest_id ?? null,
+                'guest_name' => $invitation->guest_name ?? null,
             ]);
         }
 
@@ -324,6 +414,7 @@ class UsersController extends Controller
             'member' => 'Member（一般）',
             'group_admin' => 'GroupAdmin（部署管理者）',
             'registrar' => 'Registrar（統括管理者）',
+            'client' => 'Client（顧問先）',
         ];
 
         if (method_exists($actor, 'isGroupAdmin') && $actor->isGroupAdmin()) {

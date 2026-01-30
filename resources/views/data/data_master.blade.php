@@ -7,13 +7,22 @@
     <div>
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
       <h0 class="mb-0 ms-3 mt-2"> お客様・年度一覧</h0>
+      {{-- ログアウト（settings/index と同じ） --}}
+      <form method="POST" action="{{ route('logout') }}" class="m-0">
+        @csrf
+        <button type="submit" class="btn btn-base-blue">ログアウト</button>
+      </form>      
       @php
         $me = $me ?? auth()->user();
-        $isClient = strtolower((string)($me->role ?? '')) === 'client';
+        $role = strtolower((string)($me->role ?? ''));
+        $isClient = ($role === 'client');
+        $canGear = !($isClient);
       @endphp
     </div>
     <div class="d-flex me-3 mt-2">
-        <x-gear-button position="inline" size="26" />
+        @if ($canGear)
+          <x-gear-button position="inline" size="26" />
+        @endif
     </div>
   </div>
   <div class="card-body">

@@ -24,6 +24,11 @@ return [
     'juminkeigengaku' => \App\Reports\Jumin\JuminKeigengakuReport::class,
     // 住民税の軽減額（ワンストップ特例）
     'juminkeigengaku_onestop' => \App\Reports\Jumin\JuminKeigengakuOnestopReport::class,
+    // ======== 「今までに寄付した額」用（2〜4ページだけ差し替え） ========
+    'syotokukinkojyosoku_curr' => \App\Reports\Shotoku\SyotokukinKojyosokuReport::class,
+    'kazeigakuzeigakuyosoku_curr' => \App\Reports\Kazei\KazeigakuZeigakuYosokuReport::class,
+    'juminkeigengaku_curr' => \App\Reports\Jumin\JuminKeigengakuReport::class,
+    'juminkeigengaku_onestop_curr' => \App\Reports\Jumin\JuminKeigengakuOnestopReport::class,
     // 寄附金額別損得シミュレーション（Bladeは 5_ だが URLキーは数字なし）
     'sonntokusimulation' => \App\Reports\Simulation\SonntokuSimulationReport::class,
     

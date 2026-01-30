@@ -17,7 +17,7 @@
     $originSubtab = in_array($originSubtabCandidate, ['bunri', 'sogo', 'prev', 'curr'], true) ? $originSubtabCandidate : 'bunri';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
 @endphp
-<div class="container-blue mt-2" style="width: 800px;">
+<div class="container-blue mt-2" style="width: 720px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
@@ -50,7 +50,7 @@
           <div class="fw-bold ms-2 mb-1">{{ $label }}</div>
           @php $off = ($period === 'prev') ? $bunriPrevOff : $bunriCurrOff; @endphp
           <div class="table-responsive mb-2">
-            <table class="table-base table-bordered align-middle text-center">
+            <table class="table-input align-middle text-center">
               <thead>
                 <tr>
                   <th style="height:30px;">収入金額</th>

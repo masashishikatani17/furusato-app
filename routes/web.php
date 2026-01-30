@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\OwnerTransferController;
 use App\Http\Controllers\Admin\DataDownloadController;
 use App\Http\Controllers\Billing\SetupController;
 use App\Http\Controllers\Admin\AuditLogsController;
+use App\Http\Controllers\Admin\InvitationsController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -69,6 +70,18 @@ Route::middleware(['auth', 'reject.client'])->group(function () {
     // 監査ログ（Owner/Registrar のみ）
     Route::get('/admin/audit-logs', [AuditLogsController::class, 'index'])->name('admin.audit_logs.index');
     Route::get('/admin/audit-logs/{id}', [AuditLogsController::class, 'show'])->whereNumber('id')->name('admin.audit_logs.show');
+
+    // 招待一覧（Owner/Registrar/GroupAdmin）
+    Route::get('/admin/invitations', [InvitationsController::class, 'index'])->name('admin.invitations.index');
+    Route::post('/admin/invitations/{invitation}/cancel', [InvitationsController::class, 'cancel'])
+        ->whereNumber('invitation')
+        ->name('admin.invitations.cancel');
+    Route::post('/admin/invitations/{invitation}/revoke', [InvitationsController::class, 'revoke'])
+        ->whereNumber('invitation')
+        ->name('admin.invitations.revoke');
+    Route::post('/admin/invitations/{invitation}/resend', [InvitationsController::class, 'resend'])
+        ->whereNumber('invitation')
+        ->name('admin.invitations.resend');
 });
 
 // 招待承諾（ログイン不要）

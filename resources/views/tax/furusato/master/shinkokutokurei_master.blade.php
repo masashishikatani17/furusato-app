@@ -1,3 +1,4 @@
+<!-- views/tax/furusato/master/shinkokutokurei_master.blade.php -->
 @extends('layouts.min')
 @section('content')
 <div class="container-grey mt-2" style="width: 500px;">

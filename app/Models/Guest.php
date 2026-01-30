@@ -18,6 +18,7 @@ class Guest extends Model
         'company_id',
         'group_id',
         'user_id',
+        'client_user_id',
         'birth_date',
     ];
 
@@ -25,6 +26,7 @@ class Guest extends Model
         'company_id' => 'integer',
         'group_id'   => 'integer',
         'user_id'    => 'integer',
+        'client_user_id' => 'integer',
         'birth_date' => 'date',
     ];
 

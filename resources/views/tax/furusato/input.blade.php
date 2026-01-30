@@ -41,6 +41,11 @@
       width: 100%;
     }
 
+    /* ▼ 余白を消してコンパクトに（内容幅まで縮める） */
+    #furusato-input-form .furusato-table-scroll table.table {
+      width: max-content !important;   /* 余白が出ない */
+    }
+    
     /* ============================
      *  縦書きTH（rowgroup見出し用）
      *  - display:flex は table-cell を崩すので使わない
@@ -141,7 +146,7 @@
 @endpush
 
 @section('content')
-<div class="container-blue" style="width: 1200px;">
+<div class="container-blue" style="width: 1100px;">
   <form method="POST" action="{{ route('furusato.save') }}" id="furusato-input-form">
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId ?? '' }}">
@@ -498,10 +503,10 @@
                         }
 
                         if ($isForceDash) {
-                            $html .= '<td><input type="text" class="form-control form-control-compact-05 text-center bg-light" value="－" readonly><input type="hidden" name="' . e($name) . '" value=""></td>';
-                        } else {
+                            $html .= '<td><input type="text" class="form-control suji11s text-center bg-light" value="－" readonly><input type="hidden" name="' . e($name) . '" value=""></td>';
+                         } else {
                             $readonlyAttr = $isReadonly ? ' readonly' : '';
-                            $class = 'form-control form-control-compact-05 text-end js-comma';
+                            $class = 'form-control suji11s text-end js-comma';
                             if ($isReadonly) {
                                 $class .= ' bg-light';
                             }
@@ -547,7 +552,7 @@
                             $disp += (int)($inputs[$tb] ?? 0);
                       }
                         $html .= '<td>';
-                        $html .= '<input type="text" class="form-control form-control-compact-05 text-end bg-light js-comma" value="' . e(number_format($disp)) . '" readonly>';
+                        $html .= '<input type="text" class="form-control suji11s text-end bg-light js-comma" value="' . e(number_format($disp)) . '" readonly>';
                         foreach ($keys as $k) {
                             $tb = sprintf('%s_%s_%s', $k, $tax, $p);
                             $raw = (int)($inputs[$tb] ?? 0);
@@ -558,14 +563,13 @@
                 }
                 return $html;
             };
-            $renderServerLockedInput = static function (string $name, int $raw, string $class = 'form-control form-control-compact-05 text-end js-comma bg-light') use ($normalizeInt): string {
-                $raw = $normalizeInt($raw);
+            $renderServerLockedInput = static function (string $name, int $raw, string $class = 'form-control suji11s text-end js-comma bg-light') use ($normalizeInt): string {
                 $display = number_format($raw);
 
                 return '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($display) . '" readonly data-server-lock="1" data-server-raw="' . e((string) $raw) . '"></td>';
             };
             // shotoku_gokei_* 等「クライアント再計算可能」な readonly 表示用
-            $renderReadonlyInput = static function (string $name, int $raw, string $class = 'form-control form-control-compact-05 text-end js-comma bg-light') use ($normalizeInt): string {
+             $renderReadonlyInput = static function (string $name, int $raw, string $class = 'form-control suji11s text-end js-comma bg-light') use ($normalizeInt): string {
                 $raw = $normalizeInt($raw);
                 $display = number_format($raw);
 
@@ -595,7 +599,8 @@
                 <th scope="row" class="align-middle text-start th-ddd ps-1">一般分</th>
                 <td class="text-center align-middle" rowspan="5">
                   <button type="submit"
-                          class="btn-base-green"
+                          class="btn-base-free-green"
+                          style="height:94px;"
                           name="redirect_to"
                           value="bunri_joto"
                           data-origin-subtab="bunri"
@@ -622,7 +627,8 @@
                 <th scope="row" colspan="2" class="align-middle text-start ps-1">一般株式等の譲渡</th>
                 <td class="text-center nowrap align-middle" rowspan="3">
                   <button type="submit"
-                          class="btn-base-green"
+                          class="btn-base-free-green"
+                          style="height:50px;"
                           name="redirect_to"
                           value="bunri_kabuteki"
                           data-origin-subtab="bunri"
@@ -642,7 +648,7 @@
                 <th scope="row" colspan="2" class="align-middle text-start ps-1">先物取引</th>
                 <td class="text-center align-middle">
                   <button type="submit"
-                          class="btn-base-green"
+                          class="btn-base-low-green"
                           name="redirect_to"
                           value="bunri_sakimono"
                           data-origin-subtab="bunri"
@@ -654,7 +660,7 @@
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">山林</th>
                 <td class="text-center align-middle">
                   <button type="submit"
-                          class="btn-base-green"
+                          class="btn-base-low-green"
                           name="redirect_to"
                           value="bunri_sanrin"
                           data-origin-subtab="bunri"
@@ -665,7 +671,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderInputs('bunri_syunyu_taishoku') !!}
               </tr>
@@ -683,7 +689,8 @@
                 <th scope="row" class="align-middle text-start th-ddd ps-1">一般分</th>
                 <td class="text-center align-middle" rowspan="5">
                   <button type="submit"
-                          class="btn-base-green"
+                          class="btn-base-free-green"
+                          style="height:81px;"
                           name="redirect_to"
                           value="bunri_joto"
                           data-origin-subtab="bunri"
@@ -710,7 +717,8 @@
                 <th scope="row" colspan="2" class="align-middle text-start ps-1">一般株式等の譲渡</th>
                 <td class="text-center align-middle" rowspan="3">
                   <button type="submit"
-                          class="btn-base-green"
+                          class="btn-base-free-green"
+                          style="height:52px;"
                           name="redirect_to"
                           value="bunri_kabuteki"
                           data-origin-subtab="bunri"
@@ -730,7 +738,7 @@
                 <th scope="row" colspan="2" class="align-middle text-start ps-1">先物取引</th>
                 <td class="text-center align-middle">
                   <button type="submit"
-                          class="btn-base-green"
+                          class="btn-base-low-green"
                           name="redirect_to"
                           value="bunri_sakimono"
                           data-origin-subtab="bunri"
@@ -742,7 +750,7 @@
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">山林</th>
                 <td class="text-center align-middle">
                   <button type="submit"
-                          class="btn-base-green"
+                          class="btn-base-low-green"
                           name="redirect_to"
                           value="bunri_sanrin"
                           data-origin-subtab="bunri"
@@ -753,7 +761,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderInputs('bunri_shotoku_taishoku') !!}
               </tr>
@@ -800,13 +808,13 @@
                 $sumJuminCurr   = $sumShotokuEtcUi('jumin',  'curr');
               @endphp
               <tr>
-                <th scope="row" colspan="3" class="align-middle text-center th-cream">合計</th>
+                <th scope="row" colspan="3" class="align-middle text-center th-cream">合 計</th>
                 <td></td>
-                <td><input type="text" class="form-control form-control-compact-05 text-end js-comma bg-light" value="{{ number_format($sumShotokuPrev) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control form-control-compact-05 text-end js-comma bg-light" value="{{ number_format($sumShotokuCurr) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control form-control-compact-05 text-end js-comma bg-light" value="{{ number_format($sumJuminPrev) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control form-control-compact-05 text-end js-comma bg-light" value="{{ number_format($sumJuminCurr) }}" readonly data-ui-only="1"></td>
-              </tr>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumShotokuPrev) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumShotokuCurr) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumJuminPrev) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumJuminCurr) }}" readonly data-ui-only="1"></td>
+                </tr>
             @endif
           @php $bunriShotokuRows = ob_get_clean(); @endphp
 
@@ -819,7 +827,7 @@
                 </th>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">総合課税</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -834,7 +842,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">短期譲渡</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -849,7 +857,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">長期譲渡</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -864,35 +872,35 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1 pe-1" nowrap="nowrap">一般・上場株式の譲渡</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderSeparatedTb(['tb_ippan_kabuteki_joto','tb_jojo_kabuteki_joto'], $inputs) !!}
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">上場株式の配当等</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderSeparatedTb('tb_jojo_kabuteki_haito', $inputs) !!}
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">先物取引</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderSeparatedTb('tb_sakimono', $inputs) !!}
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">山林</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderSeparatedTb('tb_sanrin', $inputs) !!}
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderSeparatedTb('tb_taishoku', $inputs) !!}
               </tr>
@@ -903,7 +911,7 @@
                 </th>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">総合課税</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -918,7 +926,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">短期譲渡</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -933,7 +941,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">長期譲渡</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -948,7 +956,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">一般・上場株式の譲渡</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -963,7 +971,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">上場株式の配当等</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -978,7 +986,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">先物取引</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -993,7 +1001,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">山林</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -1008,7 +1016,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -1023,7 +1031,7 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-center th-cream">合計(調整控除前所得割額)</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -1045,19 +1053,19 @@
                 </th>
                 <th colspan="2" class="text-start align-middle ps-1">調整控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {{-- 所得税：ダッシュ --}}
-                <td><input type="text" class="form-control form-control-compact-05 text-center bg-light" value="－" readonly></td>
-                <td><input type="text" class="form-control form-control-compact-05 text-center bg-light" value="－" readonly></td>
-                {{-- 住民税：調整控除（県+市）合計（UI表示専用／POSTしない） --}}
-                <td><input type="text" class="form-control form-control-compact-05 text-end js-comma bg-light" value="{{ number_format($choseiPrev) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control form-control-compact-05 text-end js-comma bg-light" value="{{ number_format($choseiCurr) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-center bg-light" value="－" readonly></td>
+                <td><input type="text" class="form-control suji11s text-center bg-light" value="－" readonly></td>
+               {{-- 住民税：調整控除（県+市）合計（UI表示専用／POSTしない） --}}
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($choseiPrev) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($choseiCurr) }}" readonly data-ui-only="1"></td>
               </tr>
               <tr>
                 <th colspan="2" class="text-start align-middle ps-1">配当控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderInputs('tax_haito') !!}
               </tr>
@@ -1065,7 +1073,7 @@
                 <th colspan="2" class="text-start align-middle ps-1">住宅借入金等特別控除</th>
                 <td class="text-center align-middle">
                   <button type="button"
-                          class="btn-base-green js-open-details"
+                          class="btn-base-low-green js-open-details"
                           data-redirect-to="kojo_tokubetsu_jutaku_loan"
                           data-origin-anchor="tax_jutaku">内訳</button>
                 </td>
@@ -1074,26 +1082,26 @@
               <tr>
                 <th colspan="2" class="text-start align-middle ps-1">政党等寄付金等特別控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderInputs('tax_seito') !!}
               </tr>
               <tr>
                 <th colspan="2" class="text-start align-middle ps-1">寄附金税額控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {{-- 所得税：ダッシュ --}}
-                <td><input type="text" class="form-control form-control-compact-05 text-center bg-light" value="－" readonly></td>
-                <td><input type="text" class="form-control form-control-compact-05 text-center bg-light" value="－" readonly></td>
-                {{-- 住民税：寄附金税額控除（県+市）合計（UI表示専用／POSTしない） --}}
-                <td><input type="text" class="form-control form-control-compact-05 text-end js-comma bg-light" value="{{ number_format($kifukinZeigakuPrev) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control form-control-compact-05 text-end js-comma bg-light" value="{{ number_format($kifukinZeigakuCurr) }}" readonly data-ui-only="1"></td>
-              </tr>
+                <td><input type="text" class="form-control suji11s text-center bg-light" value="－" readonly></td>
+                <td><input type="text" class="form-control suji11s text-center bg-light" value="－" readonly></td>
+                 {{-- 住民税：寄附金税額控除（県+市）合計（UI表示専用／POSTしない） --}}
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($kifukinZeigakuPrev) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($kifukinZeigakuCurr) }}" readonly data-ui-only="1"></td>
+             </tr>
               <tr>
                 <th colspan="2" class="text-start align-middle ps-1">災害減免額</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderInputs('tax_saigai_genmen') !!}
               </tr>
@@ -1101,7 +1109,7 @@
               <tr>
                 <th colspan="2" class="text-start align-middle ps-1">令和6年度分特別税額控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderInputs('tax_tokubetsu_R6') !!}
               </tr>
@@ -1116,21 +1124,21 @@
                 </th>
                 <th colspan="2" class="text-start align-middle ps-1">基準所得税額(所得割額)</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderInputs('tax_kijun') !!}
               </tr>
               <tr>
                 <th colspan="2" class="text-start align-middle ps-1">復興特別所得税額</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderInputs('tax_fukkou') !!}
               </tr>
               <tr>
                 <th colspan="2" class="align-middle th-cream">合  計</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                 {!! $renderInputs('tax_gokei') !!}
               </tr>
@@ -1139,7 +1147,7 @@
 
           @php ob_start(); @endphp
         <div>
-          <hb class="card-title mb-3">確定申告書</hb>
+          <hb class="card-title ms-5 mb-3">確定申告書</hb>
           <div class="table-responsive furusato-table-scroll">
             <table class="table table-base table-compact-05 align-middle">
               <thead>
@@ -1167,7 +1175,7 @@
                   <th class="text-start align-middle th-ddd ps-1">営業等</th>
                   <td class="text-center align-middle">
                     <button type="submit"
-                            class="btn-base-green"
+                            class="btn-base-low-green"
                             name="redirect_to"
                             value="jigyo"
                             data-return-anchor="syunyu_row_jigyo_eigyo">内訳</button>
@@ -1177,7 +1185,7 @@
                 <tr>
                   <th class="text-start align-middle th-ddd ps-1">農業</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                   {!! $renderInputs('syunyu_jigyo_nogyo') !!}
                 </tr>
@@ -1185,7 +1193,7 @@
                   <th colspan="2" class="text-start align-middle ps-1">不動産</th>
                   <td class="text-center align-middle">
                     <button type="submit"
-                            class="btn-base-green"
+                            class="btn-base-low-green"
                             name="redirect_to"
                             value="fudosan"
                             data-return-anchor="syunyu_row_fudosan">内訳</button>
@@ -1195,7 +1203,7 @@
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">配当</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                   {!! $renderInputs('syunyu_haito') !!}
                 </tr>
@@ -1203,7 +1211,8 @@
                   <th colspan="2" class="text-start align-middle ps-1">給与</th>
                   <td class="text-center align-middle" rowspan="4">
                     <button type="button"
-                            class="btn-base-green js-open-details"
+                            class="btn-base-free-green js-open-details"
+                            style="height:67px;"
                             data-redirect-to="kyuyo_zatsu"
                             data-origin-subtab="sogo"
                             data-origin-anchor="syunyu_row_kyuyo">内訳</button>
@@ -1228,7 +1237,8 @@
                   <th class="text-start align-middle th-ddd ps-1">短期</th>
                   <td class="text-center align-middle" rowspan="3">
                     <button type="button"
-                            class="btn-base-green js-open-details"
+                            class="btn-base-free-green js-open-details"
+                            style="height:49px;"
                             data-redirect-to="joto_ichiji"
                             data-origin-anchor="income_joto_ichiji"
                             data-return-anchor="income_joto_ichiji">内訳</button>
@@ -1255,7 +1265,7 @@
                   <th class="text-start align-middle th-ddd ps-1">営業等</th>
                   <td class="text-center align-middle">
                     <button type="submit"
-                            class="btn-base-green"
+                            class="btn-base-low-green"
                             name="redirect_to"
                             value="jigyo"
                             data-return-anchor="shotoku_row_jigyo_eigyo">内訳</button>
@@ -1265,7 +1275,7 @@
                 <tr>
                   <th class="text-start align-middle th-ddd ps-1">農業</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                   {!! $renderInputs('shotoku_jigyo_nogyo') !!}
                 </tr>
@@ -1273,7 +1283,7 @@
                   <th colspan="2" class="text-start align-middle ps-1">不動産</th>
                   <td class="text-center align-middle">
                     <button type="submit"
-                            class="btn-base-green"
+                            class="btn-base-low-green"
                             nowrap="nowrap"
                             name="redirect_to"
                             value="fudosan"
@@ -1284,14 +1294,14 @@
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">利子</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                   {!! $renderInputs('shotoku_rishi') !!}
                 </tr>
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">配当</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                   {!! $renderInputs('shotoku_haito') !!}
                 </tr>
@@ -1299,7 +1309,8 @@
                   <th colspan="2" class="text-start align-middle ps-1">給与</th>
                   <td class="text-center align-middle" rowspan="4">
                     <button type="button"
-                            class="btn-base-green js-open-details"
+                            class="btn-base-free-green js-open-details"
+                            style="height:68px;"
                             data-redirect-to="kyuyo_zatsu"
                             data-origin-subtab="sogo"
                             data-origin-anchor="shotoku_row_kyuyo">内訳</button>
@@ -1323,7 +1334,7 @@
                   <th colspan="2" class="text-start align-middle ps-1">総合譲渡・一時</th>
                   <td class="text-center align-middle">
                     <button type="button"
-                            class="btn-base-green js-open-details"
+                            class="btn-base-low-green js-open-details"
                             data-redirect-to="joto_ichiji"
                             data-origin-anchor="shotoku_joto_ichiji"
                             data-return-anchor="shotoku_joto_ichiji">内訳</button>
@@ -1339,7 +1350,7 @@
                             $name = sprintf('shotoku_gokei_%s_%s', $tax, $period);
                             $raw = $normalizeInt($inputs[$name] ?? 0);
                             // shotoku_gokei_* はクライアント側で常に再計算するため lock は付けない
-                            echo $renderReadonlyInput($name, $raw, 'form-control form-control-compact-05 text-end js-comma bg-light');
+                            echo $renderReadonlyInput($name, $raw, 'form-control suji11s text-end js-comma bg-light');
                         }
                     }
                   @endphp
@@ -1351,14 +1362,14 @@
                   </th>
                   <th colspan="3" class="text-start align-middle ps-1">社会保険料控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                   {!! $renderInputs('kojo_shakaihoken') !!}
                 </tr>
                 <tr>
                   <th colspan="3" class="text-start align-middle ps-1 pe-1" nowrap="nowrap">小規模企業共済等掛金控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                   {!! $renderInputs('kojo_shokibo') !!}
                 </tr>
@@ -1366,7 +1377,8 @@
                   <th colspan="3" class="text-start align-middle ps-1">生命保険料控除</th>
                   <td class="text-center align-middle" rowspan="2">
                     <button type="button"
-                            class="btn-base-green js-open-details"
+                            class="btn-base-free-green js-open-details"
+                            style="height:32px;"
                             data-redirect-to="kojo_seimei_jishin"
                             data-origin-anchor="kojo_seimei_jishin"
                             data-return-anchor="kojo_seimei_jishin">内訳</button>
@@ -1381,7 +1393,8 @@
                   <th colspan="3" class="text-start align-middle ps-1">寡婦控除</th>
                   <td class="text-center align-middle" rowspan="8">
                     <button type="button"
-                            class="btn-base-green js-open-details"
+                            class="btn-base-free-green js-open-details"
+                            style="height:143px;"
                             data-redirect-to="kojo_jinteki"
                             data-origin-anchor="kojo_jinteki"
                             data-return-anchor="kojo_jinteki">内訳</button>
@@ -1419,7 +1432,7 @@
                 <tr>
                   <th colspan="3" class="text-start align-middle ps-1">基礎控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                   {!! $renderInputs('kojo_kiso') !!}
                 </tr>
@@ -1431,7 +1444,7 @@
                 <tr>
                   <th colspan="3" class="text-start align-middle ps-1">雑損控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn btn-link btn-base-blue">HELP</button>
+                    <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
                   {!! $renderInputs('kojo_zasson') !!}
                 </tr>
@@ -1439,7 +1452,7 @@
                   <th colspan="3" class="text-start align-middle ps-1">医療費控除</th>
                   <td class="text-center align-middle">
                     <button type="button"
-                            class="btn-base-green js-open-details"
+                            class="btn-base-low-green js-open-details"
                             data-redirect-to="kojo_iryo"
                             data-origin-anchor="kojo_iryo"
                             data-return-anchor="kojo_iryo">内訳</button>
@@ -1450,7 +1463,7 @@
                   <th colspan="3" class="text-start align-middle ps-1">寄付金控除</th>
                   <td class="text-center align-middle">
                     <button type="submit"
-                            class="btn-base-green"
+                            class="btn-base-low-green"
                             name="redirect_to"
                             value="kifukin_details"
                             data-return-anchor="kojo_row_kifukin">内訳</button>
@@ -2147,6 +2160,37 @@
     </div>
   </div>
 </div>
+{{-- ============================
+   PDF出力モーダル（3択）
+   - プレビュー無し：選択後にそのまま download を開始
+   ============================ --}}
+<div class="modal fade" id="furusato-pdf-mode-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">PDF出力の内容を選択</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">どの条件でPDFを出力しますか？</div>
+        <div class="d-grid gap-2">
+          <button type="button" class="btn btn-outline-primary" data-pdf-variant="current">
+            今までに寄付した額でPDFを出力する
+          </button>
+          <button type="button" class="btn btn-outline-primary" data-pdf-variant="max">
+            上限額まで寄付した場合でPDFを出力する
+          </button>
+          <button type="button" class="btn btn-primary" data-pdf-variant="both">
+            両方ともPDFを出力する
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+      </div>
+    </div>
+  </div>
+</div>
 @endsection
 @push('scripts')
 <script>
@@ -2746,7 +2790,7 @@
         el.classList.add('bg-light', 'text-center');
         el.classList.remove('text-end');
         if (!el.classList.contains('form-control')) el.classList.add('form-control');
-        if (!el.classList.contains('form-control-sm')) el.classList.add('form-control-sm');
+        if (!el.classList.contains('suji11s')) el.classList.add('suji11s');
         if (hidden) {
           hidden.value = '';
           hidden.remove();
@@ -2980,7 +3024,7 @@
       const disp = document.createElement('input');
       disp.type = 'text';
       disp.readOnly = true;
-      disp.className = 'form-control form-control-compact-05 form-control form-control-compact-05-sm text-center bg-light';
+      disp.className = 'form-control suji11s text-center bg-light';
       disp.value = '－';
       num.insertAdjacentElement('afterend', disp);
     };
@@ -3752,18 +3796,29 @@
         overlay.setAttribute('aria-hidden', 'true');
       };
 
-      // ▼ PDF出力：popupを使わず hidden iframe でDL（popup blocker 回避）
-      btn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+      // ▼ PDF出力：まずモーダルで条件選択 → hidden iframe でDL（popup blocker 回避）
+      const modalEl = document.getElementById('furusato-pdf-mode-modal');
+      const modal = (modalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal)
+        ? bootstrap.Modal.getOrCreateInstance(modalEl)
+        : null;
+
+      const buildUrlWithVariant = (baseUrl, variant) => {
+        const u = new URL(baseUrl, window.location.origin);
+        u.searchParams.set('pdf_variant', String(variant || 'max'));
+        return u.toString();
+      };
+
+      const startDownloadFlow = async (variant) => {
         flag.value = '1';
 
-        const statusUrl = btn.getAttribute('data-status-url') || '';
-        const downloadUrl = btn.getAttribute('data-download-url') || '';
-        if (!statusUrl || !downloadUrl) {
+        const baseStatusUrl = btn.getAttribute('data-status-url') || '';
+        const baseDownloadUrl = btn.getAttribute('data-download-url') || '';
+        if (!baseStatusUrl || !baseDownloadUrl) {
           alert('PDF出力URLが初期化されていません。画面をリロードしてください。');
           return;
         }
+        const statusUrl = buildUrlWithVariant(baseStatusUrl, variant);
+        const downloadUrl = buildUrlWithVariant(baseDownloadUrl, variant);
 
         const ensureDownloadFrame = () => {
           let frame = document.getElementById('furusato-pdf-download-frame');
@@ -3861,7 +3916,32 @@
           btn.removeAttribute('aria-disabled');
           hideOverlay();
         }
+      };
+
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        // モーダルが使えるなら3択を出す。使えない環境は従来互換（max）
+        if (modal) {
+          modal.show();
+          return;
+        }
+        await startDownloadFlow('max');
       }, { passive: false });
+
+      // モーダルのボタン（current/max/both）
+      if (modalEl) {
+        modalEl.querySelectorAll('[data-pdf-variant]').forEach((el) => {
+          el.addEventListener('click', async () => {
+            const variant = el.getAttribute('data-pdf-variant') || 'max';
+            try {
+              if (modal) modal.hide();
+            } catch (_e) {}
+            await startDownloadFlow(variant);
+          });
+        });
+      }
 
       // 他の submit のときは 0 に戻す（誤作動防止）
       form.addEventListener('submit', (ev) => {

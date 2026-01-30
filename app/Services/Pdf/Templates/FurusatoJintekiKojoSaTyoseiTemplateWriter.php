@@ -16,17 +16,23 @@ final class FurusatoJintekiKojoSaTyoseiTemplateWriter
      */
     private const POS = [
          // ▼ 左側：①「200万円以下」ブロック内（a/b/c）
-         'case1_a' => ['x' => 100.0, 'y' => 126.0, 'w' => 36.0, 'h' => 6.5, 'size' => 12.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
-         'case1_b' => ['x' => 100.0, 'y' => 133.0, 'w' => 36.0, 'h' => 6.5, 'size' => 12.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
-         'case1_c' => ['x' => 100.0, 'y' => 140.0, 'w' => 36.0, 'h' => 6.5, 'size' => 12.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
+         'case1_a' => ['x' => 100.0, 'y' => 126.0, 'w' => 36.0, 'h' => 6.5, 'size' => 10.0, 'stretch' => 90.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
+         'case1_b' => ['x' => 100.0, 'y' => 133.0, 'w' => 36.0, 'h' => 6.5, 'size' => 10.0, 'stretch' => 90.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
+         'case1_c' => ['x' => 100.0, 'y' => 140.0, 'w' => 36.0, 'h' => 6.5, 'size' => 10.0, 'stretch' => 90.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
  
          // ▼ 左側：②「200万円超」ブロック内（a/b/c）
          // ★下段3行は少し下げて揃える（+1.0mm）。必要なら微調整してください。
-         'case2_a' => ['x' => 100.0, 'y' => 162.0, 'w' => 36.0, 'h' => 6.5, 'size' => 12.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
-         'case2_b' => ['x' => 100.0, 'y' => 169.0, 'w' => 36.0, 'h' => 15.0, 'size' => 12.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
-         'case2_c' => ['x' => 100.0, 'y' => 176.0, 'w' => 36.0, 'h' => 6.5, 'size' => 12.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
+         'case2_a' => ['x' => 100.0, 'y' => 163.0, 'w' => 36.0, 'h' => 6.5, 'size' => 10.0, 'stretch' => 90.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
+         'case2_b' => ['x' => 100.0, 'y' => 172.5, 'w' => 36.0, 'h' => 6.5, 'size' => 10.0, 'stretch' => 90.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
+         'case2_c' => ['x' => 100.0, 'y' => 179.5, 'w' => 36.0, 'h' => 6.5, 'size' => 10.0, 'stretch' => 90.0, 'rgb' => [0, 0, 0], 'align' => 'R', 'pad_r' => 1.6],
          // ▼ 最終：調整控除額（合計）※置き場所は後で調整
          'final_total' => ['x' => 165.0, 'y' => 210.0, 'size' => 12.0, 'rgb' => [0, 0, 0]],
+
+         // ==========================================================
+         // ▼ 右側：控除の種類 表のヘッダ「令和◯年」欄（年も含めて出す）
+         //   ※座標は仮。背景PDFの「令和◯年」枠の中央に合わせて調整してください。
+         // ==========================================================
+         'wareki_year' => ['x' => 249.5, 'y' => 22.3, 'w' => 18.0, 'h' => 6.0, 'size' => 12.0, 'rgb' => [0, 0, 0], 'align' => 'C', 'pad_r' => 0.0],
 
          // ==========================================================
          // ▼ 右側：控除の種類 表（最右列：〇 / n人）※座標は仮
@@ -98,6 +104,20 @@ final class FurusatoJintekiKojoSaTyoseiTemplateWriter
         $tpl = $pdf->importPage(1);
         $size = $pdf->getTemplateSize($tpl);
         $pdf->useTemplate($tpl, 0, 0, $size['width'], $size['height'], true);
+
+        // ==========================================================
+        // 右側ヘッダ：令和◯年（「年」も含めてそのまま）
+        // ==========================================================
+        $warekiYear = trim((string)($vars['wareki_year'] ?? ''));
+        if ($warekiYear !== '') {
+            // ★太字（疑似太字：同じ文字を微小オフセットで2回描画）
+            $pos = self::POS['wareki_year'];
+            $this->textBox($pdf, $font, $pos, $warekiYear);
+            // 0.2mm 右へずらして重ね描き（太く見せる）
+            $pos2 = $pos;
+            $pos2['x'] = ((float)$pos['x']) + 0.2;
+            $this->textBox($pdf, $font, $pos2, $warekiYear);
+        }
 
          // ---- 帳票に出す値（curr：JuminTaxCalculator の中間SoT）----
          $case  = $this->n($vars['jumin_chosei_case_curr'] ?? 0); // 0/1/2
@@ -204,10 +224,21 @@ final class FurusatoJintekiKojoSaTyoseiTemplateWriter
         // 右寄せ内側余白
         $innerX = $x;
         $innerW = max(0.1, $w - $padR);
+        
+         // ★任意ストレッチ（%）：このposにだけ効かせ、必ず100に戻す
+         $stretchInt = null;
+         if (array_key_exists('stretch', $pos) && $pos['stretch'] !== null) {
+             $stretchInt = (int)max(50, min(150, round((float)$pos['stretch'])));
+             $pdf->SetFontStretching($stretchInt);
+         }
 
         $pdf->SetXY($innerX, $y);
         // ★autopadding/maxh の制約で文字が消えるのを防ぐ（前回と同じ方針：A）
         $pdf->MultiCell($innerW, $h, $text, 0, $align, false, 0, '', '', true, 0, false, false, 0, 'M', false);
+       
+         if ($stretchInt !== null) {
+             $pdf->SetFontStretching(100);
+         }
     }
 
     private function putIfNotEmpty(TcpdfFpdi $pdf, string $font, string $posKey, string $text): void
@@ -218,4 +249,5 @@ final class FurusatoJintekiKojoSaTyoseiTemplateWriter
         if (!is_array($pos)) return;
         $this->text($pdf, $font, $pos, $t);
     }
+
 }

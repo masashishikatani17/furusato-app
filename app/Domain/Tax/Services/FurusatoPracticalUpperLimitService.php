@@ -78,9 +78,9 @@ final class FurusatoPracticalUpperLimitService
         // 仕上げ：yMaxでの支払額/自己負担（参考）
         $outMax = $this->runner->run($this->withFurusato($basePayload, $yMaxTotal), $ctx);
         $payMax = $this->payTotalCurr($outMax);
-        // 減税額も 100円未満切捨て（表示と探索を一致させる）
+        // 減税額は 1円単位（百円未満切捨てしない）
         $taxSavedRaw = max(0, $payBase - $payMax);
-        $taxSaved = $this->floorToStep($taxSavedRaw, 100);
+        $taxSaved = (int) floor($taxSavedRaw);
         $burden = $yMaxTotal - $taxSaved;
 
         return [
@@ -129,9 +129,9 @@ final class FurusatoPracticalUpperLimitService
 
         // 自己負担判定：burden = y - (payBase - payY)
         $payY = $this->payTotalCurr($out);
-        // 減税額は 100円未満切捨てで判定（表示と一致）
+        // 減税額は 1円単位（百円未満切捨てしない）
         $taxSavedRaw = max(0, $payBase - $payY);
-        $taxSaved = $this->floorToStep($taxSavedRaw, 100);
+        $taxSaved = (int) floor($taxSavedRaw);
         $burden = $y - $taxSaved;
 
         return $burden <= 2000;
@@ -174,16 +174,5 @@ final class FurusatoPracticalUpperLimitService
     {
         if ($v <= 0) return 0;
         return (int) (floor($v / 1000) * 1000);
-    }
-
-    /**
-     * 指定step未満切捨て（0下限）
-     * 例: step=100 のとき 12,349 -> 12,300
-     */
-    private function floorToStep(int $v, int $step): int
-    {
-        if ($v <= 0) return 0;
-        if ($step <= 0) return $v;
-        return (int) (floor($v / $step) * $step);
     }
 }

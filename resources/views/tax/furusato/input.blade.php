@@ -2990,16 +2990,6 @@
       return n >= 0 ? Math.floor(n / 1000) * 1000 : -Math.ceil(Math.abs(n) / 1000) * 1000;
     };
 
-    // 100円未満切捨て（0下限）
-    const floorToStep = (x, step = 100) => {
-      const n = Math.trunc(Number(x) || 0);
-      if (!Number.isFinite(n) || n <= 0) return 0;
-      const s = Math.trunc(Number(step) || 0);
-      if (s <= 0) return n;
-      return Math.floor(n / s) * s;
-    };
-
-
     const floorToThousandsSigned = (x) => {
       const n = Number.isFinite(x) ? Math.trunc(x) : 0;
       if (n === 0) return 0;
@@ -3433,9 +3423,9 @@
           Math.max(0, readInt(`tax_seito_shotoku_${period}`)) +
           Math.max(0, readInt(`tax_saigai_genmen_shotoku_${period}`)) +
           Math.max(0, readInt(`tax_tokubetsu_R6_shotoku_${period}`));
-        // 100円未満切捨て（表示とサーバSoTを一致）
+        // ▼ 百円未満切捨てはしない（差引後の値をそのまま）
         const kijunShotokuRaw = Math.max(0, baseShotoku - creditShotoku);
-        const kijunShotoku = floorToStep(kijunShotokuRaw, 100);
+        const kijunShotoku = Math.trunc(kijunShotokuRaw);
         writeInt(`tax_kijun_shotoku_${period}`, kijunShotoku);
         makeReadonlyNumber(`tax_kijun_shotoku_${period}`);
 
@@ -3446,9 +3436,9 @@
           Math.max(0, readInt(`tax_jutaku_jumin_${period}`)) +
           Math.max(0, uiFixedCredits.juminKifukinZeigaku[period] || 0) +
           Math.max(0, readInt(`tax_saigai_genmen_jumin_${period}`));
-        // 100円未満切捨て（表示とサーバSoTを一致）
+        // ▼ 百円未満切捨てはしない（差引後の値をそのまま）
         const kijunJuminRaw = Math.max(0, baseJumin - creditJumin);
-        const kijunJumin = floorToStep(kijunJuminRaw, 100);
+        const kijunJumin = Math.trunc(kijunJuminRaw);
         // ▼ 住民税：基準（所得割残）を反映
         writeInt(`tax_kijun_jumin_${period}`, kijunJumin);
         makeReadonlyNumber(`tax_kijun_jumin_${period}`);
@@ -3463,15 +3453,14 @@
         // 住民側の復興はダッシュ表示（既存仕様）
         writeDashWithHidden(`tax_fukkou_jumin_${period}`);
 
-        // 合計税額のみ100円未満切捨て
         const gokeiShotokuRaw =
           readInt(`tax_kijun_shotoku_${period}`) + readInt(`tax_fukkou_shotoku_${period}`);
-        // 合計税額のみ100円未満切捨て
-        const gokeiShotoku = floorToStep(gokeiShotokuRaw, 100);
+        // ▼ 合計も百円未満切捨てはしない
+        const gokeiShotoku = Math.trunc(gokeiShotokuRaw);
         writeInt(`tax_gokei_shotoku_${period}`, gokeiShotoku);
         makeReadonlyNumber(`tax_gokei_shotoku_${period}`);
 
-        // 住民税合計も100円未満切捨て（kijunが既に100円単位）
+        // 住民税合計も切捨てしない
         writeInt(`tax_gokei_jumin_${period}`, kijunJumin);
         makeReadonlyNumber(`tax_gokei_jumin_${period}`);
       });

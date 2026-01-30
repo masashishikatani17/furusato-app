@@ -173,21 +173,21 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
         // ④政党等（所得税）
         $seitotoItax = $I($outFull, "tax_credit_shotoku_total_{$p}");
 
-        // 「①〜④控除後の所得割額」：所得税は tax_sashihiki_shotoku を採用（100円未満切捨て）
-        $after14Itax = $this->floorToStep($I($outFull, "tax_sashihiki_shotoku_{$p}"), 100);
+        // 「①〜④控除後の所得割額」：所得税は tax_sashihiki_shotoku を採用（百円未満切捨てしない）
+        $after14Itax = max(0, (int) $I($outFull, "tax_sashihiki_shotoku_{$p}"));
 
         // 住民税は、TaxGokeiCalculator と同じ share で「配当→住宅」を按分して残額を作る（100円未満切捨て）
         $basePref = $I($outFull, "choseigo_shotokuwari_pref_{$p}");
         $baseMuni = $I($outFull, "choseigo_shotokuwari_muni_{$p}");
         [$sharePref, $shareMuni] = $this->resolveTokureiSharesFromRates($rateRows, $shitei);
-        [$haitoPref, $haitoMuni] = $this->splitByShare($haitoJuminApplied, $sharePref, $shareMuni, 100);
+        [$haitoPref, $haitoMuni] = $this->splitByShare($haitoJuminApplied, $sharePref, $shareMuni, 1);
         $afterHaitoPref = max(0, $basePref - $haitoPref);
         $afterHaitoMuni = max(0, $baseMuni - $haitoMuni);
-        [$jutakuPref, $jutakuMuni] = $this->splitByShare($jutakuJuminApplied, $sharePref, $shareMuni, 100);
+        [$jutakuPref, $jutakuMuni] = $this->splitByShare($jutakuJuminApplied, $sharePref, $shareMuni, 1);
         $afterJutakuPref = max(0, $afterHaitoPref - $jutakuPref);
         $afterJutakuMuni = max(0, $afterHaitoMuni - $jutakuMuni);
-        $after14JuminTotal = $this->floorToStep($afterJutakuPref + $afterJutakuMuni, 100);
-        [$after14JuminPref, $after14JuminMuni] = $this->splitByShare($after14JuminTotal, $sharePref, $shareMuni, 100);
+        $after14JuminTotal = max(0, (int) ($afterJutakuPref + $afterJutakuMuni));
+        [$after14JuminPref, $after14JuminMuni] = $this->splitByShare($after14JuminTotal, $sharePref, $shareMuni, 1);
 
         // 寄附金税額控除（下記以外 / ふるさと）…other-only を1回引いて差分で分解
         $fullPref = $I($outFull, "kifukin_zeigaku_kojo_pref_{$p}");
@@ -205,7 +205,7 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
         // 災害減免（入力値＝適用額として扱う。住民税は share で按分）
         $saigaiItax = $I($outFull, "tax_saigai_genmen_shotoku_{$p}");
         $saigaiJumin = $I($outFull, "tax_saigai_genmen_jumin_{$p}");
-        [$saigaiPref, $saigaiMuni] = $this->splitByShare($saigaiJumin, $sharePref, $shareMuni, 100);
+        [$saigaiPref, $saigaiMuni] = $this->splitByShare($saigaiJumin, $sharePref, $shareMuni, 1);
 
         // 最終税額（SoT：TaxGokeiCalculator）
         $kijunItax  = $I($outFull, "tax_kijun_shotoku_{$p}");

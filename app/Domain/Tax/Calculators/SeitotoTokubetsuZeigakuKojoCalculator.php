@@ -103,20 +103,21 @@ class SeitotoTokubetsuZeigakuKojoCalculator implements ProvidesKeys
             // 25% 上限（税額ベース）
             //  - 公益＋NPO：共通25%枠（同一枠内で「公益→NPO」優先）
             //  - 政党等：別枠25%（同じTから算定するが、公益/NPOとは別に判定する）
-            $cap25Common = $this->floor100((int) floor(max($Tcap, 0) * 0.25));
-            $cap25Seito  = $this->floor100((int) floor(max($Tcap, 0) * 0.25));
+            // ▼ 方針変更：税額の「百円未満切捨て」を行わない
+            $cap25Common = (int) floor(max($Tcap, 0) * 0.25);
+            $cap25Seito  = (int) floor(max($Tcap, 0) * 0.25);
 
-            // 1) 公益：min(元本×40%, 25%上限) → 100円未満切捨て
-            $kouekiRaw  = $this->floor100((int) floor(max($kouekiBase, 0) * 0.40));
+            // 1) 公益：min(元本×40%, 25%上限)（百円未満切捨てしない）
+            $kouekiRaw  = (int) floor(max($kouekiBase, 0) * 0.40);
             $credKoueki = min($kouekiRaw, $cap25Common);
 
             // 2) NPO：公益控除後の共通25%残額で判定（公益→NPO優先）
             $cap25Rem = max($cap25Common - $credKoueki, 0);
-            $npoRaw   = $this->floor100((int) floor(max($npoBase, 0) * 0.40));
+            $npoRaw   = (int) floor(max($npoBase, 0) * 0.40);
             $credNpo  = min($npoRaw, $cap25Rem);
 
             // 3) 政党等：別枠25%
-            $seitoRaw  = $this->floor100((int) floor(max($seitoBase, 0) * 0.30));
+            $seitoRaw  = (int) floor(max($seitoBase, 0) * 0.30);
             $credSeito = min($seitoRaw, $cap25Seito);
 
             /**
@@ -174,17 +175,5 @@ class SeitotoTokubetsuZeigakuKojoCalculator implements ProvidesKeys
         if ($v === null || $v === '') return 0;
         if (is_string($v)) $v = str_replace([',',' '], '', $v);
         return is_numeric($v) ? (int) floor((float) $v) : 0;
-    }
-
-    private function floor100(int $v): int
-    {
-        if ($v <= 0) return 0;
-        return (int) (floor($v / 100) * 100);
-    }
-
-    private function floorTo(int $v, int $step): int
-    {
-        if ($v <= 0 || $step <= 0) return 0;
-        return (int) (floor($v / $step) * $step);
     }
 }

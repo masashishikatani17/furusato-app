@@ -1,3 +1,4 @@
+<!-- resources/views/admin/audit_logs/show.blade.php -->
 @extends('layouts.min')
 
 @section('title', '監査ログ詳細')

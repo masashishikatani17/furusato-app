@@ -11,7 +11,7 @@
     $originTab = 'input';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', 'kojo_seimei_jishin'));
 @endphp
-<div class="container-blue mt-2" style="width:550px;">
+<div class="container-blue mt-2" style="width:480px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">生命保険料・地震保険料の内訳</h0>
@@ -37,16 +37,16 @@
         <input type="hidden" name="recalc_all" value="1">
         <input type="hidden" name="stay_on_details" id="stay-on-details-flag" value="0">
     
-        <div class="table-responsive mb-2">
-          <table class="table-base table-bordered align-middle">
+        <div class="table-responsive">
+          <table class="table-input align-middle mb-4">
               <tr style="height:30px;">
-                <th class="text-center th-ccc">項　目</th>
+                <th class="text-center th-ccc" style="width:150px;">項　目</th>
                 <th class="th-ccc">{{ $warekiPrevLabel }}</th>
                 <th class="th-ccc">{{ $warekiCurrLabel }}</th>
               </tr>
             <tbody>
               <tr>
-                <th scope="row" class="text-start">新生命保険料</th>
+                <th scope="row" class="text-start ps-1">新生命保険料</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_shin_prev"
@@ -61,7 +61,7 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">旧生命保険料</th>
+                <th scope="row" class="text-start ps-1">旧生命保険料</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_kyu_prev"
@@ -76,7 +76,7 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">新個人年金保険料</th>
+                <th scope="row" class="text-start ps-1">新個人年金保険料</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_nenkin_shin_prev"
@@ -91,7 +91,7 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">旧個人年金保険料</th>
+                <th scope="row" class="text-start ps-1">旧個人年金保険料</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_nenkin_kyu_prev"
@@ -106,7 +106,7 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">介護医療保険料</th>
+                <th scope="row" class="text-start ps-1">介護医療保険料</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_kaigo_iryo_prev"
@@ -138,17 +138,16 @@
             </tbody>
           </table>
         </div>
-    
         <div class="table-responsive">
-          <table class="table-base table-bordered align-middle">
+          <table class="table-input align-middle mb-0">
               <tr style="height:30px;">
-                <th class="text-center th-ccc">項  目</th>
+                <th class="text-center th-ccc" style="width:150px;">項  目</th>
                 <th class="th-ccc">{{ $warekiPrevLabel }}</th>
                 <th class="th-ccc">{{ $warekiCurrLabel }}</th>
               </tr>
             <tbody>
               <tr>
-                <th scope="row" class="text-start">地震保険料</th>
+                <th scope="row" class="text-start ps-1">地震保険料</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_jishin_prev"
@@ -163,7 +162,7 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">旧長期損害保険料</th>
+                <th scope="row" class="text-start ps-1">旧長期損害保険料</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_kyuchoki_songai_prev"
@@ -194,8 +193,8 @@
               </tr>
             </tbody>
           </table>
-        </div>
-    　　<hr>
+         </div>
+        <hr>
         <div class="text-end me-2 mb-2">
           <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
           <button type="submit"

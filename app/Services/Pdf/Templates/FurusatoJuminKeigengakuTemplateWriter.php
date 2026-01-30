@@ -28,15 +28,17 @@ final class FurusatoJuminKeigengakuTemplateWriter
             'compare' => [
                 'x' => 192.0, // ★仮
                 'y' => 38.5,  // ★仮
-                'w' => 52.0,
+                'w' => 52.5,
                 'row_h' => 6.5,
                  // ★行ごとのY補正（mm）：0行目/1行目/2行目
                 // 例：3行目（差引:負担額）だけ少し上げる → [0.0, 0.0, -1.0]
                 'row_offsets' => [0.0, 0.0, -1.0],
-                'val_x' => 30.0, // 左列(30mm)の右隣が数値列(22mm)
-                'val_w' => 22.0,
+                'val_x' => 22.0, // 左列(30mm)の右隣が数値列(22mm)
+                'val_w' => 30.5,
                 'font'  => 11.5,
-                'pad_r' => 1.8,
+                'pad_r' => 0,
+                // ★比較小表（3つの数字）だけ横幅を詰める
+                'stretch' => 90.0,
             ],
             // 左上「所得税の軽減額」2列（幅105mm、右列30mm）
             'itax' => [
@@ -57,7 +59,8 @@ final class FurusatoJuminKeigengakuTemplateWriter
                 'header_h' => 6.3, // ヘッダー1行（背景固定）
                 'row_h' => 6.4,    // ★仮
                 'font'  => 11.0,
-                'pad_r' => 1.6,
+                'pad_r' => 0.8,
+                'stretch' => 90.0, // ★数値が入らない時だけ：90%ストレッチ（％行は除外）
             ],
             // 下段まとめ（4行） col: [79,27,27,27]
             'summary' => [
@@ -66,7 +69,8 @@ final class FurusatoJuminKeigengakuTemplateWriter
                 'cols' => [79.0, 27.0, 27.0, 27.0],
                 'row_h' => 6.5,
                 'font'  => 11.0,
-                'pad_r' => 1.6,
+                'pad_r' => 0.8,
+                'stretch' => 90.0, // ★下段まとめも90%ストレッチ
             ],
         ],
 
@@ -76,15 +80,17 @@ final class FurusatoJuminKeigengakuTemplateWriter
             'compare' => [
                 // 背景（ワンストップ）左上の小表（寄附金額/減税額/差引：負担額）
                 //  - 2列: 左ラベル + 右数値枠
-                'x' => 33.0,   // ★初期値（要微調整）
+                'x' => 32.0,   // ★初期値（要微調整）
                 'y' => 38.0,   // ★初期値（要微調整）
                 'w' => 72.0,   // 小表の全幅（参考）
                 'row_h' => 7.2,
                 // 右列（数値枠）の開始位置（左列 40mm, 右列 32mm 相当）
-                'val_x' => 40.0,
-                'val_w' => 32.0,
+                'val_x' => 36.5,
+                'val_w' => 35.5,
                 'font'  => 11.5,
-                'pad_r' => 1.8,
+                'pad_r' => 0.6,
+                // ★比較小表（3つの数字）だけ横幅を詰める
+                'stretch' => 90.0,
             ],
             // メイン表（①〜⑰）※通常より行数多い想定
             'jumin' => [
@@ -92,11 +98,13 @@ final class FurusatoJuminKeigengakuTemplateWriter
                 'x' => 27.8,  // (297-242)/2
                 'y' => 67.0,  // ★初期値（要微調整）
                 // colgroup: [9,54,8,27,27,27,90]（onestop blade側）
-                'cols' => [9.0, 54.0, 8.0, 27.0, 27.0, 27.0, 90.0],
+                'cols' => [9.0, 54.0, 7.2, 27.3, 27.3, 27.3, 90.0],
                 'header_h' => 5.75,
                 'row_h' => 6.4,
                 'font'  => 11.0,
-                'pad_r' => 1.6,
+                'pad_r' => 0,
+                // ★ワンストップの数値：基本は 90% ストレッチ（※例外行は処理側で無効化）
+                'stretch' => 90.0,
             ],
         ],
 
@@ -189,6 +197,7 @@ final class FurusatoJuminKeigengakuTemplateWriter
         $vw = (float)$cmp['val_w'];
         $fs = (float)$cmp['font'];
         $pr = (float)$cmp['pad_r'];
+        $cmpStretch = array_key_exists('stretch', $cmp) ? (float)$cmp['stretch'] : null;
         foreach ([
             0 => $donation,
             1 => $savedTot,
@@ -196,7 +205,7 @@ final class FurusatoJuminKeigengakuTemplateWriter
         ] as $i => $val) {
             $off = array_key_exists((int)$i, $rowOffsets) ? (float)$rowOffsets[(int)$i] : 0.0;
             $y = $cy + ($rowH * (float)$i) + $off;
-            $this->textBox($pdf, $font, $vx, $y, $vw, $rowH, $this->fmtYen($val), 'R', $fs, $pr);
+            $this->textBox($pdf, $font, $vx, $y, $vw, $rowH, $this->fmtYen($val), 'R', $fs, $pr, 0.0, 'B', $cmpStretch);
             if ($debug) $this->debugRect($pdf, $vx, $y, $vw, $rowH);
         }
 
@@ -218,7 +227,10 @@ final class FurusatoJuminKeigengakuTemplateWriter
             2 => $itSav,
         ] as $i => $val) {
             $y = $iy + ($iRowH * (float)$i);
-            $this->textBox($pdf, $font, $vix, $y, $viw, $iRowH, $this->fmtYen($val), 'R', $ifs, $ipr);
+           // ★太字：3行目（差額＝所得税の軽減額）だけ
+            $style = ((int)$i === 2) ? 'B' : '';
+            $this->textBox($pdf, $font, $vix, $y, $viw, $iRowH, $this->fmtYen($val), 'R', $ifs, $ipr, 0.0, $style);
+             
             if ($debug) $this->debugRect($pdf, $vix, $y, $viw, $iRowH);
         }
 
@@ -233,8 +245,10 @@ final class FurusatoJuminKeigengakuTemplateWriter
         $colX = $this->colLefts($tx, $cols);
         $headerH = (float)$tbl['header_h'];
         $rowH2 = (float)$tbl['row_h'];
-        $fs2 = (float)$tbl['font'];
+        $fs2 = (float)$tbl['font'];                 // 既定フォント
+        $fs2Small = max(1.0, $fs2 - 1.0);            // ★数値だけ 1pt(相当) 小さく
         $pr2 = (float)$tbl['pad_r'];
+        $jStretch = array_key_exists('stretch', $tbl) ? (float)$tbl['stretch'] : null;
         // 数値列 index: muni=4, pref=5, total=6
         $cM = 4; $cP = 5; $cT = 6;
 
@@ -259,21 +273,31 @@ final class FurusatoJuminKeigengakuTemplateWriter
         foreach ($seq as $i => $spec) {
             $y = $ty + $headerH + ($rowH2 * (float)$i);
             $t = (string)$spec['t'];
+            // ★例外：%の2行だけはフォント据え置き（行が詰まらない/見やすさ優先）
+            $fsRow = ($t === 'kihon.rate_pct' || $t === 'tokurei.rate_final') ? $fs2 : $fs2Small;
+            // ★例外：%の2行だけはストレッチしない
+            $stretchRow = ($t === 'kihon.rate_pct' || $t === 'tokurei.rate_final') ? null : $jStretch;
+ 
+
 
             if ($t === 'kihon.rate_pct') {
                 $rate = is_array($rows['kihon']['rate'] ?? null) ? $rows['kihon']['rate'] : [];
                 $muniPct = (int)($rate['muni'] ?? 0);
                 $prefPct = (int)($rate['pref'] ?? 0);
                 $totPct  = (int)($rate['total'] ?? ($muniPct + $prefPct));
-                $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $this->fmtPctInt($muniPct), $this->fmtPctInt($prefPct), $this->fmtPctInt($totPct), $fs2, $pr2, $debug);
+                $this->putJumin3(
+                    $pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2,
+                    $this->fmtPctInt($muniPct), $this->fmtPctInt($prefPct), $this->fmtPctInt($totPct),
+                    $fsRow, $pr2, $debug, '', $stretchRow
+                );
                 continue;
             }
             if ($t === 'tokurei.rate_final') {
                 $tok = is_array($rows['tokurei'] ?? null) ? $rows['tokurei'] : [];
                 $pct = (float)($tok['rate_final_pct'] ?? 0);
                 $p = $this->fmtPct2($pct);
-                $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $p, $p, $p, $fs2, $pr2, $debug);
-                continue;
+                $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $p, $p, $p, $fsRow, $pr2, $debug, '', $stretchRow);
+                 continue;
             }
             if ($t === 'tokurei.calc11') {
                 $tok = is_array($rows['tokurei'] ?? null) ? $rows['tokurei'] : [];
@@ -282,7 +306,7 @@ final class FurusatoJuminKeigengakuTemplateWriter
                     (string)($c11['muni'] ?? '0.00'),
                     (string)($c11['pref'] ?? '0.00'),
                     (string)($c11['total'] ?? '0.00'),
-                    $fs2, $pr2, $debug
+                    $fsRow, $pr2, $debug, '', $stretchRow
                 );
                 continue;
             }
@@ -292,7 +316,7 @@ final class FurusatoJuminKeigengakuTemplateWriter
                 $this->fmtYen((int)$v['muni']),
                 $this->fmtYen((int)$v['pref']),
                 $this->fmtYen((int)$v['total']),
-                $fs2, $pr2, $debug
+                $fsRow, $pr2, $debug, '', $stretchRow
             );
         }
 
@@ -304,17 +328,21 @@ final class FurusatoJuminKeigengakuTemplateWriter
         $scolX = $this->colLefts($sx, $scols);
         $sRowH = (float)$s['row_h'];
         $sFs = (float)$s['font'];
+        $sFsSmall = max(1.0, $sFs - 1.0);            // ★下段まとめも数値だけ 1pt(相当) 小さく
         $sPr = (float)$s['pad_r'];
+        $sStretch = array_key_exists('stretch', $s) ? (float)$s['stretch'] : null;
         // 数値列 index: muni=1, pref=2, total=3
         $sM = 1; $sP = 2; $sT = 3;
         $sumSeq = ['other','furusato_only','unable','final'];
         foreach ($sumSeq as $i => $k) {
             $y = $sy + ($sRowH * (float)$i);
             $row = is_array($sum[$k] ?? null) ? $sum[$k] : ['muni'=>0,'pref'=>0,'total'=>0];
-            $this->textBox($pdf, $font, (float)$scolX[$sM], $y, (float)$scols[$sM], $sRowH, $this->fmtYen($this->n($row['muni'] ?? 0)), 'R', $sFs, $sPr);
-            $this->textBox($pdf, $font, (float)$scolX[$sP], $y, (float)$scols[$sP], $sRowH, $this->fmtYen($this->n($row['pref'] ?? 0)), 'R', $sFs, $sPr);
-            $this->textBox($pdf, $font, (float)$scolX[$sT], $y, (float)$scols[$sT], $sRowH, $this->fmtYen($this->n($row['total'] ?? 0)), 'R', $sFs, $sPr);
-            if ($debug) {
+            $this->textBox($pdf, $font, (float)$scolX[$sM], $y, (float)$scols[$sM], $sRowH, $this->fmtYen($this->n($row['muni'] ?? 0)), 'R', $sFsSmall, $sPr, 0.0, '', $sStretch);
+            $this->textBox($pdf, $font, (float)$scolX[$sP], $y, (float)$scols[$sP], $sRowH, $this->fmtYen($this->n($row['pref'] ?? 0)), 'R', $sFsSmall, $sPr, 0.0, '', $sStretch);
+    // ★太字：下段まとめ「2行目」「4行目」の合計列だけ
+            $sumStyle = (((int)$i === 1) || ((int)$i === 3)) ? 'B' : '';
+            $this->textBox($pdf, $font, (float)$scolX[$sT], $y, (float)$scols[$sT], $sRowH, $this->fmtYen($this->n($row['total'] ?? 0)), 'R', $sFsSmall, $sPr, 0.0, $sumStyle, $sStretch);
+             if ($debug) {
                 $this->debugRect($pdf, (float)$scolX[$sM], $y, (float)$scols[$sM], $sRowH);
                 $this->debugRect($pdf, (float)$scolX[$sP], $y, (float)$scols[$sP], $sRowH);
                 $this->debugRect($pdf, (float)$scolX[$sT], $y, (float)$scols[$sT], $sRowH);
@@ -343,9 +371,12 @@ final class FurusatoJuminKeigengakuTemplateWriter
         $vw = (float)$cmp['val_w'];
         $fs = (float)$cmp['font'];
         $pr = (float)$cmp['pad_r'];
+        $cmpStretch = array_key_exists('stretch', $cmp) ? (float)$cmp['stretch'] : null;
         foreach ([0=>$donation,1=>$savedTot,2=>$burden] as $i=>$val) {
             $y = $cy + ($rowH * (float)$i);
-            $this->textBox($pdf, $font, $vx, $y, $vw, $rowH, $this->fmtYen($val), 'R', $fs, $pr);
+            // ★太字：比較小表の3行すべて
+            $this->textBox($pdf, $font, $vx, $y, $vw, $rowH, $this->fmtYen($val), 'R', $fs, $pr, 0.0, 'B', $cmpStretch);
+  
             if ($debug) $this->debugRect($pdf, $vx, $y, $vw, $rowH);
         }
 
@@ -361,6 +392,7 @@ final class FurusatoJuminKeigengakuTemplateWriter
         $rowH2 = (float)$tbl['row_h'];
         $fs2 = (float)$tbl['font'];
         $pr2 = (float)$tbl['pad_r'];
+        $st2 = array_key_exists('stretch', $tbl) ? (float)$tbl['stretch'] : null;
         // 数値列 index: muni=3, pref=4, total=5（onestop colgroup）
         $cM = 3; $cP = 4; $cT = 5;
 
@@ -396,7 +428,17 @@ final class FurusatoJuminKeigengakuTemplateWriter
             $y = $ty + $headerH + ($rowH2 * (float)$i);
             $kind = (string)$spec['kind'];
             $path = (string)$spec['path'];
-
+            // ★太字：一番下（⑰ 合計）の行だけ
+            $isBoldTotalRow = ((int)$i === (count($lines) - 1));
+            // ★例外（修正なし）：% の行は「フォントサイズもストレッチも変えない」
+            //   7行目: 基本控除額→控除率（idx=6）
+            //  10行目: 特例控除額→特例控除割合（idx=9）
+            //  15行目: 申告特例控除額→所得税率の割合（idx=14）
+            $isNoChangePctRow = in_array((int)$i, [6, 9, 14], true);
+            // ★基本方針：数値は「1つ小さく」+「90%ストレッチ」
+            $rowFont = $isNoChangePctRow ? $fs2 : max(1.0, $fs2 - 1.0);
+            $rowStretch = $isNoChangePctRow ? null : $st2;
+ 
             if ($kind === 'pct_int') {
                 $rate = $this->getTripleByPath($rows, $path); // muni/pref/total を使う（無ければ0）
                 $this->putJumin3(
@@ -404,7 +446,9 @@ final class FurusatoJuminKeigengakuTemplateWriter
                     $this->fmtPctInt((int)$rate['muni']),
                     $this->fmtPctInt((int)$rate['pref']),
                     $this->fmtPctInt((int)$rate['total']),
-                    $fs2, $pr2, $debug
+                    $rowFont, $pr2, $debug,
+                    $isBoldTotalRow ? 'B' : ''
+                    , $rowStretch
                 );
                 continue;
             }
@@ -412,13 +456,13 @@ final class FurusatoJuminKeigengakuTemplateWriter
                 $tok = is_array($rows['tokurei'] ?? null) ? $rows['tokurei'] : [];
                 $pct = (float)($tok['rate_final_pct'] ?? 0);
                 $p = $this->fmtPct2($pct);
-                $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $p, $p, $p, $fs2, $pr2, $debug);
+                $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $p, $p, $p, $fs2, $pr2, $debug, $isBoldTotalRow ? 'B' : '', $rowStretch);
                 continue;
             }
             if ($kind === 'pct_str') {
                 $p = trim((string)($rows['shinkoku_ratio15_pct'] ?? '0.00%'));
                 if ($p === '') $p = '0.00%';
-                $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $p, $p, $p, $fs2, $pr2, $debug);
+                $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $p, $p, $p, $fs2, $pr2, $debug, $isBoldTotalRow ? 'B' : '', $rowStretch);
                 continue;
             }
             if ($kind === 'calc11') {
@@ -429,7 +473,9 @@ final class FurusatoJuminKeigengakuTemplateWriter
                     (string)($c11['muni'] ?? '0.00'),
                     (string)($c11['pref'] ?? '0.00'),
                     (string)($c11['total'] ?? '0.00'),
-                    $fs2, $pr2, $debug
+                    $fs2, $pr2, $debug,
+                    $isBoldTotalRow ? 'B' : ''
+                     , $rowStretch
                 );
                 continue;
             }
@@ -441,7 +487,8 @@ final class FurusatoJuminKeigengakuTemplateWriter
                 $this->fmtYen((int)$v['muni']),
                 $this->fmtYen((int)$v['pref']),
                 $this->fmtYen((int)$v['total']),
-                $fs2, $pr2, $debug
+                $rowFont, $pr2, $debug,
+                $isBoldTotalRow ? 'B' : ''
             );
         }
     }
@@ -491,11 +538,15 @@ final class FurusatoJuminKeigengakuTemplateWriter
         string $t,
         float $fontSize,
         float $padR,
-        bool $debug
-    ): void {
-        $this->textBox($pdf, $font, (float)$colX[$cM], $y, (float)$cols[$cM], $h, $m, 'R', $fontSize, $padR);
-        $this->textBox($pdf, $font, (float)$colX[$cP], $y, (float)$cols[$cP], $h, $p, 'R', $fontSize, $padR);
-        $this->textBox($pdf, $font, (float)$colX[$cT], $y, (float)$cols[$cT], $h, $t, 'R', $fontSize, $padR);
+        bool $debug,
+        string $style = '',        // '' or 'B'
+        ?float $stretchPct = null  // ★追加: 例 90.0（%）
+     ): void {
+        $this->textBox($pdf, $font, (float)$colX[$cM], $y, (float)$cols[$cM], $h, $m, 'R', $fontSize, $padR, 0.0, $style, $stretchPct);
+        $this->textBox($pdf, $font, (float)$colX[$cP], $y, (float)$cols[$cP], $h, $p, 'R', $fontSize, $padR, 0.0, $style, $stretchPct);
+        $this->textBox($pdf, $font, (float)$colX[$cT], $y, (float)$cols[$cT], $h, $t, 'R', $fontSize, $padR, 0.0, $style, $stretchPct);
+ 
+ 
         if ($debug) {
             $this->debugRect($pdf, (float)$colX[$cM], $y, (float)$cols[$cM], $h);
             $this->debugRect($pdf, (float)$colX[$cP], $y, (float)$cols[$cP], $h);
@@ -550,8 +601,19 @@ final class FurusatoJuminKeigengakuTemplateWriter
         string $align = 'R',
         float $fontSize = 11.0,
         float $padRight = 0.0,
-        float $padLeft = 0.0
-    ): void {
+        float $padLeft = 0.0,
+        string $fontStyle = '',   // '' or 'B'
+        ?float $stretchPct = null // ★追加: 例 90.0（%）
+   ): void {
+        // NOTE: IPAex等は Bold 面が無く 'B' が効かない事があるため、'B' は疑似太字（2回描画）で対応
+        $isBold = ($fontStyle === 'B');
+        // ★ストレッチ（指定がある時だけ効かせ、最後に必ず戻す）
+        $stretchInt = null;
+        if ($stretchPct !== null) {
+            $stretchInt = (int)max(50, min(150, round($stretchPct))); // 安全域: 50%〜150%
+            $pdf->SetFontStretching($stretchInt);
+        }
+
         $pdf->SetFont($font, '', $fontSize);
         $pdf->SetTextColor(0, 0, 0);
 
@@ -561,6 +623,17 @@ final class FurusatoJuminKeigengakuTemplateWriter
 
         $pdf->SetXY($innerX, $y);
         $pdf->MultiCell($innerW, $h, $text, 0, $align, false, 0, '', '', true, 0, false, true, $h, 'M', false);
+   
+        // ★疑似太字：ごく小さいオフセットで同じ文字をもう一度描く
+        if ($isBold) {
+            $pdf->SetXY($innerX + 0.2, $y);
+            $pdf->MultiCell($innerW, $h, $text, 0, $align, false, 0, '', '', true, 0, false, true, $h, 'M', false);
+        }
+
+        // ★ストレッチを戻す（他の出力に影響させない）
+        if ($stretchInt !== null) {
+            $pdf->SetFontStretching(100);
+        }
     }
 
     private function debugRect(TcpdfFpdi $pdf, float $x, float $y, float $w, float $h): void

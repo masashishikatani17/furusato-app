@@ -352,6 +352,75 @@
           cursor: pointer;
         }
         
+        .btn-base-low-blue {
+          display: inline-block;
+          padding: 0px 10px;
+          font-size: 13px;
+          font-weight: normal;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 3px;
+          transition: all 0.3s ease;
+          border: 1px solid #ccc;
+          background-color: #e9eff7;
+          color: #000;
+          cursor: pointer;
+        }
+        
+        .btn-base-low-green {
+          display: inline-block;
+          padding: 0px 10px;
+          font-size: 13px;
+          font-weight: normal;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 3px;
+          transition: all 0.3s ease;
+          border: 1px solid #ccc;
+          background-color: #C0DEC5;
+          color: #000;
+          cursor: pointer;
+        }
+        
+        .btn-base-free-blue {
+        　　display: inline-flex;          /* ★上下左右中央が確実 */
+            align-items: center;           /* ★縦中央 */
+            justify-content: center;       /* ★横中央 */
+            font-size: 13px;
+            font-weight: normal;
+            text-decoration: none;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+            background-color: #e9eff7;
+            color: #000;
+            cursor: pointer;
+        }
+        
+          .btn-base-free-green{
+            display: inline-flex;      /* 上下左右中央が確実 */
+            align-items: center;       /* 縦中央 */
+            justify-content: center;   /* 横中央 */
+            font-size: 13px;
+            font-weight: normal;
+            text-decoration: none;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+            background-color: #C0DEC5;
+            color: #000;
+            cursor: pointer;
+          
+            line-height: 1;            /* 文字の上下ブレ防止 */
+            padding: 0 10px;           /* 横の余白だけ固定（高さはheightで決める） */
+            box-sizing: border-box;
+            white-space: nowrap;
+          }                
+                          /* button のUA差を潰す（任意だけど推奨） */
+                button.btn-base-free-green{
+                  -webkit-appearance: none;
+                  appearance: none;
+                }
+        
+        
         
         /* 非活性リンク風（クリック不可） */
         .btn-disabled {
@@ -1109,6 +1178,24 @@
             height: 22px !important;
             line-height: 1.2 !important;
                   }
+                  
+        /* ============================================
+         * 数値入力（共通）：suji11s
+         * - suji11 は他用途で保持
+         * - ふるさと等のテーブル入力を 132px に統一するための汎用クラス
+         * ============================================ */
+        .suji11s {
+          width: 132px !important;
+          min-width: 132px !important;
+          max-width: 132px !important;
+          padding-top: 1px !important;
+          padding-bottom: 1px !important;
+          line-height: 1.0 !important;
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+          height: calc(1em + 4px) !important;
+          box-sizing: border-box !important;
+        }
   
   /* --- 罫線をセル単位で透明化する --- */
         .b-none   { border: none !important; }
@@ -1220,4 +1307,6 @@
       .pe-10 { padding-right: 48px !important; }
       .pe-11 { padding-right: 52px !important; }
       
-      
+   /* これを「他のCSSより後」に置く */
+th.pe-1 { padding-right: 4px !important; }
+th.ps-1 { padding-left: 4px !important; }   

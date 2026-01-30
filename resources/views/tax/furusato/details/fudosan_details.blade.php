@@ -11,7 +11,7 @@
     $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
 @endphp
-<div class="container-blue mt-2" style="width:600px;">
+<div class="container-blue mt-2" style="width:530px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">内訳－不動産</h0>

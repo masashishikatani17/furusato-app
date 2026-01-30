@@ -17,6 +17,11 @@ class PdfCacheService
         $oneStop = (string)($context['one_stop_flag_curr'] ?? '1');
         $mode    = (string)($context['mode'] ?? 'fast');
         $engine  = (string)($context['engine'] ?? 'dompdf');
+        // PDF出力条件（max|current|both）
+        $variant = strtolower((string)($context['pdf_variant'] ?? 'max'));
+        if (!in_array($variant, ['max','current','both'], true)) {
+            $variant = 'max';
+        }
 
         $t = FurusatoResult::query()->where('data_id', $dataId)->value('updated_at');
         $updated = $t ? (string)$t : (string)($data->updated_at ?? '');
@@ -29,6 +34,7 @@ class PdfCacheService
             'oneStop' => $oneStop,
             'mode'    => $mode,
             'engine'  => $engine,
+            'variant' => $variant,
             'updated' => $updated,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     }

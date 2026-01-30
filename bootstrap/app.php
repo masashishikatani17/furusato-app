@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Console\Scheduling\Schedule;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -33,6 +34,10 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\StoreIntendedOnUnauthenticated::class,
             \App\Http\Middleware\AddCspIfEnabled::class,
         ]);
+    })
+    ->withSchedule(function (Schedule $schedule) {
+        // 期限切れ招待の確定（最大遅延を抑えるなら everyMinute）
+        $schedule->command('invitations:expire-scan')->everyMinute();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

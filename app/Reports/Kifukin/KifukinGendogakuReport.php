@@ -73,20 +73,30 @@ class KifukinGendogakuReport implements ReportInterface
         $upperSvc = app(FurusatoPracticalUpperLimitService::class);
         $upper = $upperSvc->compute($payload, $ctx);
 
-        $yMaxTotal = (int)($upper['y_max_total'] ?? 0);
-        // 帳票注記：1,000円未満切捨て
-        $yMaxFloor = $this->floorToThousands($yMaxTotal);
+        // 上限額は Service 側で
+        //   「1円単位探索 → 千円未満切捨て →（念のためOK再確認）」まで完了して返る想定。
+        // よって、帳票側では二重に切捨てをしない（=返ってきた値を最終上限として扱う）。
+        $yMaxFloor = (int)($upper['y_max_total'] ?? 0);
+        $yMaxTotalRaw = (int)($upper['y_max_total_raw'] ?? $yMaxFloor);
+
+        // ★重要：現状のふるさと寄付額（y_current）は
+        //   「所得税側=0 / 住民税側だけ入力」でも成立するため、
+        //   シナリオ計算に渡す payload 側へ SoT 同期してから build する。
+        // これをやらないと saved_2_3（今までに寄附した額で計算した減税額）が 0 になり得る。
+        $yCurrent = (int)($upper['y_current'] ?? 0);
+        $payloadForScenario = $this->withFurusato($payload, $yCurrent);
 
         /** @var FurusatoScenarioTaxSummaryService $scSvc */
         $scSvc = app(FurusatoScenarioTaxSummaryService::class);
-        $sc = $scSvc->build($payload, $ctx, $yMaxFloor);
+        $sc = $scSvc->build($payloadForScenario, $ctx, $yMaxFloor);
 
         // ②（その他寄附=現状、ふるさと=0）を基準にした減税額
         $s23 = is_array($sc['saved_2_3'] ?? null) ? $sc['saved_2_3'] : ['itax'=>0,'jumin'=>0];
         $s24 = is_array($sc['saved_2_4'] ?? null) ? $sc['saved_2_4'] : ['itax'=>0,'jumin'=>0];
         $s34 = is_array($sc['saved_3_4'] ?? null) ? $sc['saved_3_4'] : ['itax'=>0,'jumin'=>0];
 
-        $yCurrent = (int)($upper['y_current'] ?? 0);
+        // 「今までに寄附した額」は、所得税側が 0 でも住民税側に入力があれば拾う必要がある。
+        // FurusatoPracticalUpperLimitService が max(itax,pref,muni) を y_current として返す。
         $yAdd = max(0, $yMaxFloor - $yCurrent);
 
         $row = function (int $donation, array $saved): array {
@@ -108,7 +118,7 @@ class KifukinGendogakuReport implements ReportInterface
             'current' => $row($yCurrent,  $s23),
             'diff'    => $row($yAdd,      $s34),
             'meta' => [
-                'y_max_total_raw'  => $yMaxTotal,
+                'y_max_total_raw'  => $yMaxTotalRaw,
                 'y_max_total_floor'=> $yMaxFloor,
                 'y_current'        => $yCurrent,
                 'y_add'            => $yAdd,
@@ -196,6 +206,20 @@ class KifukinGendogakuReport implements ReportInterface
     {
         if ($v <= 0) return 0;
         return (int) (floor($v / 1000) * 1000);
+    }
+
+    /**
+     * ふるさと寄付額の注入（同額コピー運用）
+     * - 所得税側：shotokuzei_shotokukojo_furusato_curr = y
+     * - 住民税側：pref/muni のふるさとも同額にする（readonlyコピー運用）
+     */
+    private function withFurusato(array $payload, int $y): array
+    {
+        $y = max(0, $y);
+        $payload['shotokuzei_shotokukojo_furusato_curr'] = $y;
+        $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $y;
+        $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $y;
+        return $payload;
     }
 
     private function toWarekiYear(int $year): string

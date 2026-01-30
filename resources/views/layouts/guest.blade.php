@@ -1,3 +1,4 @@
+<!-- resources/views/layouts/guest.blade.php -->
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
@@ -6,6 +7,9 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>{{ config('app.name', 'Laravel') }}</title>
+
+        <link rel="icon" href="{{ asset('favicon.ico') }}">
+        <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">

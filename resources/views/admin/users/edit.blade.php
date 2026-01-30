@@ -1,3 +1,4 @@
+<!-- resources/views/admin/users/edit.blade.php -->
 @extends('layouts.min')
 
 @section('title', 'ユーザー編集')

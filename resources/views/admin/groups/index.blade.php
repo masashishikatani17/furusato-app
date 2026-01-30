@@ -1,3 +1,4 @@
+<!-- resources/views/admin/groups/index.blade.php -->
 @extends('layouts.min')
 
 @section('title', '部署一覧')

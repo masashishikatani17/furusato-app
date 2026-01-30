@@ -1,28 +1,66 @@
-<x-guest-layout>
-    <x-authentication-card>
-        <x-slot name="logo">
-            <x-authentication-card-logo />
-        </x-slot>
+{{-- resources/views/auth/confirm-password.blade.php --}}
+@extends('layouts.min')
 
-        <div class="mb-4 text-sm text-gray-600">
-            {{ __('This is a secure area of the application. Please confirm your password before continuing.') }}
+@section('title', 'パスワード確認')
+
+@section('content')
+<div class="container-blue" style="max-width: 760px; margin: 0 auto;">
+  <div class="card-header d-flex justify-content-between gap-2">
+    <div>
+      <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+      <h0 class="mb-0 ms-3 mt-2"> パスワード確認</h0>
+    </div>
+    <div class="d-flex me-3 mt-2"></div>
+  </div>
+
+  <div class="card-body">
+    <div class="border rounded p-3" style="max-width: 560px; margin: 0 auto;">
+      <div class="mb-3">
+        重要な操作の前に、パスワードを再入力してください。
+      </div>
+
+      @if ($errors->any())
+        <div class="alert alert-danger mb-3">
+          <div class="mb-1">入力内容を確認してください。</div>
+          <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+              <li>{{ $error }}</li>
+            @endforeach
+          </ul>
         </div>
+      @endif
 
-        <x-validation-errors class="mb-4" />
+      <form method="POST" action="{{ route('password.confirm.store') }}">
+        @csrf
 
-        <form method="POST" action="{{ route('password.confirm') }}">
-            @csrf
+        <table class="table table-base mb-3 align-middle" style="width: 100%;">
+          <tbody>
+            <tr style="height: 44px;">
+              <th class="text-start" style="width: 160px; background-color:#d0e5f4;">Password</th>
+              <td>
+                <input
+                  id="password"
+                  type="password"
+                  name="password"
+                  class="form-control"
+                  required
+                  autofocus
+                  autocomplete="current-password"
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-            <div>
-                <x-label for="password" value="{{ __('Password') }}" />
-                <x-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="current-password" autofocus />
-            </div>
+        <hr>
 
-            <div class="flex justify-end mt-4">
-                <x-button class="ms-4">
-                    {{ __('Confirm') }}
-                </x-button>
-            </div>
-        </form>
-    </x-authentication-card>
-</x-guest-layout>
+        <div class="btn-footer">
+          <div class="d-flex justify-content-end align-items-center gap-2">
+            <button type="submit" class="btn-base-blue">確 認</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+@endsection

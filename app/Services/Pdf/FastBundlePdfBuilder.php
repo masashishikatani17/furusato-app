@@ -34,7 +34,14 @@ class FastBundlePdfBuilder
         $pages = [];
         foreach ($keys as $key) {
             $obj  = $this->reports->resolve((string)$key);
-            $vars = $obj->buildViewData($data);
+            // ★bundle側から report_key を渡して *_curr などの分岐を有効化する
+            $ctxPerKey = array_merge($context, ['report_key' => (string)$key]);
+            if (method_exists($obj, 'buildViewDataWithContext')) {
+                /** @var array $vars */
+                $vars = $obj->buildViewDataWithContext($data, $ctxPerKey);
+            } else {
+                $vars = $obj->buildViewData($data);
+            }
             $view = $obj->viewName();
 
             // bundle文脈＋PDFフラグ

@@ -18,16 +18,7 @@ final class FurusatoKifukinGendogakuTemplateWriter
     //  - まずは “だいたい当たる” 初期値。最終調整は mm 単位で詰めてください。
     // ============================================================
     private const LAYOUT = [
-        // タイトル行：背景の「年の〜」の手前に「令和◯」だけ置く
-        'title_year' => [
-            'x' => 9.0,
-            'y' => 13.5,
-            'w' => 40.0,
-            'h' => 7.5,
-            'size' => 12.0,
-            'align' => 'R',
-        ],
-        
+
         // 上段（寄附金上限額テーブル）：幅 248mm をページ中央へ
         //   col: [61,38,37,37,37,38] ＝ 248
         'upper' => [
@@ -38,7 +29,7 @@ final class FurusatoKifukinGendogakuTemplateWriter
             'header_h' => 21.0,   // 旧bladeの data-height-mm=21 と整合
             'row_h' => 9,       // ★仮：データ行高（要調整）
             // 数字セルは col[1]..col[5]（寄附金額〜負担額）に出す
-            'pad_r' => 2.0,       // 右寄せの内側余白
+            'pad_r' => 1.6,       // 右寄せの内側余白
             // ★行ごとのY補正（mm）：0行目/1行目/2行目...
             // 例：3行目（row=2）だけ下げたい → [0.0, 0.0, 1.1]
             'row_offsets' => [0.0, 0.0, 1.1],
@@ -59,10 +50,13 @@ final class FurusatoKifukinGendogakuTemplateWriter
         'breakdown' => [
             'x' => 30,     // 左ブロック開始（上段と同じ起点で仮置き）
             'y' => 106.8,    // ★仮：内訳テーブル上端（要調整）
-            'cols' => [61.5, 19.5, 19.5, 19.4, 19.4, 18.9],
+            'cols' => [60.9, 19.4, 19.2, 19.5, 19.1, 18.9],
             'header_h' => 18.0, // ★仮：ヘッダー3段分の高さ（背景固定のため数値行開始で使う）
             'row_h' => 5.38,      // ★仮：データ行高（要調整）
-            'pad_r' => 1.6,
+            'pad_r' => 0,
+            // ★下段の数値だけ：フォントを1つ小さく & 90%ストレッチ
+            'font' => 9.0,
+            'stretch' => 87.0,
         ],
 
         // Debug表示（枠線）
@@ -114,28 +108,7 @@ final class FurusatoKifukinGendogakuTemplateWriter
         $tpl = $pdf->importPage(1);
         $size = $pdf->getTemplateSize($tpl);
         $pdf->useTemplate($tpl, 0, 0, $size['width'], $size['height'], true);
-
         $showTest = (bool)($vars['show_test'] ?? false);
-
-        // ============================================================
-        // 0) タイトル年号（背景の「年」の手前）
-        // ============================================================
-        $wareki = trim((string)($vars['wareki_year'] ?? ''));
-        $warekiShort = $this->stripTrailingNen($wareki); // 例: 令和7年 → 令和7
-        if ($warekiShort !== '') {
-            $t = self::LAYOUT['title_year'];
-            $this->textBox(
-                $pdf, $font,
-                (float)$t['x'], (float)$t['y'],
-                (float)$t['w'], (float)$t['h'],
-                $warekiShort,
-                (string)$t['align'],
-                (float)$t['size'],
-                0.0, 0.0,
-                (string)($t['style'] ?? '')
-            );
-            if ($showTest) $this->debugRect($pdf, (float)$t['x'], (float)$t['y'], (float)$t['w'], (float)$t['h']);
-        }
 
         // ============================================================
         // 1) 上段：寄附金上限額・現在・差額（数値のみ、右寄せ）
@@ -212,6 +185,8 @@ final class FurusatoKifukinGendogakuTemplateWriter
         $bdHeaderH = (float)self::LAYOUT['breakdown']['header_h'];
         $bdRowH    = (float)self::LAYOUT['breakdown']['row_h'];
         $bdPadR    = (float)self::LAYOUT['breakdown']['pad_r'];
+        $bdFont    = (float)(self::LAYOUT['breakdown']['font'] ?? 11.0);
+        $bdStretch = array_key_exists('stretch', self::LAYOUT['breakdown']) ? (float)self::LAYOUT['breakdown']['stretch'] : null;
         $bdColX = $this->colLefts($bdBaseX, $bdCols);
 
         // 行順（旧Bladeと同じ）
@@ -273,7 +248,7 @@ final class FurusatoKifukinGendogakuTemplateWriter
                 $x = (float)$bdColX[(int)$colIdx];
                 $w = (float)$bdCols[(int)$colIdx];
                 $h = $bdRowH;
-                $this->textBox($pdf, $font, $x, $rowY, $w, $h, $this->fmtYen((int)$val), 'R', 11.0, $bdPadR, 0.0, $rowStyle);
+                $this->textBox($pdf, $font, $x, $rowY, $w, $h, $this->fmtYen((int)$val), 'R', $bdFont, $bdPadR, 0.0, $rowStyle, $bdStretch);
                 if ($showTest) $this->debugRect($pdf, $x, $rowY, $w, $h);
             }
         }
@@ -349,11 +324,19 @@ final class FurusatoKifukinGendogakuTemplateWriter
         float $fontSize = 11.0,
         float $padRight = 0.0,
         float $padLeft = 0.0,
-        string $fontStyle = ''   // ★追加: '' or 'B' etc.
+        string $fontStyle = '',   // '' or 'B'
+        ?float $stretchPct = null // ★追加: 例 90.0（%）
     ): void {
          // NOTE: IPAex等は Bold 面を持たず 'B' が効かないことがあるため、
         //       'B' は「疑似太字（2回描画）」で対応する
         $isBold = ($fontStyle === 'B');
+        // ★任意ストレッチ（90% 等）— 指定があるときだけ効かせ、最後に必ず戻す
+        $stretchInt = null;
+        if ($stretchPct !== null) {
+            $stretchInt = (int)max(50, min(150, round($stretchPct))); // 安全域: 50%〜150%
+            $pdf->SetFontStretching($stretchInt);
+        }
+        
         $pdf->SetFont($font, '', $fontSize);
         $pdf->SetTextColor(0, 0, 0);
 
@@ -372,6 +355,11 @@ final class FurusatoKifukinGendogakuTemplateWriter
             $pdf->SetXY($innerX + 0.2, $y); // 0.2mm 右へ（必要なら 0.15〜0.30 で調整）
             $pdf->MultiCell($innerW, $h, $text, 0, $align, false, 0, '', '', true, 0, false, true, $h, 'M', false);
         }
+        
+        // ★ストレッチを戻す（他の出力に影響させない）
+        if ($stretchInt !== null) {
+            $pdf->SetFontStretching(100);
+        }
     }
 
     private function debugRect(TcpdfFpdi $pdf, float $x, float $y, float $w, float $h): void
@@ -382,6 +370,8 @@ final class FurusatoKifukinGendogakuTemplateWriter
         $pdf->SetLineWidth($lw);
         $pdf->Rect($x, $y, $w, $h);
     }
+    
+       
 }
 
 

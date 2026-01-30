@@ -1,36 +1,92 @@
-<x-guest-layout>
-    <x-authentication-card>
-        <x-slot name="logo">
-            <x-authentication-card-logo />
-        </x-slot>
+{{-- resources/views/auth/reset-password.blade.php --}}
+@extends('layouts.min')
 
-        <x-validation-errors class="mb-4" />
+@section('title', '新しいパスワード設定')
 
-        <form method="POST" action="{{ route('password.update') }}">
-            @csrf
+@section('content')
+<div class="container-blue" style="max-width: 760px; margin: 0 auto;">
+  <div class="card-header d-flex justify-content-between gap-2">
+    <div>
+      <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+      <h0 class="mb-0 ms-3 mt-2"> 新しいパスワード設定</h0>
+    </div>
+    <div class="d-flex me-3 mt-2"></div>
+  </div>
 
-            <input type="hidden" name="token" value="{{ $request->route('token') }}">
+  <div class="card-body">
+    <div class="border rounded p-3" style="max-width: 560px; margin: 0 auto;">
 
-            <div class="block">
-                <x-label for="email" value="{{ __('Email') }}" />
-                <x-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email', $request->email)" required autofocus autocomplete="username" />
-            </div>
+      @if ($errors->any())
+        <div class="alert alert-danger mb-3">
+          <div class="mb-1">入力内容を確認してください。</div>
+          <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+              <li>{{ $error }}</li>
+            @endforeach
+          </ul>
+        </div>
+      @endif
 
-            <div class="mt-4">
-                <x-label for="password" value="{{ __('Password') }}" />
-                <x-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-            </div>
+      <form method="POST" action="{{ route('password.update') }}">
+        @csrf
 
-            <div class="mt-4">
-                <x-label for="password_confirmation" value="{{ __('Confirm Password') }}" />
-                <x-input id="password_confirmation" class="block mt-1 w-full" type="password" name="password_confirmation" required autocomplete="new-password" />
-            </div>
+        <input type="hidden" name="token" value="{{ $request->route('token') }}">
 
-            <div class="flex items-center justify-end mt-4">
-                <x-button>
-                    {{ __('Reset Password') }}
-                </x-button>
-            </div>
-        </form>
-    </x-authentication-card>
-</x-guest-layout>
+        <table class="table table-base mb-3 align-middle" style="width: 100%;">
+          <tbody>
+            <tr style="height: 44px;">
+              <th class="text-start" style="width: 200px; background-color:#d0e5f4;">Email</th>
+              <td>
+                <input
+                  id="email"
+                  type="email"
+                  name="email"
+                  class="form-control"
+                  value="{{ old('email', $request->email) }}"
+                  required
+                  autofocus
+                  autocomplete="username"
+                >
+              </td>
+            </tr>
+            <tr style="height: 44px;">
+              <th class="text-start" style="background-color:#d0e5f4;">Password</th>
+              <td>
+                <input
+                  id="password"
+                  type="password"
+                  name="password"
+                  class="form-control"
+                  required
+                  autocomplete="new-password"
+                >
+              </td>
+            </tr>
+            <tr style="height: 44px;">
+              <th class="text-start" style="background-color:#d0e5f4;">Confirm Password</th>
+              <td>
+                <input
+                  id="password_confirmation"
+                  type="password"
+                  name="password_confirmation"
+                  class="form-control"
+                  required
+                  autocomplete="new-password"
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <div class="btn-footer">
+          <div class="d-flex justify-content-end align-items-center gap-2">
+            <button type="submit" class="btn-base-blue">更 新</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+@endsection

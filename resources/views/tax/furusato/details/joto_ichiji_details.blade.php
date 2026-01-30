@@ -53,16 +53,16 @@
           <div class="mb-2">
             <hb class="fw-bold">{{ $label }}</hb>
             <div class="table-responsive">
-              <table class="table-base table-bordered align-middle text-center">
+              <table class="table-input align-middle text-center">
                 <thead>
                   <tr>
-                    <th colspan="2" style="width: 140px;height:30px;"></th>
+                    <th colspan="2" style="height:30px;"></th>
                     <th>収入金額</th>
                     <th>必要経費</th>
                     <th>差引金額</th>
                     <th>内部通算後</th>
                     <th>特別控除額</th>
-                    <th>譲渡・一時所得の通算後</th>
+                    <th>譲渡・一時所得<br>の通算後</th>
                     <th>損益通算後</th>
                     <th>1/2</th>
                     <th>所得金額</th>
@@ -70,8 +70,8 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <th rowspan="2" class="th-cream">総合譲渡</th>
-                    <th class="th-cream" nowrap="nowrap">短期</th>
+                    <th nowrap="nowrap" rowspan="2" class="th-cream">総合<br>譲渡　</th>
+                    <th nowrap="nowrap" class="th-cream">短期　</th>
                     <td>
                       <input type="text" inputmode="numeric"
                              data-format="comma-int" data-name="syunyu_joto_tanki_{{ $period }}"
@@ -126,7 +126,7 @@
                     </td>
                   </tr>
                   <tr>
-                    <th class="th-cream">長期</th>
+                    <th class="th-cream">長期　</th>
                     <td>
                       <input type="text" inputmode="numeric" 
                              data-format="comma-int" data-name="syunyu_joto_choki_{{ $period }}" 

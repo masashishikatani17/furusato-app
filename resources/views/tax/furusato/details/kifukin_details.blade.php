@@ -82,7 +82,7 @@
         $returnUrl .= '#' . $originAnchor;
     }
 @endphp
-<div class="container-blue mt-2" style="width:1100px;">
+<div class="container-blue mt-2" style="width:1000px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">寄付金控除の内訳</h0>
@@ -113,7 +113,7 @@
           <input type="hidden" name="stay_on_details" id="stay-on-details-flag" value="0">
       
           <div class="table-responsive mb-4">
-            <table class="table-base table-bordered align-middle text-start ms-2">
+            <table class="table-input align-middle text-start ms-2">
                 <tr>
                   <th rowspan="4" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
                   <th colspan="4" class="th-ccc">{{ $warekiPrevLabel }}</th>

@@ -26,16 +26,17 @@ final class FurusatoKazeigakuZeigakuYosokuTemplateWriter
     //  - まずは「だいたい当たる」初期値。最終調整は mm 単位で詰めてください。
     // ============================================================
     private const LAYOUT = [
+
         // メイン表（幅 237mm）をページ中央へ
         // colgroup: [10,20,31,30,30,29,29,29,29] = 237
         'table' => [
             'x' => 30.5,   // (297-237)/2
             'y' => 27.2,   // ★仮：表の上端（要調整）
-            'cols' => [10.0, 20.0, 37.5, 28, 28, 27.3, 28.5, 28.8, 28.1],
+            'cols' => [10.0, 20.0, 37.5, 28, 27.5, 27.5, 28.5, 28.5, 28.5],
             'header_h' => 24.0, // ★仮：ヘッダー3段分（要調整）
             'row_h' => 6.33,     // ★仮：データ行高（要調整）
-            'pad_r' => 1.8,
-            'font' => 11.0,
+            'pad_r' => 0.8,
+            'font' => 9.0,
         ],
 
         // タイトル年号：背景の「年の課税所得金額・税額の予測」の「年」の前に「令和7」等を置く
@@ -97,7 +98,6 @@ final class FurusatoKazeigakuZeigakuYosokuTemplateWriter
         $tpl = $pdf->importPage(1);
         $size = $pdf->getTemplateSize($tpl);
         $pdf->useTemplate($tpl, 0, 0, $size['width'], $size['height'], true);
-
         $showTest = (bool)($vars['show_test'] ?? false);
 
         // ============================================================
@@ -186,8 +186,9 @@ final class FurusatoKazeigakuZeigakuYosokuTemplateWriter
 
             // 税額（所得税）
             $zIt = $this->n($itaxZ[$k] ?? 0);
-            // ★税額→所得税（列5）だけ少し左へ寄せる：右余白を増やす
+            // ★税額→所得税（列5）は全ブロックで同じ右余白補正に統一
             $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y, $rowH, $this->fmtYen($zIt), $fontSize, $padR + 1.2, $showTest);
+@@
 
             // 税額（住民税：muni/pref/total）
             $jRow = is_array($juminZ[$k] ?? null) ? $juminZ[$k] : [];
@@ -223,8 +224,10 @@ final class FurusatoKazeigakuZeigakuYosokuTemplateWriter
 
             if ($row['itax']) {
                 $v = $this->n($c['itax'] ?? 0);
-                $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y, $rowH, $this->fmtYen($v), $fontSize, $padR, $showTest);
-            }
++                // ★上段と同じ位置に揃える（列5のみ右余白補正）
++                $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y, $rowH, $this->fmtYen($v), $fontSize, $padR + 1.2, $showTest);
+               }
+               
             if ($row['jumin']) {
                 $jm = $this->n($c['muni'] ?? 0);
                 $jp = $this->n($c['pref'] ?? 0);
@@ -245,7 +248,7 @@ final class FurusatoKazeigakuZeigakuYosokuTemplateWriter
         // (a) 差引所得税額（所得割額）★（kijun_itax / gokei_jumin）
         $y0 = $by + $headerH + ($rowH * (float)$baseIdx2);
         $kijunItax = $this->n($final['kijun_itax'] ?? 0);
-        $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y0, $rowH, $this->fmtYen($kijunItax), $fontSize, $padR, $showTest);
+        $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y0, $rowH, $this->fmtYen($kijunItax), $fontSize, $padR + 1.2, $showTest);
         $this->putCell($pdf, $font, $colX, $cols, $cTaxMuni,  $y0, $rowH, $this->fmtYen($this->n($finalJ['muni'] ?? 0)), $fontSize, $padR, $showTest);
         $this->putCell($pdf, $font, $colX, $cols, $cTaxPref,  $y0, $rowH, $this->fmtYen($this->n($finalJ['pref'] ?? 0)), $fontSize, $padR, $showTest);
         $this->putCell($pdf, $font, $colX, $cols, $cTaxTotal, $y0, $rowH, $this->fmtYen($this->n($finalJ['total'] ?? 0)), $fontSize, $padR, $showTest);
@@ -253,13 +256,13 @@ final class FurusatoKazeigakuZeigakuYosokuTemplateWriter
         // (b) 復興特別所得税額（fukkou_itax）※住民税は空欄
         $y1 = $by + $headerH + ($rowH * (float)($baseIdx2 + 1));
         $fukkou = $this->n($final['fukkou_itax'] ?? 0);
-        $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y1, $rowH, $this->fmtYen($fukkou), $fontSize, $padR, $showTest);
+        $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y1, $rowH, $this->fmtYen($fukkou), $fontSize, $padR + 1.2, $showTest);
 
         // (c) 合計（gokei_itax / gokei_jumin）
         $y2 = $by + $headerH + ($rowH * (float)($baseIdx2 + 2));
         $gokeiItax = $this->n($final['gokei_itax'] ?? 0);
         // ★税額の「合計」行：所得税列だけ太字
-        $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y2, $rowH, $this->fmtYen($gokeiItax), $fontSize, $padR, $showTest, 'B');
+        $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y2, $rowH, $this->fmtYen($gokeiItax), $fontSize, $padR + 1.2, $showTest, 'B');
  
         $this->putCell($pdf, $font, $colX, $cols, $cTaxMuni,  $y2, $rowH, $this->fmtYen($this->n($finalJ['muni'] ?? 0)), $fontSize, $padR, $showTest);
         $this->putCell($pdf, $font, $colX, $cols, $cTaxPref,  $y2, $rowH, $this->fmtYen($this->n($finalJ['pref'] ?? 0)), $fontSize, $padR, $showTest);

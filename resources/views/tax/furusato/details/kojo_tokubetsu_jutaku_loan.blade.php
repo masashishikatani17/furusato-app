@@ -16,7 +16,7 @@
   $ratePrev = number_format((float)($inputs['itax_credit_rate_percent_prev'] ?? 0.7), 1, '.', '');
   $rateCurr = number_format((float)($inputs['itax_credit_rate_percent_curr'] ?? 0.7), 1, '.', '');
 @endphp
-<div class="container-blue mt-2" style="width: 520px;">
+<div class="container-blue mt-2" style="width: 500px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2 mb-3">住宅借入金等特別控除の内訳</h0>
@@ -45,13 +45,13 @@
         <input type="hidden" name="recalc_all" value="1">
         <input type="hidden" id="stay-on-details" name="stay_on_details" value="0">
   
-        <hb class="mb-2 ms-3">所得税の控除限度額</hb>
+        <hb class="mb-2 ms-3">■ 所得税の控除限度額</hb>
         <div class="table-responsive mb-4">
-          <table class="table-base table-bordered align-middle text-start">
+          <table class="table-input align-middle text-start">
             <tr>
               <th class="th-ccc" style="width:130px;height:30px;">項　目　名</th>
-              <th class="th-ccc" style="width:140px;">{{ $warekiPrevLabel }}</th>
-              <th class="th-ccc" style="width:140px;">{{ $warekiCurrLabel }}</th>
+              <th class="th-ccc">{{ $warekiPrevLabel }}</th>
+              <th class="th-ccc">{{ $warekiCurrLabel }}</th>
             </tr>
             <tr>
               <th class="text-start ps-1">借入金限度額</th>
@@ -87,13 +87,13 @@
           </table>
         </div>
   
-       　<hb class="mb-2 ms-3">住民税の控除限度額</hb>
+       　<hb class="mb-2 ms-3">■ 住民税の控除限度額</hb>
         <div class="table-responsive mb-4">
-          <table class="table-base table-bordered align-middle text-start">
+          <table class="table-input align-middle text-start">
             <tr>
               <th class="th-ccc" style="width:130px;height:30px;">項　目　名</th>
-              <th class="th-ccc" style="width:140px;">{{ $warekiPrevLabel }}</th>
-              <th class="th-ccc" style="width:140px;">{{ $warekiCurrLabel }}</th>
+              <th class="th-ccc">{{ $warekiPrevLabel }}</th>
+              <th class="th-ccc">{{ $warekiCurrLabel }}</th>
             </tr>
             <tr>
               <th class="text-start ps-1">課税総所得金額等×</th>
@@ -123,7 +123,7 @@
         {{-- （参考）課税総所得金額等：画面入力させない。hidden で返すだけ（サーバで毎回再計算） --}}
         <input type="hidden" id="taxable-prev" name="rtax_taxable_total_prev" value="{{ (int)($inputs['rtax_taxable_total_prev'] ?? 0) }}">
         <input type="hidden" id="taxable-curr" name="rtax_taxable_total_curr" value="{{ (int)($inputs['rtax_taxable_total_curr'] ?? 0) }}">
-  
+        <hr>
         <div class="text-end me-2 mb-2">
           {{-- 戻る：input に遷移（第一表 #tax_jutaku） --}}
           <button type="submit"

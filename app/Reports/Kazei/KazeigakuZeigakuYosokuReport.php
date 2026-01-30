@@ -21,6 +21,18 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
 
     public function buildViewData(Data $data): array
     {
+        // 既定：上限額まで寄付（従来互換）
+        return $this->buildViewDataWithContext($data, ['report_key' => 'kazeigakuzeigakuyosoku']);
+    }
+
+    /**
+     * Bundle から「今までの寄付額（_curr）」と「上限額（通常）」を切り替えるための拡張
+     * - PdfOutputController から report_key が渡される
+     *
+     * @param array<string,mixed> $context
+     */
+    public function buildViewDataWithContext(Data $data, array $context): array
+    {
         $guestName = $data->guest?->name ?? '（名称未登録）';
         $year = (int)($data->kihu_year ?? now()->year);
 
@@ -84,12 +96,27 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
         /** @var FurusatoDryRunCalculatorRunner $runner */
         $runner = app(FurusatoDryRunCalculatorRunner::class);
 
-        // full（ふるさと＝上限）
-        $payloadAtMax = $this->withFurusato($payload, $yMaxTotal);
-        $outFull = $runner->run($payloadAtMax, $ctx);
+        // --------------------------------------------
+        // ★出力モード判定
+        //   - report_key が *_curr なら「今までに寄付した額」
+        //   - それ以外は「上限額まで寄付」
+        // --------------------------------------------
+        $reportKey = strtolower((string)($context['report_key'] ?? ''));
+        $mode = str_ends_with($reportKey, '_curr') ? 'current' : 'max';
+
+        $y = 0;
+        if ($mode === 'current') {
+            $payloadAt = $this->withFurusatoCurrent($payload);
+            $y = $this->resolveCurrentFurusatoDonationCurr($payloadAt);
+            $outFull = $runner->run($payloadAt, $ctx);
+        } else {
+            $y = (int)$yMaxTotal;
+            $payloadAtMax = $this->withFurusatoMax($payload, $y);
+            $outFull = $runner->run($payloadAtMax, $ctx);
+        }
 
         // other-only（ふるさと＝0、その他寄附はそのまま）…「下記以外」用
-        $payloadOther = $this->withFurusato($payload, 0);
+        $payloadOther = $this->withFurusatoMax($payload, 0);
         $outOther = $runner->run($payloadOther, $ctx);
 
         // ------------------------------
@@ -195,7 +222,9 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
             'wareki_year' => $this->toWarekiYear($year),
             'guest_name'  => $guestName,
             'data_id'     => (int)$data->id,
-            'furusato_y_max_total' => $yMaxTotal,
+            // この帳票で使った“寄付額”（maxなら上限、currentなら今まで）
+            'furusato_y_max_total' => $y,
+            'furusato_pdf_variant' => $mode,
             'report3_curr' => [
                 'taxable' => $taxable,
                 'zeigaku' => [
@@ -237,15 +266,47 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
         ];
     }
 
-    private function withFurusato(array $payload, int $y): array
+    /**
+     * 上限額（max）用：所得税側/住民税側とも「同額」で注入する
+     */
+    private function withFurusatoMax(array $payload, int $y): array
     {
         $y = max(0, $y);
-        // 所得税側（SoT）
         $payload['shotokuzei_shotokukojo_furusato_curr'] = $y;
-        // 住民税側（pref/muni 同額コピー運用）
         $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $y;
         $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $y;
         return $payload;
+    }
+
+    /**
+     * 今まで（current）用：
+     * - 住民税側 pref/muni は「どちらか入っていれば同額コピー」で同期
+     * - 所得税側は現状入力を尊重（ワンストップを壊さない）
+     */
+    private function withFurusatoCurrent(array $payload): array
+    {
+        $itax = $this->n($payload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
+        $pref = $this->n($payload['juminzei_zeigakukojo_pref_furusato_curr'] ?? 0);
+        $muni = $this->n($payload['juminzei_zeigakukojo_muni_furusato_curr'] ?? 0);
+
+        $j = max(0, max($pref, $muni));
+        if ($j > 0) {
+            $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $j;
+            $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $j;
+        }
+        $payload['shotokuzei_shotokukojo_furusato_curr'] = max(0, $itax);
+        return $payload;
+    }
+
+    /**
+     * 「今までに寄付した額（当年）」を安全に解決
+     */
+    private function resolveCurrentFurusatoDonationCurr(array $payload): int
+    {
+        $itax = $this->n($payload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
+        $pref = $this->n($payload['juminzei_zeigakukojo_pref_furusato_curr'] ?? 0);
+        $muni = $this->n($payload['juminzei_zeigakukojo_muni_furusato_curr'] ?? 0);
+        return max(0, max($itax, $pref, $muni));
     }
 
     private function n(mixed $v): int

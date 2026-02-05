@@ -26,8 +26,7 @@
       </ul>
     </div>
   @endif
-  <div class="card-body">
-    <div class="wrapper">
+  <div class="card-body m-3">
       <form method="POST" action="{{ route('furusato.details.joto_ichiji.save') }}">
         @csrf
         <input type="hidden" name="data_id" value="{{ $dataId }}">
@@ -309,16 +308,15 @@
             if (hiddenEl) hiddenEl.value = String(diff);
           }
         </script>
-        <hr>
-        <div class="text-end me-2 mb-2">
+        <hr class="mb-2">
+        <div class="text-end gap-2">
           <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
           <button type="submit"
-                  class="btn-base-green ms-2"
+                  class="btn-base-green"
                   id="btn-recalc"
                   data-disable-on-submit>再計算</button>
         </div>
       </form>
-    </div>
   </div> 
 </div>
 

@@ -38,6 +38,17 @@ final class FurusatoDryRunCalculatorRunner
      */
     public function run(array $payload, array $ctx): array
     {
+        // ------------------------------------------------------------
+        // perf: dry-run runner timing
+        // - ctx に object が入っている場合のみ集計（ログは出さない）
+        // - FURUSATO_PERF_LOG=1 のときのみ Service が metrics を注入する
+        // ------------------------------------------------------------
+        $metrics = $ctx['dry_run_metrics'] ?? null;
+        $t0 = null;
+        if (is_object($metrics)) {
+            $t0 = microtime(true);
+        }
+
         foreach ($this->sorted as $calculator) {
             if (method_exists($calculator, 'compute')) {
                 /** @var callable $fn */
@@ -45,6 +56,16 @@ final class FurusatoDryRunCalculatorRunner
                 $payload = $fn($payload, $ctx);
             }
         }
+
+        if (is_object($metrics) && $t0 !== null) {
+            $dtMs = (microtime(true) - $t0) * 1000.0;
+            // プロパティが無い/型が違っても落ちないように寄せる
+            $metrics->runs = (int) (($metrics->runs ?? 0) + 1);
+            $metrics->total_ms = (float) (($metrics->total_ms ?? 0.0) + $dtMs);
+            $prevMax = (float) ($metrics->max_ms ?? 0.0);
+            $metrics->max_ms = $dtMs > $prevMax ? $dtMs : $prevMax;
+        }
+
         return $payload;
     }
 

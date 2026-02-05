@@ -1,22 +1,21 @@
 @extends('layouts.min')
 
 @section('content')
-<div class="container-grey mt-2" style="width: 500px;">
+<div class="container-grey mt-2" style="width: 410px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop_m.jpg') }}" alt="…">
-    <hb class="mb-0 mt-2">マスター一覧</hb>
+    <hb class="mt-2">マスター 一覧</hb>
   </div>
-  <div class="card-body mt-3">
-    <div class="wrapper">
-      <table width="440" align="center">
+  <div class="card-body m-3">
+      <table width="360" align="center">
         <tr>
-          <td align="center" width="200">
+          <td align="center" width="170">
             <div>
               <a href="{{ route('furusato.master.shotoku', ['data_id' => $dataId]) }}" class="btn btn-menu">所得税率</a>
             </div>
           </td>
-          <td width="40">&nbsp;</td>
-          <td width="200">
+          <td width="20">&nbsp;</td>
+          <td width="170">
             <div>
               <!-- 3) 特例控除 -->
               <a href="{{ route('furusato.master.jumin', ['data_id' => $dataId]) }}" class="btn btn-menu">住民税率</a>
@@ -57,11 +56,10 @@
           </td>
         </tr>
       </table>
-      <hr>
-      <div class="text-end me-2 mb-2">
+      <hr class="mb-2">
+      <div class="text-end">
         <a href="{{ route('furusato.input', ['data_id' => $dataId], false) }}" class="btn-base-blue">戻 る</a>
       </div>
-    </div> 
   </div>
 </div>
 @endsection

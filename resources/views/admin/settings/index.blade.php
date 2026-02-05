@@ -84,29 +84,29 @@
     ];
 @endphp
 
-<div class="container" style="width:600px; background-color:#E8EFF0;">
-    <div class="wrapper mt-3 ms-2" style="background-color:#E8EFF0;">
-        <div class="d-flex align-items-center justify-content-between mt-2 mb-4">
+<div class="container bg-cream" style="width:630px;">
+    <div class="wrapper mt-3 ms-3 bg-cream">
+        <div class="d-flex align-items-center justify-content-between mt-2 mb-4 bg-cream">
             <hb class="mb-2">○設定TOP</hb>
             <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('data.index') }}" class="btn btn-base-blue">戻る</a>
+                <a href="{{ route('data.index') }}" class="btn btn-base-blue">戻 る</a>
                 <form method="POST" action="{{ route('logout') }}" class="m-0">
                     @csrf
-                    <button type="submit" class="btn btn-base-blue me-2">ログアウト</button>
+                    <button type="submit" class="btn btn-base-blue">ログアウト</button>
                 </form>
             </div>
         </div>
     
-        <div class="row g-4 g-md-4 mb-3">
+        <div class="row g-3 g-md-3 mb-3">
             @foreach ($cards as $card)
                 @if (in_array($role, $card['roles'], true))
                     <div class="col-12 col-md-6 col-xl-4">
-                        <div class="card h-100 shadow-sm text-center">
+                        <div class="card h-100 shadow-sm text-center bg-pale">
                             <div class="card-body">
-                                <h0 class="mb-1">
-                                    <a href="{{ $card['route'] }}" class="text-decoration-none">{{ $card['title'] }}</a>
+                                <h0 class="text-center mb-1">
+                                    <a href="{{ $card['route'] }}" class="text-decoration-none title-link">{{ $card['title'] }}</a>
                                 </h0>
-                                <p class="text-muted small mb-0">{{ $card['description'] }}</p>
+                                <p class="text-muted small mb-0">{!! $card['description'] !!}</p>
                             </div>
                         </div>
                     </div>

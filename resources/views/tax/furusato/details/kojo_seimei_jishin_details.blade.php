@@ -14,9 +14,8 @@
 <div class="container-blue mt-2" style="width:480px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-    <h0 class="mb-0 mt-2">生命保険料・地震保険料の内訳</h0>
+    <h0 class="mt-2">生命保険料・地震保険料の内訳</h0>
   </div>
-
   @if ($errors->any())
     <div class="alert alert-danger">
       <ul class="mb-0">
@@ -26,8 +25,7 @@
       </ul>
     </div>
   @endif
-　 <div class="card-body">　
-  　<div class="wrapper">
+　 <div class="card-body mx-3 mb-3 mt-2">
       <form method="POST" action="{{ route('furusato.details.kojo_seimei_jishin.save') }}">
         @csrf
         <input type="hidden" name="data_id" value="{{ $dataId }}">
@@ -40,7 +38,7 @@
         <div class="table-responsive">
           <table class="table-input align-middle mb-4">
               <tr style="height:30px;">
-                <th class="text-center th-ccc" style="width:150px;">項　目</th>
+                <th class="text-center th-ccc" style="width:120px;">項&nbsp;&nbsp;&nbsp;&nbsp;目</th>
                 <th class="th-ccc">{{ $warekiPrevLabel }}</th>
                 <th class="th-ccc">{{ $warekiCurrLabel }}</th>
               </tr>
@@ -121,7 +119,7 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row" class="text-center th-cream">合  計</th>
+                <th scope="row" class="text-center th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_gokei_prev"
@@ -141,7 +139,7 @@
         <div class="table-responsive">
           <table class="table-input align-middle mb-0">
               <tr style="height:30px;">
-                <th class="text-center th-ccc" style="width:150px;">項  目</th>
+                <th class="text-center th-ccc" style="width:120px;">項&nbsp;&nbsp;&nbsp;&nbsp;目</th>
                 <th class="th-ccc">{{ $warekiPrevLabel }}</th>
                 <th class="th-ccc">{{ $warekiCurrLabel }}</th>
               </tr>
@@ -177,7 +175,7 @@
                 </td>
               </tr>
               <tr>
-                <th scope="row" class="text-center th-cream">合  計</th>
+                <th scope="row" class="text-center th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_jishin_gokei_prev"
@@ -194,16 +192,15 @@
             </tbody>
           </table>
          </div>
-        <hr>
-        <div class="text-end me-2 mb-2">
+        <hr class="mb-2">
+        <div class="text-end gap-2">
           <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
           <button type="submit"
-                  class="btn-base-green ms-2"
+                  class="btn-base-green"
                   id="btn-recalc"
                   data-disable-on-submit>再計算</button>
         </div>
       </form>
-    </div>  
   </div>    
 </div>
 @endsection

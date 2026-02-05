@@ -2,6 +2,8 @@
 
 namespace App\Domain\Tax\Services;
 
+use Illuminate\Support\Facades\Log;
+
 /**
  * 寄附金額別損得シミュレーション（PDF用）
  *
@@ -20,6 +22,18 @@ final class FurusatoSonntokuSimulationService
     ) {}
 
     /**
+     * デバッグログ（デフォルト無効）
+     * - .env: FURUSATO_DEBUG_LOG=1 のときのみ出す
+     */
+    private function dbg(string $message, array $context = []): void
+    {
+        if ((string) env('FURUSATO_DEBUG_LOG', '0') !== '1') {
+            return;
+        }
+        Log::debug($message, $context);
+    }
+
+    /**
      * @param  array<string,mixed> $basePayload  現在のSoT payload（FurusatoInput.payload 等）
      * @param  array<string,mixed> $ctx          calculator ctx（syori_settings等）
      * @return array<string,mixed>
@@ -27,7 +41,7 @@ final class FurusatoSonntokuSimulationService
     public function build(array $basePayload, array $ctx): array
     {
         // ---- DEBUG: 入口の状態 ----
-        \Log::info('[sonntoku] build start', [
+        $this->dbg('[sonntoku] build start', [
             'has_payload' => $basePayload !== [],
             'payload_keys_count' => is_array($basePayload) ? count($basePayload) : 0,
             'ctx_data_id' => $ctx['data_id'] ?? null,
@@ -42,7 +56,7 @@ final class FurusatoSonntokuSimulationService
         $yMaxTotal = $this->n($upper['y_max_total'] ?? 0);
         $yCenter = intdiv(max(0, $yMaxTotal), 1000) * 1000;
 
-        \Log::info('[sonntoku] upper computed', [
+        $this->dbg('[sonntoku] upper computed', [
             'y_max_total' => $yMaxTotal,
             'y_center' => $yCenter,
             'upper_debug' => [
@@ -57,7 +71,7 @@ final class FurusatoSonntokuSimulationService
         // 2) 左右step（左が粗い）
         [$leftStep, $rightStep] = $this->resolveSteps($yCenter);
 
-        \Log::info('[sonntoku] steps resolved', [
+        $this->dbg('[sonntoku] steps resolved', [
             'y_center' => $yCenter,
             'left_step' => $leftStep,
             'right_step' => $rightStep,
@@ -67,7 +81,7 @@ final class FurusatoSonntokuSimulationService
         $outBase = $this->runner->run($this->withFurusato($basePayload, 0), $ctx);
         $baseTax = $this->extractTax($outBase);
 
-        \Log::info('[sonntoku] base tax (y=0)', [
+        $this->dbg('[sonntoku] base tax (y=0)', [
             'itax' => $baseTax['itax'],
             'j_pref' => $baseTax['j_pref'],
             'j_muni' => $baseTax['j_muni'],
@@ -88,7 +102,7 @@ final class FurusatoSonntokuSimulationService
         // ---- DEBUG: 代表行（区分15=中心） ----
         $midL = $leftRows[15] ?? null;
         $midR = $rightRows[15] ?? null;
-        \Log::info('[sonntoku] mid rows snapshot', [
+        $this->dbg('[sonntoku] mid rows snapshot', [
             'left15' => is_array($midL) ? [
                 'y' => $midL['y'] ?? null,
                 'saved_total' => $midL['saved_total'] ?? null,
@@ -163,7 +177,7 @@ final class FurusatoSonntokuSimulationService
 
             // DEBUG: 最初の1回だけ（k=15）で「tax_gokei_* が 0 になっていないか」を観測
             if ($k === 15) {
-                \Log::info('[sonntoku] row15 tax snapshot', [
+                $this->dbg('[sonntoku] row15 tax snapshot', [
                     'step' => $step,
                     'k' => $k,
                     'y' => $y,

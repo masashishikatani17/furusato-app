@@ -33,10 +33,10 @@
     $hasIsActive = Schema::hasColumn('users', 'is_active');
 @endphp
 
-<div class="container px-4 py-4" style="width:800px; background-color:#E8EFF0;">
-    <div class="mb-4">
-        <hb class="mt-3 ms-2">ユーザー招待</hb>
-        <hs class="ms-3 me-3">ユーザーに招待メールを送り、furusato を利用できるようにします。</hs>
+<div class="container px-4 py-4" style="width:700px; background-color:#E8EFF0;">
+    <div class="d-flex align-items-start gap-2 ms-2 mb-3">
+        <hb>ユーザー招待</hb>
+        <hs>ユーザーに招待メールを送り、furusato を利用できるようにします。</hs>
     </div>
 
     <div class="card shadow-sm mb-4">
@@ -70,7 +70,7 @@
                 @csrf
 
                 <div class="mt-2 mb-3 ms-3 me-2">
-                    <label for="invite-name" class="form-label me-5">・氏名</label>
+                    <label for="invite-name" class="form-label me-5"><hb>・氏名</hb></label>
                     <input type="text" id="invite-name" name="name" value="{{ old('name') }}" class="form-control kana9" {{ $canSubmit ? '' : 'disabled' }}>
                     @error('name')
                         <div class="text-danger small mt-1">{{ $message }}</div>
@@ -79,7 +79,7 @@
 
                 <div class="d-flex align-items-center mb-3 ms-3 me-3">
                   <label for="invite-email" class="form-label me-2 mb-0">
-                    ・メールアドレス<span class="text-danger">*</span>
+                    <hb>・メールアドレス<span class="text-danger">*</span></hb>
                   </label>
                   <input type="email"
                          id="invite-email"
@@ -96,7 +96,7 @@
                 {{-- 付与する役割 --}}
                 <div class="d-flex align-items-center mb-1 ms-3 me-3">
                   <label for="invite-role" class="form-label me-2 mb-0">
-                    ・付与する役割<span class="text-danger">*</span>
+                    <hb>・付与する役割<span class="text-danger">*</span></hb>
                   </label>
                   <select id="invite-role"
                           name="role"
@@ -165,7 +165,7 @@
                 </p-small>
                 <div class="d-flex align-items-center mt-3 mb-1 ms-3 me-3">
                   <label for="invite-group" class="form-label me-5 mb-0">
-                    ・部 署
+                    <hb>・部 署</hb>
                   </label>
                   <select id="invite-group"
                           name="group_id"

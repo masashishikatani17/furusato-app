@@ -435,14 +435,6 @@ final class FurusatoController extends Controller
             $sanrin   = max(0, (int)($previewPayload["tb_sanrin_shotoku_{$p}"]   ?? 0));
             $taishoku = max(0, (int)($previewPayload["tb_taishoku_shotoku_{$p}"] ?? 0));
             $previewPayload["rtax_taxable_total_{$p}"] = $sogo + $sanrin + $taishoku;
-            // 🔎 確認ログ：課税総所得金額等の合成結果（index/calc 再描画時点）
-            \Log::info('[CTX rtax]', [
-                'p'        => $p,
-                'tb_sogo'  => $sogo,
-                'tb_sanrin'=> $sanrin,
-                'tb_taishoku'=> $taishoku,
-                'rtax_total'=> $previewPayload["rtax_taxable_total_{$p}"],
-            ]);
         }
         /**
          * ▼ 所得税額 → 所得税・寄附金税額控除（政党等/NPO/公益）をプレビュー段階で先行適用
@@ -699,15 +691,6 @@ final class FurusatoController extends Controller
             // 表示欄（readonly）：min(課税総所得金額等×率, 絶対上限)
             $payload["rtax_income_rate_percent_{$p}"] = $ratePct;
             $payload["rtax_carry_cap_{$p}"] = min($byIncome, $hardCap);
-            // 🔎 確認ログ：GET表示時の住民税側パラメータ
-            \Log::info('[DETAILS GET rtax]', [
-                'p'        => $p,
-                'rtax_total'=> $payload["rtax_taxable_total_{$p}"],
-                'rate'     => $ratePct,
-                'capByInc' => $byIncome,
-                'hardCap'  => $hardCap,
-                'carryCap' => $payload["rtax_carry_cap_{$p}"],
-            ]);
         }
 
         return view('tax.furusato.details.kojo_tokubetsu_jutaku_loan', [
@@ -796,15 +779,6 @@ final class FurusatoController extends Controller
             $byIncome = (int) floor($stored["rtax_taxable_total_{$p}"] * ($ratePctI / 100.0));
             $stored["rtax_income_rate_percent_{$p}"] = $ratePctI;
             $stored["rtax_carry_cap_{$p}"] = min($byIncome, $hardCap); // 表示専用
-            // 🔎 確認ログ：POST保存時の住民税側パラメータ
-            \Log::info('[DETAILS POST rtax]', [
-                'p'        => $p,
-                'rtax_total'=> $stored["rtax_taxable_total_{$p}"],
-                'rate'     => $ratePctI,
-                'capByInc' => $byIncome,
-                'hardCap'  => $hardCap,
-                'carryCap' => $stored["rtax_carry_cap_{$p}"],
-            ]);
         }
         if ($record) {
             $record->payload = $stored;
@@ -832,14 +806,6 @@ final class FurusatoController extends Controller
     {
         $inputsForView = $savedInputs;
 
-    Log::info('[furusato debug] bunri joto snapshot', [
-        'res_tanki_prev'  => $resultsPayload['joto_shotoku_tanki_ippan_prev'] ?? null,
-        'res_choki_prev'  => $resultsPayload['joto_shotoku_choki_ippan_prev'] ?? null,
-        'res_tsusango_tanki_prev' => $resultsPayload['tsusango_tanki_ippan_prev'] ?? null,
-        'res_tsusango_choki_prev' => $resultsPayload['tsusango_choki_ippan_prev'] ?? null,
-        'preview_tanki_prev' => $previewPayload['joto_shotoku_tanki_ippan_prev'] ?? null,
-    ]);
-    
         $lookup = function (array $candidates, bool $previewOnly = false, bool $allowSaved = true) use ($resultsPayload, $resultsUpper, $previewPayload, $savedInputs): ?int {
             foreach ($candidates as $key) {
                 if (! $previewOnly) {
@@ -2127,22 +2093,6 @@ final class FurusatoController extends Controller
             }
         }
 
-Log::info('[furusato debug] final inputs snapshot', [
-    // 元入力（詳細画面 SoT）
-    'src_syunyu_tanki_ippan_prev' => $savedInputs['syunyu_tanki_ippan_prev'] ?? null,
-    // ビュー用に組んだ previewPayload 側
-    'preview_syunyu_tanki_ippan_prev' => $previewPayload['syunyu_tanki_ippan_prev'] ?? null,
-    // 最終的に第三表へ渡す値
-    'bunri_syunyu_tanki_ippan_shotoku_prev' => $inputsForView['bunri_syunyu_tanki_ippan_shotoku_prev'] ?? null,
-    'bunri_syunyu_tanki_ippan_jumin_prev'   => $inputsForView['bunri_syunyu_tanki_ippan_jumin_prev']   ?? null,
-
-    // 参考：これまで見ていたキーもそのまま残しておく
-    'tsusango_tanki_ippan_prev' => $inputsForView['tsusango_tanki_ippan_prev'] ?? null,
-    'joto_shotoku_tanki_ippan_prev' => $inputsForView['joto_shotoku_tanki_ippan_prev'] ?? null,
-    'bunri_shotoku_tanki_ippan_shotoku_prev' => $inputsForView['bunri_shotoku_tanki_ippan_shotoku_prev'] ?? null,
-    'tb_joto_tanki_shotoku_prev' => $inputsForView['tb_joto_tanki_shotoku_prev'] ?? null,
-]);
-
         return $inputsForView;
     }
 
@@ -2232,8 +2182,10 @@ Log::info('[furusato debug] final inputs snapshot', [
                 'redirect_to',
                 'show_result',
                 'origin_tab',
+                'origin_subtab',
                 'origin_anchor',
                 'recalc_all',
+                'pdf_prepare',
             ]);
 
             // 分離長期所得（tokutei/keika）＋退職（第三表手入力分）の整数正規化
@@ -2260,8 +2212,10 @@ Log::info('[furusato debug] final inputs snapshot', [
             'redirect_to',
             'show_result',
             'origin_tab',
+            'origin_subtab',
             'origin_anchor',
             'recalc_all',
+            'pdf_prepare',
         ]);
         // 分離長期所得（tokutei/keika）＋退職（第三表手入力分）の整数正規化
         $this->normalizeIntegerFieldsFromRequest(
@@ -4661,11 +4615,22 @@ Log::info('[furusato debug] final inputs snapshot', [
             $result[sprintf('fudosan_sashihiki_%s', $period)] = $sashihiki;
 
             $senjuusha = $this->valueOrZero($inputs[sprintf('fudosan_senjuusha_kyuyo_%s', $period)] ?? null);
-            $mae = $sashihiki - $senjuusha;
-            $result[sprintf('fudosan_aoi_tokubetsu_kojo_mae_%s', $period)] = $mae;
+             // base = 収入 − 必要経費 − 専従者給与（ここはマイナス可）
+             $base = $sashihiki - $senjuusha;
+             $result[sprintf('fudosan_aoi_tokubetsu_kojo_mae_%s', $period)] = $base;
 
             $tokubetsuKojo = $this->valueOrZero($inputs[sprintf('fudosan_aoi_tokubetsu_kojo_gaku_%s', $period)] ?? null);
-            $result[sprintf('fudosan_shotoku_%s', $period)] = $mae - $tokubetsuKojo;
+ 
+            // ▼ 要望：土地等を取得するための負債利子を所得金額から控除（0下限）
+            $fusairishi = $this->valueOrZero($inputs[sprintf('fudosan_fusairishi_%s', $period)] ?? null);
+ 
+             // ▼ 仕様：base>0 のときのみ青色控除・負債利子を 0 下限で差し引く。base<=0 は差し引かない。
+             if ($base > 0) {
+                 $afterAoi = max(0, $base - $tokubetsuKojo);
+                 $result[sprintf('fudosan_shotoku_%s', $period)] = max(0, $afterAoi - $fusairishi);
+             } else {
+                 $result[sprintf('fudosan_shotoku_%s', $period)] = $base;
+             }
         }
 
         foreach ($result as $key => $value) {

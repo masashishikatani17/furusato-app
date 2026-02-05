@@ -81,7 +81,7 @@ final class FurusatoJuminKeigengakuTemplateWriter
                 // 背景（ワンストップ）左上の小表（寄附金額/減税額/差引：負担額）
                 //  - 2列: 左ラベル + 右数値枠
                 'x' => 32.0,   // ★初期値（要微調整）
-                'y' => 38.0,   // ★初期値（要微調整）
+                'y' => 45.2,   // ★初期値（要微調整）
                 'w' => 72.0,   // 小表の全幅（参考）
                 'row_h' => 7.2,
                 // 右列（数値枠）の開始位置（左列 40mm, 右列 32mm 相当）
@@ -96,7 +96,7 @@ final class FurusatoJuminKeigengakuTemplateWriter
             'jumin' => [
                 // 背景（ワンストップ）大表：①〜⑰ が固定行で並ぶ
                 'x' => 27.8,  // (297-242)/2
-                'y' => 67.0,  // ★初期値（要微調整）
+                'y' => 73.4,  // ★初期値（要微調整）
                 // colgroup: [9,54,8,27,27,27,90]（onestop blade側）
                 'cols' => [9.0, 54.0, 7.2, 27.3, 27.3, 27.3, 90.0],
                 'header_h' => 5.75,
@@ -136,7 +136,15 @@ final class FurusatoJuminKeigengakuTemplateWriter
         $pdf->SetMargins(0, 0, 0);
         $pdf->setPrintHeader(false);
         $pdf->setPrintFooter(false);
-
+        // 印刷時の自動縮小を抑制（ViewerPreferences）
+        // - Edge/ブラウザ印刷やドライバ側の強制縮小は別途発生しうるが、
+        //   PDF側で「拡大縮小しない」意図を明示しておく。
+        if (method_exists($pdf, 'setViewerPreferences')) {
+            $pdf->setViewerPreferences([
+                'PrintScaling' => 'None',
+            ]);
+        }
+ 
         // 日本語フォント埋め込み（TTF）
         $font = null;
         if (class_exists(\TCPDF_FONTS::class)) {
@@ -275,10 +283,8 @@ final class FurusatoJuminKeigengakuTemplateWriter
             $t = (string)$spec['t'];
             // ★例外：%の2行だけはフォント据え置き（行が詰まらない/見やすさ優先）
             $fsRow = ($t === 'kihon.rate_pct' || $t === 'tokurei.rate_final') ? $fs2 : $fs2Small;
-            // ★例外：%の2行だけはストレッチしない
-            $stretchRow = ($t === 'kihon.rate_pct' || $t === 'tokurei.rate_final') ? null : $jStretch;
- 
-
+            // ★⑩（特例控除割合）は小数3位で桁が増えるため、ストレッチを有効にする
+            $stretchRow = ($t === 'kihon.rate_pct') ? null : (($t === 'tokurei.rate_final') ? $jStretch : $jStretch);
 
             if ($t === 'kihon.rate_pct') {
                 $rate = is_array($rows['kihon']['rate'] ?? null) ? $rows['kihon']['rate'] : [];
@@ -294,28 +300,44 @@ final class FurusatoJuminKeigengakuTemplateWriter
             }
             if ($t === 'tokurei.rate_final') {
                 $tok = is_array($rows['tokurei'] ?? null) ? $rows['tokurei'] : [];
-                $pct = (float)($tok['rate_final_pct'] ?? 0);
-                $p = $this->fmtPct2($pct);
-                $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $p, $p, $p, $fsRow, $pr2, $debug, '', $stretchRow);
+                // ★按分後割合があればそれを使用（市/県/合計）
+                $split = is_array($tok['rate_final_pct_split'] ?? null) ? $tok['rate_final_pct_split'] : null;
+                if (is_array($split)) {
+                    $m = $this->fmtPct3((float)($split['muni'] ?? 0.0));
+                    $p = $this->fmtPct3((float)($split['pref'] ?? 0.0));
+                    $t3 = $this->fmtPct3((float)($split['total'] ?? 0.0));
+                    $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $m, $p, $t3, $fsRow, $pr2, $debug, '', $stretchRow);
+                } else {
+                    $pct = (float)($tok['rate_final_pct'] ?? 0.0);
+                    $pp = $this->fmtPct3($pct);
+                    $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $pp, $pp, $pp, $fsRow, $pr2, $debug, '', $stretchRow);
+                }
                  continue;
             }
             if ($t === 'tokurei.calc11') {
                 $tok = is_array($rows['tokurei'] ?? null) ? $rows['tokurei'] : [];
                 $c11 = is_array($tok['calc11'] ?? null) ? $tok['calc11'] : ['muni'=>'0.00','pref'=>'0.00','total'=>'0.00'];
                 $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2,
-                    (string)($c11['muni'] ?? '0.00'),
-                    (string)($c11['pref'] ?? '0.00'),
-                    (string)($c11['total'] ?? '0.00'),
+                    $this->fmtYen2($c11['muni'] ?? '0.00'),
+                    $this->fmtYen2($c11['pref'] ?? '0.00'),
+                    $this->fmtYen2($c11['total'] ?? '0.00'),
                     $fsRow, $pr2, $debug, '', $stretchRow
                 );
                 continue;
             }
 
             $v = $this->getTripleByPath($rows, $t);
+            $muniTxt  = $this->fmtYen((int)$v['muni']);
+            $prefTxt  = $this->fmtYen((int)$v['pref']);
+            $totalTxt = $this->fmtYen((int)$v['total']);
+            // ★原稿PDF側に「－」が入っているため、ここは空欄にする（値も「－」も出さない）
+            if (in_array($t, ['kihon.target','kihon.cap30','kihon.min','tokurei.target'], true)) {
+                $totalTxt = '';
+            }
             $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2,
-                $this->fmtYen((int)$v['muni']),
-                $this->fmtYen((int)$v['pref']),
-                $this->fmtYen((int)$v['total']),
+                $muniTxt,
+                $prefTxt,
+                $totalTxt,
                 $fsRow, $pr2, $debug, '', $stretchRow
             );
         }
@@ -454,9 +476,17 @@ final class FurusatoJuminKeigengakuTemplateWriter
             }
             if ($kind === 'pct_2') {
                 $tok = is_array($rows['tokurei'] ?? null) ? $rows['tokurei'] : [];
-                $pct = (float)($tok['rate_final_pct'] ?? 0);
-                $p = $this->fmtPct2($pct);
-                $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $p, $p, $p, $fs2, $pr2, $debug, $isBoldTotalRow ? 'B' : '', $rowStretch);
+                $split = is_array($tok['rate_final_pct_split'] ?? null) ? $tok['rate_final_pct_split'] : null;
+                if (is_array($split)) {
+                    $m = $this->fmtPct3((float)($split['muni'] ?? 0.0));
+                    $p = $this->fmtPct3((float)($split['pref'] ?? 0.0));
+                    $t3 = $this->fmtPct3((float)($split['total'] ?? 0.0));
+                    $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $m, $p, $t3, $fs2, $pr2, $debug, $isBoldTotalRow ? 'B' : '', $rowStretch);
+                } else {
+                    $pct = (float)($tok['rate_final_pct'] ?? 0.0);
+                    $pp = $this->fmtPct3($pct);
+                    $this->putJumin3($pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2, $pp, $pp, $pp, $fs2, $pr2, $debug, $isBoldTotalRow ? 'B' : '', $rowStretch);
+                }
                 continue;
             }
             if ($kind === 'pct_str') {
@@ -470,9 +500,9 @@ final class FurusatoJuminKeigengakuTemplateWriter
                 $c11 = is_array($tok['calc11'] ?? null) ? $tok['calc11'] : ['muni'=>'0.00','pref'=>'0.00','total'=>'0.00'];
                 $this->putJumin3(
                     $pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2,
-                    (string)($c11['muni'] ?? '0.00'),
-                    (string)($c11['pref'] ?? '0.00'),
-                    (string)($c11['total'] ?? '0.00'),
+                    $this->fmtYen2($c11['muni'] ?? '0.00'),
+                    $this->fmtYen2($c11['pref'] ?? '0.00'),
+                    $this->fmtYen2($c11['total'] ?? '0.00'),
                     $fs2, $pr2, $debug,
                     $isBoldTotalRow ? 'B' : ''
                      , $rowStretch
@@ -482,11 +512,18 @@ final class FurusatoJuminKeigengakuTemplateWriter
 
             // triple
             $v = $this->getTripleByPath($rows, $path);
+            $muniTxt  = $this->fmtYen((int)$v['muni']);
+            $prefTxt  = $this->fmtYen((int)$v['pref']);
+            $totalTxt = $this->fmtYen((int)$v['total']);
+            // ★原稿PDF側に「－」が入っているため、ここは空欄にする（値も「－」も出さない）
+            if (in_array($path, ['kihon.target','kihon.cap30','kihon.min','tokurei.target'], true)) {
+                $totalTxt = '';
+            }
             $this->putJumin3(
                 $pdf, $font, $colX, $cols, $cM, $cP, $cT, $y, $rowH2,
-                $this->fmtYen((int)$v['muni']),
-                $this->fmtYen((int)$v['pref']),
-                $this->fmtYen((int)$v['total']),
+                $muniTxt,
+                $prefTxt,
+                $totalTxt,
                 $rowFont, $pr2, $debug,
                 $isBoldTotalRow ? 'B' : ''
             );
@@ -501,6 +538,20 @@ final class FurusatoJuminKeigengakuTemplateWriter
         return number_format($v);
     }
 
+    /**
+     * 金額（小数2位）を 3桁カンマ付きで表示する（例：12,345.67）
+     * - ⑪（⑨×⑩）など、少数がある金額欄用
+     */
+    private function fmtYen2(mixed $v): string
+    {
+        if ($v === null || $v === '') return '0.00';
+        if (is_string($v)) {
+            $v = str_replace([',', ' '], '', $v);
+        }
+        if (!is_numeric($v)) return '0.00';
+        return number_format((float)$v, 2, '.', ',');
+    }
+
     private function fmtPctInt(int $pct): string
     {
         return (string)$pct . '%';
@@ -509,6 +560,11 @@ final class FurusatoJuminKeigengakuTemplateWriter
     private function fmtPct2(float $pct): string
     {
         return number_format($pct, 2, '.', '') . '%';
+    }
+
+    private function fmtPct3(float $pct): string
+    {
+        return number_format($pct, 3, '.', '') . '%';
     }
 
     /** @return float[] col index => x */

@@ -2,30 +2,34 @@
 @extends('layouts.min')
 
 @section('content')
-<div class="container-blue">
+<div class="container-blue" style="width:620px;">
   <div class="card-header d-flex justify-content-between gap-2">
-    <div>
+    <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-      <h0 class="mb-0 ms-3 mt-2"> お客様・年度一覧</h0>
+      <h0 class="ms-3 mt-2"> お客様・年度一覧</h0>
+    </div>
+    <div class="d-flex align-items-center gap-2 me-5 mt-2">
       {{-- ログアウト（settings/index と同じ） --}}
       <form method="POST" action="{{ route('logout') }}" class="m-0">
         @csrf
         <button type="submit" class="btn btn-base-blue">ログアウト</button>
-      </form>      
+      </form>
+
       @php
         $me = $me ?? auth()->user();
         $role = strtolower((string)($me->role ?? ''));
         $isClient = ($role === 'client');
         $canGear = !($isClient);
       @endphp
-    </div>
-    <div class="d-flex me-3 mt-2">
-        @if ($canGear)
+
+      @if ($canGear)
+        <span class="gear-wrap">
           <x-gear-button position="inline" size="26" />
-        @endif
+        </span>
+      @endif
     </div>
   </div>
-  <div class="card-body">
+  
     @php
       // Blade → Alpine 受け渡し用
       $guestsJson = $guests->map(fn($g) => [
@@ -45,10 +49,10 @@
       ]);
     @endphp
     <div x-data="masterPane(@js($guestsJson), @js($datasJson), {{ $guestId ?? 'null' }})"
-         x-init="init()" x-cloak class="border rounded p-3">
+         x-init="init()" x-cloak class="border-0 rounded p-3">
   
       <!-- 上部：検索（お客様名） -->
-      <table align="center" class="table-beige ms-3 mb-3" style="width: 230px;">
+      <table align="center" class="table-beige mt-0 ms-3 mb-3" style="width: 230px;">
         <tr>
            <td>
             <div class="d-flex align-items-center gap-2 ms-2 mt-1">
@@ -76,15 +80,15 @@
         <div class="flex-shrink-0" style="width: 300px;">
           <table class="table table-base mb-2">
             <thead class="table-light">
-            <tr><th class="text-center" style="width: 300px;height: 25px;background-color:#d0e5f4;">お客様名</th></tr>
+            <tr><th class="text-center" style="width: 300px;height: 25px;">お客様名</th></tr>
             </thead>
           </table>
-          <div class="border" style="max-height: 420px; overflow-y: auto;">
+          <div class="mt-2" style="max-height: 420px; overflow-y: auto;">
             <table class="table table-base mb-0">
               <tbody>
               <template x-for="g in filteredGuests" :key="g.id">
                 <tr :class="g.id===guestId ? 'table-primary' : ''" style="cursor:pointer;">
-                  <td class="py-1 px-2" @click="selectGuest(g.id)" x-text="g.name" style="width: 300px;"></td>
+                  <td class="text-start py-1 px-2" @click="selectGuest(g.id)" x-text="g.name" style="width: 300px;"></td>
                 </tr>
               </template>
               <template x-if="filteredGuests.length===0">
@@ -100,7 +104,7 @@
           <table class="table table-base mb-2 align-middle">
             <thead class="table-light">
             <tr style="height:25px;">
-              <th class="text-center" style="width: 100px;background-color:#d0e5f4;">
+              <th class="text-center" style="width: 100px;">
                 年　度
                 <button type="button" class="btn btn-sm btn-outline-primary ms-2 py-0 px-1"
                         style="font-size: 11px; height: 18px; line-height: 1;"
@@ -109,44 +113,46 @@
                   ⇅
                 </button>
               </th>
-              <th class="text-center" style="width: 100px;background-color:#d0e5f4;">選 択</th>
-              <th class="text-center" style="width: 100px;background-color:#d0e5f4;">選 択</th>
+              <th class="text-center" style="width: 70px;">選 択</th>
+              <th class="text-center" style="width: 70px;">編 集</th>
             </tr>
             </thead>
           </table>
-          <div class="border" style="max-height: 300px; overflow-y: auto;">
-            <table class="table table-base mb-0 align-middle">
+          <div class="mt-4" style="max-height: 300px; overflow-y: auto;">
+            <table class="table table-input mb-0 align-middle">
               <tbody>
               <template x-for="d in filteredDatas" :key="d.id">
-                <tr style="height: 28px; cursor:pointer;"
+                <tr style="height: 25px; cursor:pointer;"
                     :class="selectedDataId===d.id ? 'table-active' : ''"
                     @click="selectedDataId=d.id">
-                  <td class="text-end pe-3" style="width:100px;">
-                    <template x-if="isPrivate(d)">
-                      <span title="非共有（作成者のみ）">🔒</span>
-                    </template>
-                    <span x-text="formatYear(d.kihu_year)"></span>
+                  <td class="text-end" style="width:100px;">
+                    <div class="d-inline-flex align-items-center justify-content-end pe-1" style="width:100%;">
+                      <template x-if="isPrivate(d)">
+                        <span title="非共有（作成者のみ）">🔒</span>
+                      </template>
+                      <span x-text="formatYear(d.kihu_year)"></span>
+                    </div>
                   </td>
-                  <td class="text-center bg-cream" style="width:100px;" nowrap="nowrap">
+                  <td class="text-center bg-cream" style="width:70px;" nowrap="nowrap">
                     
                       <button type="button" class="btn-base-blue"
                               @click.stop="selectedDataId=d.id; openYearModal(d)">選 択</button>
                   </td>
-                  <td class="text-center bg-cream" style="width:100px;" nowrap="nowrap">
+                  <td class="text-center bg-cream" style="width:70px;" nowrap="nowrap">
                       <button type="button" class="btn-base-blue"
                               @click.stop="window.location.href = `/data/${d.id}/edit`">編 集</button>
                   </td>
                 </tr>
               </template>
               <template x-if="filteredDatas.length===0">
-                <tr><td class="text-muted py-2 px-2" colspan="2">（年度データがありません）</td></tr>
+                <tr><td class="text-muted py-2 px-2" colspan="3">（年度データがありません）</td></tr>
               </template>
               </tbody>
             </table>
           </div>
         </div>
       </div>
-      <hr>
+      <hr class="mb-2">
       <!-- 下部ボタン帯（“ビル”と同じ配置） -->
                 <div class="btn-footer">
                   <div class="d-flex justify-content-between">
@@ -188,15 +194,15 @@
               </template>
             </select>
           </div>
-          <hr>
-          <div class="d-flex justify-content-end gap-2">
+          <hr class="mb-2">
+          <div class="d-flex justify-content-end gap-2 mt-0">
             <button type="button" class="btn btn-base-blue" @click="proceedByYear()">決 定</button>
             <button type="button" class="btn btn-base-blue" @click="showYearModal=false">戻 る</button>
           </div>
         </div>
       </div>
     </div> <!-- /x-data="masterPane(...)" -->
-  </div>
+  
 </div>
 @endsection
 

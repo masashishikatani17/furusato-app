@@ -2,6 +2,38 @@
 @extends('layouts.min')
 
 @section('content')
+        <style>
+        /* 処理メニュー設定：前期/当期のヘッダー帯をカード両端まで確実に伸ばす（右欠け対策） */
+            .tax-period-card{
+              overflow: hidden; /* 角丸と背景のはみ出しを安全に処理（見た目のみ） */
+            }
+           
+            /* ---------------------------------------
+ * 処理メニュー設定：前期/当期の帯（card-header）を「欠けずに」両端まで
+ * 目的：カード側の内側余白が原因で帯が内側に入っているなら、カードのpaddingを0にして解決
+ * ※見た目のみ（POST/JS/バリデーションに影響なし）
+ * ------------------------------------- */
+            .tax-period-card{
+              padding: 0 !important;          /* ← これでヘッダーの左右/上の“欠け”が消える */
+              overflow: hidden !important;     /* 角丸をきれいに見せる */
+            }
+            
+            /* bodyは余白が必要なので、ここで付け直す（元の見た目を維持） */
+            .tax-period-card > .card-body{
+              padding: 1rem !important;
+            }
+            
+            .tax-period-card > .card-header{
+              margin: 0 !important;            /* ← 上に引っ張らない（文字が上寄りになる原因を除去） */
+              width: 100% !important;          /* ← calc/負のmargin不要 */
+              display: flex !important;
+              align-items: center !important;  /* 縦中央 */
+              justify-content: center !important;
+              min-height: 42px !important;     /* 帯の高さ */
+              padding: 0 0.5rem !important;    /* 横だけ余白 */
+            }
+        </style>
+
 @php
   $settings = $settings ?? [];
 
@@ -134,9 +166,9 @@
 <div class="container-blue mt-2" style="max-width: 700px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-    <h0 class="mb-0 mt-2">処理メニュー設定</h0>
+    <h0 class="mb-3 mt-2">処理メニュー設定</h0>
   </div>
-    <form method="POST" action="{{ route('furusato.syori.save') }}" id="furusato-syori-form" class="card">
+    <form method="POST" action="{{ route('furusato.syori.save') }}" id="furusato-syori-form" class="card border-0 shadow-none">
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId }}">
     <input type="hidden" name="redirect_to" value="">
@@ -159,15 +191,15 @@
         @foreach ($periods as $key => $period)
           <div class="col-md-6">
             <div class="card h-100 tax-period-card" data-period="{{ $key }}">
-              <div class="card-header text-center fw-bold">{{ $period['title'] }}</div>
+              <div class="card-header text-center fw-bold bg-blue">{{ $period['title'] }}</div>
               <div class="card-body">
-                <div class="mb-4">
+                <div class="mb-2">
                   <h1>○処理モード</h1>
                   <div class="row g-3">
                     <div class="col-12">
                       <div class="p-2 bg-cream mt-1">
                         <hb class="d-block text-center">ワンストップ特例</hb>
-                        <hr class="my-2">
+                        <hr class="my-2 ms-2 me-2">
                         <div class="d-flex ms-3 gap-3 flex-wrap">
                           @foreach ($oneStopOptions as $value => $label)
                             @php $id = sprintf('one-stop-flag-%s-%s', $key, $value); @endphp
@@ -213,7 +245,7 @@
           </div>
         @endforeach
       </div>
-      <hr>
+      <hr class="mx-3 mb-2">
       <div class="btn-footer">
         <div class="d-flex justify-content-end gap-2 me-3 mb-3">
           <button type="submit" class="btn-base-green" formnovalidate>保 存</button>

@@ -155,12 +155,38 @@
         .bg-cream {
           width: 95%;
           margin: 0 auto;
-          font-size: 13px;
           background-color: #F4F1E8;
         
         /* htmlの指定はclass="bg-cream"*/
         }
         
+         /* 選択divの背景色　薄水色*/
+        .bg-blue {
+          width: 95%;
+          margin: 0 auto;
+          background-color: #e9eff7;
+        
+        /* htmlの指定はclass="bg-blue"*/
+        }
+        
+        /* 選択divの背景色　もっと薄い水色*/
+        .bg-pale {
+          width: 95%;
+          margin: 0 auto;
+          background-color: #F7F9FB;
+        
+        /* htmlの指定はclass="bg-pale"*/
+        }
+        
+        /* 処理メニュー設定：rowの枠線だけ消す（このrow限定） */
+          .syori-row-no-frame {
+            border: 0 !important;
+            outline: 0 !important;
+            box-shadow: none !important;
+            background: transparent !important;
+          }
+
+
       /* --------------------------------------
         * 文字
         * ------------------------------------ */        
@@ -231,7 +257,22 @@
         padding: 0;
       }
 
- 
+　/* リンクのタイトル文字 */
+    /* 通常時：未訪問/訪問済み 両方を固定 */
+        a.title-link,
+        a.title-link:link,
+        a.title-link:visited {
+          color: #004466 !important;
+          text-decoration: none !important;
+        }
+        
+        /* hover時 */
+        a.title-link:hover,
+        a.title-link:active,
+        a.title-link:focus {
+          color: #5c3d3d !important;
+          text-decoration: none !important;
+        }
 
    /* 非標準タグ（h14u等）を使う前提：ブロック化 */
       h13,h14,h14u,h15,h15b,h16,h18,h18u,h20,h24,h30,p-small,hb,hs,hm,h0 {
@@ -336,91 +377,81 @@
         .btn-base-red  { background-color:#e9eff7; color:#d90000; }
         .btn-base-green{ background-color:#C0DEC5; color:#000; }
         
-        .btn-base-low {
-          display: inline-block;
-          height: 22px;
-          padding: 3px 10px;
+        /* ============================================
+         * ボタン共通（LOW / FREE）
+         * - クラス名は既存のまま（HTML変更不要）
+         * - 色だけ派生で上書き
+         * ============================================ */
+        
+        /* ▼ LOW 系の共通 */
+        .btn-base-low-blue,
+        .btn-base-low-green {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 10px;
+          min-width: 52px;          /* ★内訳/HELP などを同幅に寄せる */
           font-size: 13px;
           font-weight: normal;
           text-align: center;
           text-decoration: none;
-          border-radius: 5px;
+          border-radius: 3px;
+          transition: all 0.3s ease;
+          border: 1px solid #ccc;
+          color: #000;
+          cursor: pointer;
+          white-space: nowrap;
+          box-sizing: border-box;
+        }
+        .btn-base-low-blue  { background-color: #e9eff7; }
+        .btn-base-low-green { background-color: #C0DEC5; }
+        
+        /* ▼ FREE 系の共通（FREE も low と同等に揃える） */
+        .btn-base-free-blue,
+        .btn-base-free-green {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 10px;
+          min-width: 52px;          /* ★必要ならここは free 用に別値にしてもOK */
+          font-size: 13px;
+          font-weight: normal;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 3px;
+          transition: all 0.3s ease;
+          border: 1px solid #ccc;
+          color: #000;
+          cursor: pointer;
+          line-height: 1;           /* 文字の上下ブレ防止 */
+          box-sizing: border-box;
+          white-space: nowrap;
+          -webkit-appearance: none; /* button のUA差を潰す */
+          appearance: none;
+        }
+        .btn-base-free-blue  { background-color: #e9eff7; }
+        .btn-base-free-green { background-color: #C0DEC5; }
+        
+        /* ▼ もし .btn-base-low（白）も使うなら、LOW系の共通を継承した“色だけ違う”として残す */
+        .btn-base-low {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 10px;
+          min-width: 52px;
+          font-size: 13px;
+          font-weight: normal;
+          text-align: center;
+          text-decoration: none;
+          border-radius: 3px;       
           transition: all 0.3s ease;
           border: 1px solid #ccc;
           background-color: #fff;
           color: #000;
           cursor: pointer;
-        }
-        
-        .btn-base-low-blue {
-          display: inline-block;
-          padding: 0px 10px;
-          font-size: 13px;
-          font-weight: normal;
-          text-align: center;
-          text-decoration: none;
-          border-radius: 3px;
-          transition: all 0.3s ease;
-          border: 1px solid #ccc;
-          background-color: #e9eff7;
-          color: #000;
-          cursor: pointer;
-        }
-        
-        .btn-base-low-green {
-          display: inline-block;
-          padding: 0px 10px;
-          font-size: 13px;
-          font-weight: normal;
-          text-align: center;
-          text-decoration: none;
-          border-radius: 3px;
-          transition: all 0.3s ease;
-          border: 1px solid #ccc;
-          background-color: #C0DEC5;
-          color: #000;
-          cursor: pointer;
-        }
-        
-        .btn-base-free-blue {
-        　　display: inline-flex;          /* ★上下左右中央が確実 */
-            align-items: center;           /* ★縦中央 */
-            justify-content: center;       /* ★横中央 */
-            font-size: 13px;
-            font-weight: normal;
-            text-decoration: none;
-            border-radius: 3px;
-            border: 1px solid #ccc;
-            background-color: #e9eff7;
-            color: #000;
-            cursor: pointer;
-        }
-        
-          .btn-base-free-green{
-            display: inline-flex;      /* 上下左右中央が確実 */
-            align-items: center;       /* 縦中央 */
-            justify-content: center;   /* 横中央 */
-            font-size: 13px;
-            font-weight: normal;
-            text-decoration: none;
-            border-radius: 3px;
-            border: 1px solid #ccc;
-            background-color: #C0DEC5;
-            color: #000;
-            cursor: pointer;
-          
-            line-height: 1;            /* 文字の上下ブレ防止 */
-            padding: 0 10px;           /* 横の余白だけ固定（高さはheightで決める） */
-            box-sizing: border-box;
-            white-space: nowrap;
-          }                
-                          /* button のUA差を潰す（任意だけど推奨） */
-                button.btn-base-free-green{
-                  -webkit-appearance: none;
-                  appearance: none;
-                }
-        
-        
+          white-space: nowrap;
+          box-sizing: border-box;
+        }   
         
         /* 非活性リンク風（クリック不可） */
         .btn-disabled {
@@ -503,7 +534,22 @@
             outline: none;            /* フォーカス枠が邪魔な場合は消す */
         }
 
-
+ 
+           /* ギヤ-ボタン：ホバーでカチッと回転 */
+          .gear-wrap a,
+          .gear-wrap button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transform-origin: 50% 50%;
+            transition: transform 120ms ease;
+          }
+          
+          .gear-wrap a:hover,
+          .gear-wrap button:hover {
+            transform: rotate(20deg);
+          }
+        
 /* --------------------------------------
   * テーブル
   * ------------------------------------ */         
@@ -535,7 +581,7 @@
         /*セルの罫線を太くするためのユーティリティ */
             .bl-strong { border-left: 0.6mm solid #000 !important; }
             .br-strong { border-right: 0.6mm solid #000 !important; } 
-        	.bt-strong { border-top: 0.6mm solid #000 !important; }
+        	  .bt-strong { border-top: 0.6mm solid #000 !important; }
             .bb-strong { border-bottom: 0.6mm solid #000 !important; }
         	  
         /* ▼ 行全体（tr）の罫線を太くするために付けるバージョン：セル(td/th)へ適用して安定化 */
@@ -650,7 +696,7 @@
           /* 背景色（帳票の見出しセル等） */
             td.bg-grey, th.bg-grey { background: #ededed !important; }
             tr.bg-grey > td, tr.bg-grey > th { background: #ededed !important; }
-      
+            tr.bg-cream > td, tr.bg-cream > th { background: #F4F1E8 !important; }
       
         /* ============================
          *  縦書きTH（rowgroup見出し用）
@@ -1174,7 +1220,7 @@
             }
             
         .suji11 {
-            width: 132px !important;
+            width: 124px !important;
             height: 22px !important;
             line-height: 1.2 !important;
                   }
@@ -1185,9 +1231,9 @@
          * - ふるさと等のテーブル入力を 132px に統一するための汎用クラス
          * ============================================ */
         .suji11s {
-          width: 132px !important;
-          min-width: 132px !important;
-          max-width: 132px !important;
+          width: 122px !important;
+          min-width: 122px !important;
+          max-width: 122px !important;
           padding-top: 1px !important;
           padding-bottom: 1px !important;
           line-height: 1.0 !important;

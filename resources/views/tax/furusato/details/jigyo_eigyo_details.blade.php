@@ -16,8 +16,7 @@
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">内訳－事業・営業等</h0>
   </div>
-  <div class="card-body">　
-  　<div class="wrapper">
+  <div class="card-body m-3">
         <form method="POST" action="{{ route('furusato.details.jigyo.save') }}">
           @csrf
           <input type="hidden" name="data_id" value="{{ $dataId }}">
@@ -35,7 +34,6 @@
               </ul>
             </div>
           @endif
-      
           <div class="table-responsive">
             <table class="table-input align-middle">
               <thead>
@@ -257,16 +255,15 @@
               </tbody>
             </table>
           </div>
-          <hr>
-          <div class="text-end me-2 mb-2">
+          <hr class="mb-2">
+          <div class="text-end gap-2">
             <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
             <button type="submit"
-                    class="btn-base-green ms-2"
+                    class="btn-base-green"
                     id="btn-recalc"
                     data-disable-on-submit>再計算</button>
           </div>
         </form>
-    </div>    
   </div>      
 </div>
 

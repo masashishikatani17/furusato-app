@@ -82,7 +82,7 @@
         $returnUrl .= '#' . $originAnchor;
     }
 @endphp
-<div class="container-blue mt-2" style="width:1000px;">
+<div class="container-blue mt-2" style="width:980px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">寄付金控除の内訳</h0>
@@ -101,8 +101,7 @@
       </ul>
     </div>
   @endif
-  <div class="card-body">　
-  　<div class="wrapper">
+  <div class="card-body m-3">
         <form method="POST" action="{{ route('furusato.details.kifukin.save') }}">
           @csrf
           <input type="hidden" name="data_id" value="{{ $dataId }}">
@@ -115,7 +114,7 @@
           <div class="table-responsive mb-4">
             <table class="table-input align-middle text-start ms-2">
                 <tr>
-                  <th rowspan="4" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
+                  <th rowspan="4" class="align-middle th-ccc" style="width:120px;">寄付対象</th>
                   <th colspan="4" class="th-ccc">{{ $warekiPrevLabel }}</th>
                   <th colspan="4" class="th-ccc">{{ $warekiCurrLabel }}</th>
                 </tr>
@@ -144,7 +143,7 @@
               <tbody>
                 @foreach ($categories as $key => $label)
                   <tr>
-                    <th scope="row" class="text-start">{{ $label }}</th>
+                    <th scope="row" class="text-start lh-1 ps-1">{{ $label }}</th>
                     @foreach ($columns as $column)
                       @php($field = $makeField($column['base'], $key, $column['period']))
                       @if (isset($inputDisabled[$field]))
@@ -211,7 +210,7 @@
                     <tbody>
                       @foreach ($categories as $key => $label)
                         <tr>
-                          <th scope="row" class="text-start">{{ $label }}</th>
+                          <th scope="row" class="text-start lh-1 ps-1">{{ $label }}</th>
                           @foreach ($columns as $column)
                             @php($field = $makeField($column['base'], $key, $column['period']))
                             <td class="text-center align-middle">{{ $referenceSymbols[$field] ?? '' }}</td>
@@ -228,16 +227,15 @@
                     <p class="p-small">(※) 都道府県、市区町村が条例で指定したものに限る。</p>
 　　　　　　</div>
 　　　　　</div>
-          <hr>
-            <div class="text-end me-2 mb-2">
+          <hr class="mt-0 mb-2">
+            <div class="text-end gap-2">
                 <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
                 <button type="submit"
-                        class="btn-base-green ms-2"
+                        class="btn-base-green"
                            id="btn-recalc"
                         data-disable-on-submit>再計算</button>
             </div>
         </form>
-    </div>    
   </div>      
 </div>
 @endsection
@@ -371,6 +369,111 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
   })();
+
+    // ============================================================
+    // ▼ ふるさと納税（furusato）行：入力欄の相互不整合を禁止する
+    //
+    // 要件（periodごと）：
+    //  - one-stop 利用しない：
+    //      所得税(所得控除)のみ入力可。
+    //      住民税(県/市)は readonly で、所得税(所得控除)と同額コピー。
+    //  - one-stop 利用する：
+    //      所得税(所得控除)は 0固定（既存の applyOneStopLocks が担当）。
+    //      住民税(県)のみ入力可。
+    //      住民税(市)は readonly で、住民税(県)と同額コピー。
+    //
+    // サーバ計算は従来どおり（UI制約のみ）。
+    // ============================================================
+    (function applyFurusatoLockAndMirror() {
+      const oneStop = {
+        prev: Boolean(@json($oneStopPrev)),
+        curr: Boolean(@json($oneStopCurr)),
+      };
+      const periods = ['prev','curr'];
+ 
+      const getDisplayByName = (name) =>
+        document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+ 
+      const setReadonly = (name, isReadonly) => {
+        const disp = getDisplayByName(name);
+        if (!disp) return;
+        disp.readOnly = !!isReadonly;
+        if (isReadonly) disp.classList.add('bg-light');
+        else disp.classList.remove('bg-light');
+      };
+ 
+      const setFieldRaw = (name, raw) => {
+        const disp = getDisplayByName(name);
+        const hidden = (disp ? (getHidden(name) || ensureHidden(disp)) : getHidden(name));
+        if (hidden) hidden.value = raw;
+        if (disp) disp.value = raw === '' ? '' : fmt(raw);
+      };
+ 
+      const getFieldRaw = (name) => {
+        const disp = getDisplayByName(name);
+        const hidden = disp ? (getHidden(name) || ensureHidden(disp)) : getHidden(name);
+        if (hidden) return String(hidden.value ?? '');
+        // hiddenが無い場合の保険（通常は起きない）
+        return disp ? toRawInt(String(disp.value ?? '')) : '';
+      };
+ 
+      const bindMirror = (srcName, dstNames) => {
+        const srcDisp = getDisplayByName(srcName);
+        if (!srcDisp) return;
+        ensureHidden(srcDisp);
+ 
+        const sync = () => {
+          const raw = getFieldRaw(srcName);
+          dstNames.forEach((dst) => setFieldRaw(dst, raw));
+        };
+ 
+        // 初期同期
+        sync();
+        // 入力中も追随
+        srcDisp.addEventListener('input', sync);
+        srcDisp.addEventListener('blur', sync);
+      };
+ 
+      periods.forEach((p) => {
+        const itaxIncome = `shotokuzei_shotokukojo_furusato_${p}`;      // 所得税：所得控除
+        const rtaxPref   = `juminzei_zeigakukojo_pref_furusato_${p}`;   // 住民税：県
+        const rtaxMuni   = `juminzei_zeigakukojo_muni_furusato_${p}`;   // 住民税：市
+ 
+        if (oneStop[p]) {
+          // one-stop 利用：所得税(所得控除)=0固定（applyOneStopLocksに任せる）
+          // 住民税：県だけ入力可、市は readonly + 県をコピー
+          setReadonly(rtaxPref, false);
+          setReadonly(rtaxMuni, true);
+          bindMirror(rtaxPref, [rtaxMuni]);
+        } else {
+          // one-stop 利用しない：所得税(所得控除)のみ入力可
+          // 住民税(県/市)は readonly + 所得税(所得控除)をコピー
+          setReadonly(itaxIncome, false);
+          setReadonly(rtaxPref, true);
+          setReadonly(rtaxMuni, true);
+          bindMirror(itaxIncome, [rtaxPref, rtaxMuni]);
+        }
+      });
+ 
+      // 送信直前にも periodルールで確実に揃える（改ざん/順序ズレ防止）
+      const form = document.querySelector('form');
+      if (form) {
+        form.addEventListener('submit', () => {
+          periods.forEach((p) => {
+            const itaxIncome = `shotokuzei_shotokukojo_furusato_${p}`;
+            const rtaxPref   = `juminzei_zeigakukojo_pref_furusato_${p}`;
+            const rtaxMuni   = `juminzei_zeigakukojo_muni_furusato_${p}`;
+            if (oneStop[p]) {
+              setFieldRaw(rtaxMuni, getFieldRaw(rtaxPref));
+            } else {
+              const raw = getFieldRaw(itaxIncome);
+              setFieldRaw(rtaxPref, raw);
+              setFieldRaw(rtaxMuni, raw);
+            }
+          });
+        });
+      }
+    })();
 
   // ===== 所得控除 / 税額控除 の排他（政党等・NPO・公益）=====
   // 仕様：片方に「0より大きい値」を入力したら、もう片方は強制的に 0 にする（UI/hiddenともに）

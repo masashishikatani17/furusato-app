@@ -176,7 +176,7 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
         // 「①〜④控除後の所得割額」：所得税は tax_sashihiki_shotoku を採用（百円未満切捨てしない）
         $after14Itax = max(0, (int) $I($outFull, "tax_sashihiki_shotoku_{$p}"));
 
-        // 住民税は、TaxGokeiCalculator と同じ share で「配当→住宅」を按分して残額を作る（100円未満切捨て）
+        // 住民税は、TaxGokeiCalculator と同じ share で「配当→住宅」を按分して残額を作る（1円単位）
         $basePref = $I($outFull, "choseigo_shotokuwari_pref_{$p}");
         $baseMuni = $I($outFull, "choseigo_shotokuwari_muni_{$p}");
         [$sharePref, $shareMuni] = $this->resolveTokureiSharesFromRates($rateRows, $shitei);
@@ -348,7 +348,7 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
     }
 
     /**
-     * 合計額を pref/muni に按分（prefはstep切捨て、muni残り寄せ）
+     * 合計額を pref/muni に按分（1円単位・muni残り寄せ）
      * @return array{0:int,1:int} [pref, muni]
      */
     private function splitByShare(int $total, float $prefShare, float $muniShare, int $step = 1): array
@@ -356,9 +356,6 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
         $t = max(0, $total);
         if ($t === 0) return [0, 0];
         $pref = (int) floor($t * $prefShare);
-        if ($step > 1) {
-            $pref = $this->floorToStep($pref, $step);
-        }
         $muni = $t - $pref;
         return [max(0, $pref), max(0, $muni)];
     }

@@ -181,6 +181,12 @@ class JuminKeigengakuReport implements ReportInterface
         $tokureiRateFinalRatio = $tokureiRateFinalPct > 0 ? ($tokureiRateFinalPct / 100.0) : 0.0;
 
         $shitei = (int)($syoriSettings["shitei_toshi_flag_{$p}"] ?? $syoriSettings['shitei_toshi_flag'] ?? 0) === 1;
+        // ★表示仕様：特例控除割合の按分（市/県）
+        //   - 指定都市：市80% / 県20%
+        //   - 指定都市以外：市60% / 県40%
+        //   ※計算は丸めず、表示側で小数3位に整形する（TemplateWriter側）
+        $shareMuniForRate = $shitei ? 0.8 : 0.6;
+        $sharePrefForRate = 1.0 - $shareMuniForRate;
         [$sharePref, $shareMuni] = $this->resolveTokureiSharesFromMaster($masterYear, $ctx, $shitei);
 
         $tokurei11Total = $tokureiBase * $tokureiRateFinalRatio;
@@ -251,6 +257,12 @@ class JuminKeigengakuReport implements ReportInterface
                 'tokurei' => [
                     'target' => ['muni'=>$tokureiBase, 'pref'=>$tokureiBase, 'total'=>$tokureiBase],
                     'rate_final_pct' => (float)$tokureiRateFinalPct,
+                    // ★⑩表示用（按分後の割合）
+                    'rate_final_pct_split' => [
+                        'muni'  => $tokureiRateFinalPct * $shareMuniForRate,
+                        'pref'  => $tokureiRateFinalPct * $sharePrefForRate,
+                        'total' => $tokureiRateFinalPct,
+                    ],
                     // ⑪（小数2位まで表示）
                     'calc11' => [
                         'muni'  => number_format($tokurei11Muni, 2, '.', ''),

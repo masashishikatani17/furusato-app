@@ -68,10 +68,10 @@
     $remainingSeats = $seatUsage['remaining'];
 @endphp
 
-<div class="container px-4 py-4" style="width:800px; background-color:#E8EFF0;">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-        <div class="mb-3 mb-md-0">
-            <hb class="mt-3 ms-2">ユーザー管理</hb>
+<div class="container px-4 py-4" style="width:820px; background-color:#E8EFF0;">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+        <div class="mb-2 mb-md-0">
+            <hb class="mt-2 ms-2">ユーザー管理</hb>
         </div>
         <div class="d-flex gap-2 align-items-center">
             {{-- 設定TOPへ --}}
@@ -95,7 +95,7 @@
         </hs>
     <div class="card shadow-sm mt-3 mb-4">
         <div class="card-body">
-            <hb>○席数の利用状況</hb>
+            <h13><strong>○席数の利用状況</strong>　　※ Client ロールと停止中ユーザーは席数に含まれません。</h13>
             <div class="table-responsive table-m-top mt-1">
                 <table class="table-base table-bordered align-middle w-auto">
                     <tbody>
@@ -126,28 +126,27 @@
                     </tbody>
                 </table>
             </div>
-            <hs class="ms-5 mt-1">※ Client ロールと停止中ユーザーは席数に含まれません。</hs>
         </div>
     </div>
 
     <div class="card shadow-sm">
         <div class="card-body">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-2">
                 <hb>○ユーザー一覧</hb>
-                <hs>全 {{ number_format($usersPaginator->total()) }} 名</hs>
+                <hs class="me-3">全 {{ number_format($usersPaginator->total()) }} 名</hs>
             </div>
             <div class="table-responsive table-m-top">
                 <table class="table-base table-bordered align-middle w-auto">
                     <thead>
                         <tr>
-                            <th scope="col" class="text-center" style="width: 140px;">氏名</th>
+                            <th scope="col" class="text-center" style="width: 140px;">氏 名</th>
                             <th scope="col" class="text-center" style="width: 220px;">メールアドレス</th>
-                            <th scope="col" class="text-center" style="width: 100px;">部署</th>
-                            <th scope="col" class="text-center" style="width: 60px;">役割</th>
+                            <th scope="col" class="text-center" style="width: 100px;">部 署</th>
+                            <th scope="col" class="text-center" style="width: 60px;">役 割</th>
                             @if ($hasIsActive)
                                 <th scope="col" class="text-center">状態</th>
                             @endif
-                            <th scope="col" class="text-center" style="width: 60px;">操作</th>
+                            <th scope="col" class="text-center" style="width: 120px;">操 作</th>
                         </tr>
                     </thead>
                     <tbody>

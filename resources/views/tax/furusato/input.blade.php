@@ -146,7 +146,7 @@
 @endpush
 
 @section('content')
-<div class="container-blue" style="width: 1100px;">
+<div class="container-blue" style="width: 1000px;">
   <form method="POST" action="{{ route('furusato.save') }}" id="furusato-input-form">
     @csrf
     <input type="hidden" name="data_id" value="{{ $dataId ?? '' }}">
@@ -170,11 +170,12 @@
       $detailsTabActiveClass = $showResultFlag ? 'active' : '';
       $detailsPaneActiveClass = $showResultFlag ? 'show active' : '';
     @endphp
-      <div class="card-header d-flex align-items-start">
-        <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-        <h0 class="mb-0 mt-2">インプット表</h0>
-      </div>
-      <div class="card-body text-end me-5 mb-3">
+      <div class="card-header d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+          <h0 class="mt-2 mb-0">インプット表</h0>
+        </div>
+        <div class="d-flex align-items-center justify-content-end gap-2 flex-wrap ms-auto mt-2 me-5">
           <button type="submit"
                   class="btn-base-blue"
                   formnovalidate
@@ -213,9 +214,10 @@
              href="#"
              data-download-url="{{ $bundleUrl }}"
              data-status-url="{{ $bundleStatusUrl }}">PDF出力</a>
-      </div>
+        </div>
+      </div> 
 <!--      @includeWhen(config('app.debug'), 'components.furusato.totals_debug') -->
-    <div class="wrapper">
+    <div class="wrapper mt-3">
       @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
       @endif
@@ -690,7 +692,7 @@
                 <td class="text-center align-middle" rowspan="5">
                   <button type="submit"
                           class="btn-base-free-green"
-                          style="height:81px;"
+                          style="height:80px;"
                           name="redirect_to"
                           value="bunri_joto"
                           data-origin-subtab="bunri"
@@ -767,54 +769,21 @@
               </tr>
               @php
                 // ▼「所得金額等」ブロックの合計（UI表示専用）
-                //   - 所得税：総合課税（所得金額等）＋ 分離課税（所得金額）
-                //   - 住民税：同様に表示上の合計（※住民税の「総所得金額等」と一致させる目的ではない）
-                $sumSogoBases = [
-                  'shotoku_jigyo_eigyo',
-                  'shotoku_jigyo_nogyo',
-                  'shotoku_fudosan',
-                  'shotoku_rishi',
-                  'shotoku_haito',
-                  'shotoku_kyuyo',
-                  'shotoku_zatsu_nenkin',
-                  'shotoku_zatsu_gyomu',
-                  'shotoku_zatsu_sonota',
-                  'shotoku_joto_ichiji',
-                ];
-                $sumBunriBases = [
-                  'bunri_shotoku_tanki_ippan',
-                  'bunri_shotoku_tanki_keigen',
-                  'bunri_shotoku_choki_ippan',
-                  'bunri_shotoku_choki_tokutei',
-                  'bunri_shotoku_choki_keika',
-                  'bunri_shotoku_ippan_kabuteki_joto',
-                  'bunri_shotoku_jojo_kabuteki_joto',
-                  'bunri_shotoku_jojo_kabuteki_haito',
-                  'bunri_shotoku_sakimono',
-                  'bunri_shotoku_sanrin',
-                  'bunri_shotoku_taishoku',
-                ];
-                $sumShotokuEtcUi = static function (string $tax, string $period) use ($inputs, $normalizeServerInt, $sumSogoBases, $sumBunriBases): int {
-                  $sum = 0;
-                  foreach (array_merge($sumSogoBases, $sumBunriBases) as $base) {
-                    $key = sprintf('%s_%s_%s', $base, $tax, $period);
-                    $sum += $normalizeServerInt($inputs[$key] ?? 0);
-                  }
-                  return $sum;
-                };
-                $sumShotokuPrev = $sumShotokuEtcUi('shotoku', 'prev');
-                $sumShotokuCurr = $sumShotokuEtcUi('shotoku', 'curr');
-                $sumJuminPrev   = $sumShotokuEtcUi('jumin',  'prev');
-                $sumJuminCurr   = $sumShotokuEtcUi('jumin',  'curr');
+                // 方針：行の寄せ集め合計ではなく、サーバ確定SoT（CommonSumsCalculator）を表示する。
+                //   SoT: sum_for_sogoshotoku_etc_{prev|curr}
+                //   - 総所得金額 + 退職/山林 + 分離（繰越控除“後”）の正値合計
+                //   - max(0, ...) で負は潰されるため、UI上の -300,000 などが出なくなる
+                $sumEtcPrev = $normalizeServerInt($inputs['sum_for_sogoshotoku_etc_prev'] ?? 0);
+                $sumEtcCurr = $normalizeServerInt($inputs['sum_for_sogoshotoku_etc_curr'] ?? 0);
               @endphp
               <tr>
-                <th scope="row" colspan="3" class="align-middle text-center th-cream">合 計</th>
+                <th scope="row" colspan="3" class="align-middle text-center th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                 <td></td>
-                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumShotokuPrev) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumShotokuCurr) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumJuminPrev) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumJuminCurr) }}" readonly data-ui-only="1"></td>
-                </tr>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcPrev) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcCurr) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcPrev) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcCurr) }}" readonly data-ui-only="1"></td>
+              </tr>
             @endif
           @php $bunriShotokuRows = ob_get_clean(); @endphp
 
@@ -1136,7 +1105,7 @@
                 {!! $renderInputs('tax_fukkou') !!}
               </tr>
               <tr>
-                <th colspan="2" class="align-middle th-cream">合  計</th>
+                <th colspan="2" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn-base-low-blue">HELP</button>
                   </td>
@@ -1342,7 +1311,7 @@
                   {!! $renderInputs('shotoku_joto_ichiji') !!}
                 </tr>
                 <tr>
-                  <th colspan="2" class="align-middle th-cream">合  計</th>
+                  <th colspan="2" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                   <td class="text-center align-middle"></td>
                   @php
                     foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -1471,7 +1440,7 @@
                   {!! $renderInputs('kojo_kifukin') !!}
                 </tr>
                 <tr>
-                  <th colspan="3" class="align-middle th-cream">合  計</th>
+                  <th colspan="3" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                   <td class="text-center align-middle"></td>
                   {!! $renderInputs('kojo_gokei') !!}
                 </tr>

@@ -56,14 +56,14 @@
   $warekiPrev = $warekiPrev ?? '前年';
   $warekiCurr = $warekiCurr ?? '当年';
 @endphp
-<div class="container-blue mt-2" style="width: 630px;">
+<div class="container-blue mt-2" style="width: 620px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
       <h0 class="mb-0 mt-2 ms-2">内訳－給与・雑所得</h0>
     </div>
   </div>
-  <div class="card-body">
+  <div class="card-body m-3">
     <form method="POST" action="{{ route('furusato.details.kyuyo_zatsu.save') }}" id="kyuyo-zatsu-form">
       @csrf
       <input type="hidden" name="data_id" value="{{ $dataId }}">
@@ -85,7 +85,6 @@
           </ul>
         </div>
       @endif
-      <div class="wrapper">
         <hb class="mb-1 ms-5">■ 給与所得</hb>
         <div class="table-responsive mb-2">
           <table class="table-input align-middle">
@@ -149,7 +148,7 @@
           <table class="table-input align-middle">
             <tbody>
               <tr>
-                <th colspan="2" style="width:250px;"></th>
+                <th colspan="2"></th>
                 <th>{{ $warekiPrev }}</th>
                 <th>{{ $warekiCurr }}</th>
               </tr>
@@ -169,8 +168,8 @@
                 </td>
               </tr>
               <tr>
-                <th rowspan="2" class="text-start align-middle ps-2">業務</th>
-                <th class="text-start align-middle ps-2">収入金額</th>
+                <th rowspan="2" class="text-start align-middle ps-2" style="width:70px;">業務</th>
+                <th class="text-start align-middle ps-2 th-ddd" style="width:80px;">収入金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
@@ -185,7 +184,7 @@
                 </td>
               </tr>
               <tr>
-                <th class="text-start align-middle ps-2">支払金額</th>
+                <th class="text-start align-middle ps-2 th-ddd">支払金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
@@ -201,7 +200,7 @@
               </tr>
               <tr>
                 <th rowspan="2" class="text-start align-middle ps-2">その他</th>
-                <th class="text-start align-middle ps-2">収入金額</th>
+                <th class="text-start align-middle ps-2 th-ddd">収入金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
@@ -216,7 +215,7 @@
                 </td>
               </tr>
               <tr>
-                <th class="text-start align-middle ps-2">支払金額</th>
+                <th class="text-start align-middle ps-2 th-ddd">支払金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
@@ -233,8 +232,8 @@
             </tbody>
           </table>
         </div>
-      <hr>
-        <div class="text-end me-2 mb-2">
+      <hr class="mb-2">
+        <div class="text-end gap-2">
           <!-- 戻る: 再計算+保存して第一表へ（redirect_to=input を明示） -->
           <button type="submit"
                   class="btn-base-blue"
@@ -246,7 +245,6 @@
                   class="btn-base-green"
                   onclick="this.form.stay_on_details.value='1';">再計算</button>
         </div>
-      </div>
     </form>
   </div>
 </div>

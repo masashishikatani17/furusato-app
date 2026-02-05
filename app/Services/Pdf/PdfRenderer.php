@@ -2,6 +2,7 @@
 
 namespace App\Services\Pdf;
 
+use Illuminate\Support\Arr;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -16,8 +17,13 @@ class PdfRenderer
     {
         $paper  = $options['paper']  ?? 'a4';
         $orient = $options['orient'] ?? 'portrait';
+        // ★重要：今回のレンダリングエンジン（options優先）をBladeへ渡す
+        $engine = (string) ($options['engine'] ?? config('pdf_renderer.engine', 'dompdf'));        
         // PDF生成時：レイアウト側で public_path() を使えるようフラグを渡す
-        $data = array_merge($data, ['is_pdf' => true, 'pdf_engine' => config('pdf_renderer.engine', 'dompdf')]);
+        $data = array_merge($data, [
+            'is_pdf' => true,
+            'pdf_engine' => $engine,
+        ]);
         $pdf = Pdf::loadView($view, $data)->setPaper($paper, $orient);
         return $pdf;
     }
@@ -34,6 +40,8 @@ class PdfRenderer
         if ($engine === 'chrome') {
             return $this->renderByChrome($view, $data, $options);
         }
+        // dompdfでも、Blade側の pdf_engine を一致させるため options['engine'] を渡す
+        $options['engine'] = $engine;
         return $this->render($view, $data, $options)->output();
     }
 

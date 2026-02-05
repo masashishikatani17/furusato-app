@@ -23,6 +23,7 @@ class BuildFurusatoBundlePdfCacheJob implements ShouldQueue
     public function __construct(
         public int $dataId,
         public string $oneStopFlagCurr = '1',
+        public string $pdfVariant = 'max', // max|current|both
         public string $mode = 'fast',
         public string $engine = 'dompdf',
     ) {}
@@ -44,6 +45,7 @@ class BuildFurusatoBundlePdfCacheJob implements ShouldQueue
 
         $context = [
             'one_stop_flag_curr' => $this->oneStopFlagCurr,
+            'pdf_variant'        => $this->pdfVariant,
             'mode' => $this->mode,
             'engine' => $this->engine,
         ];
@@ -74,6 +76,7 @@ class BuildFurusatoBundlePdfCacheJob implements ShouldQueue
             // 表紙だけテンプレ＋座標印字、残りは従来fast（dompdf 1回）で生成して結合
             $pdf = $hybrid->build($data, $bundle, [
                 'one_stop_flag_curr' => $this->oneStopFlagCurr,
+                'pdf_variant'        => $this->pdfVariant,
             ], $options);
 
             $cache->put($cacheKey, $pdf);

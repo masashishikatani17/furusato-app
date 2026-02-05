@@ -38,7 +38,6 @@ class JuminJutakuLoanCreditCalculator implements ProvidesKeys
      */
     public function compute(array $payload, array $ctx): array
     {
-        unset($ctx);
         $out = array_fill_keys(self::provides(), 0);
 
         foreach (self::PERIODS as $p) {
@@ -71,18 +70,6 @@ class JuminJutakuLoanCreditCalculator implements ProvidesKeys
 
             $out["tax_jutaku_jumin_{$p}"]       = $credit;
             $out["tax_after_jutaku_jumin_{$p}"] = $after;
-
-\Log::info('[RTAX JUTAKU]', [
-    'p'         => $p,
-    'unapplied' => $unapplied,           // ← これが0なら住民税は0で正常
-    'taxable'   => $taxable,             // 課税総所得金額等
-    'rate'      => $ratePct,             // 5 or 7
-    'capByInc'  => $capByIncome,
-    'hardCap'   => $hardCap,
-    'carryCap'  => $carryCap,            // min(所得×率, 絶対上限)
-    'baseJumin' => $baseTax,             // 住民税の算出税額
-    'credit'    => $out["tax_jutaku_jumin_{$p}"],
-]);
         }
 
         return array_replace($payload, $out);

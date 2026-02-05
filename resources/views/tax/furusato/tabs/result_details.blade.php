@@ -456,7 +456,7 @@
               <col style="width:120px">
             </colgroup>
         <tr>
-          <th class="text-center th-ccc" style="height:30px;">人的控除額の差</th>
+          <th class="text-center th-ccc" style="height:28px;">人的控除額の差</th>
           @if($showPrev)
             <th class="text-center th-ccc">{{ $warekiPrevLabel }}</th>
           @endif
@@ -750,7 +750,7 @@
               <col style="width:120px">
             </colgroup>
         <tr>
-          <th scope="col" class="w-50 th-ccc" style="height:30px;">項  目</th>
+          <th scope="col" class="th-ccc" style="height:28px;">項  目</th>
           @if($showPrev)
             <th scope="col" class="text-center th-ccc">{{ $warekiPrevLabel }}</th>
           @endif
@@ -852,7 +852,7 @@
             </td>
           @endif
           @if($showCurr)
-            <td class="text-end">
+            <td>
               @php
                 $raw = $show['bunrimin']['curr'] && isset($rate['bunrimin']['curr']) ? number_format((float)$rate['bunrimin']['curr'], 3, '.', '') : '';
                 $disp = $show['bunrimin']['curr'] && isset($rate['bunrimin']['curr']) ? $fmtPct($rate['bunrimin']['curr']) : '';
@@ -864,7 +864,7 @@
         <tr class="table-primary">
           <th scope="row" class="text-center th-cream">特例控除 最終率</th>
           @if($showPrev)
-            <td class="text-end">
+            <td>
               @php
                 $raw = ($show['final']['prev'] && $rate['final']['prev'] !== null)
                   ? number_format((float)$rate['final']['prev'], 3, '.', '')
@@ -916,13 +916,24 @@
     }
   @endphp
   <div class="mt-4">
-    <h5 class="fw-bold">総合課税所得の損益通算</h5>
+    <hb class="mb-1 ms-5">■ 総合課税所得の損益通算</hb>
     @foreach ($warekiTables as $suffix => $label)
       @php $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff; @endphp
       <div class="mt-4">
         <div class="fw-bold ms-10">（{{ $label }}）</div>
         <div class="table-responsive">
-          <table class="table table-input align-middle" style="width:737px">
+          <table class="table table-input align-middle" style="width:717px">
+            <colgroup>
+              <col style="width:40px">
+              <col style="width:40px">
+              <col style="width:40px">
+              <col style="width:128px">
+              <col style="width:35px">
+              <col style="width:128px">
+              <col style="width:128px">
+              <col style="width:50px">
+              <col style="width:128px">
+            </colgroup>
             <tbody>
               <tr>
                 <th colspan="3" class="th-ccc" style="height:30px;">所得の種類</th>
@@ -935,7 +946,7 @@
                 <th rowspan="2" style="width:40px">譲渡</th>
                 <th style="width:40px">短期</th>
                 <th class="th-ddd" style="width:40px">総合</th>
-                <td class="text-end">
+                <td class="text-end" style="width:128px">
                   <input type="text"
                          readonly
                          name="sashihiki_joto_tanki_sogo_{{ $suffix }}"
@@ -943,14 +954,14 @@
                          value="{{ $readonlyValue('sashihiki_joto_tanki_sogo_' . $suffix) }}">
                 </td>
                 <th rowspan="2" class="vtext" style="width:35px">通算</th>
-                <td class="text-end">
+                <td class="text-end" style="width:128px">
                   <input type="text"
                          readonly
                          name="tsusango_joto_tanki_sogo_{{ $suffix }}"
                          class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('tsusango_joto_tanki_sogo_' . $suffix) }}">
                 </td>
-                <td class="text-end">
+                <td class="text-end" style="width:128px">
                   <input type="text"
                          readonly
                          name="tokubetsukojo_joto_tanki_sogo_{{ $suffix }}"
@@ -958,7 +969,7 @@
                          value="{{ $readonlyValue('tokubetsukojo_joto_tanki_sogo_' . $suffix) }}">
                 </td>
                 <th rowspan="4" class="lh-1" style="width:50px">所譲<br>得渡<br>の  ・<br>通一<br>算時</th>
-                <td class="text-end">
+                <td class="text-end" style="width:128px">
                   <input type="text"
                          readonly
                          name="after_joto_ichiji_tousan_joto_tanki_sogo_{{ $suffix }}"
@@ -1041,7 +1052,7 @@
       <div class="mt-4">
         <div class="fw-bold ms-10">（{{ $label }}）</div>
         <div class="table-responsive">
-          <table class="table table-input align-middle" style="width:885px">
+          <table class="table table-input align-middle" style="width:865px">
             <tbody>
               <tr>
                 <th colspan="3" class="th-ccc" style="height:30px;">所得の種類</th>
@@ -1053,7 +1064,7 @@
               </tr>
               <tr>
                 <th class="text-start ps-1" colspan="3">経常所得</th>
-                <td class="text-end" style="width:132px">
+                <td class="text-end">
                   <input type="text"
                          readonly
                          name="tsusanmae_keijo_{{ $suffix }}"
@@ -1061,7 +1072,7 @@
                          value="{{ $readonlyValue('tsusanmae_keijo_' . $suffix) }}">
                 </td>
                 <th rowspan="4" class="lh-1" style="width:35px">第<br>1<br>次<br>通<br>算</th>
-                <td class="text-end" style="width:132px">
+                <td class="text-end" style="width:128px">
                   <input type="text"
                          readonly
                          name="after_1jitsusan_keijo_{{ $suffix }}"
@@ -1069,7 +1080,7 @@
                          value="{{ $readonlyValue('after_1jitsusan_keijo_' . $suffix) }}">
                 </td>
                 <th rowspan="5" style="width:35px">第<br>2<br>次<br>通<br>算</th>
-                <td class="text-end" style="width:132px">
+                <td class="text-end" style="width:128px">
                   <input type="text"
                          readonly
                          name="after_2jitsusan_keijo_{{ $suffix }}"
@@ -1077,14 +1088,14 @@
                          value="{{ $readonlyValue('after_2jitsusan_keijo_' . $suffix) }}">
                 </td>
                 <th rowspan="6" style="width:35px">第<br>3<br>次<br>通<br>算</th>
-                <td class="text-end" style="width:132px">
+                <td class="text-end" style="width:128px">
                   <input type="text"
                          readonly
                          name="after_3jitsusan_keijo_{{ $suffix }}"
                          class="form-control suji11 text-end bg-light"
                          value="{{ $readonlyValue('after_3jitsusan_keijo_' . $suffix) }}">
                 </td>
-                <td class="text-end" style="width:132px">
+                <td class="text-end" style="width:128px">
                   <input type="text"
                          readonly
                          name="shotoku_keijo_{{ $suffix }}"
@@ -1365,9 +1376,9 @@
 
   @if ($showSeparatedNettingFlag)
   <div class="mt-5">
-    <h5 class="fw-bold">分離課税所得の損益通算</h5>
+    <hb class="mb-1 ms-5">■ 分離課税所得の損益通算</hb>
     <div class="mt-3">
-      <div class="fw-bold ms-5">譲渡所得に係る所得の損益通算</div>
+      <div class="fw-bold ms-5">　□ 譲渡所得に係る所得の損益通算</div>
       @foreach ($warekiTables as $suffix => $label)
         @php
           $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff;
@@ -1385,7 +1396,7 @@
                 </tr>
                 <tr>
                   <th rowspan="2" style="width:40px">短期</th>
-                  <th class="ps-1 th-ddd" style="width:40px">一般</th>
+                  <th class="th-ddd" style="width:40px">一般</th>
                   <td class="text-end" style="width:132px">
                     <input type="text"
                            readonly
@@ -1408,7 +1419,7 @@
                   </td>
                 </tr>
                 <tr>
-                  <th class="ps-1 th-ddd">軽減</th>
+                  <th class="th-ddd">軽減</th>
                   <td class="text-end">
                     <input type="text"
                            readonly
@@ -1430,7 +1441,7 @@
                 </tr>
                 <tr>
                   <th rowspan="3" style="width:60px">長期</th>
-                  <th class="ps-1 th-ddd">一般</th>
+                  <th class="th-ddd">一般</th>
                   <td class="text-end">
                     <input type="text"
                            readonly
@@ -1452,7 +1463,7 @@
                   </td>
                 </tr>
                 <tr>
-                  <th class="ps-1 th-ddd">特定</th>
+                  <th class="th-ddd">特定</th>
                   <td class="text-end">
                     <input type="text"
                            readonly
@@ -1473,7 +1484,7 @@
                   </td>
                 </tr>
                 <tr>
-                  <th class="ps-1 th-ddd">軽課</th>
+                  <th class="th-ddd">軽課</th>
                   <td class="text-end">
                     <input type="text"
                            readonly
@@ -1500,7 +1511,7 @@
       @endforeach
     </div>
     <div class="mt-4">
-      <div class="fw-bold ms-5">上場株式等に係る所得の損益通算</div>
+      <div class="fw-bold ms-5">　□ 上場株式等に係る所得の損益通算</div>
       @foreach ($warekiTables as $suffix => $label)
         @php
           $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff;
@@ -1560,9 +1571,9 @@
   @endif
 
   <div class="mt-5">
-    <h5 class="fw-bold">寄附金税額控除の算定</h5>
+    <hb class="mb-1 ms-5">■ 寄附金税額控除の算定</hb>
     <div class="table-responsive">
-      <table class="table table-input align-middle" style="width:584px;">
+      <table class="table table-input align-middle" style="width:486px;">
         <tbody>
           <tr>
             <th colspan="2" class="th-ccc" style="height:30px;"></th>
@@ -1627,15 +1638,15 @@
 
           {{-- ふるさと納税寄付金額（都道府県／市区町村） --}}
           <tr>
-            <th rowspan="2" class="text-start ps-1 align-middle" style="width:200px;">ふるさと納税寄付金額</th>
-            <th class="text-start ps-1" style="width:120px;">都道府県</th>
-            <td class="text-end" style="width:132px;">
+            <th rowspan="2" class="text-start ps-1 align-middle" style="width:150px;">ふるさと納税寄付金額</th>
+            <th style="width:80px;">都道府県</th>
+            <td class="text-end" style="width:128px;">
               <input type="text"
                      readonly
                      class="form-control suji11 bg-light"
                      value="{{ number_format($furPrevPref3) }}">
             </td>
-            <td class="text-end" style="width:132px;">
+            <td class="text-end" style="width:128px;">
               <input type="text"
                      readonly
                      class="form-control suji11 bg-light"
@@ -1661,7 +1672,7 @@
           {{-- その他寄付金額（共同募金等・NPO・公益・その他）（都道府県／市区町村） --}}
           <tr>
             <th rowspan="2" class="text-start ps-1 align-middle">その他寄付金額</th>
-            <th class="text-start ps-1">都道府県</th>
+            <th>都道府県</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1692,7 +1703,7 @@
           </tr>
           <tr>
             <th rowspan="2" class="text-start ps-1 align-middle">調整控除前所得割額</th>
-            <th class="text-start ps-1">都道府県</th>
+            <th>都道府県</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1727,7 +1738,7 @@
           </tr>
           <tr>
             <th rowspan="2" class="text-start ps-1 align-middle">調整控除額</th>
-            <th class="text-start ps-1">都道府県</th>
+            <th>都道府県</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1762,7 +1773,7 @@
           </tr>
           <tr>
             <th rowspan="2" class="text-start ps-1 align-middle">調整控除後所得割額</th>
-            <th class="text-start ps-1">都道府県</th>
+            <th>都道府県</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1797,7 +1808,7 @@
           </tr>
           <tr>
             <th rowspan="2" class="text-start ps-1 align-middle">基本控除額</th>
-            <th class="text-start ps-1">都道府県</th>
+            <th>都道府県</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1832,7 +1843,7 @@
           </tr>
           <tr>
             <th rowspan="2" class="text-start ps-1 align-middle">特例控除額</th>
-            <th class="text-start ps-1">都道府県</th>
+            <th>都道府県</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1867,7 +1878,7 @@
           </tr>
           <tr>
             <th rowspan="2" class="text-start ps-1 align-middle">所得割額の20％</th>
-            <th class="text-start ps-1">都道府県</th>
+            <th>都道府県</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1902,7 +1913,7 @@
           </tr>
           <tr>
             <th rowspan="2" class="text-start ps-1 align-middle">上限適用後特例控除</th>
-            <th class="text-start ps-1">都道府県</th>
+            <th>都道府県</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1937,7 +1948,7 @@
           </tr>
           <tr>
             <th rowspan="2" class="text-start ps-1 align-middle">申告特例控除</th>
-            <th class="text-start ps-1">都道府県</th>
+            <th>都道府県</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1972,7 +1983,7 @@
           </tr>
           <tr>
             <th rowspan="3" class="text-start ps-1 align-middle">寄附金税額控除</th>
-            <th class="text-start ps-1">都道府県</th>
+            <th>都道府県</th>
             <td class="text-end">
               <input type="text"
                      readonly

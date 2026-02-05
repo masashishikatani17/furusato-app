@@ -1,21 +1,20 @@
 @extends('layouts.min')
 @section('content')
-<div class="container-grey mt-2" style="width: 700px;">
+<div class="container-grey mt-2" style="width: 660px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop_m.jpg') }}" alt="…">
-    <hb class="mb-0 mt-2">特例控除マスター</hb>
+    <hb class="mt-2">特例控除マスター</hb>
   </div>
-  <div class="card-body">
-    <div class="wrapper">
+  <div class="card-body m-3">
       <table class="table-base table-bordered align-middle">
         <thead>
           <tr>
             <th class="text-center nowrap" colspan="3">課税総所得金額から<br>人的控除差調整額を控除した金額</th>
             <th class="text-center">所得税率</th>
-            <th class="text-center">90%-所得税率</th>
+            <th class="text-center">90%-<br>所得税率</th>
             <th class="text-center">復興特別所得税率を<br>加味した所得税率</th>
-            <th class="text-center">特例控除の控除率</th>
-            <th class="text-center">摘  要</th>
+            <th class="text-center">特例控除<br>の控除率</th>
+            <th class="text-center" style="width:120px;">摘  要</th>
           </tr>
         </thead>
         <tbody>
@@ -50,11 +49,10 @@
           @endforeach
         </tbody>
       </table>
-       <hr>
-      <div class="text-end me-2 mb-2">
+       <hr class="mb-2">
+      <div class="text-end">
         <a href="{{ route('furusato.master', ['data_id' => $dataId]) }}" class="btn-base-blue">戻 る</a>
       </div>
-    </div>  
   </div>  
 </div>
 @endsection

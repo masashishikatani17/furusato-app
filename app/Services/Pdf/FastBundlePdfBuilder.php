@@ -32,7 +32,10 @@ class FastBundlePdfBuilder
     public function buildBundlePdfForKeys(Data $data, array $keys, array $context, array $options): string
     {
         $pages = [];
+        $total = count($keys);
+        $idx = 0;
         foreach ($keys as $key) {
+            $idx++;
             $obj  = $this->reports->resolve((string)$key);
             // ★bundle側から report_key を渡して *_curr などの分岐を有効化する
             $ctxPerKey = array_merge($context, ['report_key' => (string)$key]);
@@ -50,8 +53,9 @@ class FastBundlePdfBuilder
             // ここでは「HTMLだけ」生成
             $html = view($view, $vars)->render();
 
-            // DomPDFの改ページ
-            $pages[] = '<div style="page-break-after: always;">' . $html . '</div>';
+            // DomPDFの改ページ（最後は付けない＝空白ページ抑止）
+            $break = ($idx < $total) ? 'page-break-after: always;' : '';
+            $pages[] = '<div style="' . $break . '">' . $html . '</div>';
         }
 
         // 最後の page-break を軽減（厳密ではないが空白ページが出にくい）

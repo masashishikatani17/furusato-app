@@ -4,16 +4,20 @@
 @section('title', '操作履歴')
 
 @section('content')
-<div class="container" style="max-width: 1100px;">
-  <div class="d-flex justify-content-between align-items-center py-3">
-    <hb class="mb-0">▶ 操作履歴</hb>
-    <a href="{{ route('admin.settings') }}" class="btn btn-sm btn-secondary">設定TOPへ</a>
+<div class="container px-4 py-4" style="width: 1000px; background-color:#E8EFF0;">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div><hb class="mb-0">▶ 操作履歴</hb>
+    </div>
+    <div class="d-flex gap-2">
+
+     <a href="{{ route('admin.settings') }}" class="btn-base-blue">設定TOPへ</a>
+     </div>
   </div>
 
   <form class="row g-2 mb-3" method="GET" action="{{ route('admin.audit_logs.index') }}">
     {{-- 操作種別 --}}
-    <div class="col-md-2">
-      <label class="form-label small text-muted mb-1">操作種別</label>
+    <div class="col-md-3">
+      <label class="form-label small mb-1"><h12>操作種別</h12></label>
       <select class="form-select form-select-sm" name="action">
         @foreach($actionOptions as $val => $label)
           <option value="{{ $val }}" @selected(request('action','')===(string)$val)>{{ $label }}</option>
@@ -22,8 +26,8 @@
     </div>
 
     {{-- 操作ユーザー --}}
-    <div class="col-md-3">
-      <label class="form-label small text-muted mb-1">操作ユーザー</label>
+    <div class="col-md-4">
+      <label class="form-label small mb-1"><h12>操作ユーザー</h12></label>
       <select class="form-select form-select-sm" name="actor_user_id">
         <option value="">（すべて）</option>
         @foreach($usersForFilter as $u)
@@ -35,8 +39,8 @@
     </div>
 
     {{-- 対象：顧客 --}}
-    <div class="col-md-3">
-      <label class="form-label small text-muted mb-1">対象（顧客）</label>
+    <div class="col-md-5">
+      <label class="form-label small mb-1"><h12>対象（顧客）</h12></label>
       <select class="form-select form-select-sm" name="guest_id">
         <option value="">（すべて）</option>
         @foreach($guestsForFilter as $g)
@@ -48,8 +52,8 @@
     </div>
 
     {{-- 対象：年度 --}}
-    <div class="col-md-2">
-      <label class="form-label small text-muted mb-1">対象（年度）</label>
+    <div class="col-md-3">
+      <label class="form-label small mb-1"><h12>対象（年度）</h12></label>
       <select class="form-select form-select-sm" name="year">
         <option value="">（すべて）</option>
         @foreach($yearsForFilter as $y)
@@ -59,30 +63,30 @@
     </div>
 
     {{-- 期間 --}}
-    <div class="col-md-2">
-      <label class="form-label small text-muted mb-1">期間（開始日）</label>
+    <div class="col-md-3">
+      <label class="form-label small mb-1"><h12>期間（開始日）</h12></label>
       <input class="form-control form-control-sm" type="date" name="date_from" value="{{ request('date_from') }}">
     </div>
-    <div class="col-md-2">
+    <div class="col-md-3">
       <label class="form-label small text-muted mb-1">期間（終了日）</label>
       <input class="form-control form-control-sm" type="date" name="date_to" value="{{ request('date_to') }}">
     </div>
 
-    <div class="col-md-2 d-flex gap-2 align-items-end">
-      <button class="btn btn-sm btn-primary" type="submit">絞り込み</button>
-      <a class="btn btn-sm btn-outline-secondary" href="{{ route('admin.audit_logs.index') }}">クリア</a>
+    <div class="col-md-3 d-flex gap-2 align-items-end">
+      <button class="btn-base-green" type="submit" style="height: 22px;">絞り込み</button>
+      <a class="btn-base-red" style="height: 22px;" href="{{ route('admin.audit_logs.index') }}">クリア</a>
     </div>
   </form>
 
   <div class="table-responsive">
-    <table class="table table-sm table-bordered align-middle">
+    <table class="table table-base table-bordered align-middle" style="width: 950px;">
       <thead class="table-light">
-        <tr>
-          <th style="width: 160px;">日時</th>
+        <tr style="height: 32px;">
+          <th style="width: 130px;">日 時</th>
           <th style="width: 260px;">操作ユーザー</th>
-          <th style="width: 220px;">内容</th>
-          <th style="width: 240px;">対象</th>
-          <th>メモ</th>
+          <th style="width: 220px;">内 容</th>
+          <th style="width: 140px;">対 象</th>
+          <th style="width: 200px;">メ モ</th>
         </tr>
       </thead>
       <tbody>
@@ -140,7 +144,7 @@
             $note = '提案書日/共有設定などを更新';
           }
         @endphp
-        <tr>
+        <tr style="height: 32px;">
           <td>{{ optional($log->created_at)->format('Y-m-d H:i:s') }}</td>
           <td>
             @if($a)
@@ -160,7 +164,7 @@
           <td class="text-muted">{{ $note ?: '—' }}</td>
         </tr>
       @empty
-        <tr><td colspan="4" class="text-muted py-3">ログがありません。</td></tr>
+        <tr><td colspan="5" class="text-muted py-3">ログがありません。</td></tr>
       @endforelse
       </tbody>
     </table>

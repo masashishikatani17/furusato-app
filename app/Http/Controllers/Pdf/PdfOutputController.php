@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Pdf;
 
+use App\Application\UseCases\Tax\RecalculateFurusatoPayload;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,7 @@ use App\Services\Pdf\ReportRegistry;
 use App\Services\Pdf\PdfRenderer;
 use App\Services\Pdf\PdfCacheService;
 use App\Services\Pdf\FastBundlePdfBuilder;
+use App\Services\Pdf\PdfPageLabelStamper;
 use App\Services\Pdf\Templates\FurusatoHyoshiTemplateWriter;
 use App\Services\Pdf\Templates\FurusatoKifukinGendogakuTemplateWriter;
 use App\Services\Pdf\Templates\FurusatoSyotokukinKojyosokuTemplateWriter;
@@ -39,8 +41,65 @@ class PdfOutputController extends Controller
         private PdfRenderer $renderer,
         private PdfCacheService $cache,
         private FastBundlePdfBuilder $fastBuilder,
+        private PdfPageLabelStamper $pageStamper,
+        private RecalculateFurusatoPayload $recalculateUseCase,
     ) {}
- 
+
+    /**
+     * PDF出力では必ず再計算してDBのSoTを最新化する（外部マスタ更新等も吸収するため）
+     */
+    private function forceRecalculateFurusatoResults(Data $data, Request $request): void
+    {
+        try {
+            $this->recalculateUseCase->handle($data, [], [
+                'should_flash_results' => false,
+                // 必要なら将来ここに user_id / taxpayer_sex 等を追加してもOK
+            ]);
+        } catch (\Throwable $e) {
+            // PDF出力を落とすかどうかは方針次第だが、いったん落とさずログだけ残す
+            Log::warning('[pdf] force recalc failed', [
+                'data_id' => (int)($data->id ?? 0),
+                'err' => get_class($e),
+                'msg' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * FurusatoInput が更新されているのに FurusatoResult が古い場合だけ再計算し、必ず最新SoTを用意する。
+     * - PDF出力は FurusatoResult.updated_at をキャッシュキーに含めているため、再計算すればキャッシュも自動更新される。
+     */
+    private function ensureLatestFurusatoResults(Data $data, Request $request): void
+    {
+        $dataId = (int) $data->id;
+        if ($dataId <= 0) {
+            return;
+        }
+
+        $inputUpdated = FurusatoInput::query()
+            ->where('data_id', $dataId)
+            ->value('updated_at');
+        $resultUpdated = FurusatoResult::query()
+            ->where('data_id', $dataId)
+            ->value('updated_at');
+
+        // results が無い／または inputs の方が新しい → 再計算
+        $needs = false;
+        if ($resultUpdated === null) {
+            $needs = true;
+        } elseif ($inputUpdated !== null && (string)$inputUpdated > (string)$resultUpdated) {
+            $needs = true;
+        }
+
+        if (! $needs) {
+            return;
+        }
+
+        // ▼ pdf出力では「表示タブを開く」必要はないので should_flash_results=false
+        // ▼ 上限探索等も含めて SoT をまとめて再生成してDBへ保存する（RecalculateFurusatoPayload の責務）
+        $this->forceRecalculateFurusatoResults($data, $request);
+    }
+
     /**
      * ステータス（JSON）
      * GET /pdf/{report}/status?data_id=...&one_stop_flag_curr=...&mode=fast&engine=dompdf
@@ -48,6 +107,8 @@ class PdfOutputController extends Controller
     public function status(Request $request, string $report): JsonResponse
     {
         $data = $this->resolveAuthorizedDataOrFail($request);
+        // ★PDF生成状況チェックでも「最新SoT」を担保しておく（stale results のまま ready を返さない）
+        $this->ensureLatestFurusatoResults($data, $request);
 
         // 標準：fast + dompdf（必要ならクエリで切替）
         $variant = strtolower((string)$request->query('pdf_variant', 'max'));
@@ -117,6 +178,8 @@ class PdfOutputController extends Controller
     public function preview(Request $request, string $report)
     {
         $data = $this->resolveAuthorizedDataOrFail($request);
+        // ★HTMLプレビューも常に最新を担保（PDFと同じSoTで整合）
+        $this->ensureLatestFurusatoResults($data, $request);
         $reportObj = $this->reports->resolve($report);
 
         // Bundle の場合：骨組みHTML（即返却）＋JSONでページHTMLを一括取得して埋め込む
@@ -224,6 +287,9 @@ class PdfOutputController extends Controller
     public function download(Request $request, string $report)
     {
         $data = $this->resolveAuthorizedDataOrFail($request);
+        // ★最重要：PDF出力は必ず再計算して最新SoTにしてからキャッシュキーを作る
+        // （外部マスタ更新等で inputs の updated_at が動かないケースでも必ず最新化）
+        $this->forceRecalculateFurusatoResults($data, $request);
         $reportObj = $this->reports->resolve($report);
  
         // 標準：fast + dompdf（必要ならクエリで切替）
@@ -529,6 +595,38 @@ class PdfOutputController extends Controller
             $fontPath = public_path('fonts/ipaexg.ttf');
             $bins = [];
 
+            // ============================
+            // ページ番号ラベル決定（表紙は付けない）
+            // ============================
+            $variantForLabel = strtolower((string)($context['pdf_variant'] ?? 'max'));
+            if (!in_array($variantForLabel, ['max','current','both'], true)) {
+                $variantForLabel = 'max';
+            }
+            $seen = []; // base page (2/3/4) の出現回数（both用）
+            $labelForKey = function (string $key) use (&$seen, $variantForLabel): string {
+                $k = strtolower($key);
+                if ($k === 'hyoshi') return ''; // 表紙はページ番号なし
+                $base = null;
+                if ($k === 'kifukingendogaku') $base = 1;
+                elseif ($k === 'syotokukinkojyosoku' || $k === 'syotokukinkojyosoku_curr') $base = 2;
+                elseif ($k === 'kazeigakuzeigakuyosoku' || $k === 'kazeigakuzeigakuyosoku_curr') $base = 3;
+                elseif (str_starts_with($k, 'juminkeigengaku')) $base = 4; // onestop含む
+                elseif ($k === 'sonntokusimulation') $base = 5;
+                elseif ($k === 'jintekikojosatyosei') $base = 6;
+                elseif ($k === 'tokureikojowariai') $base = 7;
+                if ($base === null) return '';
+
+                if ($variantForLabel === 'both' && in_array($base, [2,3,4], true)) {
+                    $seen[$base] = ($seen[$base] ?? 0) + 1;
+                    if ($seen[$base] === 1) {
+                        return "{$base}ページ";
+                    }
+                    $suffix = $seen[$base] - 1; // 2回目→1
+                    return "{$base}-{$suffix}ページ";
+                }
+                return "{$base}ページ";
+            };
+
             // 共通：テンプレWriterで落ちたら Blade(dompdf/chrome) にフォールバック
             $renderByBlade = function (string $key, $obj, array $vars) use ($data, $engine) : string {
                 $view = $obj->viewName();
@@ -578,6 +676,7 @@ class PdfOutputController extends Controller
 
             foreach ($keys as $key) {
                 $k = strtolower((string)$key);
+                $pageLabel = $labelForKey($k);
 
                 // 7ページ（特例控除割合）は背景そのまま
                 if ($k === 'tokureikojowariai') {
@@ -588,6 +687,10 @@ class PdfOutputController extends Controller
                     $pdf = file_get_contents($tpl7);
                     if (!is_string($pdf) || $pdf === '') {
                         throw new \RuntimeException('Failed to read template PDF: ' . $tpl7);
+                    }
+                    // ★ページ番号（表紙以外）
+                    if ($pageLabel !== '') {
+                        $pdf = $this->pageStamper->stampPerPage($pdf, [1 => $pageLabel], $fontPath);
                     }
                     $bins[] = $pdf;
                     continue;
@@ -630,11 +733,19 @@ class PdfOutputController extends Controller
                     $tpl5 = resource_path('pdf_templates/furusato/5_sonntokusimulation_bg.pdf');
                     $writer5 = new FurusatoSonntokuSimulationTemplateWriter($tpl5, $fontPath);
                     try {
-                        $bins[] = $writer5->render(['sonntoku' => $sonntoku5, 'show_test' => true]);
+                        $p = $writer5->render(['sonntoku' => $sonntoku5, 'show_test' => true]);
+                        if ($pageLabel !== '') {
+                            $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                        }
+                        $bins[] = $p;
                     } catch (\Throwable $e) {
                         Log::warning('pdf.fast.bundle.template_failed', ['key'=>$k,'err'=>get_class($e),'msg'=>$e->getMessage()]);
                         $obj = $this->reports->resolve($k);
-                        $bins[] = $renderByBlade($k, $obj, $obj->buildViewData($data));
+                        $p = $renderByBlade($k, $obj, $obj->buildViewData($data));
+                        if ($pageLabel !== '') {
+                            $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                        }
+                        $bins[] = $p;
                     }
                     continue;
                 }
@@ -653,46 +764,75 @@ class PdfOutputController extends Controller
                     if ($k === 'hyoshi') {
                         $tpl = $tplPathFor($k);
                         $w = new FurusatoHyoshiTemplateWriter($tpl, $fontPath);
+                        // 表紙はページ番号なし
                         $bins[] = $w->render($vars);
                         continue;
                     }
                     if ($k === 'kifukingendogaku') {
                         $tpl = $tplPathFor($k);
                         $w = new FurusatoKifukinGendogakuTemplateWriter($tpl, $fontPath);
-                        $bins[] = $w->render($vars);
+                        $p = $w->render($vars);
+                        if ($pageLabel !== '') {
+                            $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                        }
+                        $bins[] = $p;
                         continue;
                     }
                     if ($k === 'syotokukinkojyosoku' || $k === 'syotokukinkojyosoku_curr') {
                         $tpl = $tplPathFor($k);
                         $w = new FurusatoSyotokukinKojyosokuTemplateWriter($tpl, $fontPath);
-                        $bins[] = $w->render($vars);
+                        $p = $w->render($vars);
+                        if ($pageLabel !== '') {
+                            $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                        }
+                        $bins[] = $p;
                         continue;
                     }
                     if ($k === 'kazeigakuzeigakuyosoku' || $k === 'kazeigakuzeigakuyosoku_curr') {
                         $tpl = $tplPathFor($k);
                         $w = new FurusatoKazeigakuZeigakuYosokuTemplateWriter($tpl, $fontPath);
-                        $bins[] = $w->render($vars);
+                        $p = $w->render($vars);
+                        if ($pageLabel !== '') {
+                            $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                        }
+                        $bins[] = $p;
                         continue;
                     }
                     if (in_array($k, ['juminkeigengaku','juminkeigengaku_curr','juminkeigengaku_onestop','juminkeigengaku_onestop_curr'], true)) {
                         $tpl = $tplPathFor($k);
                         $w = new FurusatoJuminKeigengakuTemplateWriter($tpl, $fontPath);
-                        $bins[] = $w->render($vars);
+                        $p = $w->render($vars);
+                        if ($pageLabel !== '') {
+                            $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                        }
+                        $bins[] = $p;
                         continue;
                     }
                     if ($k === 'jintekikojosatyosei') {
                         $tpl = $tplPathFor($k);
                         $w = new FurusatoJintekiKojoSaTyoseiTemplateWriter($tpl, $fontPath);
-                        $bins[] = $w->render($vars);
+                        $p = $w->render($vars);
+                        if ($pageLabel !== '') {
+                            $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                        }
+                        $bins[] = $p;
                         continue;
                     }
 
                     // ここまで来たら Blade へ（念のため）
-                    $bins[] = $renderByBlade($k, $obj, $vars);
+                    $p = $renderByBlade($k, $obj, $vars);
+                    if ($pageLabel !== '') {
+                        $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                    }
+                    $bins[] = $p;
                 } catch (\Throwable $e) {
                     // ★テンプレがFPDI圧縮などで落ちても bundle を落とさない
                     Log::warning('pdf.fast.bundle.template_failed', ['key'=>$k,'err'=>get_class($e),'msg'=>$e->getMessage()]);
-                    $bins[] = $renderByBlade($k, $obj, $vars);
+                    $p = $renderByBlade($k, $obj, $vars);
+                    if ($pageLabel !== '') {
+                        $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                    }
+                    $bins[] = $p;
                 }
             }
 
@@ -832,6 +972,7 @@ class PdfOutputController extends Controller
                     BuildFurusatoBundlePdfCacheJob::dispatch(
                         (int)$data->id,
                         (string)$context['one_stop_flag_curr'],
+                        (string)$context['pdf_variant'],
                         'fast',
                         $engine
                     )->onQueue('default');
@@ -845,6 +986,7 @@ class PdfOutputController extends Controller
                         'status_url' => route('pdf.status', ['report' => $report])
                             . '?data_id=' . urlencode((string)$data->id)
                             . '&one_stop_flag_curr=' . urlencode((string)$context['one_stop_flag_curr'])
+                            . '&pdf_variant=' . urlencode((string)$context['pdf_variant'])
                             . '&mode=fast&engine=' . urlencode($engine),
                     ], 202);
                 }

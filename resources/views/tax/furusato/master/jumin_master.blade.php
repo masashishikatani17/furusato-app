@@ -1,12 +1,11 @@
 @extends('layouts.min')
 @section('content')
-<div class="container-grey mt-2" style="width: 600px;">
+<div class="container-grey mt-2" style="width: 580px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop_m.jpg') }}" alt="…">
     <hb class="mb-0 mt-2">住民税率マスター</hb>
   </div>
-  <div class="card-body">
-    <div class="wrapper">
+  <div class="card-body m-3">
       @if (session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
       @endif
@@ -24,13 +23,13 @@
         <input type="hidden" name="data_id" value="{{ $dataId }}">
         {{-- 戻る＝保存＋再計算の上でマスターTOPへ遷移 --}}
         <input type="hidden" name="redirect_to" value="master">
-        <table class="table-base table-bordered align-middle mb-5">
+        <table class="table-input align-middle">
           <thead>
             <tr>
               <th class="text-center" colspan="2" rowspan="2">区 分</th>
               <th class="text-center" colspan="2">指定都市</th>
               <th class="text-center" colspan="2">指定都市以外</th>
-              <th class="text-center" rowspan="2">備 考</th>
+              <th class="text-center" rowspan="2" style="width:150px;">備 考</th>
             </tr>
             <tr>
               <th class="text-center th-ddd">市</th>
@@ -109,7 +108,7 @@
                                value="{$prefN}"
                                readonly>
                       </td>
-                      <td class="text-start">
+                      <td class="text-start ps-1">
                         <span>{$remark}</span>
                       </td>
                     HTML;
@@ -141,7 +140,7 @@
                            class="form-control suji3 text-end"
                            value="{$prefN}">
                   </td>
-                  <td class="text-start">
+                  <td class="text-start ps-1">
                     <input type="hidden" name="rates[{$i}][sort]" value="{$sort}">
                     <input type="hidden" name="rates[{$i}][category]" value="{$cat}">
                     <input type="hidden" name="rates[{$i}][sub_category]" value="{$sub}">
@@ -155,14 +154,14 @@
             {{-- 1) 総合課税（1行） --}}
             @php $r = $pick('総合課税'); @endphp
             <tr>
-              <th class="text-start" colspan="2">総合課税</th>
+              <th class="text-start ps-1" colspan="2" style="width:130px;">総合課税</th>
               {!! $row($i++, $r) !!}
             </tr>
   
             {{-- 2) 短期譲渡（2行：一般/軽減、左セルrowspan=2） --}}
             @php $r1 = $pick('短期譲渡', '一般'); $r2 = $pick('短期譲渡', '軽減'); @endphp
             <tr>
-              <th class="text-start" rowspan="2">短期譲渡</th>
+              <th class="text-start ps-1" rowspan="2">短期譲渡</th>
               <th class="text-center th-ddd">一般</th>
               {!! $row($i++, $r1) !!}
             </tr>
@@ -180,7 +179,7 @@
               $rC2= $pick('長期譲渡', '軽課', '超');
             @endphp
             <tr>
-              <th class="text-start" rowspan="5">長期譲渡</th>
+              <th class="text-start ps-1" rowspan="5">長期譲渡</th>
               <th class="text-center th-ddd">一般</th>
               {!! $row($i++, $rA) !!}
             </tr>
@@ -202,63 +201,63 @@
             {{-- 4) 一般株式等の譲渡（1行） --}}
             @php $r = $pick('一般株式等の譲渡'); @endphp
             <tr>
-              <th class="text-start" colspan="2">一般株式等の譲渡</th>
+              <th class="text-start ps-1" colspan="2">一般株式等の譲渡</th>
               {!! $row($i++, $r) !!}
             </tr>
   
             {{-- 5) 上場株式等の譲渡（1行） --}}
             @php $r = $pick('上場株式等の譲渡'); @endphp
             <tr>
-              <th class="text-start" colspan="2">上場株式等の譲渡</th>
+              <th class="text-start ps-1" colspan="2">上場株式等の譲渡</th>
               {!! $row($i++, $r) !!}
             </tr>
   
             {{-- 6) 上場株式等の配当等（1行） --}}
             @php $r = $pick('上場株式等の配当等'); @endphp
             <tr>
-              <th class="text-start" colspan="2">上場株式等の配当等</th>
+              <th class="text-start ps-1" colspan="2">上場株式等の配当等</th>
               {!! $row($i++, $r) !!}
             </tr>
   
             {{-- 7) 先物取引（1行） --}}
             @php $r = $pick('先物取引'); @endphp
             <tr>
-              <th class="text-start" colspan="2">先物取引</th>
+              <th class="text-start ps-1" colspan="2">先物取引</th>
               {!! $row($i++, $r) !!}
             </tr>
   
             {{-- 8) 山林（1行） --}}
             @php $r = $pick('山林'); @endphp
             <tr>
-              <th class="text-start" colspan="2">山林</th>
+              <th class="text-start ps-1" colspan="2">山林</th>
               {!! $row($i++, $r) !!}
             </tr>
   
             {{-- 9) 退職（1行） --}}
             @php $r = $pick('退職'); @endphp
             <tr>
-              <th class="text-start" colspan="2">退職</th>
+              <th class="text-start ps-1" colspan="2">退職</th>
               {!! $row($i++, $r) !!}
             </tr>
   
             {{-- 10) 基本控除（読み取り専用） --}}
             @php $r = $pick('基本控除'); @endphp
             <tr>
-              <th class="text-start" colspan="2">基本控除</th>
+              <th class="text-start ps-1" colspan="2">基本控除</th>
               {!! $row($i++, $r, true) !!}
             </tr>
   
             {{-- 11) 調整控除（読み取り専用） --}}
             @php $r = $pick('調整控除'); @endphp
             <tr>
-              <th class="text-start" colspan="2">調整控除</th>
+              <th class="text-start ps-1" colspan="2">調整控除</th>
               {!! $row($i++, $r, true) !!}
             </tr>
   
             {{-- 12) 特例控除（読み取り専用） --}}
             @php $r = $pick('特例控除'); @endphp
             <tr>
-              <th class="text-start" colspan="2">特例控除</th>
+              <th class="text-start ps-1" colspan="2">特例控除</th>
               {!! $row($i++, $r, true) !!}
             </tr>
           </tbody>
@@ -363,13 +362,12 @@
               </tr>
           </tbody>
         </table>
---}}        
-        <div class="d-flex justify-content-end align-items-center mt-3 me-2 mb-2">
+--}}     <hr class="mb-2">   
+        <div class="d-flex justify-content-end align-items-center me-2 mb-2">
           {{-- 「戻る」＝ 保存＋再計算の上でマスター画面へ遷移 --}}
           <button type="submit" class="btn-base-blue">戻 る</button>
         </div>
       </form>
-    </div>
   </div>
 </div>
  

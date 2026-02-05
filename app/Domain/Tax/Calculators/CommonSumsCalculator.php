@@ -47,7 +47,12 @@ class CommonSumsCalculator implements ProvidesKeys
      */
     public function compute(array $payload, array $ctx): array
     {
+        // 上限探索などの dry-run では大量に回るため、ログを抑止する
+        $isDryRun = !empty($ctx['dry_run']);
+
         foreach (self::PERIODS as $period) {
+            // 既存値（比較用）※上書き前に退避
+            $legacyGokei = $this->intOrNull($payload[sprintf('shotoku_gokei_%s', $period)] ?? null);
             // ===== v2 厳密式：合計所得金額 sum_for_gokeishotoku_{p} =====
             // A_p（総合課税：損益通算後の正値のみ）
             $Ap =
@@ -101,23 +106,6 @@ class CommonSumsCalculator implements ProvidesKeys
                 + max(0, $this->n($payload[sprintf('shotoku_sakimono_after_kurikoshi_%s',   $period)] ?? null));
             $sogoshotokuEtc = $sumSogo + $Bp + $Cafter;
             $payload[sprintf('sum_for_sogoshotoku_etc_%s', $period)] = $sogoshotokuEtc;
-
-            // ===== 4) Δログ（debug時のみ） =====
-            if (config('app.debug')) {
-                // 既存 shotoku_gokei_* が存在する場合のみ比較（監視用）
-                $existingGokei = $this->intOrNull($payload[sprintf('shotoku_gokei_%s', $period)] ?? null);
-                if ($existingGokei !== null && $existingGokei !== $gokei) {
-                    Log::warning(sprintf(
-                        '[common.sums.v2] Δ(sum_for_gokeishotoku_%s)=%d (legacy=%d new=%d; A=%d, B=%d, C=%d)',
-                        $period, $gokei - $existingGokei, $existingGokei, $gokei, $Ap, $Bp, $Cp
-                    ));
-                }
-                // 参考ログ：ブロック別の可視化
-                Log::info(sprintf(
-                    '[common.sums.v2] parts.%s A=%d B=%d C_pre=%d C_after=%d sogo=%d sogo_etc=%d',
-                    $period, $Ap, $Bp, $Cp, $Cafter, $sumSogo, $sogoshotokuEtc
-                ));
-            }
         }
 
         return $payload;

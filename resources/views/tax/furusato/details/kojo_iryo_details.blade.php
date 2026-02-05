@@ -26,8 +26,7 @@
       </ul>
     </div>
   @endif
-  <div class="card-body">　
-  　<div class="wrapper">
+  <div class="card-body m-3">　
       <form method="POST" action="{{ route('furusato.details.kojo_iryo.save') }}">
         @csrf
         <input type="hidden" name="data_id" value="{{ $dataId }}">
@@ -47,7 +46,7 @@
               </tr>
             <tbody>
               <tr>
-                <th scope="row" class="text-start">支払った医療費</th>
+                <th scope="row" class="text-start ps-1">支払った医療費</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_iryo_shiharai_prev"
@@ -63,7 +62,7 @@
                 <td class="bg-light">Ⓐ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">保険金などで補填される金額</th>
+                <th scope="row" class="text-start ps-1">保険金などで補填される金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_iryo_hotengaku_prev"
@@ -79,7 +78,7 @@
                 <td class="bg-light">Ⓑ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">差引金額（Ⓐ－Ⓑ）</th>
+                <th scope="row" class="text-start ps-1">差引金額（Ⓐ－Ⓑ）</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_iryo_sashihiki_prev"
@@ -95,7 +94,7 @@
                 <td class="bg-light">Ⓒ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">所得金額の合計額</th>
+                <th scope="row" class="text-start ps-1">所得金額の合計額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_iryo_shotoku_gokei_prev"
@@ -111,7 +110,7 @@
                 <td class="bg-light">Ⓓ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">Ⓓ×0.05</th>
+                <th scope="row" class="text-start ps-1">Ⓓ×0.05</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_iryo_shotoku_5pct_prev"
@@ -127,7 +126,7 @@
                 <td class="bg-light">Ⓔ</td>
               </tr>
               <tr>
-                <th scope="row" class="text-start">Ⓔと10万円のいずれか少ない方の金額</th>
+                <th scope="row" class="text-start ps-1">Ⓔと10万円のいずれか少ない方の金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_iryo_min_threshold_prev"
@@ -161,16 +160,15 @@
             </tbody>
           </table>
         </div>
-        <hr>
-            <div class="text-end me-2 mb-2">
+        <hr class="mb-2">
+            <div class="text-end gap-2">
               <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
               <button type="submit"
-                      class="btn-base-green ms-2"
+                      class="btn-base-green"
                       id="btn-recalc"
                       data-disable-on-submit>再計算</button>
             </div>
       </form>
-    </div>  
   </div>    
 </div>
 @endsection

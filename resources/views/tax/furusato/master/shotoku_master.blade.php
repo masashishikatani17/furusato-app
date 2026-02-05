@@ -1,12 +1,11 @@
 @extends('layouts.min')
 @section('content')
-<div class="container-grey mt-2" style="width: 450px;">
+<div class="container-grey mt-2" style="width: 420px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop_m.jpg') }}" alt="…">
-    <hb class="mb-0 mt-2">所得税率マスター</hb>
+    <hb class="mt-2">所得税率マスター</hb>
   </div>
-  <div class="card-body">
-    <div class="wrapper">
+  <div class="card-body m-3">
       <table class="table-base table-bordered align-middle">
         <tbody>
           @php
@@ -24,11 +23,10 @@
           @endforeach
         </tbody>
       </table>
-      <hr>
-      <div class="text-end me-2 mb-2">
+      <hr class="mb-2">
+      <div class="text-end me-2">
         <a href="{{ route('furusato.master', ['data_id' => $dataId]) }}" class="btn-base-blue">戻 る</a>
       </div>
-    </div>
   </div>
 </div>
 @endsection

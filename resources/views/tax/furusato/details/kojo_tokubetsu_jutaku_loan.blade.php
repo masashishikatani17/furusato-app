@@ -16,10 +16,10 @@
   $ratePrev = number_format((float)($inputs['itax_credit_rate_percent_prev'] ?? 0.7), 1, '.', '');
   $rateCurr = number_format((float)($inputs['itax_credit_rate_percent_curr'] ?? 0.7), 1, '.', '');
 @endphp
-<div class="container-blue mt-2" style="width: 500px;">
+<div class="container-blue mt-2" style="width: 480px;">
   <div class="card-header d-flex align-items-start">
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-    <h0 class="mb-0 mt-2 mb-3">住宅借入金等特別控除の内訳</h0>
+    <h0 class="mt-2">住宅借入金等特別控除の内訳</h0>
   </div>
 
   @if (session('success'))
@@ -35,8 +35,7 @@
     </div>
   @endif
 
-  <div class="card-body">
-    <div class="wrapper">
+  <div class="card-body m-3">
       <form method="POST" action="{{ route('furusato.details.kojo_tokubetsu_jutaku_loan.save') }}">
         @csrf
         <input type="hidden" name="data_id" value="{{ $dataId }}">
@@ -46,7 +45,7 @@
         <input type="hidden" id="stay-on-details" name="stay_on_details" value="0">
   
         <hb class="mb-2 ms-3">■ 所得税の控除限度額</hb>
-        <div class="table-responsive mb-4">
+        <div class="table-responsive mb-3">
           <table class="table-input align-middle text-start">
             <tr>
               <th class="th-ccc" style="width:130px;height:30px;">項　目　名</th>
@@ -123,8 +122,8 @@
         {{-- （参考）課税総所得金額等：画面入力させない。hidden で返すだけ（サーバで毎回再計算） --}}
         <input type="hidden" id="taxable-prev" name="rtax_taxable_total_prev" value="{{ (int)($inputs['rtax_taxable_total_prev'] ?? 0) }}">
         <input type="hidden" id="taxable-curr" name="rtax_taxable_total_curr" value="{{ (int)($inputs['rtax_taxable_total_curr'] ?? 0) }}">
-        <hr>
-        <div class="text-end me-2 mb-2">
+        <hr class="mb-2">
+        <div class="text-end gap-2">
           {{-- 戻る：input に遷移（第一表 #tax_jutaku） --}}
           <button type="submit"
                   class="btn-base-blue"
@@ -133,13 +132,12 @@
                   onclick="document.getElementById('stay-on-details').value='0'">戻 る</button>
           {{-- 再計算：この内訳に留まる --}}
           <button type="submit"
-                  class="btn-base-green ms-2"
+                  class="btn-base-green"
                   name="redirect_to"
                   value="kojo_tokubetsu_jutaku_loan"
                   onclick="document.getElementById('stay-on-details').value='1'">再計算</button>
         </div>
       </form>
-    </div>
   </div>
 </div>
 @endsection

@@ -10,13 +10,12 @@
   $today = now()->format('Y-m-d');
 @endphp
 
-<div class="container" style="max-width:720px;">
-  <div class="d-flex justify-content-between align-items-center py-3">
-    <hb class="mb-0">▶ データ編集</hb>
-    <a href="{{ route('data.index', ['guest_id' => $guest?->id]) }}" class="btn btn-base-blue">戻る</a>
+<div class="container" style="max-width:600px;">
+  <div class="d-flex justify-content-between align-items-center m-3">
+    <hb>▶ データ編集</hb>
+    
   </div>
-
-  <div class="mb-3 p-3 border rounded bg-white">
+  <div class="align-middle mb-3 p-3 border rounded bg-pale" style="width:550px;">
     <div><strong>お客様名：</strong>{{ $guest?->name }}</div>
     <div><strong>現在の年度：</strong>{{ (int)($data->kihu_year ?? 0) }}年</div>
   </div>
@@ -39,71 +38,74 @@
   <form method="POST" action="{{ route('data.update', ['data' => $data->id]) }}" id="data-edit-form">
     @csrf
     @method('PUT')
-
-    <input type="hidden" name="confirm_overwrite" id="confirm_overwrite" value="0">
-    <input type="hidden" name="source_data_id" value="{{ $data->id }}">
-
-    <table class="table-base table-bordered align-middle w-100 bg-white">
-      <tbody>
-        <tr>
-          <th class="text-start ps-2" style="width:180px;">データ作成日</th>
-          <td class="text-start ps-1">
-            <input type="date" class="form-control" value="{{ old('data_created_on', (string)($data->data_created_on ?? $today)) }}" readonly>
-          </td>
-        </tr>
-        <tr>
-          <th class="text-start ps-2">提案書日（必須）</th>
-          <td class="text-start ps-1">
-            <input type="date"
-                   name="proposal_date"
-                   class="form-control"
-                   required
-                   value="{{ old('proposal_date', (string)($data->proposal_date ?? $today)) }}">
-          </td>
-        </tr>
-
-        @if (config('feature.data_privacy'))
-        <tr>
-          <th class="text-start ps-2">共有設定</th>
-          <td class="text-start ps-1">
-            @php $vis = old('visibility', (string)($data->visibility ?? 'shared')); @endphp
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared" @checked($vis==='shared')>
-              <label class="form-check-label" for="vis_shared">共有する（同部署に共有）</label>
-            </div>
-            <div class="form-check form-check-inline">
-              <input class="form-check-input" type="radio" name="visibility" id="vis_private" value="private" @checked($vis==='private')>
-              <label class="form-check-label" for="vis_private">共有しない（自分だけ）</label>
-            </div>
-          </td>
-        </tr>
-        @endif
-
-        <tr>
-          <th class="text-start ps-2">年度（2025〜2035）</th>
-          <td class="text-start ps-1">
-            @php $yy = (int)old('kihu_year', (int)($data->kihu_year ?? 0)); @endphp
-            <select class="form-select" name="kihu_year" required>
-              @foreach($years as $y)
-                <option value="{{ $y }}" @selected((int)$yy === (int)$y)>{{ $y }}年</option>
-              @endforeach
-            </select>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="d-flex justify-content-end gap-2 mt-3">
-      <button type="submit" class="btn btn-base-blue">保存</button>
+    <div class="m-3">
+        <input type="hidden" name="confirm_overwrite" id="confirm_overwrite" value="0">
+        <input type="hidden" name="source_data_id" value="{{ $data->id }}">
+    
+        <table class="table-input align-middle" style="width:550px; table-layout: fixed;">
+          <tbody>
+            <tr>
+              <th class="text-start ps-2" style="width:150px;">データ作成日</th>
+              <td class="text-start" style="width:400px;">
+                <input type="date" class="form-control text-start" style="width:150px;" value="{{ old('data_created_on', (string)($data->data_created_on ?? $today)) }}" readonly>
+              </td>
+            </tr>
+            <tr>
+              <th class="text-start ps-2">提案書日（必須）</th>
+              <td class="text-start">
+                <input type="date"
+                       name="proposal_date"
+                       class="form-control text-start"
+                       required
+                       value="{{ old('proposal_date', (string)($data->proposal_date ?? $today)) }}">
+              </td>
+            </tr>
+    
+            @if (config('feature.data_privacy'))
+            <tr>
+              <th class="text-start ps-2">共有設定</th>
+              <td class="bg-cream" style="height:35px;">
+                @php $vis = old('visibility', (string)($data->visibility ?? 'shared')); @endphp
+                <div class="form-check form-check-inline mt-1 mb-0">
+                  <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared" @checked($vis==='shared')>
+                  <label class="form-check-label" for="vis_shared">共有する（同部署に共有）</label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input class="form-check-input" type="radio" name="visibility" id="vis_private" value="private" @checked($vis==='private')>
+                  <label class="form-check-label" for="vis_private">共有しない（自分だけ）</label>
+                </div>
+              </td>
+            </tr>
+            @endif
+    
+            <tr>
+              <th class="text-start ps-2" style="height:35px;">年度（2025〜2035）</th>
+              <td class="text-start ps-1">
+                @php $yy = (int)old('kihu_year', (int)($data->kihu_year ?? 0)); @endphp
+                <select class="form-select text-start" style="width:150px;" name="kihu_year" required>
+                  @foreach($years as $y)
+                    <option value="{{ $y }}" @selected((int)$yy === (int)$y)>{{ $y }}年</option>
+                  @endforeach
+                </select>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+    <hr class="mb-2">
+        <div class="d-flex justify-content-end gap-2">
+          <button type="button" class="btn-base-red" data-bs-toggle="modal" data-bs-target="#deleteModal">
+        このデータを削除
+      </button>
+          <a href="{{ route('data.index', ['guest_id' => $guest?->id]) }}" class="btn btn-base-blue">戻 る</a>
+          <button type="submit" class="btn btn-base-blue">保 存</button>
+        </div>
     </div>
   </form>
 
   @if($canDelete)
-    <hr>
+    
     <div class="d-flex justify-content-end">
-      <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
-        このデータを削除
-      </button>
+      
     </div>
   @endif
 

@@ -47,11 +47,10 @@
     $isActive = $hasIsActive ? (bool) ($targetUser->is_active ?? false) : true;
 @endphp
 
-<div class="container px-4 py-4" style="width:800px; background-color:#E8EFF0;">
-    <div class="mb-4">
-        <hb class="mt-3 ms-2 mb-3">ユーザー編集</hb>
-        <br>
-         <hs class="ms-3 me-3">ユーザーの基本情報・役割・部署を編集します。
+<div class="container px-4 py-4" style="width:600px; background-color:#E8EFF0;">
+    <div class="d-flex align-items-start gap-2 ms-2 mb-3">
+        <hb>ユーザー編集</hb>
+        <hs>ユーザーの基本情報・役割・部署を編集します。
          </hs>
     </div>
 
@@ -60,25 +59,24 @@
             <div class="card-body">
                 <hb>○ユーザー情報</hb>
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <hb class="ms-3 mt-2">・氏名</hb>
+                    <div class="col-md-5">
+                        <hb class="ms-2 mt-2">・氏名</hb>
                         <div class="fw-semibold mt-1 ms-5">{{ $targetUser->name }}</div>
                     </div>
                     <div class="col-md-6">
                         <hb>・メールアドレス</hb>
                         <div class="fw-semibold mt-1 ms-4">{{ $targetUser->email }}</div>
                     </div>
-                    <div class="col-md-6">
-                        <hb class="ms-3 mt-2">・役割</hb>
+                    <div class="col-md-7">
+                        <hb class="ms-2 mt-2">・役割</hb>
                         <div class="fw-semibold text-uppercase mt-1 ms-5">{{ $isOwnerUser ? 'owner' : ($targetUser->display_role ?? $targetUser->role ?? 'member') }}</div>
                     </div>
                     <div class="col-md-6">
                         <hb>・ステータス</hb>
-                        <br>
                         @if ($hasIsActive)
                             <span class="badge bg-{{ $isActive ? 'primary' : 'secondary' }}">{{ $isActive ? '有効' : '停止中' }}</span>
                         @else
-                            <span class="badge bg-primary mt-1 ms-5">有効</span>
+                            <span class="badge bg-primary mt-1 ms-10">有効</span>
                         @endif
                     </div>
                 </div>
@@ -99,8 +97,8 @@
                     @csrf
                     @method('PUT')
 
-                    <div class="mt-3 mb-3">
-                        <label for="edit-name" class="form-label ms-3 me-5">・氏名</label>
+                    <div class="mt-3 mb-2">
+                        <label for="edit-name" class="form-label ms-3 me-5"><hb>・氏名</hb></label>
                         <input type="text" id="edit-name" name="name" value="{{ old('name', $targetUser->name) }}" class="form-control kana9" {{ $canUpdate ? '' : 'disabled' }}>
                         @error('name')
                             <div class="text-danger small mt-1">{{ $message }}</div>
@@ -108,7 +106,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="edit-email" class="form-label ms-3">・メールアドレス<span class="text-danger">*</span></label>
+                        <label for="edit-email" class="form-label ms-3"><hb>・メールアドレス</hb><span class="text-danger">*</span></label>
                         <input type="email" id="edit-email" name="email" style="width: 500px;" value="{{ old('email', $targetUser->email) }}" class="form-control text-start" required {{ $canUpdate ? '' : 'disabled' }}>
                         @error('email')
                             <div class="text-danger small mt-1">{{ $message }}</div>
@@ -117,7 +115,7 @@
                     {{-- 役割 --}}
                     <div class="d-flex align-items-center mb-1 ms-3 me-3">
                       <label for="edit-role" class="form-label me-2 mb-0">
-                        ・役割
+                        <hb>・役割</hb>
                       </label>
                       <select id="edit-role"
                               name="role"
@@ -133,7 +131,6 @@
                     <p-small class="ms-5">
                       GroupAdmin が設定できる役割は Member / GroupAdmin のみです。
                     </p-small>
-                    <br>
                     <p-small class="ms-5">
                     Registrar を付与する場合は部署を空欄にしてください。
                     </p-small>
@@ -141,7 +138,7 @@
                     {{-- 部署 --}}
                     <div class="d-flex align-items-center mt-3 mb-1 ms-3 me-3">
                       <label for="edit-group" class="form-label me-2 mb-0">
-                        ・部署
+                        <hb>・部署</hb>
                       </label>
                       <select id="edit-group"
                               name="group_id"
@@ -171,8 +168,8 @@
 
                 @if ($hasIsActive && $canUpdate && ! $isOwnerUser)
                     <div class="mt-4 pt-3 border-top">
-                        <hb>アカウント状態</hb>
-                        <p class="text-muted small">アカウントの停止・有効化は Owner / Registrar のみ操作できます。</p>
+                        <hb>○アカウント状態</hb>
+                        <p class="text-muted small ms-5">アカウントの停止・有効化は Owner / Registrar のみ操作できます。</p>
                         <div class="d-flex gap-2">
                             @if ($isActive && $deactivateRoute)
                                 <form method="POST" action="{{ $deactivateRoute }}" onsubmit="return confirm('このユーザーを停止しますか？');">

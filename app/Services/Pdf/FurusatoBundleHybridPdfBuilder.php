@@ -19,6 +19,7 @@ final class FurusatoBundleHybridPdfBuilder
     public function __construct(
         private readonly ReportRegistry $reports,
         private readonly FastBundlePdfBuilder $fastBuilder,
+        private readonly PdfPageLabelStamper $pageStamper,
     ) {}
 
     /**
@@ -44,6 +45,13 @@ final class FurusatoBundleHybridPdfBuilder
             $restPdf = $this->fastBuilder->buildBundlePdfForKeys($data, $restKeys, $context, $options);
         }
 
+        // --- ページ番号スタンプ（表紙は除外） ---
+        if ($restPdf !== '') {
+            $labels = $this->buildPageLabelsForKeys($restKeys, $context);
+            $fontPath = public_path('fonts/ipaexg.ttf');
+            $restPdf = $this->pageStamper->stampPerPage($restPdf, $labels, $fontPath);
+        }
+
         // --- 結合 ---
         $fpdi = new Fpdi();
         $fpdi->SetAutoPageBreak(false);
@@ -57,6 +65,56 @@ final class FurusatoBundleHybridPdfBuilder
         }
 
         return $fpdi->Output('S');
+    }
+
+    /**
+     * @param array<int,string> $keys (表紙除外後)
+     * @return array<int,string> 1-indexed labels
+     */
+    private function buildPageLabelsForKeys(array $keys, array $context): array
+    {
+        $variant = strtolower((string)($context['pdf_variant'] ?? 'max')); // max|current|both
+        if (!in_array($variant, ['max','current','both'], true)) {
+            $variant = 'max';
+        }
+
+        $seen = [];
+        $labels = [];
+        $i = 1;
+        foreach ($keys as $key) {
+            $k = strtolower((string)$key);
+            $base = $this->basePageNoForKey($k);
+            if ($base === null) {
+                $i++;
+                continue;
+            }
+            // both のときだけ 2〜4 は枝番
+            if ($variant === 'both' && in_array($base, [2,3,4], true)) {
+                $seen[$base] = ($seen[$base] ?? 0) + 1;
+                if ($seen[$base] === 1) {
+                    $labels[$i] = "{$base}ページ";
+                } else {
+                    $suffix = $seen[$base] - 1; // 2回目→1
+                    $labels[$i] = "{$base}-{$suffix}ページ";
+                }
+            } else {
+                $labels[$i] = "{$base}ページ";
+            }
+            $i++;
+        }
+        return $labels;
+    }
+
+    private function basePageNoForKey(string $k): ?int
+    {
+        if ($k === 'kifukingendogaku') return 1;
+        if ($k === 'syotokukinkojyosoku' || $k === 'syotokukinkojyosoku_curr') return 2;
+        if ($k === 'kazeigakuzeigakuyosoku' || $k === 'kazeigakuzeigakuyosoku_curr') return 3;
+        if (str_starts_with($k, 'juminkeigengaku')) return 4; // onestop含む
+        if ($k === 'sonntokusimulation') return 5;
+        if ($k === 'jintekikojosatyosei') return 6;
+        if ($k === 'tokureikojowariai') return 7;
+        return null;
     }
 
     private function buildCoverPdf(Data $data): string

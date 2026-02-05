@@ -16,8 +16,7 @@
     <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
     <h0 class="mb-0 mt-2">内訳－不動産</h0>
   </div>
-  <div class="card-body">　
-  　<div class="wrapper">
+  <div class="card-body m-3">
       <form method="POST" action="{{ route('furusato.details.fudosan.save') }}">
           @csrf
           <input type="hidden" name="data_id" value="{{ $dataId }}">
@@ -71,7 +70,7 @@
                 ['labelInput' => 'fudosan_keihi_label_06', 'labelIndex' => 6, 'name' => 'fudosan_keihi_6'],
                 ['labelInput' => 'fudosan_keihi_label_07', 'labelIndex' => 7, 'name' => 'fudosan_keihi_7'],
                 ['label' => 'その他', 'name' => 'fudosan_keihi_sonota'],
-                ['label' => '合計', 'name' => 'fudosan_keihi_gokei', 'readonly' => true],
+                ['label' => '合　計', 'name' => 'fudosan_keihi_gokei', 'readonly' => true],
               ])
               @php($expenseRowspan = count($expenseFields))
               @php($field = array_shift($expenseFields))
@@ -109,9 +108,10 @@
                 </td>
               </tr>
               @foreach ($expenseFields as $field)
-                <tr>
-                  <th class="text-center u-nowrap th-ddd">
-                    @php($labelName = $field['labelInput'] ?? null)
+                @php($isTotalRow = (($field['label'] ?? '') === '合計'))
+                <tr class="{{ $isTotalRow ? 'is-total-row' : '' }}">
+                  <th class="{{ $isTotalRow ? 'text-center' : 'text-start' }} u-nowrap th-ddd ps-1">
+              @php($labelName = $field['labelInput'] ?? null)
                     @if($labelName)
                       @php($placeholder = $field['placeholder'] ?? '')
                       <input type="text"
@@ -173,17 +173,15 @@
             </tbody>
           </table>
         </div>
-        <hr>
-          <div class="text-end me-2 mb-2">
+        <hr class="mb-2">
+          <div class="text-end gap-2">
             <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
             <button type="submit"
-                    class="btn-base-green ms-2"
+                    class="btn-base-green"
                     id="btn-recalc"
                     data-disable-on-submit>再計算</button>
           </div>
-        </div>
       </form>
-    </div>
   </div>
 </div>
 

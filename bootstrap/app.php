@@ -33,6 +33,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\StoreIntendedOnUnauthenticated::class,
             \App\Http\Middleware\AddCspIfEnabled::class,
+            // artisan serve / Cloud9 vfs 経由でも転送量を減らす（HTML/JSON等をgzip）
+            \App\Http\Middleware\GzipResponse::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule) {

@@ -7,9 +7,10 @@
   $isClient = strtolower((string)($me->role ?? '')) === 'client';
   $clientGuest = $clientGuest ?? null;
 @endphp
-<div class="container">
-  <div class="d-flex justify-content-between align-items-center py-3">
-    <hb class="ms-3">▶ 既存データのコピー（年度指定）</hb>
+
+<div class="container" style="width: 850px;">
+  <div class="d-flex justify-content-between align-items-center m-3">
+    <hb>▶ 既存データのコピー（年度指定）</hb>
   </div>
 
   {{-- 通常の入力エラー（重複年度はモーダルで扱う） --}}
@@ -28,221 +29,250 @@
   @endif
 
   {{-- コピー元の参照（読み取り専用） --}}
-  <div class="wrapper">
-      <h1 class="ms-2 mt-1 mb-3">○コピー元</h1>
-      <table class="table-base table-bordered align-middle w-auto mx-auto">
-        <tbody>
-          <tr>
-            <th class="text-center" style="width:100px;">お客様名</th>
-            <td class="px-2 text-start ps-1" style="min-width:320px;">{{ $source->guest?->name }}</td>
-          </tr>
-          <tr>
-            <th class="text-center">元の年度</th>
-            <td class="px-2 text-start ps-1">{{ $source->kihu_year ? $source->kihu_year.'年' : '—' }}</td>
-          </tr>
-        </tbody>
-      </table>
-  <form action="{{ route('data.copy') }}" method="POST" id="data-copy-form">
-    @csrf
-    <input type="hidden" name="selected_data_id" value="{{ $source->id }}">
-    {{-- JSが参照するので、clientでも #target_guest_id は常に置く（初期はコピー元guest） --}}
-    <input type="hidden" name="target_guest_id" id="target_guest_id"
-           value="{{ old('target_guest_id', (int)$source->guest_id) }}">
-    <br>
-    @php
-      $today = now()->format('Y-m-d');
-      $proposalDefault = old('proposal_date', $today);
-    @endphp
-    <h1 class="ms-2 mb-2">○コピー先の指定</h1>
-      <div class="card-body">
-        {{-- 1) コピー先お客様の指定 --}}
-        <div class="mb-3">
-          <label class="form-label d-block">
-            <hb class="ms-4">・コピー先お客様</hb>
-            </label>
-            <table align="center" class="table-beige gap-3" style="width: 420px; height:40px;">
-              <tr>
-                <td>
-                  <div class="form-check form-check-inline ms-2 mt-1">
-                    <input class="form-check-input" type="radio" name="copy_mode" id="mode_same" value="same" checked>
-                    <label class="form-check-label" for="mode_same">同じお客様</label>
-                  </div>
-                  @if (! $isClient)
-                    <div class="form-check form-check-inline">
-                      <input class="form-check-input" type="radio" name="copy_mode" id="mode_existing" value="existing">
-                      <label class="form-check-label" for="mode_existing">登録済から選択</label>
-                    </div>
-                    <div class="form-check form-check-inline">
-                      <input class="form-check-input" type="radio" name="copy_mode" id="mode_new" value="new">
-                      <label class="form-check-label" for="mode_new">新規のお客様</label>
-                    </div>
-                  @endif
-                </td> 
-              </tr>   
-            </table>
-        </div>
+  <div class="m-3">
+    <h1 class="ms-2 mt-1 mb-3">○コピー元</h1>
+    <table class="table-base table-bordered align-middle w-auto mx-auto">
+      <tbody>
+        <tr>
+          <th class="text-center" style="width:80px;">お客様名</th>
+          <td class="px-2 text-start ps-1" style="min-width:300px;">{{ $source->guest?->name }}</td>
+        </tr>
+        <tr>
+          <th class="text-center">元の年度</th>
+          <td class="px-2 text-start ps-1">{{ $source->kihu_year ? $source->kihu_year.'年' : '—' }}</td>
+        </tr>
+      </tbody>
+    </table>
+    <hr>
 
-        {{-- 2) お客様名（existingは読み取り・sameは元の名前、newのみ入力必須） --}}
-        <div class="mt-4">
-          <label for="target_guest_name" class="form-label">
-            <hb class="ms-4 me-5">・お客様名</hb></label>
-              <input type="text" name="target_guest_name" id="target_guest_name" class="form-control kana10"
-                     maxlength="25" placeholder="（新規のお客様の場合は入力）"
+    <form action="{{ route('data.copy') }}" method="POST" id="data-copy-form">
+      @csrf
+      <input type="hidden" name="selected_data_id" value="{{ $source->id }}">
+      {{-- JSが参照するので、clientでも #target_guest_id は常に置く（初期はコピー元guest） --}}
+      <input type="hidden" name="target_guest_id" id="target_guest_id"
+             value="{{ old('target_guest_id', (int)$source->guest_id) }}">
+
+      @php
+        $today = now()->format('Y-m-d');
+        $proposalDefault = old('proposal_date', $today);
+      @endphp
+
+      <h1 class="ms-2 mb-2">○コピー先の指定</h1>
+
+      {{-- ▼ ここからテーブル化（見た目のみ変更 / name・id・JS参照は維持） --}}
+      <table class="table-input align-middle mx-auto" style="width:100%; max-width:760px;">
+        <tbody>
+
+          {{-- 1) コピー先お客様の指定 --}}
+          <tr>
+            <th class="text-start ps-1" style="min-width:180px; white-space:nowrap;">
+              コピー先お客様
+            </th>
+            <td class="text-start bg-cream">
+                    <div class="form-check form-check-inline ms-1 mt-1">
+                      <input class="form-check-input" type="radio" name="copy_mode" id="mode_same" value="same" checked>
+                      <label class="form-check-label" for="mode_same">同じお客様</label>
+                    </div>
+
+                    @if (! $isClient)
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="copy_mode" id="mode_existing" value="existing">
+                        <label class="form-check-label" for="mode_existing">登録済から選択</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                        <input class="form-check-input" type="radio" name="copy_mode" id="mode_new" value="new">
+                        <label class="form-check-label" for="mode_new">新規のお客様</label>
+                      </div>
+                    @endif
+            </td>
+          </tr>
+
+          {{-- 2) お客様名 --}}
+          <tr>
+            <th class="text-start ps-1" style="min-width:180px; white-space:nowrap;">
+              お客様名
+            </th>
+            <td class="text-start">
+              <input type="text"
+                     name="target_guest_name"
+                     id="target_guest_name"
+                     class="form-control kana10"
+                     style="height:32px; max-width: 420px;"
+                     maxlength="25"
+                     placeholder="新規のお客様名を入力"
                      value="{{ $isClient && $clientGuest ? $clientGuest->name : old('target_guest_name') }}"
                      {{ $isClient ? 'readonly' : '' }}>
-        </div>
+              {{-- ※ existing/same/new の表示状態は既存JSが制御（name/id維持） --}}
+            </td>
+          </tr>
 
-        <div class="mt-3">
-          <label for="copy_birth_date" class="form-label">
-            <hb class="ms-4 me-3">・生年月日（西暦）</hb>
-          </label>
-          <input type="date"
-                 name="birth_date"
-                 id="copy_birth_date"
-                 class="form-control"
-                 style="width:180px;"
-                 placeholder="YYYY-MM-DD"
-                 value="{{ $isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate) }}"
-                 {{ $isClient ? 'readonly' : '' }}>
-        </div>
-        {{-- 3) 年度（複数選択：今年+10年） --}}
-        <div class="mt-3">
-          <label class="form-label d-block">
-          <hb class="ms-4">・年度（複数可）</hb></label>
-          @php
-            // 一旦：2025〜2035 に固定
-            $minY = 2025; $maxY = 2035;
-            $now = (int)date('Y');
-            $default = min(max($now, $minY), $maxY);
-            $defaultY = (int)($source->kihu_year ?: $default);
-            if ($defaultY < $minY) $defaultY = $minY;
-            if ($defaultY > $maxY) $defaultY = $maxY;
-            $years = [];
-            for($y=$maxY; $y>=$minY; $y--){ $years[] = $y; }
-            $oldYearsRaw = collect(old('years', [$defaultY]))->map(fn($v)=>(int)$v)->unique()->values()->all();
-            $oldYears = array_values(array_filter($oldYearsRaw, fn($y)=>$y >= $minY && $y <= $maxY));
-            if (count($oldYears) === 0) { $oldYears = [$defaultY]; }
-          @endphp
-          <div class="d-flex flex-wrap gap-2 ms-5" id="year-checkboxes">
-            @foreach($years as $y)
-              <label class="form-check form-check-inline" style="min-width: 120px;">
-                <input class="form-check-input" type="checkbox" name="years[]" value="{{ $y }}"
-                       @checked(in_array($y, $oldYears, true))>
-                <span class="ms-1">{{ $y }}年</span>
-              </label>
-            @endforeach
-          </div>
-          <div class="ms-5 mb-2">
-            <button type="button" class="btn btn-sm btn-link px-0" id="btn-select-all">すべて選択</button>
-            <button type="button" class="btn btn-sm btn-link px-2" id="btn-clear-all">すべて解除</button>
-          </div>
-        </div>
+          {{-- 3) 生年月日（西暦） --}}
+          <tr>
+            <th class="text-start ps-1" style="min-width:180px; white-space:nowrap;">
+              生年月日（西暦）
+            </th>
+            <td class="text-start">
+              <input type="date"
+                     name="birth_date"
+                     id="copy_birth_date"
+                     class="form-control text-start"
+                     style="width:150px;"
+                     placeholder="YYYY-MM-DD"
+                     value="{{ $isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate) }}"
+                     {{ $isClient ? 'readonly' : '' }}>
+            </td>
+          </tr>
 
-        {{-- 4) 共有設定（feature.data_privacy=true のときのみ表示） --}}
-        @if (config('feature.data_privacy'))
-        <div>
-          <label class="form-label d-block">
-            <hb class="ms-4">・共有設定</hb>
-            </label>
-            <table align="center" class="table-beige gap-3" style="width: 420px; height:40px;">
-              <tr>
-                <td>
-                  <div class="form-check form-check-inline ms-2">
-                    <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared"
-                           {{ old('visibility', $source->visibility ?? 'shared') === 'shared' ? 'checked' : '' }}>
-                    <label class="form-check-label" for="vis_shared">共有する（同部署に共有）</label>
-                  </div>
-                  <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="visibility" id="vis_private" value="private"
-                           {{ old('visibility', $source->visibility ?? 'shared') === 'private' ? 'checked' : '' }}>
-                    <label class="form-check-label" for="vis_private">共有しない（自分だけ）</label>
-                  </div>
-                </td> 
-              </tr>   
-            </table>
-        </div>
-        @endif
+          {{-- 4) 年度（複数可） --}}
+          <tr>
+            <th class="text-start ps-1" style="min-width:180px; white-space:nowrap;">
+              年度（複数可）
+            </th>
+            <td class="text-start ps-1">
+              @php
+                // 一旦：2025〜2035 に固定
+                $minY = 2025; $maxY = 2035;
+                $now = (int)date('Y');
+                $default = min(max($now, $minY), $maxY);
+                $defaultY = (int)($source->kihu_year ?: $default);
+                if ($defaultY < $minY) $defaultY = $minY;
+                if ($defaultY > $maxY) $defaultY = $maxY;
+                $years = [];
+                for($y=$maxY; $y>=$minY; $y--){ $years[] = $y; }
+                $oldYearsRaw = collect(old('years', [$defaultY]))->map(fn($v)=>(int)$v)->unique()->values()->all();
+                $oldYears = array_values(array_filter($oldYearsRaw, fn($y)=>$y >= $minY && $y <= $maxY));
+                if (count($oldYears) === 0) { $oldYears = [$defaultY]; }
+              @endphp
 
-        {{-- データ作成日（編集不可） --}}
-        <div class="mt-3">
-          <label class="form-label">
-            <hb class="ms-4 me-3">・データ作成日</hb>
-          </label>
-          <input type="date" class="form-control" style="width:180px;" value="{{ $today }}" readonly>
-        </div>
+              {{-- いまの並び（詰めて4列相当）を維持 --}}
+              <div class="d-flex flex-wrap gap-0" id="year-checkboxes">
+                @foreach($years as $y)
+                  <label class="form-check form-check-inline me-0" style="min-width: 90px;">
+                    <input class="form-check-input" type="checkbox" name="years[]" value="{{ $y }}"
+                           @checked(in_array($y, $oldYears, true))>
+                    <span class="ms-1">{{ $y }}年</span>
+                  </label>
+                @endforeach
+              </div>
 
-        {{-- 提案書日（編集可）：コピーで作られる全データに適用 --}}
-        <div class="mt-3">
-          <label for="proposal_date" class="form-label">
-            <hb class="ms-4 me-3">・提案書日　</hb>
-          </label>
-          <input type="date"
-                 name="proposal_date"
-                 id="proposal_date"
-                 class="form-control"
-                 style="width:180px;"
-                 value="{{ $proposalDefault }}">
-        </div>
-    <hr>
-    <div class="d-flex justify-content-end gap-2 mb-3">
-      <button type="submit" class="btn btn-base-blue">コピー</button>
-      <a href="{{ route('data.index', ['guest_id' => $source->guest_id]) }}" class="btn btn-base-blue">キャンセル</a>
-    </div>
-  </form>
-</div>
+              <div class="mt-2">
+                <button type="button" class="btn-base-blue" id="btn-select-all">すべて選択</button>
+                <button type="button" class="btn btn-base-red" id="btn-clear-all">すべて解除</button>
+              </div>
+            </td>
+          </tr>
 
-{{-- 既存お客様選択モーダル --}}
-@if (! $isClient)
-<div class="modal fade" id="guestModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">お客様を選択</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          {{-- 5) 共有設定（feature.data_privacy=true のときのみ表示） --}}
+          @if (config('feature.data_privacy'))
+          <tr>
+            <th class="text-start ps-1" style="min-width:180px; white-space:nowrap;">
+              共有設定
+            </th>
+            <td class="text-start bg-cream">
+                    <div class="form-check form-check-inline ms-2">
+                      <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared"
+                             {{ old('visibility', $source->visibility ?? 'shared') === 'shared' ? 'checked' : '' }}>
+                      <label class="form-check-label" for="vis_shared">共有する（同部署に共有）</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="visibility" id="vis_private" value="private"
+                             {{ old('visibility', $source->visibility ?? 'shared') === 'private' ? 'checked' : '' }}>
+                      <label class="form-check-label" for="vis_private">共有しない（自分だけ）</label>
+                    </div>
+            </td>
+          </tr>
+          @endif
+
+          {{-- 6) データ作成日（編集不可） --}}
+          <tr>
+            <th class="text-start ps-1">
+              データ作成日
+            </th>
+            <td class="text-start">
+              <input type="date" class="form-control text-start" style="width:150px;" value="{{ $today }}" readonly>
+            </td>
+          </tr>
+
+          {{-- 7) 提案書日（編集可） --}}
+          <tr>
+            <th class="text-start ps-1">
+              提案書日
+            </th>
+            <td class="text-start">
+              <input type="date"
+                     name="proposal_date"
+                     id="proposal_date"
+                     class="form-control text-start"
+                     style="width:150px;"
+                     value="{{ $proposalDefault }}">
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+      {{-- ▲ テーブル化ここまで --}}
+
+      <hr class="mb-2">
+      <div class="d-flex justify-content-end gap-2">
+        <button type="submit" class="btn btn-base-blue">コピー</button>
+        <a href="{{ route('data.index', ['guest_id' => $source->guest_id]) }}" class="btn btn-base-blue">キャンセル</a>
       </div>
-      <div class="modal-body p-0">
-        <table class="table table-hover mb-0">
-          <tbody id="guestListBody">
-            @forelse ($guests as $g)
-              <tr class="selectable-guest"
-                  data-id="{{ $g->id }}"
-                  data-name="{{ $g->name }}"
-                  data-birth-date="{{ optional($g->birth_date)->format('Y-m-d') }}"
-                  style="cursor:pointer;">
-                <td class="py-2 px-2">{{ $g->name }}</td>
-              </tr>
-            @empty
-              <tr><td class="text-muted py-3 px-2">（登録済のお客様がありません）</td></tr>
-            @endforelse
-          </tbody>
-        </table>
+    </form>
+  </div>
+
+  {{-- 既存お客様選択モーダル --}}
+  @if (! $isClient)
+  <div class="modal fade" id="guestModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable" style="max-width:300px;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h14 class="modal-title">お客様を選択</h14>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-3">
+          <table class="table table-hover mb-0">
+            <tbody id="guestListBody">
+              @forelse ($guests as $g)
+                <tr class="selectable-guest"
+                    data-id="{{ $g->id }}"
+                    data-name="{{ $g->name }}"
+                    data-birth-date="{{ optional($g->birth_date)->format('Y-m-d') }}"
+                    style="cursor:pointer;">
+                  <td class="py-1 px-1">{{ $g->name }}</td>
+                </tr>
+              @empty
+                <tr><td class="text-muted py-3 px-2">（登録済のお客様がありません）</td></tr>
+              @endforelse
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-</div>
-@endif
+  @endif
 
-{{-- 年度重複エラー（全件重複で1件も作成されなかった場合のみモーダル表示） --}}
-<div class="modal fade" id="duplicateYearsModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">登録できません</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <p>同じお客様について <strong>同一の年度</strong> のデータは登録できません。</p>
-        @if (session('modal_error.duplicate_years'))
-          @php $dups = (array)session('modal_error.duplicate_years'); @endphp
-          <ul class="mb-0">
-            @foreach($dups as $yy)
-              <li>{{ $yy }}年</li>
-            @endforeach
-          </ul>
-        @endif
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+  {{-- 年度重複エラー（全件重複で1件も作成されなかった場合のみモーダル表示） --}}
+  <div class="modal fade" id="duplicateYearsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">登録できません</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>同じお客様について <strong>同一の年度</strong> のデータは登録できません。</p>
+          @if (session('modal_error.duplicate_years'))
+            @php $dups = (array)session('modal_error.duplicate_years'); @endphp
+            <ul class="mb-0">
+              @foreach($dups as $yy)
+                <li>{{ $yy }}年</li>
+              @endforeach
+            </ul>
+          @endif
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+        </div>
       </div>
     </div>
   </div>

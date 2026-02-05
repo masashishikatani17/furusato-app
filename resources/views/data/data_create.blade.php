@@ -2,9 +2,9 @@
 @extends('layouts.min')
 
 @section('content')
-<div class="container px-2" style="width: 600px;">
-  <div class="d-flex justify-content-between align-items-center py-3">
-    <hb class="ms-3 mb-0">▶ 新規データ作成</hb>
+<div class="container" style="width: 580px;">
+  <div class="d-flex justify-content-between align-items-center p-3">
+    <hb class="ms-2">▶ 新規データ作成</hb>
   </div>
 
   {{-- ▼ バリデーションエラー（通常の入力エラーのみ。重複年度はここに出さない） --}}
@@ -40,7 +40,7 @@
       @endphp
       {{-- 1) お客様の指定 --}}
       <tr>
-        <th class="text-start ps-2" style="width:100px;">お客様の指定</th>
+        <th class="text-start ps-2" style="width:120px;">お客様の指定</th>
         <td class="th-cream text-start ps-1 pb-0">
           @if ($isClient)
             <div class="pt-1 ps-1"></div>
@@ -82,7 +82,8 @@
           <input type="date"
                  name="birth_date"
                  id="birth_date"
-                 class="form-control"
+                 class="form-control text-start"
+                 style="width:150px;"
                  placeholder="YYYY-MM-DD"
                  value="{{ $isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate) }}"
                  {{ $isClient ? 'readonly' : '' }}>
@@ -111,7 +112,7 @@
       {{-- 4) 年度（寄付年） --}}
       <tr>
         <th class="text-start ps-2">年 度</th>
-        <td>
+        <td class="text-start">
           @php
             // 一旦：2025〜2035 に固定
             $minY = 2025; $maxY = 2035;
@@ -121,7 +122,7 @@
             if ($oldYear < $minY) $oldYear = $minY;
             if ($oldYear > $maxY) $oldYear = $maxY;
           @endphp
-          <select name="kihu_year" id="kihu_year" class="form-select" style="max-width:200px;">
+          <select name="kihu_year" id="kihu_year" class="form-select" style="max-width:80px;">
             @for ($y = $maxY; $y >= $minY; $y--)
               <option value="{{ $y }}" @selected((int)$oldYear === (int)$y)>{{ $y }}年</option>
             @endfor
@@ -132,7 +133,7 @@
       <tr>
         <th class="text-start ps-2">データ作成日</th>
         <td class="text-start ps-1">
-          <input type="date" class="form-control" value="{{ $today }}" readonly>
+          <input type="date" class="form-control text-start" style="width:150px;" value="{{ $today }}" readonly>
         </td>
       </tr>
 
@@ -143,14 +144,15 @@
           <input type="date"
                  name="proposal_date"
                  id="proposal_date"
-                 class="form-control"
+                 class="form-control text-start"
+                 style="width:150px;"
                  value="{{ $proposalDefault }}">
         </td>
       </tr>
       </tbody>
     </table>
-    <hr>
-    <div class="d-flex justify-content-end gap-2 mb-3">
+    <hr class="mb-2 mx-3">
+    <div class="d-flex justify-content-end gap-2 me-3 mb-3">
       <button type="submit" class="btn-base-blue">作 成</button>
       <a href="{{ route('data.index') }}" class="btn-base-blue">キャンセル</a>
     </div>

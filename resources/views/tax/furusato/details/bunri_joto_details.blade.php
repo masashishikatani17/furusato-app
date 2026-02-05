@@ -49,11 +49,10 @@
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
-      <h0 class="mb-0 mt-2 ms-2">内訳－分離課税 譲渡所得（短期/長期）</h0>
+      <h0 class="mt-2 ms-2">内訳－分離課税 譲渡所得（短期/長期）</h0>
     </div>
   </div>
-  <div class="card-body">
-  　<div class="wrapper">
+  <div class="card-body m-3">
       <form method="POST" action="{{ route('furusato.details.bunri_joto.save') }}">
         @csrf
         <input type="hidden" name="data_id" value="{{ $dataId }}">
@@ -101,7 +100,7 @@
                   @endphp
                   <tr>
                     @if ($index === 0)
-                      <th scope="rowgroup" rowspan="{{ $rowspan }}" class="text-center align-middle ps-1 pe-1" style="width:38px;">
+                      <th scope="rowgroup" rowspan="{{ $rowspan }}" class="text-center align-middle" style="width:38px;">
                         {{ $group['title'] }}
                       </th>
                     @endif
@@ -206,16 +205,15 @@
             </table>
           </div>
         @endforeach
-        <hr>
-        <div class="text-end me-2 mb-3">
+        <hr class="mb-2">
+        <div class="text-end gap-2">
           <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
           <button type="submit"
-                  class="btn-base-green ms-2"
+                  class="btn-base-green"
                   id="btn-recalc"
                   data-disable-on-submit>再計算</button>
         </div>
       </form>
-    </div>
   </div>
 </div>
 

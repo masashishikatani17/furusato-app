@@ -45,17 +45,18 @@
         <table class="table-input align-middle" style="width:550px; table-layout: fixed;">
           <tbody>
             <tr>
-              <th class="text-start ps-2" style="width:150px;">データ作成日</th>
+              <th class="text-start ps-2" style="height:33px; width:150px;">データ作成日</th>
               <td class="text-start" style="width:400px;">
-                <input type="date" class="form-control text-start" style="width:150px;" value="{{ old('data_created_on', (string)($data->data_created_on ?? $today)) }}" readonly>
+                <input type="date" class="form-control text-start" style="height:32px; width:150px;" value="{{ old('data_created_on', (string)($data->data_created_on ?? $today)) }}" readonly>
               </td>
             </tr>
             <tr>
-              <th class="text-start ps-2">提案書日（必須）</th>
+              <th class="text-start ps-2" style="height:33px;">提案書日（必須）</th>
               <td class="text-start">
                 <input type="date"
                        name="proposal_date"
                        class="form-control text-start"
+                        style="height:32px;"
                        required
                        value="{{ old('proposal_date', (string)($data->proposal_date ?? $today)) }}">
               </td>
@@ -63,14 +64,14 @@
     
             @if (config('feature.data_privacy'))
             <tr>
-              <th class="text-start ps-2">共有設定</th>
+              <th class="text-start ps-2" style="height:33px;">共有設定</th>
               <td class="bg-cream" style="height:35px;">
                 @php $vis = old('visibility', (string)($data->visibility ?? 'shared')); @endphp
-                <div class="form-check form-check-inline mt-1 mb-0">
+                <div class="form-check form-check-inline mt-2 mb-0">
                   <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared" @checked($vis==='shared')>
                   <label class="form-check-label" for="vis_shared">共有する（同部署に共有）</label>
                 </div>
-                <div class="form-check form-check-inline">
+                <div class="form-check form-check-inline mt-2 mb-0">
                   <input class="form-check-input" type="radio" name="visibility" id="vis_private" value="private" @checked($vis==='private')>
                   <label class="form-check-label" for="vis_private">共有しない（自分だけ）</label>
                 </div>
@@ -79,10 +80,10 @@
             @endif
     
             <tr>
-              <th class="text-start ps-2" style="height:35px;">年度（2025〜2035）</th>
-              <td class="text-start ps-1">
+              <th class="text-start ps-2" style="height:33px;">年度（2025〜2035）</th>
+              <td class="text-start">
                 @php $yy = (int)old('kihu_year', (int)($data->kihu_year ?? 0)); @endphp
-                <select class="form-select text-start" style="width:150px;" name="kihu_year" required>
+                <select class="form-select text-start" style="height:32px;width:150px;" name="kihu_year" required>
                   @foreach($years as $y)
                     <option value="{{ $y }}" @selected((int)$yy === (int)$y)>{{ $y }}年</option>
                   @endforeach

@@ -172,7 +172,7 @@
     @endphp
       <div class="card-header d-flex align-items-center justify-content-between gap-2">
         <div class="d-flex align-items-center gap-2">
-          <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+          @include('components.kado_lefttop_img')
           <h0 class="mt-2 mb-0">インプット表</h0>
         </div>
         <div class="d-flex align-items-center justify-content-end gap-2 flex-wrap ms-auto mt-2 me-5">
@@ -1116,9 +1116,9 @@
 
           @php ob_start(); @endphp
         <div>
-          <hb class="card-title ms-5 mb-3">確定申告書</hb>
+          <hb class="card-title ms-5 mb-1">確定申告書</hb>
           <div class="table-responsive furusato-table-scroll">
-            <table class="table table-base table-compact-05 align-middle">
+            <table class="table table-base table-compact-05 align-middle mb-3">
               <thead>
                 <tr>
                   <th rowspan="2" colspan="5" class="th-ccc">項  目</th>

@@ -25,7 +25,7 @@
 <div class="container-blue mt-2" style="width: 980px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
-      <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+      @include('components.kado_lefttop_img')
       <h0 class="mt-2 ms-2">内訳－株式等の譲渡所得等</h0>
     </div>
   </div>

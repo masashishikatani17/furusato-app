@@ -8,7 +8,7 @@
   $clientGuest = $clientGuest ?? null;
 @endphp
 
-<div class="container" style="width: 850px;">
+<div class="container" style="width: 760px;">
   <div class="d-flex justify-content-between align-items-center m-3">
     <hb>▶ 既存データのコピー（年度指定）</hb>
   </div>
@@ -57,19 +57,19 @@
         $proposalDefault = old('proposal_date', $today);
       @endphp
 
-      <h1 class="ms-2 mb-2">○コピー先の指定</h1>
+      <h1 class="ms-2 mb-3">○コピー先の指定</h1>
 
       {{-- ▼ ここからテーブル化（見た目のみ変更 / name・id・JS参照は維持） --}}
-      <table class="table-input align-middle mx-auto" style="width:100%; max-width:760px;">
+      <table class="table-input align-middle mx-auto" style="max-width:670px;">
         <tbody>
 
           {{-- 1) コピー先お客様の指定 --}}
           <tr>
-            <th class="text-start ps-1" style="min-width:180px; white-space:nowrap;">
+            <th class="text-start ps-1" style="height:33px; min-width:90px; white-space:nowrap;">
               コピー先お客様
             </th>
             <td class="text-start bg-cream">
-                    <div class="form-check form-check-inline ms-1 mt-1">
+                    <div class="form-check form-check-inline ms-2 mt-2 mb-0">
                       <input class="form-check-input" type="radio" name="copy_mode" id="mode_same" value="same" checked>
                       <label class="form-check-label" for="mode_same">同じお客様</label>
                     </div>
@@ -89,7 +89,7 @@
 
           {{-- 2) お客様名 --}}
           <tr>
-            <th class="text-start ps-1" style="min-width:180px; white-space:nowrap;">
+            <th class="text-start ps-1" style="height:33px; white-space:nowrap;">
               お客様名
             </th>
             <td class="text-start">
@@ -108,7 +108,7 @@
 
           {{-- 3) 生年月日（西暦） --}}
           <tr>
-            <th class="text-start ps-1" style="min-width:180px; white-space:nowrap;">
+            <th class="text-start ps-1" style="height:33px; white-space:nowrap;">
               生年月日（西暦）
             </th>
             <td class="text-start">
@@ -116,7 +116,7 @@
                      name="birth_date"
                      id="copy_birth_date"
                      class="form-control text-start"
-                     style="width:150px;"
+                     style="height:32px;width:150px;"
                      placeholder="YYYY-MM-DD"
                      value="{{ $isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate) }}"
                      {{ $isClient ? 'readonly' : '' }}>
@@ -125,10 +125,10 @@
 
           {{-- 4) 年度（複数可） --}}
           <tr>
-            <th class="text-start ps-1" style="min-width:180px; white-space:nowrap;">
+            <th class="text-start ps-1" style="min-width:120px; white-space:nowrap;">
               年度（複数可）
             </th>
-            <td class="text-start ps-1">
+            <td class="text-start">
               @php
                 // 一旦：2025〜2035 に固定
                 $minY = 2025; $maxY = 2035;
@@ -145,7 +145,7 @@
               @endphp
 
               {{-- いまの並び（詰めて4列相当）を維持 --}}
-              <div class="d-flex flex-wrap gap-0" id="year-checkboxes">
+              <div class="d-flex flex-wrap gap-0 mt-1 ms-1" id="year-checkboxes">
                 @foreach($years as $y)
                   <label class="form-check form-check-inline me-0" style="min-width: 90px;">
                     <input class="form-check-input" type="checkbox" name="years[]" value="{{ $y }}"
@@ -155,7 +155,7 @@
                 @endforeach
               </div>
 
-              <div class="mt-2">
+              <div class="text-end mt-1 mb-1 me-1 gap-2">
                 <button type="button" class="btn-base-blue" id="btn-select-all">すべて選択</button>
                 <button type="button" class="btn btn-base-red" id="btn-clear-all">すべて解除</button>
               </div>
@@ -165,11 +165,11 @@
           {{-- 5) 共有設定（feature.data_privacy=true のときのみ表示） --}}
           @if (config('feature.data_privacy'))
           <tr>
-            <th class="text-start ps-1" style="min-width:180px; white-space:nowrap;">
+            <th class="text-start ps-1" style="height:33px; white-space:nowrap;">
               共有設定
             </th>
             <td class="text-start bg-cream">
-                    <div class="form-check form-check-inline ms-2">
+                    <div class="form-check form-check-inline ms-2 mt-2 mb-0">
                       <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared"
                              {{ old('visibility', $source->visibility ?? 'shared') === 'shared' ? 'checked' : '' }}>
                       <label class="form-check-label" for="vis_shared">共有する（同部署に共有）</label>
@@ -185,17 +185,17 @@
 
           {{-- 6) データ作成日（編集不可） --}}
           <tr>
-            <th class="text-start ps-1">
+            <th class="text-start ps-1" style="height:33px;">
               データ作成日
             </th>
             <td class="text-start">
-              <input type="date" class="form-control text-start" style="width:150px;" value="{{ $today }}" readonly>
+              <input type="date" class="form-control text-start" style="height:32px;width:150px;" value="{{ $today }}" readonly>
             </td>
           </tr>
 
           {{-- 7) 提案書日（編集可） --}}
           <tr>
-            <th class="text-start ps-1">
+            <th class="text-start ps-1" style="height:33px;">
               提案書日
             </th>
             <td class="text-start">
@@ -203,7 +203,7 @@
                      name="proposal_date"
                      id="proposal_date"
                      class="form-control text-start"
-                     style="width:150px;"
+                     style="height:32px;width:150px;"
                      value="{{ $proposalDefault }}">
             </td>
           </tr>

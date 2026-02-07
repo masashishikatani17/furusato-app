@@ -48,7 +48,7 @@
 <div class="container-blue mt-2" style="width: 1050px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
-      <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+      @include('components.kado_lefttop_img')
       <h0 class="mt-2 ms-2">内訳－分離課税 譲渡所得（短期/長期）</h0>
     </div>
   </div>

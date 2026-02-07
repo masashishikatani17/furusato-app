@@ -447,13 +447,20 @@
     課税総所得金額-人的控除差調整額 前年：{{ $adjPrevText }} 当年：{{ $adjCurrText }}
   </div>
 @endif
-
-<div class="wrapper pt-2">
+      <style>
+        /* result_details: 画面全体を縦スクロールに収める（表示のみ） */
+        .result-details-scroll {
+          max-height: calc(100vh - 220px);
+          overflow-y: auto;
+          padding-right: 6px; /* スクロールバーで横ズレしにくくする保険 */
+        }
+      </style>
+ <div class="wrapper pt-2 pb-3 result-details-scroll">
   <div class="table-responsive">
-    <table class="table table-base align-middle" style="width:370px">
+    <table class="table table-input align-middle" style="width:350px">
             <colgroup>
               <col style="width:250px">
-              <col style="width:120px">
+              <col style="width:100px">
             </colgroup>
         <tr>
           <th class="text-center th-ccc" style="height:28px;">人的控除額の差</th>
@@ -488,7 +495,7 @@
           <tr>
             <th class="text-start ps-1">{{ $row['label'] }}</th>
             @if($showPrev)
-              <td class="text-end">
+              <td class="text-end" style="padding-right: .25rem !important;">
                 @php
                   // ▼ 方針変更（定義の固定）：
                   // 基礎控除の人的控除差は常に 50,000 円で固定して表示する。
@@ -504,7 +511,7 @@
               </td>
             @endif
             @if($showCurr)
-              <td class="text-end">
+              <td class="text-end" style="padding-right: .25rem !important;">
                 @php
                   // ▼ 方針変更（定義の固定）：
                   // 基礎控除の人的控除差は常に 50,000 円で固定して表示する。
@@ -534,7 +541,7 @@
                 : $floorDisplay($humanAdjTaxable['curr'] ?? null);
           @endphp
           @if($showPrev)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php
                 $raw = $rawInt($inputs, 'human_adjusted_taxable_prev', $fallbackPrev);
                 $displayValue = $fallbackPrev !== null ? (int) $fallbackPrev : (is_numeric($raw) ? (int) $raw : null);
@@ -542,7 +549,7 @@
               <input type="hidden" name="human_adjusted_taxable_prev" value="{{ $raw }}">{{ $dispInt($displayValue) }}</td>
           @endif
           @if($showCurr)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php
                 $raw = $rawInt($inputs, 'human_adjusted_taxable_curr', $fallbackCurr);
                 $displayValue = $fallbackCurr !== null ? (int) $fallbackCurr : (is_numeric($raw) ? (int) $raw : null);
@@ -744,10 +751,10 @@
     }
   @endphp
   <div class="table-responsive">
-    <table class="table table-base align-middle" style="width:370px">
+    <table class="table table-input align-middle mt-3" style="width:350px">
             <colgroup>
               <col style="width:250px">
-              <col style="width:120px">
+              <col style="width:100px">
             </colgroup>
         <tr>
           <th scope="col" class="th-ccc" style="height:28px;">項  目</th>
@@ -762,13 +769,13 @@
         <tr>
           <th scope="row" class="text-start ps-1">特例控除率（標準）</th>
           @if($showPrev)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php $out = $show['standard']['prev'] ? $stdPrevDisp : ''; @endphp
               <input type="hidden" name="tokurei_rate_standard_prev" value="{{ $show['standard']['prev'] ? $stdPrevRaw : '' }}">{{ $out }}
             </td>
           @endif
           @if($showCurr)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php $out = $show['standard']['curr'] ? $stdCurrDisp : ''; @endphp
               <input type="hidden" name="tokurei_rate_standard_curr" value="{{ $show['standard']['curr'] ? $stdCurrRaw : '' }}">{{ $out }}
             </td>
@@ -777,13 +784,13 @@
         <tr>
           <th scope="row" class="text-start ps-1">特例控除率（90％）</th>
           @if($showPrev)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_90_prev', $tkComputed['ninety_prev'] ?? 90.000, $prevDetails['AA51'] ?? 0.90); @endphp
               <input type="hidden" name="tokurei_rate_90_prev" value="{{ $show['rate90']['prev'] ? $raw : '' }}">{{ $show['rate90']['prev'] ? $disp : '' }}
             </td>
           @endif
           @if($showCurr)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php [$raw, $disp] = $valPercent($inputs, 'tokurei_rate_90_curr', $tkComputed['ninety_curr'] ?? 90.000, $currDetails['AA51'] ?? 0.90); @endphp
               <input type="hidden" name="tokurei_rate_90_curr" value="{{ $show['rate90']['curr'] ? $raw : '' }}">{{ $show['rate90']['curr'] ? $disp : '' }}
             </td>
@@ -792,13 +799,13 @@
         <tr>
           <th scope="row" class="text-start ps-1">山林所得（1/5）ベース</th>
           @if($showPrev)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_sanrin_div5_prev', true, $tkComputed['sanrin_prev'] ?? null); @endphp
               <input type="hidden" name="tokurei_rate_sanrin_div5_prev" value="{{ $show['sanrin']['prev'] ? $raw : '' }}">{{ $show['sanrin']['prev'] ? $disp : '' }}
             </td>
           @endif
           @if($showCurr)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_sanrin_div5_curr', true, $tkComputed['sanrin_curr'] ?? null); @endphp
               <input type="hidden" name="tokurei_rate_sanrin_div5_curr" value="{{ $show['sanrin']['curr'] ? $raw : '' }}">{{ $show['sanrin']['curr'] ? $disp : '' }}
             </td>
@@ -807,13 +814,13 @@
         <tr>
           <th scope="row" class="text-start ps-1">退職所得ベース</th>
           @if($showPrev)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_taishoku_prev', true, $tkComputed['taishoku_prev'] ?? null); @endphp
               <input type="hidden" name="tokurei_rate_taishoku_prev" value="{{ $show['taishoku']['prev'] ? $raw : '' }}">{{ $show['taishoku']['prev'] ? $disp : '' }}
             </td>
           @endif
           @if($showCurr)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php [$raw, $disp] = $valPercentEnabled($inputs, 'tokurei_rate_taishoku_curr', true, $tkComputed['taishoku_curr'] ?? null); @endphp
               <input type="hidden" name="tokurei_rate_taishoku_curr" value="{{ $show['taishoku']['curr'] ? $raw : '' }}">{{ $show['taishoku']['curr'] ? $disp : '' }}
             </td>
@@ -822,7 +829,7 @@
         <tr>
           <th scope="row" class="text-start ps-1">採用率（山林／退職の小さい方）</th>
           @if($showPrev)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php
                 $raw = $show['adopted']['prev'] ? number_format((float)$rate['adopted']['prev'], 3, '.', '') : '';
                 $disp = $show['adopted']['prev'] ? $fmtPct($rate['adopted']['prev']) : '';
@@ -831,7 +838,7 @@
             </td>
           @endif
           @if($showCurr)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php
                 $raw = $show['adopted']['curr'] ? number_format((float)$rate['adopted']['curr'], 3, '.', '') : '';
                 $disp = $show['adopted']['curr'] ? $fmtPct($rate['adopted']['curr']) : '';
@@ -843,7 +850,7 @@
         <tr>
           <th scope="row" class="text-start ps-1">分離課税に基づく率（最小）</th>
           @if($showPrev)
-            <td class="text-end">
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php
                 $raw = $show['bunrimin']['prev'] && isset($rate['bunrimin']['prev']) ? number_format((float)$rate['bunrimin']['prev'], 3, '.', '') : '';
                 $disp = $show['bunrimin']['prev'] && isset($rate['bunrimin']['prev']) ? $fmtPct($rate['bunrimin']['prev']) : '';
@@ -852,7 +859,7 @@
             </td>
           @endif
           @if($showCurr)
-            <td>
+            <td class="text-end" style="padding-right: .25rem !important;">
               @php
                 $raw = $show['bunrimin']['curr'] && isset($rate['bunrimin']['curr']) ? number_format((float)$rate['bunrimin']['curr'], 3, '.', '') : '';
                 $disp = $show['bunrimin']['curr'] && isset($rate['bunrimin']['curr']) ? $fmtPct($rate['bunrimin']['curr']) : '';
@@ -861,10 +868,10 @@
             </td>
           @endif
         </tr>
-        <tr class="table-primary">
-          <th scope="row" class="text-center th-cream">特例控除 最終率</th>
+        <tr class="bg-cream">
+          <th scope="row" class="text-center">特例控除 最終率</th>
           @if($showPrev)
-            <td>
+            <td class="{{ ($show['final']['prev'] && $rate['final']['prev'] !== null) ? 'text-end pe-1' : 'text-center' }}">
               @php
                 $raw = ($show['final']['prev'] && $rate['final']['prev'] !== null)
                   ? number_format((float)$rate['final']['prev'], 3, '.', '')
@@ -877,7 +884,7 @@
             </td>
           @endif
           @if($showCurr)
-            <td class="text-end">
+            <td class="{{ ($show['final']['curr'] && $rate['final']['curr'] !== null) ? 'text-end pe-1' : 'text-center' }}">
               @php
                 $raw = ($show['final']['curr'] && $rate['final']['curr'] !== null)
                   ? number_format((float)$rate['final']['curr'], 3, '.', '')
@@ -919,10 +926,9 @@
     <hb class="mb-1 ms-5">■ 総合課税所得の損益通算</hb>
     @foreach ($warekiTables as $suffix => $label)
       @php $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff; @endphp
-      <div class="mt-4">
-        <div class="fw-bold ms-10">（{{ $label }}）</div>
+       
         <div class="table-responsive">
-          <table class="table table-input align-middle" style="width:717px">
+          <table class="table table-input text-start ms-2" style="width:717px">
             <colgroup>
               <col style="width:40px">
               <col style="width:40px">
@@ -1044,15 +1050,11 @@
             </tbody>
           </table>
         </div>
-      </div>
     @endforeach
   </div>
-  <div class="mt-4">
     @foreach ($warekiTables as $suffix => $label)
-      <div class="mt-4">
-        <div class="fw-bold ms-10">（{{ $label }}）</div>
-        <div class="table-responsive">
-          <table class="table table-input align-middle" style="width:865px">
+        <div class="table-responsive mt-4">
+          <table class="table table-input text-start ms-2" style="width:865px">
             <tbody>
               <tr>
                 <th colspan="3" class="th-ccc" style="height:30px;">所得の種類</th>
@@ -1370,21 +1372,19 @@
             </tbody>
           </table>
         </div>
-      </div>
+     
     @endforeach
-  </div>
 
   @if ($showSeparatedNettingFlag)
   <div class="mt-5">
-    <hb class="mb-1 ms-5">■ 分離課税所得の損益通算</hb>
-    <div class="mt-3">
+    <hb class="mb-3 ms-5">■ 分離課税所得の損益通算</hb>
       <div class="fw-bold ms-5">　□ 譲渡所得に係る所得の損益通算</div>
       @foreach ($warekiTables as $suffix => $label)
         @php
           $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff;
         @endphp
         <div class="mt-3">
-          <div class="fw-bold ms-10">（{{ $label }}）</div>
+         
           <div class="table-responsive">
             <table class="table table-input align-middle" style="width: 546px;">
               <tbody>
@@ -1509,15 +1509,11 @@
           </div>
         </div>
       @endforeach
-    </div>
-    <div class="mt-4">
-      <div class="fw-bold ms-5">　□ 上場株式等に係る所得の損益通算</div>
+      <div class="fw-bold ms-5 mt-3 mb-3">　□ 上場株式等に係る所得の損益通算</div>
       @foreach ($warekiTables as $suffix => $label)
         @php
           $isBunriOff = ($suffix === 'prev') ? $bunriPrevOff : $bunriCurrOff;
         @endphp
-        <div class="mt-3">
-          <div class="fw-bold ms-10">（{{ $label }}）</div>
           <div class="table-responsive">
             <table class="table table-input align-middle" style="width: 519px;">
               <tbody>
@@ -1564,29 +1560,25 @@
               </tbody>
             </table>
           </div>
-        </div>
       @endforeach
-    </div>
   </div>
   @endif
-
-  <div class="mt-5">
-    <hb class="mb-1 ms-5">■ 寄附金税額控除の算定</hb>
-    <div class="table-responsive">
-      <table class="table table-input align-middle" style="width:486px;">
+    <hb class="mt-5 mb-1 ms-5">■ 寄附金税額控除の算定</hb>
+    <div class="table-responsive mb-3">
+      <table class="table table-input align-middle" style="width:482px;">
         <tbody>
           <tr>
             <th colspan="2" class="th-ccc" style="height:30px;"></th>
             <th class="text-center th-ccc">{{ $warekiPrevLabel }}</th>
             <th class="text-center th-ccc">{{ $warekiCurrLabel }}</th>
           </tr>
-          <tr>
+          <tr style="height:27px;">
             <th colspan="2" class="text-start ps-1">ワンストップ特例</th>
             <td>{{ $oneStopText($oneStopPrevFlag) }}</td>
             <td>{{ $oneStopText($oneStopCurrFlag) }}</td>
           </tr>
           <tr>
-            <th colspan="2" class="text-start ps-1">指定都市区分</th>
+            <th colspan="2" class="text-start ps-1" style="height:27px;">指定都市区分</th>
             <td>{{ $shiteiText($shiteiPrevFlag) }}</td>
             <td>{{ $shiteiText($shiteiCurrFlag) }}</td>
           </tr>
@@ -1639,7 +1631,7 @@
           {{-- ふるさと納税寄付金額（都道府県／市区町村） --}}
           <tr>
             <th rowspan="2" class="text-start ps-1 align-middle" style="width:150px;">ふるさと納税寄付金額</th>
-            <th style="width:80px;">都道府県</th>
+            <th style="width:76px;">都道府県</th>
             <td class="text-end" style="width:128px;">
               <input type="text"
                      readonly
@@ -1654,7 +1646,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1687,7 +1679,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1720,7 +1712,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1755,7 +1747,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1790,7 +1782,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1825,7 +1817,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1860,7 +1852,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1895,7 +1887,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1930,7 +1922,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -1965,7 +1957,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -2000,7 +1992,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">市区町村</th>
+            <th>市区町村</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -2017,7 +2009,7 @@
             </td>
           </tr>
           <tr>
-            <th class="text-start ps-1">合計</th>
+            <th>合  計</th>
             <td class="text-end">
               <input type="text"
                      readonly
@@ -2036,5 +2028,4 @@
         </tbody>
       </table>
     </div>
-  </div>
 </div>

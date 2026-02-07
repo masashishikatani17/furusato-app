@@ -20,7 +20,7 @@
 <div class="container-blue mt-2" style="width: 720px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
-      <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+      @include('components.kado_lefttop_img')
       <h0 class="mb-0 mt-2 ms-2">内訳－山林所得</h0>
     </div>
   </div>

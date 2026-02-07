@@ -32,7 +32,7 @@
       <input type="hidden" name="guest_id" value="{{ (int)$clientGuest->id }}">
     @endif
 
-    <table class="table-base table-bordered align-middle w-auto mx-auto">
+    <table class="table-input align-middle">
       <tbody>
       @php
         $today = now()->format('Y-m-d');
@@ -40,31 +40,34 @@
       @endphp
       {{-- 1) お客様の指定 --}}
       <tr>
-        <th class="text-start ps-2" style="width:120px;">お客様の指定</th>
-        <td class="th-cream text-start ps-1 pb-0">
+        <th class="text-start ps-2" style="height:33px; width:120px;">お客様の指定</th>
+        <td class="th-cream text-start ps-2 py-0 align-middle">
           @if ($isClient)
             <div class="pt-1 ps-1"></div>
           @else
-            <div class="form-check form-check-inline pt-1">
+          <div class="d-flex align-items-center" style="height:33px; gap:14px;">
+            <div class="form-check form-check-inline mb-0" style="min-height:0;">
               <input class="form-check-input" type="radio" name="guest_mode" id="gm_new" value="new"
                      {{ old('guest_mode','new') === 'new' ? 'checked' : '' }}>
               <label class="form-check-label" for="gm_new">新規で登録</label>
             </div>
-            <div class="form-check form-check-inline">
+            <div class="form-check form-check-inline mb-0" style="min-height:0;">
               <input class="form-check-input" type="radio" name="guest_mode" id="gm_existing" value="existing"
                      {{ old('guest_mode') === 'existing' ? 'checked' : '' }}>
               <label class="form-check-label" for="gm_existing">登録済から選択</label>
             </div>
+          </div>
           @endif
         </td>
       </tr>
 
       {{-- 2) お客様名（existing選択時は読み取り専用） --}}
       <tr>
-        <th class="text-start ps-2">お客様名</th>
-        <td class="text-start ps-1">
+        <th class="text-start ps-2" style="height:33px;">お客様名</th>
+        <td class="text-start">
           <input type="text" name="guest_name" id="guest_name"
                  class="form-control kana10"
+                 style="height:32px;"
                  value="{{ $isClient && $clientGuest ? $clientGuest->name : old('guest_name') }}"
                  maxlength="25"
                  placeholder="（新規登録時は入力）"
@@ -77,13 +80,13 @@
 
       {{-- 生年月日 --}}
       <tr>
-        <th class="text-start ps-2">生年月日（西暦）</th>
-        <td class="text-start ps-1">
+        <th class="text-start ps-2" style="height:33px;">生年月日（西暦）</th>
+        <td class="text-start">
           <input type="date"
                  name="birth_date"
                  id="birth_date"
                  class="form-control text-start"
-                 style="width:150px;"
+                 style="width:150px;height:32px;"
                  placeholder="YYYY-MM-DD"
                  value="{{ $isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate) }}"
                  {{ $isClient ? 'readonly' : '' }}>
@@ -93,17 +96,19 @@
       {{-- 3) 共有設定（feature.data_privacy=true の時のみ表示） --}}
       @if (config('feature.data_privacy'))
       <tr>
-        <th class="text-start ps-2">共有設定</th>
-        <td class="th-cream text-start ps-1 pt-2 pb-0">
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared"
-                   {{ old('visibility','shared') === 'shared' ? 'checked' : '' }}>
-            <label class="form-check-label" for="vis_shared">共有する（同部署に共有）</label>
-          </div>
-          <div class="form-check form-check-inline">
-            <input class="form-check-input" type="radio" name="visibility" id="vis_private" value="private"
-                   {{ old('visibility') === 'private' ? 'checked' : '' }}>
-            <label class="form-check-label" for="vis_private">共有しない（自分だけ）</label>
+        <th class="text-start ps-2" style="height:33px;">共有設定</th>
+        <td class="th-cream text-start ps-2 py-0 align-middle">
+          <div class="d-flex align-items-center" style="height:33px; gap:14px;">
+            <div class="form-check form-check-inline mb-0" style="min-height:0;">
+              <input class="form-check-input" type="radio" name="visibility" id="vis_shared" value="shared"
+                     {{ old('visibility','shared') === 'shared' ? 'checked' : '' }}>
+              <label class="form-check-label" for="vis_shared">共有する（同部署に共有）</label>
+            </div>
+            <div class="form-check form-check-inline mb-0" style="min-height:0;">
+              <input class="form-check-input" type="radio" name="visibility" id="vis_private" value="private"
+                     {{ old('visibility') === 'private' ? 'checked' : '' }}>
+              <label class="form-check-label" for="vis_private">共有しない（自分だけ）</label>
+            </div>
           </div>
         </td>
       </tr>
@@ -111,7 +116,7 @@
 
       {{-- 4) 年度（寄付年） --}}
       <tr>
-        <th class="text-start ps-2">年 度</th>
+        <th class="text-start ps-2" style="height:33px;">年 度</th>
         <td class="text-start">
           @php
             // 一旦：2025〜2035 に固定
@@ -122,7 +127,7 @@
             if ($oldYear < $minY) $oldYear = $minY;
             if ($oldYear > $maxY) $oldYear = $maxY;
           @endphp
-          <select name="kihu_year" id="kihu_year" class="form-select" style="max-width:80px;">
+          <select name="kihu_year" id="kihu_year" class="form-select" style="height:32px;max-width:80px;">
             @for ($y = $maxY; $y >= $minY; $y--)
               <option value="{{ $y }}" @selected((int)$oldYear === (int)$y)>{{ $y }}年</option>
             @endfor
@@ -131,21 +136,21 @@
       </tr>
       {{-- データ作成日（編集不可） --}}
       <tr>
-        <th class="text-start ps-2">データ作成日</th>
-        <td class="text-start ps-1">
-          <input type="date" class="form-control text-start" style="width:150px;" value="{{ $today }}" readonly>
+        <th class="text-start ps-2" style="height:33px;">データ作成日</th>
+        <td class="text-start">
+          <input type="date" class="form-control text-start" style="height:32px; width:150px;" value="{{ $today }}" readonly>
         </td>
       </tr>
 
       {{-- 提案書日（編集可） --}}
       <tr>
-        <th class="text-start ps-2">提案書日</th>
-        <td class="text-start ps-1">
+        <th class="text-start ps-2" style="height:33px;">提案書日</th>
+        <td class="text-start">
           <input type="date"
                  name="proposal_date"
                  id="proposal_date"
                  class="form-control text-start"
-                 style="width:150px;"
+                 style="height:32px; width:150px;"
                  value="{{ $proposalDefault }}">
         </td>
       </tr>

@@ -14,7 +14,7 @@
 @endphp
 <div class="container mt-2" style="width: 1200px;">
   <div class="card-header d-flex align-items-start">
-    <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+    @include('components.kado_lefttop_img')
     <h0 class="mb-2 mt-2">総合譲渡・一時の内訳</h0>
   </div>
   @if ($errors->any())

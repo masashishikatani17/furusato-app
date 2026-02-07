@@ -84,7 +84,7 @@
 @endphp
 <div class="container-blue mt-2" style="width:980px;">
   <div class="card-header d-flex align-items-start">
-    <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+    @include('components.kado_lefttop_img')
     <h0 class="mb-0 mt-2">寄付金控除の内訳</h0>
   </div>
 

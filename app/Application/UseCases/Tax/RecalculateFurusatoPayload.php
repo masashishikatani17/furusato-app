@@ -2,7 +2,6 @@
 
 namespace App\Application\UseCases\Tax;
 
-use Illuminate\Support\Arr;
 use App\Domain\Tax\Calculators\DetailsSourceAliasCalculator;
 use App\Domain\Tax\Calculators\FurusatoResultCalculator;
 use App\Domain\Tax\Factory\SyoriSettingsFactory;
@@ -26,88 +25,10 @@ use DateTimeInterface;
 
 class RecalculateFurusatoPayload
 {
-    /**
-     * デバッグログ（デフォルト無効）
-     * - .env: FURUSATO_DEBUG_LOG=1 のときのみ出す
-     */
-    private function dbg(string $message, array $context = []): void
-    {
-        if ((string) env('FURUSATO_DEBUG_LOG', '0') !== '1') {
-            return;
-        }
-        Log::debug($message, $context);
-    }
-
-    // NOTE: 表示・帳票の整合を崩さないため、DB保存直前に必要なミラーを強制する。
-    
     private const MASTER_KIHU_YEAR = 2025;
-    
-    private const PERIODS = ['prev', 'curr'];
 
     /** @var array<int, object> */
     private array $calculators;
-
-    /**
-     * 第一表（総合課税）の「住民税列＝所得税列」ミラー（DB確定）
-     *
-     * - input.blade.php では表示都合でJS/ビュー側コピーがあるが、
-     *   PDF/帳票は FurusatoResult.payload（DB）を参照するため、サーバ側で確定させる。
-     * - “最終payload”に対して適用する（後段Calculatorに再上書きされないようにする）
-     *
-     * @param array<string,mixed> $payload
-     * @return array<string,mixed>
-     */
-    private function applySogoColumnMirrors(array $payload): array
-    {
-        // 方針：
-        // - 第一表（総合課税）で「税目共通として扱う」行は、DBでも住民税列＝所得税列に確定させる
-        // - ただし、住民税固有の入力がある控除/税額系（kojo_*/tax_*）はここでは触らない
-        //
-        // 対象（現時点の input.blade.php の総合課税ブロックに合わせる）：
-        //  - 所得：事業(営業等/農業)・不動産・利子・配当
-        //  - 収入：事業(営業等/農業)・不動産・配当
-        //
-        // ※ kyuyo/zatsu は Calculator が両税目キーを出しているため、現状は対象外（必要なら後で追加可）
-        $bases = [
-            // 所得（総合課税）
-            'shotoku_jigyo_eigyo',
-            'shotoku_jigyo_nogyo',
-            'shotoku_fudosan',
-            'shotoku_rishi',
-            'shotoku_haito',
-            // 収入（総合課税）
-            'syunyu_jigyo_eigyo',
-            'syunyu_jigyo_nogyo',
-            'syunyu_fudosan',
-            'syunyu_haito',
-        ];
-
-        foreach (self::PERIODS as $p) {
-            foreach ($bases as $base) {
-                $src = sprintf('%s_shotoku_%s', $base, $p);
-                $dst = sprintf('%s_jumin_%s',   $base, $p);
-                if (!array_key_exists($src, $payload)) {
-                    continue;
-                }
-                $payload[$dst] = (int) $this->toInt0($payload[$src]);
-            }
-
-            // ============================================================
-            // ▼ 総合譲渡・一時：帳票が最優先で参照する合算キーをDBに必ず確定する
-            //
-            // 帳票側は shotoku_joto_ichiji_{shotoku|jumin}_{p} を優先参照するため、
-            // ここを生成しないと “画面は合っているが帳票がズレる” が起きる。
-            // ============================================================
-            $tanki = (int) $this->toInt0($payload[sprintf('shotoku_joto_tanki_sogo_%s', $p)] ?? 0);
-            $choki = (int) $this->toInt0($payload[sprintf('shotoku_joto_choki_sogo_%s', $p)] ?? 0);
-            $ichiji = (int) $this->toInt0($payload[sprintf('shotoku_ichiji_%s', $p)] ?? 0);
-            $sum = $tanki + $choki + max(0, $ichiji);
-
-            $payload[sprintf('shotoku_joto_ichiji_shotoku_%s', $p)] = $sum;
-            $payload[sprintf('shotoku_joto_ichiji_jumin_%s',  $p)] = $sum;
-        }
-        return $payload;
-    }
 
     public function __construct(
         private readonly PayloadNormalizer $normalizer,
@@ -132,32 +53,31 @@ class RecalculateFurusatoPayload
         $userId = isset($ctx['user_id']) ? (int) $ctx['user_id'] : null;
 
         [$payload, $syoriSettings] = $this->saveDiff($data, $payloadUpdates, $labelUpdates, $userId);
-        $this->dbg('[Recalc payload after saveDiff]', [
-            'before_tsusan_tanki_ippan_prev'    => $payload['before_tsusan_tanki_ippan_prev'] ?? null,
-            'after_2jitsusan_tanki_ippan_prev'  => $payload['after_2jitsusan_tanki_ippan_prev'] ?? null,
-            'joto_shotoku_tanki_ippan_prev'     => $payload['joto_shotoku_tanki_ippan_prev'] ?? null,
-        ]);
+    \Log::info('[Recalc payload after saveDiff]', [
+        'before_tsusan_tanki_ippan_prev' => $payload['before_tsusan_tanki_ippan_prev'] ?? null,
+        'after_2jitsusan_tanki_ippan_prev' => $payload['after_2jitsusan_tanki_ippan_prev'] ?? null,
+        'joto_shotoku_tanki_ippan_prev' => $payload['joto_shotoku_tanki_ippan_prev'] ?? null,
+    ]);
         $calculatorCtx = array_merge($ctx, ['syori_settings' => $syoriSettings]);
         $builtCtx = $this->buildContext($data, $calculatorCtx);
         $shouldFlashResults = $builtCtx['should_flash_results'] ?? true;
         unset($builtCtx['should_flash_results']);
         $finalPayload = $this->runCalculators($payload, $builtCtx);
-        $finalPayload = $this->applySogoColumnMirrors($finalPayload);
 
-        $this->dbg('[Recalc payload after runCalculators]', [
-            'before_tsusan_tanki_ippan_prev'    => $finalPayload['before_tsusan_tanki_ippan_prev'] ?? null,
-            'after_2jitsusan_tanki_ippan_prev'  => $finalPayload['after_2jitsusan_tanki_ippan_prev'] ?? null,
-            'joto_shotoku_tanki_ippan_prev'     => $finalPayload['joto_shotoku_tanki_ippan_prev'] ?? null,
-        ]);
+    \Log::info('[Recalc payload after runCalculators]', [
+        'before_tsusan_tanki_ippan_prev' => $finalPayload['before_tsusan_tanki_ippan_prev'] ?? null,
+        'after_2jitsusan_tanki_ippan_prev' => $finalPayload['after_2jitsusan_tanki_ippan_prev'] ?? null,
+        'joto_shotoku_tanki_ippan_prev' => $finalPayload['joto_shotoku_tanki_ippan_prev'] ?? null,
+    ]);
 
-        $this->dbg('[DBG human-adjusted final]', [
-            'tb_sogo_jumin_prev'           => $finalPayload['tb_sogo_jumin_prev'] ?? null,
-            'tb_sogo_jumin_curr'           => $finalPayload['tb_sogo_jumin_curr'] ?? null,
-            'human_diff_sum_prev'          => $finalPayload['human_diff_sum_prev'] ?? null,
-            'human_diff_sum_curr'          => $finalPayload['human_diff_sum_curr'] ?? null,
-            'human_adjusted_taxable_prev'  => $finalPayload['human_adjusted_taxable_prev'] ?? null,
-            'human_adjusted_taxable_curr'  => $finalPayload['human_adjusted_taxable_curr'] ?? null,
-        ]);
+\Log::info('[DBG human-adjusted final]', [
+  'tb_sogo_jumin_prev' => $finalPayload['tb_sogo_jumin_prev'] ?? null,
+  'tb_sogo_jumin_curr' => $finalPayload['tb_sogo_jumin_curr'] ?? null,
+  'human_diff_sum_prev' => $finalPayload['human_diff_sum_prev'] ?? null,
+  'human_diff_sum_curr' => $finalPayload['human_diff_sum_curr'] ?? null,
+  'human_adjusted_taxable_prev' => $finalPayload['human_adjusted_taxable_prev'] ?? null,
+  'human_adjusted_taxable_curr' => $finalPayload['human_adjusted_taxable_curr'] ?? null,
+]);
 
         $this->persistFinalPayload($data, $finalPayload, $userId);
 
@@ -211,27 +131,50 @@ class RecalculateFurusatoPayload
     {
         $details = $this->resultCalculator->buildDetails($payload, $ctx);
 
-        // ▼ 追加：上限探索＋①〜④スナップショットを「再計算時に1回だけ」生成して results に同梱する
-        //   - 画面表示やPDF帳票で毎回dry-runしないためのSoT
-        $furusatoUpper = null;
-        $furusatoUpperScenarios = null;
-        try {
-            /** @var FurusatoPracticalUpperLimitService $upperSvc */
-            $upperSvc = app(FurusatoPracticalUpperLimitService::class);
-            $furusatoUpper = $upperSvc->compute($payload, $ctx);
+        // ============================================================
+        // ▼ 上限探索（重い）
+        //  - 通常の保存/再計算では不要（result_upper タブ廃止予定）
+        //  - PDF出力など「必要なときだけ」実行する
+        // ============================================================
+        $computeUpper = (bool)($ctx['compute_upper'] ?? false);
 
-            $yMax = is_array($furusatoUpper) ? (int)($furusatoUpper['y_max_total'] ?? 0) : 0;
-            /** @var FurusatoScenarioTaxSummaryService $scSvc */
-            $scSvc = app(FurusatoScenarioTaxSummaryService::class);
-            $furusatoUpperScenarios = $scSvc->build($payload, $ctx, $yMax);
-        } catch (\Throwable $e) {
-            Log::warning('[furusato.upper] compute failed in recalc', [
-                'data_id' => (int)$data->id,
-                'err' => $e->getMessage(),
-            ]);
-            $furusatoUpper = null;
-            $furusatoUpperScenarios = null;
+        // 既存の保存済みがあれば温存（compute_upper=false のときに null で上書きしない）
+        $prevStoredUpper = null;
+        $prevStoredScenarios = null;
+        $prevGeneratedAt = null;
+        if (! $computeUpper) {
+            $stored = FurusatoResult::query()->where('data_id', $data->id)->value('payload');
+            if (is_array($stored)) {
+                $prevStoredUpper = $stored['furusato_upper'] ?? null;
+                $prevStoredScenarios = $stored['furusato_upper_scenarios'] ?? null;
+                $prevGeneratedAt = $stored['furusato_upper_generated_at'] ?? null;
+            }
         }
+
+        $furusatoUpper = $prevStoredUpper;
+        $furusatoUpperScenarios = $prevStoredScenarios;
+        $generatedAt = $prevGeneratedAt;
+
+        if ($computeUpper) {
+            try {
+                /** @var FurusatoPracticalUpperLimitService $upperSvc */
+                $upperSvc = app(FurusatoPracticalUpperLimitService::class);
+                $furusatoUpper = $upperSvc->compute($payload, $ctx);
+
+                $yMax = is_array($furusatoUpper) ? (int)($furusatoUpper['y_max_total'] ?? 0) : 0;
+                /** @var FurusatoScenarioTaxSummaryService $scSvc */
+                $scSvc = app(FurusatoScenarioTaxSummaryService::class);
+                $furusatoUpperScenarios = $scSvc->build($payload, $ctx, $yMax);
+                $generatedAt = now()->toIso8601String();
+            } catch (\Throwable $e) {
+                Log::warning('[furusato.upper] compute failed in recalc', [
+                    'data_id' => (int)$data->id,
+                    'err' => $e->getMessage(),
+                ]);
+                // 失敗時は「直前保存済み」を温存（null上書きしない）
+            }
+        }
+
         $results = [
             'details' => $details,
             'payload' => $payload,
@@ -240,7 +183,7 @@ class RecalculateFurusatoPayload
             // 新規：保存済みSoT（画面・帳票はここを読む）
             'furusato_upper' => $furusatoUpper,
             'furusato_upper_scenarios' => $furusatoUpperScenarios,
-            'furusato_upper_generated_at' => now()->toIso8601String(),
+            'furusato_upper_generated_at' => $generatedAt,
         ];
 
         $this->storeResults($data, $results, $userId);
@@ -471,8 +414,9 @@ class RecalculateFurusatoPayload
             }
         }
 
-        // pipeline順はデバッグ用途のみ（通常は出さない）
-        $this->dbg('[furusato.pipeline] order=[' . implode(', ', $sortedIds) . ']');
+        if (config('app.debug')) {
+            Log::info('[furusato.pipeline] order=[' . implode(', ', $sortedIds) . ']');
+        }
 
         return array_map(function ($id) use ($nodes) {
             return $nodes[$id]['calculator'];
@@ -516,17 +460,7 @@ class RecalculateFurusatoPayload
         //   税額控除（政党等/NPO/公益）のSoTは SeitotoTokubetsuZeigakuKojoCalculator に一本化する。
         //   互換キー（shotokuzei_zeigakukojo_seitoto_tokubetsu_* 等）は
         //   後段の LegacyMirrorCalculator が新SoTからミラー生成する。
- 
-        // ============================================================
-        // ▼ 不動産：土地等を取得するための負債利子（fudosan_fusairishi_*）を
-        //    所得金額（fudosan_shotoku_*）から控除し、0下限でサーバ確定する。
-        //
-        // 方針：
-        //  - クライアント（details JS）で作られた fudosan_shotoku_* は信用しない
-        //  - 収入/経費/専従者/青色控除からサーバで再計算し、そこから fusairishi を差し引く
-        //  - 以降の alias/netting/sums/tb_* はこの確定値のみを参照する
-        // ============================================================
-        $payload = $this->applyFudosanFusairishiAdjustment($payload);
+
         /** @var DetailsSourceAliasCalculator $detailsAliasCalculator */
         $detailsAliasCalculator = app(DetailsSourceAliasCalculator::class);
         $payload = array_replace(
@@ -535,20 +469,7 @@ class RecalculateFurusatoPayload
             $detailsAliasCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $detailsAliasCalculator);
-
-        // ============================================================
-        // ▼ 第一表（総合課税）の「住民税列＝所得税列」ミラーをDBへ確定（PDFズレ防止）
-        //
-        // 背景：
-        //  - input.blade.php は表示都合でJS/ビュー側で「住民税=所得税」に見せている
-        //  - しかしPDFは FurusatoResult.payload（DB）を参照するため、DB側でも確定が必要
-        //
-        // 方針：
-        //  - details（内訳）で入力される/表示が税目共通の “総合課税” 系は、jumin を shotoku に揃える
-        //  - 住民税側だけ編集可能な控除/税額系（tax_* / kojo_* など）はここでは触らない
-        // ============================================================
-        // NOTE: ミラーは handle() の最終 payload にのみ適用する（上書き順を明確化するため）
-
+ 
         /** @var SakimonoCalculator $sakimonoCalculator */
         $sakimonoCalculator = app(SakimonoCalculator::class);
         $payload = array_replace(
@@ -618,7 +539,7 @@ class RecalculateFurusatoPayload
         );
         $this->assertProvidedKeys($payload, $bunriNettingCalculator);
 
-        $this->dbg('[applyAutoCalculatedFields after BunriNetting(final)]', [
+        \Log::info('[applyAutoCalculatedFields after BunriNetting(final)]', [
             'before_tsusan_tanki_ippan_prev'    => $payload['before_tsusan_tanki_ippan_prev']    ?? null,
             'after_2jitsusan_tanki_ippan_prev'  => $payload['after_2jitsusan_tanki_ippan_prev']  ?? null,
             'joto_shotoku_tanki_ippan_prev'     => $payload['joto_shotoku_tanki_ippan_prev']     ?? null,
@@ -657,7 +578,7 @@ class RecalculateFurusatoPayload
         );
         $this->assertProvidedKeys($payload, $bunriKabutekiNettingCalculator);
 
-        $this->dbg('[applyAutoCalculatedFields final snapshot]', [
+        \Log::info('[applyAutoCalculatedFields final snapshot]', [
             'before_tsusan_tanki_ippan_prev'   => $payload['before_tsusan_tanki_ippan_prev']   ?? null,
             'after_2jitsusan_tanki_ippan_prev' => $payload['after_2jitsusan_tanki_ippan_prev'] ?? null,
             'joto_shotoku_tanki_ippan_prev'    => $payload['joto_shotoku_tanki_ippan_prev']    ?? null,
@@ -681,74 +602,8 @@ class RecalculateFurusatoPayload
 
             return preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1 ? $value : null;
         }
+
         return null;
-    }
- 
-     /**
-     * 不動産所得のサーバ確定：
-     *   fudosan_shotoku_pure = (収入 − 必要経費合計 − 専従者給与 − 青色申告特別控除額)
-     *   fudosan_shotoku      = max(0, fudosan_shotoku_pure − 土地等取得の負債利子)
-     *
-     * - POSTされてきた fudosan_shotoku_* は採用しない（改ざん/ズレ防止）
-     * - fudosan_shunyu_* / fudosan_syunyu_* の揺れは吸収
-     */
-    private function applyFudosanFusairishiAdjustment(array $payload): array
-    {
-        foreach (['prev', 'curr'] as $p) {
-            // 収入（揺れ吸収）
-            $shunyu = $this->toInt0($payload["fudosan_syunyu_{$p}"] ?? ($payload["fudosan_shunyu_{$p}"] ?? null));
- 
-            // 必要経費合計（1..7 + sonota）
-            $keihi = 0;
-            for ($i = 1; $i <= 7; $i++) {
-                $keihi += $this->toInt0($payload["fudosan_keihi_{$i}_{$p}"] ?? null);
-            }
-            $keihi += $this->toInt0($payload["fudosan_keihi_sonota_{$p}"] ?? null);
- 
-            $senju = $this->toInt0($payload["fudosan_senjuusha_kyuyo_{$p}"] ?? null);
-            $aoi   = $this->toInt0($payload["fudosan_aoi_tokubetsu_kojo_gaku_{$p}"] ?? null);
- 
-            $fusairishi = $this->toInt0($payload["fudosan_fusairishi_{$p}"] ?? null);
- 
-             // ▼ 仕様：
-             //   base = 収入 − 必要経費 − 専従者給与
-             //   - base > 0 のときのみ「青色控除」「負債利子」を差し引ける（0下限）
-             //   - base <= 0 のときは差し引けない（所得は base のまま＝マイナス可）
-             $base = $shunyu - $keihi - $senju;
- 
-             if ($base > 0) {
-                 // 0を下回らない範囲でだけ控除する
-                 $afterAoi = max(0, $base - $aoi);
-                 $adjusted = max(0, $afterAoi - $fusairishi);
-             } else {
-                 $adjusted = $base;
-             }
- 
-            // ★ SoT 上書き
-            $payload["fudosan_shotoku_{$p}"] = $adjusted;
-        }
- 
-        return $payload;
-    }
- 
-    private function toInt0(mixed $value): int
-    {
-        if ($value === null || $value === '') {
-            return 0;
-        }
-        if (is_string($value)) {
-            $value = str_replace([',', ' '], '', trim($value));
-            if ($value === '' || $value === '－' || $value === '-') {
-                return 0;
-            }
-        }
-        if (is_int($value)) {
-            return $value;
-        }
-        if (is_float($value) || is_numeric($value)) {
-            return (int) floor((float) $value);
-        }
-        return 0;
     }
 
     private function assertProvidedKeys(array $payload, ProvidesKeys $service): void

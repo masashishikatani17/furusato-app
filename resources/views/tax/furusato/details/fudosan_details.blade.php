@@ -13,7 +13,7 @@
 @endphp
 <div class="container-blue mt-2" style="width:530px;">
   <div class="card-header d-flex align-items-start">
-    <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+    @include('components.kado_lefttop_img')
     <h0 class="mb-0 mt-2">内訳－不動産</h0>
   </div>
   <div class="card-body m-3">

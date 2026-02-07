@@ -2,7 +2,22 @@
 @extends('layouts.min')
 
 @section('content')
-<div class="container-blue" style="width:620px;">
+<style>
+      /* 年度一覧：右2列（選択・編集）だけ罫線を消す（左の年度列は残す） */
+      table.table-compact-p td.b-none{
+        border: 0 !important;
+      }
+      /* border-collapse の見え方で“左境界線”が残る場合の保険：
+         右2列の左側境界（=年度列の右線）を消したいならこれも有効 */
+      table.table-compact-p td.b-none{
+        border-left: 0 !important;
+      }
+      /* もし右端の外枠（テーブル右端線）も消したいなら */
+      table.table-compact-p td.b-none:last-child{
+        border-right: 0 !important;
+      }
+</style>
+<div class="container-blue" style="width:600px;">
   <div class="card-header d-flex justify-content-between gap-2">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
@@ -104,28 +119,28 @@
           <table class="table table-base mb-2 align-middle">
             <thead class="table-light">
             <tr style="height:25px;">
-              <th class="text-center" style="width: 100px;">
-                年　度
-                <button type="button" class="btn btn-sm btn-outline-primary ms-2 py-0 px-1"
+              <th class="text-center" style="width: 80px;">
+                年 度
+                <button type="button" class="btn btn-sm btn-outline-primary ms-1 py-0 px-1"
                         style="font-size: 11px; height: 18px; line-height: 1;"
                         @click="toggleSort()"
                         :title="sortOrder==='desc' ? '新しい順→古い順に切替' : '古い順→新しい順に切替'">
                   ⇅
                 </button>
               </th>
-              <th class="text-center" style="width: 70px;">選 択</th>
-              <th class="text-center" style="width: 70px;">編 集</th>
+              <th class="text-center" style="width: 60px;">選 択</th>
+              <th class="text-center" style="width: 60px;">編 集</th>
             </tr>
             </thead>
           </table>
           <div class="mt-4" style="max-height: 300px; overflow-y: auto;">
-            <table class="table table-input mb-0 align-middle">
+            <table class="table table-compact-p mb-0 align-middle">
               <tbody>
               <template x-for="d in filteredDatas" :key="d.id">
                 <tr style="height: 25px; cursor:pointer;"
                     :class="selectedDataId===d.id ? 'table-active' : ''"
                     @click="selectedDataId=d.id">
-                  <td class="text-end" style="width:100px;">
+                  <td class="text-end" style="width:80px;">
                     <div class="d-inline-flex align-items-center justify-content-end pe-1" style="width:100%;">
                       <template x-if="isPrivate(d)">
                         <span title="非共有（作成者のみ）">🔒</span>
@@ -133,13 +148,13 @@
                       <span x-text="formatYear(d.kihu_year)"></span>
                     </div>
                   </td>
-                  <td class="text-center bg-cream" style="width:70px;" nowrap="nowrap">
+                  <td class="text-center bg-cream b-none" style="width:60px;" nowrap="nowrap">
                     
-                      <button type="button" class="btn-base-blue"
+                      <button type="button" class="btn-base-blue" style="width:60px;"
                               @click.stop="selectedDataId=d.id; openYearModal(d)">選 択</button>
                   </td>
-                  <td class="text-center bg-cream" style="width:70px;" nowrap="nowrap">
-                      <button type="button" class="btn-base-blue"
+                  <td class="text-center bg-cream b-none" style="width:60px;" nowrap="nowrap">
+                      <button type="button" class="btn-base-blue" style="width:60px;"
                               @click.stop="window.location.href = `/data/${d.id}/edit`">編 集</button>
                   </td>
                 </tr>
@@ -177,7 +192,7 @@
            style="background: rgba(0,0,0,.35); z-index: 1055;"
            @click.self="showYearModal=false">
         <div class="bg-white rounded shadow p-3"
-             style="width:380px; max-width:90vw; margin:10vh auto;">
+             style="width:360px; max-width:90vw; margin:10vh auto;">
           <hb class="mb-3">○年度の選択</hb>
           <br>
           <div class="mt-2 ms-5 mb-3">
@@ -186,9 +201,9 @@
               <br>別の年度を選ぶと複製して新しいデータへ遷移します。
             </hs>
           </div>
-          <div class="d-flex align-items-center gap-2 mt-3 ms-3">
-            <label class="ms-2 ms-5">年度</label>
-            <select class="form-select form-select-sm" style="width:100px;" x-model.number="yearSelected">
+          <div class="text-center">
+            <label class="me-3">年度</label>
+            <select class="form-select form-select-sm" style="height:30px; width:100px;" x-model.number="yearSelected">
               <template x-for="y in yearOptions" :key="y">
                 <option :value="y" x-text="y + '年'"></option>
               </template>

@@ -27,9 +27,9 @@
     $kinroPrev = old('kojo_kinrogakusei_applicable_prev', $inputs['kojo_kinrogakusei_applicable_prev'] ?? '×');
     $kinroCurr = old('kojo_kinrogakusei_applicable_curr', $inputs['kojo_kinrogakusei_applicable_curr'] ?? '×');
 @endphp
-<div class="container-blue mt-2" style="width:860px;">
+<div class="container-blue mt-2" style="width:850px;">
   <div class="card-header d-flex align-items-start">
-    <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+    @include('components.kado_lefttop_img')
     <h0 class="mb-0 mt-2">人的控除の詳細</h0>
   </div>
   @if ($errors->any())
@@ -52,12 +52,21 @@
         <input type="hidden" name="stay_on_details" id="stay-on-details-flag" value="0">
     
         <div class="table-responsive mb-3">
-          <table class="table-input align-middle table-jinteki">
+          <table class="table-input align-middle table-jinteki" style="width:752px">
+             <colgroup>
+              <col style="width:30px">
+              <col style="width:70px">
+              <col style="width:80px">
+              <col style="width:40px">
+              <col style="width:156px">
+              <col style="width:156px">
+              <col style="width:220px">
+            </colgroup>
               <tr style="height:30px;">
                 <th colspan="4" class="text-center th-ccc">項  目</th>
-                <th class="th-ccc" style="width: 156px;">{{ $warekiPrevLabel }}</th>
-                <th class="th-ccc" style="width: 156px;">{{ $warekiCurrLabel }}</th>
-                <th class="th-ccc" style="width: 220px;">備  考</th>
+                <th class="th-ccc">{{ $warekiPrevLabel }}</th>
+                <th class="th-ccc">{{ $warekiCurrLabel }}</th>
+                <th class="th-ccc">備  考</th>
               </tr>
             <tbody>
               <tr>
@@ -240,8 +249,8 @@
                 <td class="remarks-col">　〃　〃　</td>
               </tr>
               <tr>
-                <th rowspan="2" class="text-start align-middle ps-1 pe-1 th-ddd" style="width: 70px;">老人扶養<br>親族</th>
-                <th class="text-start ps-1 pe-1 th-ddd" style="width: 80px;">同居老親等</th>
+                <th rowspan="2" class="text-start align-middle ps-1 pe-1 th-ddd">老人扶養<br>親族</th>
+                <th class="text-start ps-1 pe-1 th-ddd">同居老親等</th>
                 <td>
                   @php($fuyoRoujinDoukyoPrev = old('kojo_fuyo_roujin_doukyo_count_prev', $inputs['kojo_fuyo_roujin_doukyo_count_prev'] ?? null))
                     <input type="number" min="0" step="1" class="form-control suji3 text-end" name="kojo_fuyo_roujin_doukyo_count_prev" value="{{ $fuyoRoujinDoukyoPrev }}" aria-label="{{ $warekiPrevLabel }}の扶養控除（老人扶養親族・同居老親等）の人数">
@@ -269,7 +278,7 @@
                 <td class="remarks-col">　〃　〃　</td>
               </tr>
               <tr>
-                <th rowspan="3" colspan="2" class="text-start align-middle">特定親族特別控除</th>
+                <th rowspan="3" colspan="2" class="text-start ps-1 align-middle">特定親族<br>特別控除</th>
                 <th class="text-start ps-1 th-ddd">1人目</th>
                 <td rowspan="3" class="text-center align-middle">
                   <button type="button" class="btn-base-free-blue" style="height:60px;">HELP</button>

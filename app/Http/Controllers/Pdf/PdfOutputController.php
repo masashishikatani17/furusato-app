@@ -48,12 +48,15 @@ class PdfOutputController extends Controller
     /**
      * PDF出力では必ず再計算してDBのSoTを最新化する（外部マスタ更新等も吸収するため）
      */
-    private function forceRecalculateFurusatoResults(Data $data, Request $request): void
+    private function forceRecalculateFurusatoResults(Data $data, Request $request, bool $computeUpper = true): void
     {
         try {
             $this->recalculateUseCase->handle($data, [], [
                 'should_flash_results' => false,
-                // 必要なら将来ここに user_id / taxpayer_sex 等を追加してもOK
+                // ★PDF出力(download)は上限探索まで含めて最新化。status/previewは軽くする
+                'compute_upper' => $computeUpper,
+                // user_id（監査用に残したい場合）
+                'user_id' => \Auth::id() ? (int) \Auth::id() : null,
             ]);
         } catch (\Throwable $e) {
             // PDF出力を落とすかどうかは方針次第だが、いったん落とさずログだけ残す
@@ -97,7 +100,8 @@ class PdfOutputController extends Controller
 
         // ▼ pdf出力では「表示タブを開く」必要はないので should_flash_results=false
         // ▼ 上限探索等も含めて SoT をまとめて再生成してDBへ保存する（RecalculateFurusatoPayload の責務）
-        $this->forceRecalculateFurusatoResults($data, $request);
+        // status/preview 側の用途は「最新の存在チェック」なので、上限探索は回さない
+        $this->forceRecalculateFurusatoResults($data, $request, false);
     }
 
     /**
@@ -289,7 +293,8 @@ class PdfOutputController extends Controller
         $data = $this->resolveAuthorizedDataOrFail($request);
         // ★最重要：PDF出力は必ず再計算して最新SoTにしてからキャッシュキーを作る
         // （外部マスタ更新等で inputs の updated_at が動かないケースでも必ず最新化）
-        $this->forceRecalculateFurusatoResults($data, $request);
+        // download は“成果物”なので常に最新（上限探索含む）
+        $this->forceRecalculateFurusatoResults($data, $request, true);
         $reportObj = $this->reports->resolve($report);
  
         // 標準：fast + dompdf（必要ならクエリで切替）

@@ -97,10 +97,10 @@
         <div class="card-body">
             <h13><strong>○席数の利用状況</strong>　　※ Client ロールと停止中ユーザーは席数に含まれません。</h13>
             <div class="table-responsive table-m-top mt-1">
-                <table class="table-base table-bordered align-middle w-auto">
+                <table class="table-base table-bordered align-middle w-auto" style="width: 320px;">
                     <tbody>
                         <tr>
-                            <th style="width: 60px">上限席数</th>
+                            <th class="text-start ps-1" style="width: 100px;">上限席数</th>
                             <td style="width: 60px">
                                 @if (is_int($seatUsage['active_seats']))
                                     {{ number_format($seatUsage['active_seats']) }} 席
@@ -108,13 +108,13 @@
                                     ―
                                 @endif
                             </td>
-                            <th class="table-light" style="width: 20%">在籍（有効）</th>
-                            <td style="width: 30%">{{ number_format($seatUsage['active_users']) }} 名</td>
+                            <th class="text-start ps-1" style="width: 100px;">在籍（有効）</th>
+                            <td style="width: 60px;">{{ number_format($seatUsage['active_users']) }} 名</td>
                         </tr>
                         <tr>
-                            <th class="table-light">予約（招待中）</th>
+                            <th class="text-start ps-1">予約（招待中）</th>
                             <td>{{ number_format($seatUsage['pending_invites']) }} 名</td>
-                            <th class="table-light">残り席数</th>
+                            <th class="text-start ps-1">残り席数</th>
                             <td>
                                 @if (is_int($remainingSeats))
                                     {{ number_format($remainingSeats) }} 席
@@ -132,19 +132,19 @@
     <div class="card shadow-sm">
         <div class="card-body">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-2">
-                <hb>○ユーザー一覧</hb>
+                <hb>○ユーザー 一覧</hb>
                 <hs class="me-3">全 {{ number_format($usersPaginator->total()) }} 名</hs>
             </div>
             <div class="table-responsive table-m-top">
-                <table class="table-base table-bordered align-middle w-auto">
+                <table class="table-input align-middle w-auto p-2">
                     <thead>
-                        <tr>
-                            <th scope="col" class="text-center" style="width: 140px;">氏 名</th>
+                        <tr style="height: 30px;">
+                            <th scope="col" class="text-center" style="width: 150px;">氏 名</th>
                             <th scope="col" class="text-center" style="width: 220px;">メールアドレス</th>
                             <th scope="col" class="text-center" style="width: 100px;">部 署</th>
                             <th scope="col" class="text-center" style="width: 60px;">役 割</th>
                             @if ($hasIsActive)
-                                <th scope="col" class="text-center">状態</th>
+                                <th scope="col" class="text-center" style="width: 40px;">状態</th>
                             @endif
                             <th scope="col" class="text-center" style="width: 120px;">操 作</th>
                         </tr>
@@ -160,7 +160,7 @@
                                 $canToggle = $hasIsActive && $canManageSeats && ! $isOwnerRow && ($activateRouteName && $deactivateRouteName);
                             @endphp
                             <tr @class(['table-secondary' => ! $isActive && $hasIsActive])>
-                                <td class="text-start">
+                                <td class="text-start ps-1">
                                     <div class="fw-semibold">{{ $user->name }}</div>
                                     <div class="text-muted small">ID: {{ $user->id }}</div>
                                 </td>

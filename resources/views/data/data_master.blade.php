@@ -205,7 +205,7 @@
             <label class="me-3">年度</label>
             <select class="form-select form-select-sm" style="height:30px; width:100px;" x-model.number="yearSelected">
               <template x-for="y in yearOptions" :key="y">
-                <option :value="y" x-text="y + '年'"></option>
+                <option :value="y" x-text="warekiYearLabel(y)"></option>
               </template>
             </select>
           </div>
@@ -306,7 +306,17 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
     toggleSort(){ this.sortOrder = (this.sortOrder==='desc') ? 'asc' : 'desc'; this.updateDataFilter(); },
 
     // ---- year modal ----
-    formatYear(y){ return (Number(y)||0) ? `${y}年` : '—'; },
+    warekiYearLabel(y){
+      const yy = Number(y || 0) || 0;
+      if (!yy) return '—';
+      // 年だけなので 1/1 基準で元号判定（2019→平成31年）
+      if (yy >= 2019) return `令和${yy - 2018}年`;
+      if (yy >= 1989) return `平成${yy - 1988}年`;
+      if (yy >= 1926) return `昭和${yy - 1925}年`;
+      if (yy >= 1912) return `大正${yy - 1911}年`;
+      return `${yy}年`;
+    },
+    formatYear(y){ return this.warekiYearLabel(y); },
     isPrivate(row){ return String(row?.visibility || 'shared') === 'private'; },
     buildYearOptions(){
       // 一旦：2025〜2035 に固定

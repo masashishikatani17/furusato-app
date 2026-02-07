@@ -47,18 +47,24 @@
             <tr>
               <th class="text-start ps-2" style="height:33px; width:150px;">データ作成日</th>
               <td class="text-start" style="width:400px;">
-                <input type="date" class="form-control text-start" style="height:32px; width:150px;" value="{{ old('data_created_on', (string)($data->data_created_on ?? $today)) }}" readonly>
+                <x-furusato.wareki-date
+                  :name="null"
+                  id="edit_data_created_on_view"
+                  :readonly="true"
+                  :value="old('data_created_on', (string)($data->data_created_on ?? $today))"
+                />
               </td>
             </tr>
             <tr>
               <th class="text-start ps-2" style="height:33px;">提案書日（必須）</th>
               <td class="text-start">
-                <input type="date"
-                       name="proposal_date"
-                       class="form-control text-start"
-                        style="height:32px;"
-                       required
-                       value="{{ old('proposal_date', (string)($data->proposal_date ?? $today)) }}">
+                <x-furusato.wareki-date
+                  name="proposal_date"
+                  id="edit_proposal_date"
+                  :required="true"
+                  :readonly="false"
+                  :value="old('proposal_date', (string)($data->proposal_date ?? $today))"
+                />
               </td>
             </tr>
     
@@ -85,7 +91,7 @@
                 @php $yy = (int)old('kihu_year', (int)($data->kihu_year ?? 0)); @endphp
                 <select class="form-select text-start" style="height:32px;width:150px;" name="kihu_year" required>
                   @foreach($years as $y)
-                    <option value="{{ $y }}" @selected((int)$yy === (int)$y)>{{ $y }}年</option>
+                    <option value="{{ $y }}" @selected((int)$yy === (int)$y)>{{ \App\Support\WarekiDate::formatYear((int)$y) }}</option>
                   @endforeach
                 </select>
               </td>

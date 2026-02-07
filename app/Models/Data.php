@@ -30,6 +30,8 @@ class Data extends Model
         'owner_user_id' => 'integer',
         'kihu_year'     => 'integer',
         'visibility'    => 'string',
+        'data_created_on' => 'date',
+        'proposal_date'   => 'date',
     ];
 
     public function guest()

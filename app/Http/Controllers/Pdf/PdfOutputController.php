@@ -182,8 +182,9 @@ class PdfOutputController extends Controller
     public function preview(Request $request, string $report)
     {
         $data = $this->resolveAuthorizedDataOrFail($request);
-        // ★HTMLプレビューも常に最新を担保（PDFと同じSoTで整合）
-        $this->ensureLatestFurusatoResults($data, $request);
+        // ★要件：帳票プレビューも「必ず最新」で、上限探索まで含めて最新化する
+        //   - 入力が変わっていなくても外部マスタ更新等を吸収する
+        $this->forceRecalculateFurusatoResults($data, $request, true);
         $reportObj = $this->reports->resolve($report);
 
         // Bundle の場合：骨組みHTML（即返却）＋JSONでページHTMLを一括取得して埋め込む
@@ -923,12 +924,13 @@ class PdfOutputController extends Controller
             $writer = new FurusatoHyoshiTemplateWriter($tplPath, $fontPath);
 
             $guest = (string)($data->guest?->name ?? '');
-            $date  = (string)($data->proposal_date ?? $data->data_created_on ?? now()->toDateString());
+            $dateIso  = (string)($data->proposal_date ?? $data->data_created_on ?? now()->toDateString());
+            $dateWareki = \App\Support\WarekiDate::format($dateIso);
             $org   = ''; // 必要ならここに事務所名等
 
             $pdfStr = $writer->render([
                 'guest_name' => $guest !== '' ? ($guest . '様') : '',
-                'date'       => $date,
+                'date'       => $dateWareki !== '' ? $dateWareki : $dateIso,
                 'org'        => $org,
                 // 初期はtrue（TEST-XYを表示）。座標が合ったらfalseにしてOK
                 'show_test'  => true,

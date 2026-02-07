@@ -82,14 +82,13 @@
       <tr>
         <th class="text-start ps-2" style="height:33px;">生年月日（西暦）</th>
         <td class="text-start">
-          <input type="date"
-                 name="birth_date"
-                 id="birth_date"
-                 class="form-control text-start"
-                 style="width:150px;height:32px;"
-                 placeholder="YYYY-MM-DD"
-                 value="{{ $isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate) }}"
-                 {{ $isClient ? 'readonly' : '' }}>
+          <x-furusato.wareki-date
+            name="birth_date"
+            id="birth_date"
+            :required="false"
+            :readonly="$isClient"
+            :value="$isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate)"
+          />
         </td>
       </tr>
 
@@ -129,7 +128,7 @@
           @endphp
           <select name="kihu_year" id="kihu_year" class="form-select" style="height:32px;max-width:80px;">
             @for ($y = $maxY; $y >= $minY; $y--)
-              <option value="{{ $y }}" @selected((int)$oldYear === (int)$y)>{{ $y }}年</option>
+              <option value="{{ $y }}" @selected((int)$oldYear === (int)$y)>{{ \App\Support\WarekiDate::formatYear((int)$y) }}</option>
             @endfor
           </select>
         </td>
@@ -138,7 +137,12 @@
       <tr>
         <th class="text-start ps-2" style="height:33px;">データ作成日</th>
         <td class="text-start">
-          <input type="date" class="form-control text-start" style="height:32px; width:150px;" value="{{ $today }}" readonly>
+          <x-furusato.wareki-date
+            :name="null"
+            id="data_created_on_view"
+            :readonly="true"
+            :value="$today"
+          />
         </td>
       </tr>
 
@@ -146,12 +150,13 @@
       <tr>
         <th class="text-start ps-2" style="height:33px;">提案書日</th>
         <td class="text-start">
-          <input type="date"
-                 name="proposal_date"
-                 id="proposal_date"
-                 class="form-control text-start"
-                 style="height:32px; width:150px;"
-                 value="{{ $proposalDefault }}">
+          <x-furusato.wareki-date
+            name="proposal_date"
+            id="proposal_date"
+            :required="true"
+            :readonly="false"
+            :value="$proposalDefault"
+          />
         </td>
       </tr>
       </tbody>
@@ -223,17 +228,16 @@
   const gId       = document.getElementById('guest_id');
   const btnOpen   = document.getElementById('btn-open-guest-modal');
   const guestList = document.getElementById('guestListBody');
-  const birthInput = document.getElementById('birth_date');
+  const setBirthDate = (value) => {
+    if (window.WarekiDatePicker && typeof window.WarekiDatePicker.setIsoByName === 'function') {
+      window.WarekiDatePicker.setIsoByName('birth_date', value || '');
+    }
+  };
 
   // client などで「登録済選択UI」が無い場合は、以降のモーダル処理を無効化（null参照回避）
   const hasGuestSelectorUi = !!(gmNew || gmExist || guestList);
 
-  const setBirthDate = (value) => {
-    if (!birthInput) {
-      return;
-    }
-    birthInput.value = value || '';
-  };
+  // birth_date の反映は共通コンポーネントへ
 
   const openGuestModal = () => {
     const hasAny = guestList && guestList.querySelectorAll('tr.selectable-guest').length > 0;
@@ -297,9 +301,7 @@
 
   if (gId?.value) {
     const selectedRow = guestList?.querySelector(`tr.selectable-guest[data-id="${gId.value}"]`);
-    if (selectedRow && (!birthInput || !birthInput.value)) {
-      setBirthDate(selectedRow.dataset.birthDate || '');
-    }
+    if (selectedRow) { setBirthDate(selectedRow.dataset.birthDate || ''); }
   }
 
   // サーバ側「年度重複」検知 → モーダルのみ表示（上部のエラーは出さない）

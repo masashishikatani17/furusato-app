@@ -15,11 +15,23 @@ class HyoshiReport implements ReportInterface
 
     public function buildViewData(Data $data): array
     {
-        // Data表示は将来埋める前提で “いったん空欄” を渡す
+        // 表紙テンプレWriter（FurusatoHyoshiTemplateWriter）が期待するキーで返す
+        // - fast bundle では Controller の hyoshi 特例を通らず、Report::buildViewData がそのまま Writer に渡るため
+        // - 互換のため cover_* も残す
+        $guest = (string)($data->guest?->name ?? '');
+        $dateIso = (string)($data->proposal_date ?? $data->data_created_on ?? now()->toDateString());
+        $dateWareki = \App\Support\WarekiDate::format($dateIso);
+        $date = $dateWareki !== '' ? $dateWareki : $dateIso;
+
         return [
             'title' => '表紙',
-            'cover_guest_name' => '',
-            'cover_date'       => '',
+            // Writer 用（★こちらが本命）
+            'guest_name' => $guest !== '' ? ($guest . '様') : '',
+            'date'       => $date,
+            'org'        => '',
+            // 互換（Blade側が cover_* を見ている場合の保険）
+            'cover_guest_name' => $guest !== '' ? ($guest . '様') : '',
+            'cover_date'       => $date,
             'cover_org'        => '',
             'data_id'          => (int)$data->id,
         ];

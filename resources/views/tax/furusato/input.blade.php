@@ -214,6 +214,19 @@
              href="#"
              data-download-url="{{ $bundleUrl }}"
              data-status-url="{{ $bundleStatusUrl }}">PDF出力</a>
+
+          {{-- ▼ 新規：帳票プレビュー（サムネ一覧→拡大） --}}
+          @php
+            $bundlePreviewJsonUrl = route('pdf.preview', ['report' => 'furusato_bundle'])
+              . '?data_id=' . urlencode((string)($dataId ?? ''))
+              . '&one_stop_flag_curr=' . urlencode($oneStopCurr)
+              . '&pdf_variant=max'
+              . '&format=json';
+          @endphp
+          <a id="furusato-preview-button"
+             class="btn-base-blue"
+             href="#"
+             data-preview-json-url="{{ $bundlePreviewJsonUrl }}">帳票プレビュー</a>
         </div>
       </div> 
 <!--      @includeWhen(config('app.debug'), 'components.furusato.totals_debug') -->
@@ -2129,6 +2142,9 @@
     </div>
   </div>
 </div>
+
+{{-- 帳票プレビュー モーダル群（Blade分割） --}}
+@include('tax.furusato.partials.report_preview_modal')
 {{-- ============================
    PDF出力モーダル（3択）
    - プレビュー無し：選択後にそのまま download を開始
@@ -3962,4 +3978,11 @@
     }
   });
 </script>
+@endpush
+
+@push('scripts')
+  {{-- SortableJS（ドラッグ並び替え） --}}
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  {{-- 帳票プレビュー（HTMLサムネ） --}}
+  <script src="{{ asset('js/common/furusato_report_preview.js') }}" defer></script>
 @endpush

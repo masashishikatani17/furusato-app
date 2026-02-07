@@ -112,14 +112,13 @@
               生年月日（西暦）
             </th>
             <td class="text-start">
-              <input type="date"
-                     name="birth_date"
-                     id="copy_birth_date"
-                     class="form-control text-start"
-                     style="height:32px;width:150px;"
-                     placeholder="YYYY-MM-DD"
-                     value="{{ $isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate) }}"
-                     {{ $isClient ? 'readonly' : '' }}>
+              <x-furusato.wareki-date
+                name="birth_date"
+                id="copy_birth_date"
+                :required="false"
+                :readonly="$isClient"
+                :value="$isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate)"
+              />
             </td>
           </tr>
 
@@ -150,7 +149,7 @@
                   <label class="form-check form-check-inline me-0" style="min-width: 90px;">
                     <input class="form-check-input" type="checkbox" name="years[]" value="{{ $y }}"
                            @checked(in_array($y, $oldYears, true))>
-                    <span class="ms-1">{{ $y }}年</span>
+                    <span class="ms-1">{{ \App\Support\WarekiDate::formatYear((int)$y) }}</span>
                   </label>
                 @endforeach
               </div>
@@ -189,7 +188,12 @@
               データ作成日
             </th>
             <td class="text-start">
-              <input type="date" class="form-control text-start" style="height:32px;width:150px;" value="{{ $today }}" readonly>
+              <x-furusato.wareki-date
+                :name="null"
+                id="copy_data_created_on_view"
+                :readonly="true"
+                :value="$today"
+              />
             </td>
           </tr>
 
@@ -199,12 +203,13 @@
               提案書日
             </th>
             <td class="text-start">
-              <input type="date"
-                     name="proposal_date"
-                     id="proposal_date"
-                     class="form-control text-start"
-                     style="height:32px;width:150px;"
-                     value="{{ $proposalDefault }}">
+              <x-furusato.wareki-date
+                name="proposal_date"
+                id="copy_proposal_date"
+                :required="true"
+                :readonly="false"
+                :value="$proposalDefault"
+              />
             </td>
           </tr>
 
@@ -291,14 +296,12 @@
   const targetId   = document.getElementById('target_guest_id');
   const guestList  = document.getElementById('guestListBody');
   const selectedLbl= document.getElementById('selected-guest-label');
-  const birthInput = document.getElementById('copy_birth_date');
   const defaultBirthDate = @js($defaultBirthDate);
 
   const setBirthDate = (value) => {
-    if (!birthInput) {
-      return;
+    if (window.WarekiDatePicker && typeof window.WarekiDatePicker.setIsoByName === 'function') {
+      window.WarekiDatePicker.setIsoByName('birth_date', value || '');
     }
-    birthInput.value = value || '';
   };
 
   // 初期：same → 元のお客様名（読み取り）
@@ -309,7 +312,7 @@
       targetName.readOnly = true;
     }
     if (selectedLbl) selectedLbl.textContent = '';
-    if (force || !birthInput || birthInput.value === '') {
+    if (force) {
       setBirthDate(defaultBirthDate);
     }
   }

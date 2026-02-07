@@ -128,7 +128,9 @@ final class FurusatoBundleHybridPdfBuilder
 
         // 表紙に載せたい値（暫定）
         $guestName = (string)($data->guest?->name ?? '');
-        $date = (string)($data->proposal_date ?? $data->data_created_on ?? now()->toDateString());
+        $dateIso = (string)($data->proposal_date ?? $data->data_created_on ?? now()->toDateString());
+        $dateWareki = \App\Support\WarekiDate::format($dateIso);
+        $date = $dateWareki !== '' ? $dateWareki : $dateIso;
         $org  = ''; // 必要なら会社名/事務所名を入れる
 
         return $writer->render([

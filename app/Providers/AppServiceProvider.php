@@ -19,6 +19,7 @@ use App\Domain\Tax\Calculators\JutakuLoanCreditCalculator;
 use App\Domain\Tax\Calculators\KifukinCalculator;
 use App\Domain\Tax\Calculators\KisoKojoCalculator;
 use App\Domain\Tax\Calculators\KojoAggregationCalculator;
+use App\Domain\Tax\Calculators\KojoIryoCalculator;
 use App\Domain\Tax\Calculators\CommonSumsCalculator;
 use App\Domain\Tax\Calculators\CommonTaxableBaseCalculator;
 use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
@@ -82,6 +83,7 @@ class AppServiceProvider extends ServiceProvider
             JintekiKojoDiffCalculator::class,
             ShinkokushoKifukinTotalsCalculator::class,
             KifukinCalculator::class,
+            KojoIryoCalculator::class,
             KojoAggregationCalculator::class,
             // 5) 課税標準→税額→特例
             CommonTaxableBaseCalculator::class,

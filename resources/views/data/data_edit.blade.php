@@ -106,7 +106,7 @@
                        maxlength="25"
                        value="{{ old('data_name', (string)($data->data_name ?? 'default')) }}"
                        required>
-                <div class="text-muted mt-1" style="font-size:12px;">
+                <div class="text-muted ms-1 mt-1 mb-1" style="font-size:12px;">
                   ※改行・タブ・制御文字・\ / : * ? " &lt; &gt; | は使用できません。
                 </div>
               </td>

@@ -62,7 +62,15 @@ Route::middleware(['auth', 'reject.client'])->group(function () {
         Route::patch('/{user}/deactivate', [UsersController::class, 'deactivate'])->name('deactivate');
         Route::patch('/{user}/activate', [UsersController::class, 'activate'])->name('activate');
     });
-    Route::get('/admin/groups', [GroupsController::class, 'index'])->name('admin.groups.index');
+    Route::prefix('admin/groups')->name('admin.groups.')->group(function () {
+        Route::get('/', [GroupsController::class, 'index'])->name('index');
+        Route::post('/', [GroupsController::class, 'store'])->name('store');
+        Route::put('/{group}', [GroupsController::class, 'update'])->whereNumber('group')->name('update');
+        Route::patch('/{group}/deactivate', [GroupsController::class, 'deactivate'])->whereNumber('group')->name('deactivate');
+        Route::patch('/{group}/activate', [GroupsController::class, 'activate'])->whereNumber('group')->name('activate');
+        Route::delete('/{group}', [GroupsController::class, 'destroy'])->whereNumber('group')->name('destroy');
+        Route::post('/{group}/transfer', [GroupsController::class, 'transfer'])->whereNumber('group')->name('transfer');
+    });
     Route::get('/admin/billing/receipts', [BillingReceiptsController::class, 'index'])->name('admin.billing.receipts.index');
     Route::get('/admin/owner-transfer', [OwnerTransferController::class, 'form'])->name('admin.ownerTransfer.form');
     Route::get('/admin/data-download', [DataDownloadController::class, 'index'])->name('admin.data_download.index');

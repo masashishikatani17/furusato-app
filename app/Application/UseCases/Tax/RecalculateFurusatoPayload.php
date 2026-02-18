@@ -122,6 +122,21 @@ class RecalculateFurusatoPayload
             )) {
                 continue;
             }
+
+            // ▼ 医療費控除：派生キーは入力diffから除外（SoTはサーバで確定）
+            //    - 入力SoTは A/B のみ（kojo_iryo_shiharai_*, kojo_iryo_hotengaku_*）
+            //    - それ以外（ⒸⒺⒻⒼ、第一表ブリッジ）は KojoIryoCalculator が必ず再生成する
+            if (is_string($key) && (
+                str_starts_with($key, 'kojo_iryo_sashihiki_') ||
+                str_starts_with($key, 'kojo_iryo_shotoku_gokei_') ||
+                str_starts_with($key, 'kojo_iryo_shotoku_5pct_') ||
+                str_starts_with($key, 'kojo_iryo_min_threshold_') ||
+                str_starts_with($key, 'kojo_iryo_kojogaku_') ||
+                str_starts_with($key, 'kojo_iryo_shotoku_') ||
+                str_starts_with($key, 'kojo_iryo_jumin_')
+            )) {
+                continue;
+            }
             $payload[$key] = $value;
         }
 

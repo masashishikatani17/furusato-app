@@ -28,6 +28,7 @@ final class TaxGokeiCalculator implements ProvidesKeys
 
     public const AFTER = [
         SeitotoTokubetsuZeigakuKojoCalculator::ID,
+        ItaxKaisyuCreditCalculator::ID,
         JuminJutakuLoanCreditCalculator::ID,
         JuminzeiKifukinCalculator::ID,
     ];
@@ -81,7 +82,7 @@ final class TaxGokeiCalculator implements ProvidesKeys
         foreach (self::PERIODS as $p) {
             // --- 所得税（支払額） ---
             // まずは「寄附税額控除等を適用した後の残税額」を基礎にする
-            $baseItax = $this->n($payload["tax_sashihiki_shotoku_{$p}"] ?? null);
+            $baseItax = $this->n($payload["tax_after_kaisyu_shotoku_{$p}"] ?? $payload["tax_sashihiki_shotoku_{$p}"] ?? null);
             if ($baseItax <= 0) {
                 // 保険：最低限のフォールバック（通常は tax_sashihiki が埋まる）
                 $baseItax = $this->n($payload["tax_after_jutaku_shotoku_{$p}"] ?? null);

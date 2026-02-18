@@ -7,7 +7,7 @@
            ========================================================================== */
 
 :root {
-    --readonly-bg: #C3C7CF;
+    --readonly-bg:  #EFF2F5;
     --readonly-text: #212529;
     /* spacing（帳票で var(--sp-3,20px) 等を使うため） */
     --sp-1: 4px;
@@ -56,7 +56,7 @@
     .readonly-span {
         display: block;
         width: 100%;
-        background-color: #C3C7CF !important;
+        background-color:  #EFF2F5 !important;
         color: var(--readonly-text);
         padding: 4px;
         box-sizing: border-box;
@@ -87,7 +87,7 @@
    
    /* ✅ ここが本丸：
      - Bootstrap の .bg-light と衝突しやすいので「フォーム部品だけ」狙い撃ち
-     - readonly / :read-only / server-lock / 表示専用(data-*) を #e1e1e1 に統一 */
+     - readonly / :read-only / server-lock / 表示専用(data-*) を  #EFF2F5 に統一 */
       input.form-control.bg-light[readonly],
       textarea.form-control.bg-light[readonly],
       select.form-select.bg-light[readonly],
@@ -101,7 +101,7 @@
       textarea.form-control[data-display-only="1"],
       input.form-control[data-ui-only="1"],
       textarea.form-control[data-ui-only="1"] {
-        background-color: #e1e1e1 !important;
+        background-color: #EFF2F5 !important;
         color: var(--readonly-text) !important;
       }  
       
@@ -564,7 +564,7 @@
               z-index: 1;
               width: 261mm;       /* 見出しと同じ幅に寄せる */
               font-size: 11px;
-        	  border: 0.6mm solid #000;
+        	    border: 0.6mm solid #000;
             }
         
              table.table-p td,
@@ -1109,6 +1109,33 @@
             margin: 0 !important; /* ★外側余白をゼロ */
         }
   
+       .kana20 {
+            font-size: 13px;
+            height: 22px;
+            width: 300px;
+            text-align: left;
+            border-color:#d0d0d0;
+            margin: 0 !important; /* ★外側余白をゼロ */
+        }
+        
+        .kana25 {
+            font-size: 13px;
+            height: 22px;
+            width: 360px;
+            text-align: left;
+            border-color:#d0d0d0;
+            margin: 0 !important; /* ★外側余白をゼロ */
+        }
+        
+         .kana35 {
+            font-size: 13px;
+            height: 22px;
+            width: 500px;
+            text-align: left;
+            border-color:#d0d0d0;
+            margin: 0 !important; /* ★外側余白をゼロ */
+        }
+        
         .suji2 {
             width: 45px !important;
             height: 22px;

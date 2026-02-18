@@ -44,7 +44,12 @@
             ],
         ],
     ];
+
+  // 分離譲渡ページ専用 HELP 辞書
+  $helpPath = resource_path('views/tax/furusato/helps/help_bunrijoto_modal.php');
+  $HELP_TEXTS = file_exists($helpPath) ? require $helpPath : [];
 @endphp
+
 <div class="container-blue mt-2" style="width: 1050px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
@@ -206,13 +211,28 @@
           </div>
         @endforeach
         <hr class="mb-2">
-        <div class="text-end gap-2">
-          <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
-          <button type="submit"
-                  class="btn-base-green"
-                  id="btn-recalc"
-                  data-disable-on-submit>再計算</button>
-        </div>
+        <div class="d-flex justify-content-between">
+            <div>
+              <button type="submit"
+                      class="btn-base-green"
+                      id="btn-recalc"
+                      data-disable-on-submit>再計算</button>
+            </div>
+            <div class="d-flex">
+               <!-- HELP（戻るの左） -->
+                  <button type="button"
+                          class="btn-base-blue js-help-btn-bunrijoto me-2"
+                          data-help-key="bunri_joto_tansho_choki"
+                          data-bs-toggle="modal"
+                          data-bs-target="#helpModalBunriJoto">HELP</button>
+                  <!-- 戻る: 再計算+保存して第一表へ（redirect_to=input を明示） -->
+                  <button type="submit"
+                          class="btn-base-blue"
+                          name="redirect_to"
+                          value="input"
+                          onclick="this.form.stay_on_details.value='0';">戻 る</button>
+            </div>
+          </div>
       </form>
   </div>
 </div>
@@ -470,8 +490,101 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
- 
+@push('styles')
+<style>
+  /* 分離譲渡ページのHELPモーダルだけ */
+  #helpModalBunriJoto .modal-dialog { max-width: 550px; }
+  #helpModalBunriJoto .modal-content { font-family: inherit; font-size: 15px; }
+  #helpModalBunriJoto .modal-body { padding-left: 2rem; padding-right: 2rem; }
+
+  /* 「○」行：太字＋色 */
+  #helpModalBunriJoto #helpModalBodyBunriJoto strong.help-bullet {
+    font-weight: 700;
+    color: #192C4B;
+  }
+  /* 「(1)」など：太字のみ（色はそのまま） */
+  #helpModalBunriJoto #helpModalBodyBunriJoto strong.help-num {
+    font-weight: 700;
+  }
+  /* __下線__ 記法 */
+  #helpModalBunriJoto #helpModalBodyBunriJoto u { text-underline-offset: 2px; }
+</style>
+@endpush
+<script>
+  window.__PAGE_HELP_TEXTS_BUNRIJOTO__ = @json($HELP_TEXTS, JSON_UNESCAPED_UNICODE);
+</script>
 {{-- Enter移動（ふるさと全画面共通） --}}
+{{-- 共通HELPモーダル（分離譲渡ページ専用） --}}
+<div class="modal fade" id="helpModalBunriJoto" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitleBunriJoto">HELP</h15>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-start">
+        <div id="helpModalBodyBunriJoto" style="white-space: normal;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@push('scripts')
+<script>
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.js-help-btn-bunrijoto');
+    if (!btn) return;
+
+    const key  = btn.getAttribute('data-help-key') || '';
+    const dict = window.__PAGE_HELP_TEXTS_BUNRIJOTO__ || {};
+    const item = dict[key];
+
+    const title = item?.title ?? 'HELP';
+    const body  = item?.body  ?? '（この項目のHELPは未登録です）';
+
+    const titleEl = document.getElementById('helpModalTitleBunriJoto');
+    const bodyEl  = document.getElementById('helpModalBodyBunriJoto');
+    if (titleEl) titleEl.textContent = title;
+    if (!bodyEl) return;
+
+    const escapeHtml = (s) => String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    const underline = (safeText) => safeText.replace(/__([^_]+)__/g, '<u>$1</u>');
+
+    const html = String(body)
+      .split('\n')
+      .map((line) => {
+        if (line === '') return '';
+
+        // 行頭「(1)」「(2)」など：太字（色はそのまま）
+        const mNum = line.match(/^(\s*\(\d+\)\s*[^　 ]*)(.*)$/);
+        if (mNum) {
+          const head = underline(escapeHtml(mNum[1]));
+          const rest = underline(escapeHtml(mNum[2] ?? ''));
+          return `<strong class="help-num">${head}</strong>${rest}`;
+        }
+
+        // 行頭「○」：太字＋色
+        const m = line.match(/^(\s*○\s*[^・…：:　]+?)(\s*・・・\s*.*)?$/);
+        if (m) {
+          const head = underline(escapeHtml(m[1]));
+          const rest = underline(escapeHtml(m[2] ?? ''));
+          return `<strong class="help-bullet">${head}</strong>${rest}`;
+        }
+
+        return underline(escapeHtml(line));
+      })
+      .join('<br>');
+
+    bodyEl.innerHTML = html;
+  });
+</script>
+@endpush
 @include('tax.furusato.partials.enter_nav')
 
 @endsection

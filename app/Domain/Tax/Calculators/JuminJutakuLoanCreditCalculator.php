@@ -15,7 +15,11 @@ class JuminJutakuLoanCreditCalculator implements ProvidesKeys
     public const ID = 'tax.jumin.jutaku';
     // 【制度順】住民税の算出税額（JuminTax）→ 本Calculator →（後段）寄附金税額控除 等
     public const ORDER = 5210;
-    public const BEFORE = [JuminzeiKifukinCalculator::ID];
+    // NOTE:
+    // 住民税寄附金税額控除（JuminzeiKifukin）は「住宅ローン控除の後」に実行したい。
+    // 依存は JuminzeiKifukinCalculator 側の AFTER により担保されているため、
+    // ここで BEFORE を持たせると循環（cycle）になり得る。
+    public const BEFORE = [];
     public const AFTER  = [JuminTaxCalculator::ID, CommonTaxableBaseCalculator::ID, JutakuLoanCreditCalculator::ID];
 
     /** @var string[] */

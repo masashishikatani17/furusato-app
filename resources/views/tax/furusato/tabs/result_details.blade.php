@@ -1600,7 +1600,7 @@
             </td>
           </tr>
           @php
-            // ▼ 仕様3（A案）：住民税の寄付金額は pref/muni 入力のみをSoTにする（旧合算キー参照なし）
+            // ▼ 仕様3（A案）：住民税の寄附金額は pref/muni 入力のみをSoTにする（旧合算キー参照なし）
             $nInt3 = static function ($v): int {
                 if ($v === null || $v === '') return 0;
                 if (is_string($v)) $v = str_replace([',', ' '], '', $v);
@@ -1628,9 +1628,9 @@
             $othCurrMuni3 = $sumJumin3($inputs, 'muni', 'curr', $othCats3);
           @endphp
 
-          {{-- ふるさと納税寄付金額（都道府県／市区町村） --}}
+          {{-- ふるさと納税寄附金額（都道府県／市区町村） --}}
           <tr>
-            <th rowspan="2" class="text-start ps-1 align-middle" style="width:150px;">ふるさと納税寄付金額</th>
+            <th rowspan="2" class="text-start ps-1 align-middle" style="width:150px;">ふるさと納税寄附金額</th>
             <th style="width:76px;">都道府県</th>
             <td class="text-end" style="width:128px;">
               <input type="text"
@@ -1661,9 +1661,9 @@
             </td>
           </tr>
 
-          {{-- その他寄付金額（共同募金等・NPO・公益・その他）（都道府県／市区町村） --}}
+          {{-- その他寄附金額（共同募金等・NPO・公益・その他）（都道府県／市区町村） --}}
           <tr>
-            <th rowspan="2" class="text-start ps-1 align-middle">その他寄付金額</th>
+            <th rowspan="2" class="text-start ps-1 align-middle">その他寄附金額</th>
             <th>都道府県</th>
             <td class="text-end">
               <input type="text"
@@ -1977,52 +1977,73 @@
             <th rowspan="3" class="text-start ps-1 align-middle">寄附金税額控除</th>
             <th>都道府県</th>
             <td class="text-end">
-              <input type="text"
-                     readonly
-                     name="kifukin_zeigaku_kojo_pref_prev"
-                     class="form-control suji11 bg-light"
-                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_pref_prev') }}">
+              @php
+                // ▼ 表示専用：天井適用「前」の寄附金税額控除（県）
+                //   = 基本控除 + 上限適用後特例控除 +（ワンストップ時）申告特例控除
+                $kihonPrefPrev   = (int)($inputs['kihon_kojo_pref_prev'] ?? 0);
+                $tokureiPrefPrev = (int)($inputs['tokurei_kojo_jogen_pref_prev'] ?? 0);
+                $shinkokuPrefPrev= (int)($inputs['shinkokutokurei_kojo_pref_prev'] ?? 0);
+                $kifukinPrefPreCapPrev = $kihonPrefPrev + $tokureiPrefPrev + ($oneStopPrevFlag === 1 ? $shinkokuPrefPrev : 0);
+                // SoT（天井適用後）は hidden で保持（保存経路に混入させない）
+                $kifukinPrefPostCapPrev = (int)($inputs['kifukin_zeigaku_kojo_pref_prev'] ?? 0);
+              @endphp
+              <input type="text" readonly class="form-control suji11 bg-light" value="{{ number_format($kifukinPrefPreCapPrev) }}" data-ui-only="1">
+              <input type="hidden" name="kifukin_zeigaku_kojo_pref_prev" value="{{ $kifukinPrefPostCapPrev }}">
             </td>
             <td class="text-end">
-              <input type="text"
-                     readonly
-                     name="kifukin_zeigaku_kojo_pref_curr"
-                     class="form-control suji11 bg-light"
-                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_pref_curr') }}">
+              @php
+                $kihonPrefCurr   = (int)($inputs['kihon_kojo_pref_curr'] ?? 0);
+                $tokureiPrefCurr = (int)($inputs['tokurei_kojo_jogen_pref_curr'] ?? 0);
+                $shinkokuPrefCurr= (int)($inputs['shinkokutokurei_kojo_pref_curr'] ?? 0);
+                $kifukinPrefPreCapCurr = $kihonPrefCurr + $tokureiPrefCurr + ($oneStopCurrFlag === 1 ? $shinkokuPrefCurr : 0);
+                $kifukinPrefPostCapCurr = (int)($inputs['kifukin_zeigaku_kojo_pref_curr'] ?? 0);
+              @endphp
+              <input type="text" readonly class="form-control suji11 bg-light" value="{{ number_format($kifukinPrefPreCapCurr) }}" data-ui-only="1">
+              <input type="hidden" name="kifukin_zeigaku_kojo_pref_curr" value="{{ $kifukinPrefPostCapCurr }}">
             </td>
           </tr>
           <tr>
             <th>市区町村</th>
             <td class="text-end">
-              <input type="text"
-                     readonly
-                     name="kifukin_zeigaku_kojo_muni_prev"
-                     class="form-control suji11 bg-light"
-                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_muni_prev') }}">
+              @php
+                $kihonMuniPrev   = (int)($inputs['kihon_kojo_muni_prev'] ?? 0);
+                $tokureiMuniPrev = (int)($inputs['tokurei_kojo_jogen_muni_prev'] ?? 0);
+                $shinkokuMuniPrev= (int)($inputs['shinkokutokurei_kojo_muni_prev'] ?? 0);
+                $kifukinMuniPreCapPrev = $kihonMuniPrev + $tokureiMuniPrev + ($oneStopPrevFlag === 1 ? $shinkokuMuniPrev : 0);
+                $kifukinMuniPostCapPrev = (int)($inputs['kifukin_zeigaku_kojo_muni_prev'] ?? 0);
+              @endphp
+              <input type="text" readonly class="form-control suji11 bg-light" value="{{ number_format($kifukinMuniPreCapPrev) }}" data-ui-only="1">
+              <input type="hidden" name="kifukin_zeigaku_kojo_muni_prev" value="{{ $kifukinMuniPostCapPrev }}">
             </td>
             <td class="text-end">
-              <input type="text"
-                     readonly
-                     name="kifukin_zeigaku_kojo_muni_curr"
-                     class="form-control suji11 bg-light"
-                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_muni_curr') }}">
+              @php
+                $kihonMuniCurr   = (int)($inputs['kihon_kojo_muni_curr'] ?? 0);
+                $tokureiMuniCurr = (int)($inputs['tokurei_kojo_jogen_muni_curr'] ?? 0);
+                $shinkokuMuniCurr= (int)($inputs['shinkokutokurei_kojo_muni_curr'] ?? 0);
+                $kifukinMuniPreCapCurr = $kihonMuniCurr + $tokureiMuniCurr + ($oneStopCurrFlag === 1 ? $shinkokuMuniCurr : 0);
+                $kifukinMuniPostCapCurr = (int)($inputs['kifukin_zeigaku_kojo_muni_curr'] ?? 0);
+              @endphp
+              <input type="text" readonly class="form-control suji11 bg-light" value="{{ number_format($kifukinMuniPreCapCurr) }}" data-ui-only="1">
+              <input type="hidden" name="kifukin_zeigaku_kojo_muni_curr" value="{{ $kifukinMuniPostCapCurr }}">
             </td>
           </tr>
           <tr>
             <th>合  計</th>
             <td class="text-end">
-              <input type="text"
-                     readonly
-                     name="kifukin_zeigaku_kojo_gokei_prev"
-                     class="form-control suji11 bg-light"
-                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_gokei_prev') }}">
+              @php
+                $kifukinGokeiPreCapPrev = (int)($kifukinPrefPreCapPrev ?? 0) + (int)($kifukinMuniPreCapPrev ?? 0);
+                $kifukinGokeiPostCapPrev = (int)($inputs['kifukin_zeigaku_kojo_gokei_prev'] ?? 0);
+              @endphp
+              <input type="text" readonly class="form-control suji11 bg-light" value="{{ number_format($kifukinGokeiPreCapPrev) }}" data-ui-only="1">
+              <input type="hidden" name="kifukin_zeigaku_kojo_gokei_prev" value="{{ $kifukinGokeiPostCapPrev }}">
             </td>
             <td class="text-end">
-              <input type="text"
-                     readonly
-                     name="kifukin_zeigaku_kojo_gokei_curr"
-                     class="form-control suji11 bg-light"
-                     value="{{ $readonlyValue('kifukin_zeigaku_kojo_gokei_curr') }}">
+              @php
+                $kifukinGokeiPreCapCurr = (int)($kifukinPrefPreCapCurr ?? 0) + (int)($kifukinMuniPreCapCurr ?? 0);
+                $kifukinGokeiPostCapCurr = (int)($inputs['kifukin_zeigaku_kojo_gokei_curr'] ?? 0);
+              @endphp
+              <input type="text" readonly class="form-control suji11 bg-light" value="{{ number_format($kifukinGokeiPreCapCurr) }}" data-ui-only="1">
+              <input type="hidden" name="kifukin_zeigaku_kojo_gokei_curr" value="{{ $kifukinGokeiPostCapCurr }}">
             </td>
           </tr>
         </tbody>

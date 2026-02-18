@@ -10,6 +10,11 @@
     $warekiCurrLabel = $warekiCurr ?? '当年';
     $originTab = 'input';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', 'kojo_iryo'));
+    // サーバ確定値をそのまま表示（JSで再計算しない）
+    $nf = static function ($v): string {
+      $n = (int) ($v ?? 0);
+      return number_format($n);
+    };
 @endphp
 <div class="container-blue mt-2" style="width:600px;">
   <div class="card-header d-flex align-items-start">
@@ -81,15 +86,13 @@
                 <th scope="row" class="text-start ps-1">差引金額（Ⓐ－Ⓑ）</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         data-format="comma-int" data-name="kojo_iryo_sashihiki_prev"
                          class="form-control suji11 text-end bg-light"
-                         value="{{ $inputs['kojo_iryo_sashihiki_prev'] ?? 0 }}" readonly>
+                         value="{{ $nf($inputs['kojo_iryo_sashihiki_prev'] ?? 0) }}" readonly>
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         data-format="comma-int" data-name="kojo_iryo_sashihiki_curr"
                          class="form-control suji11 text-end bg-light"
-                         value="{{ $inputs['kojo_iryo_sashihiki_curr'] ?? 0 }}" readonly>
+                         value="{{ $nf($inputs['kojo_iryo_sashihiki_curr'] ?? 0) }}" readonly>
                 </td>
                 <td class="bg-light">Ⓒ</td>
               </tr>
@@ -97,15 +100,13 @@
                 <th scope="row" class="text-start ps-1">所得金額の合計額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         data-format="comma-int" data-name="kojo_iryo_shotoku_gokei_prev"
                          class="form-control suji11 text-end bg-light"
-                         value="{{ $inputs['kojo_iryo_shotoku_gokei_prev'] ?? 0 }}" readonly>
+                         value="{{ $nf($inputs['kojo_iryo_shotoku_gokei_prev'] ?? 0) }}" readonly>
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         data-format="comma-int" data-name="kojo_iryo_shotoku_gokei_curr"
                          class="form-control suji11 text-end bg-light"
-                         value="{{ $inputs['kojo_iryo_shotoku_gokei_curr'] ?? 0 }}" readonly>
+                         value="{{ $nf($inputs['kojo_iryo_shotoku_gokei_curr'] ?? 0) }}" readonly>
                 </td>
                 <td class="bg-light">Ⓓ</td>
               </tr>
@@ -113,15 +114,13 @@
                 <th scope="row" class="text-start ps-1">Ⓓ×0.05</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         data-format="comma-int" data-name="kojo_iryo_shotoku_5pct_prev"
                          class="form-control suji11 text-end bg-light"
-                         value="{{ $inputs['kojo_iryo_shotoku_5pct_prev'] ?? 0 }}" readonly>
+                         value="{{ $nf($inputs['kojo_iryo_shotoku_5pct_prev'] ?? 0) }}" readonly>
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         data-format="comma-int" data-name="kojo_iryo_shotoku_5pct_curr"
                          class="form-control suji11 text-end bg-light"
-                         value="{{ $inputs['kojo_iryo_shotoku_5pct_curr'] ?? 0 }}" readonly>
+                         value="{{ $nf($inputs['kojo_iryo_shotoku_5pct_curr'] ?? 0) }}" readonly>
                 </td>
                 <td class="bg-light">Ⓔ</td>
               </tr>
@@ -129,15 +128,13 @@
                 <th scope="row" class="text-start ps-1">Ⓔと10万円のいずれか少ない方の金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         data-format="comma-int" data-name="kojo_iryo_min_threshold_prev"
                          class="form-control suji11 text-end bg-light"
-                         value="{{ $inputs['kojo_iryo_min_threshold_prev'] ?? 0 }}" readonly>
+                         value="{{ $nf($inputs['kojo_iryo_min_threshold_prev'] ?? 0) }}" readonly>
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         data-format="comma-int" data-name="kojo_iryo_min_threshold_curr"
                          class="form-control suji11 text-end bg-light"
-                         value="{{ $inputs['kojo_iryo_min_threshold_curr'] ?? 0 }}" readonly>
+                         value="{{ $nf($inputs['kojo_iryo_min_threshold_curr'] ?? 0) }}" readonly>
                 </td>
                 <td class="bg-light">Ⓕ</td>
               </tr>
@@ -145,15 +142,13 @@
                 <th scope="row" class="text-center th-cream">医療費控除額（Ⓒ－Ⓕ）</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         data-format="comma-int" data-name="kojo_iryo_kojogaku_prev"
                          class="form-control suji11 text-end bg-light"
-                         value="{{ $inputs['kojo_iryo_kojogaku_prev'] ?? 0 }}" readonly>
+                         value="{{ $nf($inputs['kojo_iryo_kojogaku_prev'] ?? 0) }}" readonly>
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
-                         data-format="comma-int" data-name="kojo_iryo_kojogaku_curr"
                          class="form-control suji11 text-end bg-light"
-                         value="{{ $inputs['kojo_iryo_kojogaku_curr'] ?? 0 }}" readonly>
+                         value="{{ $nf($inputs['kojo_iryo_kojogaku_curr'] ?? 0) }}" readonly>
                 </td>
                 <td class="bg-light">Ⓖ</td>
               </tr>
@@ -161,13 +156,17 @@
           </table>
         </div>
         <hr class="mb-2">
-            <div class="text-end gap-2">
-              <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
+            <div class="d-flex justify-content-between">
+            <div>
               <button type="submit"
                       class="btn-base-green"
                       id="btn-recalc"
                       data-disable-on-submit>再計算</button>
             </div>
+            <div class="d-flex">
+              <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
+            </div>
+          </div>
       </form>
   </div>    
 </div>

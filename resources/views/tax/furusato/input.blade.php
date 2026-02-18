@@ -3,6 +3,7 @@
 
 @push('styles')
   <style>
+        
     :target {
       outline: none !important;
     }
@@ -86,7 +87,7 @@
     #furusato-input-form input.form-control[data-server-lock="1"],
     #furusato-input-form textarea.form-control[data-server-lock="1"],
     #furusato-input-form select.form-select[data-server-lock="1"] {
-      background-color: #e1e1e1 !important;
+      background-color: #EFF2F5 !important;
       color: #000 !important;
     }
  
@@ -142,6 +143,34 @@
     }
     @keyframes furusatoSpin { to { transform: rotate(360deg); } }
 
+  /* helpModalCommon（他モーダルに影響させない） */
+
+    /* 全体：フォントを本文に寄せる（サイズ15px） */
+    #helpModalCommon .modal-content {
+      font-family: inherit;
+      font-size: 15px;
+    }
+    
+    /* 本文だけ：左右余白を追加（上下は触らない） */
+    #helpModalCommon .modal-body {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+    
+    /* 横幅：最大幅550px */
+    #helpModalCommon .modal-dialog {
+      max-width: 550px;
+    }
+    /* このHELPモーダル内の強調表示（○〜 のラベル） */
+    #helpModalCommon #helpModalBody strong {
+      font-weight: 700;
+      /* 色を付けたい場合はここ（例） */
+       color: #192C4B; 
+  }
+    /* 「(1)」など：太字のみ（色は変更しない＝継承） */
+    #helpModalZatsu #helpModalBodyZatsu strong.help-num {
+      font-weight: 700;
+  }
   </style>
 @endpush
 
@@ -176,11 +205,7 @@
           <h0 class="mt-2 mb-0">インプット表</h0>
         </div>
         <div class="d-flex align-items-center justify-content-end gap-2 flex-wrap ms-auto mt-2 me-5">
-          <button type="submit"
-                  class="btn-base-blue"
-                  formnovalidate
-                  name="redirect_to"
-                  value="syori">戻 る</button>
+          
           <button type="submit"
                   class="btn-base-blue"
                   formnovalidate
@@ -216,6 +241,7 @@
              data-status-url="{{ $bundleStatusUrl }}">PDF出力</a>
 
           {{-- ▼ 新規：帳票プレビュー（サムネ一覧→拡大） --}}
+{{--
           @php
             $bundlePreviewJsonUrl = route('pdf.preview', ['report' => 'furusato_bundle'])
               . '?data_id=' . urlencode((string)($dataId ?? ''))
@@ -224,9 +250,15 @@
               . '&format=json';
           @endphp
           <a id="furusato-preview-button"
-             class="btn-base-blue"
+             class="btn-base-green"
              href="#"
              data-preview-json-url="{{ $bundlePreviewJsonUrl }}">帳票プレビュー</a>
+--}}
+          <button type="submit"
+                  class="btn-base-blue"
+                  formnovalidate
+                  name="redirect_to"
+                  value="syori">戻 る</button>
         </div>
       </div> 
 <!--      @includeWhen(config('app.debug'), 'components.furusato.totals_debug') -->
@@ -286,7 +318,7 @@
             // ▼ 税額控除ブロック：令和6年度分特別税額控除は「2024/2025のときだけ表示」
             //   - それ以外（例: 2026）は「行自体を非表示」
             //   - rowspan は表示有無で切替（ズレ防止）
-            $taxCreditRowspan = $showTokubetsu ? 7 : 6;
+            $taxCreditRowspan = $showTokubetsu ? 8 : 7;
             // ▼ 税金の金額（税額控除 + 税額3行）
             $taxAmountRowspan = $taxCreditRowspan + 3;
             // ▼ 住民税：調整控除（県+市）合計（UI表示専用）
@@ -789,7 +821,7 @@
                 $sumEtcPrev = $normalizeServerInt($inputs['sum_for_sogoshotoku_etc_prev'] ?? 0);
                 $sumEtcCurr = $normalizeServerInt($inputs['sum_for_sogoshotoku_etc_curr'] ?? 0);
               @endphp
-              <tr>
+              <tr class="js-bold-row">
                 <th scope="row" colspan="3" class="align-middle text-center th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                 <td></td>
                 <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcPrev) }}" readonly data-ui-only="1"></td>
@@ -888,7 +920,7 @@
               </tr>
 
               <tr>
-                <th scope="rowgroup" rowspan="{{ 12 + $taxCreditRowspan }}" class="text-center align-middle th-ccc ps-1 pe-1 th-vertical" nowrap="nowrap">
+                <th scope="rowgroup" rowspan="{{ 13 + $taxCreditRowspan }}" class="text-center align-middle th-ccc ps-1 pe-1 th-vertical" nowrap="nowrap">
                   <span class="th-vertical-inner">税額計算</span>
                 </th>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">総合課税</th>
@@ -1010,7 +1042,7 @@
                   }
                 @endphp
               </tr>
-              <tr>
+              <tr class="js-bold-row">
                 <th scope="row" colspan="3" class="align-middle text-center th-cream">合計(調整控除前所得割額)</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn-base-low-blue">HELP</button>
@@ -1035,7 +1067,11 @@
                 </th>
                 <th colspan="2" class="text-start align-middle ps-1">調整控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                      class="btn-base-low-blue js-help-btn"
+                      data-help-key="chousei_koujo"
+                      data-bs-toggle="modal"
+                      data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {{-- 所得税：ダッシュ --}}
                 <td><input type="text" class="form-control suji11s text-center bg-light" value="－" readonly></td>
@@ -1047,7 +1083,11 @@
               <tr>
                 <th colspan="2" class="text-start align-middle ps-1">配当控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                      class="btn-base-low-blue js-help-btn"
+                      data-help-key="haitou_koujo"
+                      data-bs-toggle="modal"
+                      data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {!! $renderInputs('tax_haito') !!}
               </tr>
@@ -1062,16 +1102,50 @@
                 {!! $renderInputs('tax_jutaku') !!}
               </tr>
               <tr>
-                <th colspan="2" class="text-start align-middle ps-1">政党等寄付金等特別控除</th>
+                <th colspan="2" class="text-start align-middle ps-1">政党等寄附金等特別控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="seitoto_kifu_tokubetsu"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {!! $renderInputs('tax_seito') !!}
               </tr>
               <tr>
-                <th colspan="2" class="text-start align-middle ps-1">寄附金税額控除</th>
+                <th colspan="2" class="text-start align-middle ps-1">住宅耐震改修特別控除</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn-base-low-blue">HELP</button>
+                  </td>
+                {{-- 所得税：ユーザー手入力（prev/curr） --}}
+                <td>
+                  <input type="text"
+                         inputmode="numeric"
+                         pattern="[0-9,\-]*"
+                         class="form-control suji11s text-end js-comma"
+                         name="tax_kaisyu_shotoku_prev"
+                         value="{{ old('tax_kaisyu_shotoku_prev', $inputs['tax_kaisyu_shotoku_prev'] ?? 0) }}">
+                </td>
+                <td>
+                  <input type="text"
+                         inputmode="numeric"
+                         pattern="[0-9,\-]*"
+                         class="form-control suji11s text-end js-comma"
+                         name="tax_kaisyu_shotoku_curr"
+                         value="{{ old('tax_kaisyu_shotoku_curr', $inputs['tax_kaisyu_shotoku_curr'] ?? 0) }}">
+                </td>
+                {{-- 住民税：概念なし → 「－」 --}}
+                <td><input type="text" class="form-control suji11s text-center bg-light" value="－" readonly></td>
+                <td><input type="text" class="form-control suji11s text-center bg-light" value="－" readonly></td>
+              </tr>
+              <tr>
+                <th colspan="2" class="text-start align-middle ps-1">寄附金税額控除</th>
+                  <td class="text-center align-middle">
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="kifukin_zeigaku_koujo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {{-- 所得税：ダッシュ --}}
                 <td><input type="text" class="form-control suji11s text-center bg-light" value="－" readonly></td>
@@ -1083,7 +1157,11 @@
               <tr>
                 <th colspan="2" class="text-start align-middle ps-1">災害減免額</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="saigai_genmen"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {!! $renderInputs('tax_saigai_genmen') !!}
               </tr>
@@ -1117,7 +1195,7 @@
                   </td>
                 {!! $renderInputs('tax_fukkou') !!}
               </tr>
-              <tr>
+              <tr class="js-bold-row">
                 <th colspan="2" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                   <td class="text-center align-middle">
                     <button type="button" class="btn-base-low-blue">HELP</button>
@@ -1167,7 +1245,11 @@
                 <tr>
                   <th class="text-start align-middle th-ddd ps-1">農業</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="nogyo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                   {!! $renderInputs('syunyu_jigyo_nogyo') !!}
                 </tr>
@@ -1323,16 +1405,20 @@
                   </td>
                   {!! $renderInputs('shotoku_joto_ichiji') !!}
                 </tr>
-                <tr>
+                <tr class="js-bold-row">
                   <th colspan="2" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                   <td class="text-center align-middle"></td>
                   @php
+                   // 合計行だけ見た目を変える（計算やJSには影響しない）
+                    // 太字: fw-bold
+                    // 背景: bg-warning-subtle（環境により未対応でも“効かないだけ”でエラーにはならない）
+                    $totalInputClass ='form-control suji11s text-end js-comma bg-light';
                     foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                         foreach ($periods as $period) {
                             $name = sprintf('shotoku_gokei_%s_%s', $tax, $period);
                             $raw = $normalizeInt($inputs[$name] ?? 0);
                             // shotoku_gokei_* はクライアント側で常に再計算するため lock は付けない
-                            echo $renderReadonlyInput($name, $raw, 'form-control suji11s text-end js-comma bg-light');
+                            echo $renderReadonlyInput($name, $raw, $totalInputClass);
                         }
                     }
                   @endphp
@@ -1442,7 +1528,7 @@
                   {!! $renderInputs('kojo_iryo') !!}
                 </tr>
                 <tr id="kojo_row_kifukin" data-anchor>
-                  <th colspan="3" class="text-start align-middle ps-1">寄付金控除</th>
+                  <th colspan="3" class="text-start align-middle ps-1">寄附金控除</th>
                   <td class="text-center align-middle">
                     <button type="submit"
                             class="btn-base-low-green"
@@ -1452,7 +1538,7 @@
                   </td>
                   {!! $renderInputs('kojo_kifukin') !!}
                 </tr>
-                <tr>
+                <tr class="js-bold-row">
                   <th colspan="3" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                   <td class="text-center align-middle"></td>
                   {!! $renderInputs('kojo_gokei') !!}
@@ -2135,7 +2221,7 @@
 <div id="furusato-pdf-overlay" aria-hidden="true">
   <div class="overlay-card" role="status" aria-live="polite">
     <div class="overlay-title">PDFを出力しています…</div>
-    <p class="overlay-sub">自動でダウンロードが開始されます。<br>この画面は閉じずにお待ちください。</p>
+    <p class="overlay-sub text-center">自動でダウンロードが開始されます。<br>この画面は閉じずにお待ちください。</p>
     <div class="overlay-row">
       <div class="mini-spinner" aria-hidden="true"></div>
       <div class="overlay-sub" id="furusato-pdf-overlay-detail">準備中…</div>
@@ -2145,37 +2231,75 @@
 
 {{-- 帳票プレビュー モーダル群（Blade分割） --}}
 @include('tax.furusato.partials.report_preview_modal')
+
 {{-- ============================
    PDF出力モーダル（3択）
    - プレビュー無し：選択後にそのまま download を開始
    ============================ --}}
 <div class="modal fade" id="furusato-pdf-mode-modal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">PDF出力の内容を選択</h5>
+        <h15 class="modal-title">どの条件でPDFを出力しますか？</h15>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
       </div>
       <div class="modal-body">
-        <div class="mb-2">どの条件でPDFを出力しますか？</div>
-        <div class="d-grid gap-2">
-          <button type="button" class="btn btn-outline-primary" data-pdf-variant="current">
-            今までに寄付した額でPDFを出力する
+        <div class="d-flex flex-column align-items-center gap-2">
+          <button type="button" class="btn btn-base-blue" data-pdf-variant="current" style="height:40px; width:260px;">
+            今までに寄附した額でPDFを出力する
           </button>
-          <button type="button" class="btn btn-outline-primary" data-pdf-variant="max">
-            上限額まで寄付した場合でPDFを出力する
+          <button type="button" class="btn btn-base-blue" data-pdf-variant="max" style="height:40px; width:260px;">
+            上限額まで寄附した場合でPDFを出力する
           </button>
-          <button type="button" class="btn btn-primary" data-pdf-variant="both">
+          <button type="button" class="btn btn-base-blue" data-pdf-variant="both" style="height:40px; width:260px;">
             両方ともPDFを出力する
           </button>
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+        <button type="button" class="btn  btn-base-blue" data-bs-dismiss="modal">キャンセル</button>
       </div>
     </div>
   </div>
 </div>
+
+{{-- ============================
+   help出力モーダル（共通）
+   -- resources/views/partials/help_texts_modal.phpにリンク本文はそちら
+   ============================ --}}
+
+  @php
+    // このページのHELP辞書（return配列のphpファイル）
+    // ※ファイル未作成でも500にならないようにガードする
+    $helpPath = resource_path('views/tax/furusato/helps/help_texts_modal.php');
+    $HELP_TEXTS = file_exists($helpPath) ? require $helpPath : [];
+  @endphp
+
+  {{-- 共通HELPモーダル（このページで1個だけ） --}}
+  <div class="modal fade" id="helpModalCommon" tabindex="-1" aria-hidden="true">
+    {{-- サイズ統一：最大幅550px --}}
+    <div class="modal-dialog" style="max-width: 550px;">
+      <div class="modal-content">
+        <div class="modal-header mb-0">
+          <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitle">HELP</h15>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-start mt-0 ms-2 mb-2">
+          <div id="helpModalBody" class="small" style="white-space: pre-wrap;"></div>
+        </div>
+        {{--<div class="modal-footer">
+          <button type="button" class="btn btn-base-blue" data-bs-dismiss="modal">閉じる</button>
+        </div>--}}
+      </div>
+    </div>
+  </div>
+
+  {{-- HELP辞書をJSへ渡す（ページ専用） --}}
+  <script>
+    window.__PAGE_HELP_TEXTS__ = @json($HELP_TEXTS, JSON_UNESCAPED_UNICODE);
+  </script>
+  
+  
 @endsection
 @push('scripts')
 <script>
@@ -3406,6 +3530,7 @@
           Math.max(0, readInt(`tax_haito_shotoku_${period}`)) +
           Math.max(0, readInt(`tax_jutaku_shotoku_${period}`)) +
           Math.max(0, readInt(`tax_seito_shotoku_${period}`)) +
+          Math.max(0, readInt(`tax_kaisyu_shotoku_${period}`)) +
           Math.max(0, readInt(`tax_saigai_genmen_shotoku_${period}`)) +
           Math.max(0, readInt(`tax_tokubetsu_R6_shotoku_${period}`));
         // ▼ 百円未満切捨てはしない（差引後の値をそのまま）
@@ -3506,6 +3631,7 @@
       registerTaxPipelineBlur(`shotokuzei_zeigakukojo_seitoto_tokubetsu_${period}`);
       registerTaxPipelineBlur(`juminzei_zeigakukojo_seitoto_tokubetsu_${period}`);
       registerTaxPipelineBlur(`tax_tokubetsu_R6_shotoku_${period}`);
+      registerTaxPipelineBlur(`tax_kaisyu_shotoku_${period}`);
     });
 
     const kojoBasesForEvents = kojoShokeiBases.concat(kojoGokeiExtras);
@@ -3984,5 +4110,96 @@
   {{-- SortableJS（ドラッグ並び替え） --}}
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
   {{-- 帳票プレビュー（HTMLサムネ） --}}
-  <script src="{{ asset('js/common/furusato_report_preview.js') }}" defer></script>
+  @php
+    $fp = public_path('js/common/furusato_report_preview.js');
+    $vPreview = is_file($fp) ? filemtime($fp) : time();
+  @endphp
+  <script src="{{ asset('js/common/furusato_report_preview.js') }}?v={{ $vPreview }}" defer></script>
 @endpush
+@push('styles')
+<style>
+      /* 太字にしたい行：行に js-bold-row を付ければ入力は必ず太字（readonly/lock に勝つ） */
+      tr.js-bold-row input,
+      tr.js-bold-row .form-control,
+      tr.js-bold-row input.form-control,
+      tr.js-bold-row textarea,
+      tr.js-bold-row select,
+      tr.js-bold-row input[readonly],
+      tr.js-bold-row input:read-only,
+      tr.js-bold-row textarea[readonly],
+      tr.js-bold-row textarea:read-only {
+        font-weight: 700 !important;
+      }
+  
+      /* overlay は画面全体、カードだけ幅を絞る */
+      #furusato-pdf-overlay .overlay-card {
+        max-width: 300px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      /* 3択モーダル内の btn-base-blue：hover/focus/active の色を統一（プレビュー＆PDF） */
+      #furusato-preview-mode-modal .btn.btn-base-blue:hover,
+      #furusato-preview-mode-modal .btn.btn-base-blue:focus,
+      #furusato-preview-mode-modal .btn.btn-base-blue:active,
+      #furusato-preview-mode-modal .btn.btn-base-blue.active,
+      #furusato-pdf-mode-modal .btn.btn-base-blue:hover,
+      #furusato-pdf-mode-modal .btn.btn-base-blue:focus,
+      #furusato-pdf-mode-modal .btn.btn-base-blue:active,
+      #furusato-pdf-mode-modal .btn.btn-base-blue.active {
+         background-color: #4193d0;
+         border-color: #4193d0 !important;
+        color: #ffffff !important;
+       }
+</style>
+@endpush
+    {{-- モーダル--}}
+@push('scripts')
+ <script>
+  // 共通ルール：HELPボタン(.js-help-btn)クリック時に辞書から本文を差し替える
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.js-help-btn');
+    if (!btn) return;
+
+    const key = btn.getAttribute('data-help-key') || '';
+    const dict = window.__PAGE_HELP_TEXTS__ || {};
+    const item = dict[key];
+
+    const title = item?.title ?? 'HELP';
+    const body  = item?.body  ?? '（この項目のHELPは未登録です）';
+
+    const titleEl = document.getElementById('helpModalTitle');
+    const bodyEl  = document.getElementById('helpModalBody');
+    if (titleEl) titleEl.textContent = title;
+    if (bodyEl) {
+      // body はテキスト。行ごとに処理して「○〜」の先頭ラベルだけ太字にする
+      const escapeHtml = (s) => String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+      const html = String(body)
+        .split('\n')
+        .map((line) => {
+          // 空行はそのまま改行にする
+          if (line === '') return '';
+
+          // 「○〜」行：先頭の見出し（○〜）部分を太字にする（全角スペースやタブも許容）
+          const m = line.match(/^(\s*○\s*[^・…：:　]+?)(\s*・・・\s*.*)?$/);
+          if (m) {
+            const head = escapeHtml(m[1]);
+            const rest = escapeHtml(m[2] ?? '');
+            return `<strong>${head}</strong>${rest}`;
+          }
+          return escapeHtml(line);
+        })
+        .join('<br>');
+
+      bodyEl.innerHTML = html;
+    }
+  });
+ </script>
+ @endpush
+ {{-- モーダルここまで--}}

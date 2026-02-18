@@ -4,6 +4,41 @@
 @section('title', '内訳ー給与・雑所得')
 
 @section('content')
+@php
+  // 雑所得ページ専用 HELP 辞書
+  $helpPath = resource_path('views/tax/furusato/helps/help_zatsu_modal.php');
+  $HELP_TEXTS = file_exists($helpPath) ? require $helpPath : [];
+@endphp
+
+@push('styles')
+<style>
+  /* このページのHELPモーダルだけ：横幅・フォント・左右余白 */
+  #helpModalZatsu .modal-dialog { max-width: 550px; }
+  #helpModalZatsu .modal-content { font-family: inherit; font-size: 15px; }
+  #helpModalZatsu .modal-body { padding-left: 2rem; padding-right: 2rem; }
+
+  /* 「○」行の見出し強調（色はお好みで調整OK） */
+  #helpModalZatsu #helpModalBodyZatsu strong.help-bullet {
+    font-weight: 700;
+    color: #192C4B;
+  }
+  /* 「(1)」など：太字のみ（色は変更しない＝継承） */
+    #helpModalZatsu #helpModalBodyZatsu strong.help-num {
+      font-weight: 700;
+  }
+  
+  /* __下線__ 記法 */
+  #helpModalZatsu #helpModalBodyZatsu u { text-underline-offset: 2px; }
+  
+  /* このページのHELPボタンだけ：文字を縦中央に寄せる
+  +<button type="button" id="helpmodal" class="btn-base-blue js-help-btn-zatsu" ...*/
+  #helpmodal.btn-base-low-blue {
+    line-height: 1;
+    padding-top: 0.2rem;
+    padding-bottom: 0.6rem;
+  }
+</style>
+@endpush
 @push('styles')
 <style>
   .form-check-input {
@@ -56,7 +91,7 @@
   $warekiPrev = $warekiPrev ?? '前年';
   $warekiCurr = $warekiCurr ?? '当年';
 @endphp
-<div class="container-blue mt-2" style="width: 620px;">
+<div class="container-blue mt-2" style="width: 610px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       @include('components.kado_lefttop_img')
@@ -90,7 +125,7 @@
           <table class="table-input align-middle">
             <tbody>
               <tr>
-                <th style="width:250px;height:30px;"></th>
+                <th style="width:245px;height:30px;"></th>
                 <th>{{ $warekiPrev }}</th>
                 <th>{{ $warekiCurr }}</th>
               </tr>
@@ -168,8 +203,8 @@
                 </td>
               </tr>
               <tr>
-                <th rowspan="2" class="text-start align-middle ps-2" style="width:70px;">業務</th>
-                <th class="text-start align-middle ps-2 th-ddd" style="width:80px;">収入金額</th>
+                <th rowspan="2" class="text-start align-middle ps-2" style="width:60px;">業務</th>
+                <th class="text-start align-middle ps-2 th-ddd" style="width:77px;">収入金額</th>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
@@ -233,17 +268,27 @@
           </table>
         </div>
       <hr class="mb-2">
-        <div class="text-end gap-2">
-          <!-- 戻る: 再計算+保存して第一表へ（redirect_to=input を明示） -->
-          <button type="submit"
-                  class="btn-base-blue"
-                  name="redirect_to"
-                  value="input"
-                  onclick="this.form.stay_on_details.value='0';">戻 る</button>
+        <div class="d-flex justify-content-between">
+          <div> 
           <!-- 再計算: 再計算+保存して内訳に留まる -->
-          <button type="submit"
-                  class="btn-base-green"
-                  onclick="this.form.stay_on_details.value='1';">再計算</button>
+            <button type="submit"
+                    class="btn-base-green"
+                    onclick="this.form.stay_on_details.value='1';">再計算</button>
+           </div>
+           <div class="d-flex gap-2">
+          <!-- 戻る: 再計算+保存して第一表へ（redirect_to=input を明示） -->
+            <button type="button"
+                    id="helpmodal"
+                    class="btn-base-blue js-help-btn-zatsu"
+                    data-help-key="zatsusyotoku"
+                    data-bs-toggle="modal"
+                    data-bs-target="#helpModalZatsu">HELP</button>
+            <button type="submit"
+                    class="btn-base-blue"
+                    name="redirect_to"
+                    value="input"
+                    onclick="this.form.stay_on_details.value='0';">戻 る</button>
+           </div>       
         </div>
     </form>
   </div>
@@ -400,6 +445,86 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 @endpush
 
+{{-- HELP辞書をJSへ渡す（このページ専用） --}}
+<script>
+  window.__PAGE_HELP_TEXTS_ZATSU__ = @json($HELP_TEXTS, JSON_UNESCAPED_UNICODE);
+</script>
+
+{{-- 共通HELPモーダル（雑所得ページ専用） --}}
+<div class="modal fade" id="helpModalZatsu" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog" style="max-width: 550px;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitleZatsu">HELP</h15>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-start">
+        <div id="helpModalBodyZatsu" style="white-space: normal;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+@push('scripts')
+<script>
+  
+  // 雑所得ページ：HELPボタン(.js-help-btn-zatsu)クリックで本文を差し替え
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.js-help-btn-zatsu');
+    if (!btn) return;
+
+    const key  = btn.getAttribute('data-help-key') || '';
+    const dict = window.__PAGE_HELP_TEXTS_ZATSU__ || {};
+    const item = dict[key];
+
+    const title = item?.title ?? 'HELP';
+    const body  = item?.body  ?? '（この項目のHELPは未登録です）';
+
+    const titleEl = document.getElementById('helpModalTitleZatsu');
+    const bodyEl  = document.getElementById('helpModalBodyZatsu');
+    if (titleEl) titleEl.textContent = title;
+    if (!bodyEl) return;
+
+    const escapeHtml = (s) => String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+
+    const underline = (safeText) => safeText.replace(/__([^_]+)__/g, '<u>$1</u>');
+
+    const html = String(body)
+      .split('\n')
+      .map((line) => {
+        if (line === '') return '';
+        
+        // 行頭「(1)」「(2)」など：先頭ラベルだけ太字（色は変えない）
+        // 例：(1) 公的年金等の雑所得
+        const mNum = line.match(/^(\s*\(\d+\)\s*[^　 ]*)(.*)$/);
+        if (mNum) {
+          const head = underline(escapeHtml(mNum[1]));
+          const rest = underline(escapeHtml(mNum[2] ?? ''));
+          return `<strong class="help-num">${head}</strong>${rest}`;
+        }
+
+        // 行頭「○」を見出しとして太字＋色
+        // 例：○具体例・・・xxxx
+        const m = line.match(/^(\s*○\s*[^・…：:　]+?)(\s*・・・\s*.*)?$/);
+        if (m) {
+          const head = underline(escapeHtml(m[1]));
+          const rest = underline(escapeHtml(m[2] ?? ''));
+          return `<strong class="help-bullet">${head}</strong>${rest}`;
+        }
+
+        return underline(escapeHtml(line));
+      })
+      .join('<br>');
+
+    bodyEl.innerHTML = html;
+  });
+</script>
+@endpush
 {{-- Enter移動（ふるさと全画面共通） --}}
 @include('tax.furusato.partials.enter_nav')
 

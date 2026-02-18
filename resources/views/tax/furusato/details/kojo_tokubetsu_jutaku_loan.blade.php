@@ -123,19 +123,23 @@
         <input type="hidden" id="taxable-prev" name="rtax_taxable_total_prev" value="{{ (int)($inputs['rtax_taxable_total_prev'] ?? 0) }}">
         <input type="hidden" id="taxable-curr" name="rtax_taxable_total_curr" value="{{ (int)($inputs['rtax_taxable_total_curr'] ?? 0) }}">
         <hr class="mb-2">
-        <div class="text-end gap-2">
-          {{-- 戻る：input に遷移（第一表 #tax_jutaku） --}}
-          <button type="submit"
-                  class="btn-base-blue"
-                  name="redirect_to"
-                  value="input"
-                  onclick="document.getElementById('stay-on-details').value='0'">戻 る</button>
+        <div class="d-flex justify-content-between">
+          <div>
           {{-- 再計算：この内訳に留まる --}}
-          <button type="submit"
-                  class="btn-base-green"
-                  name="redirect_to"
-                  value="kojo_tokubetsu_jutaku_loan"
-                  onclick="document.getElementById('stay-on-details').value='1'">再計算</button>
+            <button type="submit"
+                    class="btn-base-green"
+                    name="redirect_to"
+                    value="kojo_tokubetsu_jutaku_loan"
+                    onclick="document.getElementById('stay-on-details').value='1'">再計算</button>
+          </div>
+          <div class="d-flex">       
+          {{-- 戻る：input に遷移（第一表 #tax_jutaku） --}}
+            <button type="submit"
+                    class="btn-base-blue"
+                    name="redirect_to"
+                    value="input"
+                    onclick="document.getElementById('stay-on-details').value='0'">戻 る</button>
+          </div>
         </div>
       </form>
   </div>

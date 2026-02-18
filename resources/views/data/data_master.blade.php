@@ -17,7 +17,7 @@
         border-right: 0 !important;
       }
 </style>
-<div class="container-blue" style="width:600px;">
+<div class="container-blue" style="width:800px;">
   <div class="card-header d-flex justify-content-between gap-2">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
@@ -57,6 +57,7 @@
         'id' => (int)$d->id,
         'guest_id' => (int)$d->guest_id,
         'kihu_year' => (int)$d->kihu_year,
+        'data_name' => (string)($d->data_name ?? 'default'),
         'owner_user_id' => (int)($d->owner_user_id ?? 0),
         'user_id' => (int)($d->user_id ?? 0),
         // 鍵マーク表示用（feature.data_privacyがfalseでもnullで来るだけなので安全）
@@ -128,6 +129,7 @@
                   ⇅
                 </button>
               </th>
+              <th class="text-center" style="width: 220px;">データ名</th>
               <th class="text-center" style="width: 60px;">選 択</th>
               <th class="text-center" style="width: 60px;">編 集</th>
             </tr>
@@ -148,6 +150,9 @@
                       <span x-text="formatYear(d.kihu_year)"></span>
                     </div>
                   </td>
+                  <td class="text-start" style="width:220px;">
+                    <span x-text="d.data_name || 'default'"></span>
+                  </td>
                   <td class="text-center bg-cream b-none" style="width:60px;" nowrap="nowrap">
                     
                       <button type="button" class="btn-base-blue" style="width:60px;"
@@ -160,7 +165,7 @@
                 </tr>
               </template>
               <template x-if="filteredDatas.length===0">
-                <tr><td class="text-muted py-2 px-2" colspan="3">（年度データがありません）</td></tr>
+                <tr><td class="text-muted py-2 px-2" colspan="4">（年度データがありません）</td></tr>
               </template>
               </tbody>
             </table>
@@ -193,13 +198,12 @@
            @click.self="showYearModal=false">
         <div class="bg-white rounded shadow p-3"
              style="width:360px; max-width:90vw; margin:10vh auto;">
-          <hb class="mb-3">○年度の選択</hb>
-          <br>
-          <div class="mt-2 ms-5 mb-3">
-            <hs>
-              同じ年度を選ぶと既存データへ遷移します。
-              <br>別の年度を選ぶと複製して新しいデータへ遷移します。
-            </hs>
+          <h15>○年度の選択</h15>
+          <div class="mt-3 ms-5 mb-3">
+            <hs>同一年度・同一データ名は作成できません。</hs>
+          </div>
+          <div class="mt-1 ms-5 mb-2">
+            <hs x-show="noteText" x-text="noteText"></hs>
           </div>
           <div class="text-center">
             <label class="me-3">年度</label>
@@ -208,6 +212,11 @@
                 <option :value="y" x-text="warekiYearLabel(y)"></option>
               </template>
             </select>
+          </div>
+          <div class="text-center mt-2">
+            <input type="text" class="form-control form-control-sm mx-auto text-start"
+                   style="height:30px; width:260px;"
+                   x-model="nameSelected">
           </div>
           <hr class="mb-2">
           <div class="d-flex justify-content-end gap-2 mt-0">
@@ -238,8 +247,12 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
     selectedDataId: null, // ▼ 画面下の「既存データのコピー」で使用する選択ID
     showYearModal: false,
     yearSelected: null,
+    nameSelected: '',
     yearOptions: [],
     targetRow: null,
+    noteText: '',
+    origYear: null,
+    origName: '',
 
     // ---- init ----
     async init() {
@@ -297,7 +310,12 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
       const arr = [...list];
       arr.sort((a,b) => {
         const ak = this.getYearKey(a), bk = this.getYearKey(b);
-        if (ak === bk) return this.sortOrder==='desc' ? (b.id - a.id) : (a.id - b.id);
+        if (ak === bk) {
+          const an = (a?.data_name || 'default').toString();
+          const bn = (b?.data_name || 'default').toString();
+          if (an !== bn) return an.localeCompare(bn, 'ja');
+          return this.sortOrder==='desc' ? (b.id - a.id) : (a.id - b.id);
+        }
         return this.sortOrder==='desc' ? (bk - ak) : (ak - bk);
       });
       return arr;
@@ -333,6 +351,12 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
       // 年度候補が 2025〜2035 なので範囲外データはクランプ（古いデータが残っている場合の保険）
       const y = Math.max(2025, Math.min(2035, yRaw));
       this.yearSelected = y;
+      const baseName = (row?.data_name || 'default').toString();
+      // ★選択は「まず既存に入る」が第一優先：初期値は元のデータ名
+      this.nameSelected = baseName;
+      this.noteText = '';  
+      this.origYear = y;
+      this.origName = baseName;
       this.showYearModal = true;
       // x-show にしたので基本不要だが、念のため確定
       this.$nextTick(() => { this.yearSelected = y; });
@@ -341,24 +365,28 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
       const cur = Number(this.targetRow?.kihu_year)||0;
       const sel = Number(this.yearSelected)||0;
       if(!this.targetRow?.id || !sel){ alert('年度を選択してください。'); return; }
+      const nm = (this.nameSelected || '').toString();
+      if(!nm){ alert('データ名を入力してください。'); return; }
       if(sel < 2025 || sel > 2035){
         alert('年度は 2025〜2035 の範囲で選択してください。');
         return;
       }
-      if(cur === sel){
-        // 既存データの処理メニューへ遷移
+
+      // ★1) 年度もデータ名も変更なし → 複製せずそのまま入る
+      if (Number(this.origYear) === sel && String(this.origName) === nm) {
         window.location.href = `/furusato/syori?data_id=${this.targetRow.id}`;
         return;
       }
 
-      // 既にその年度のデータが存在する場合は、複製せず既存へ遷移
-      const existing = (this.datas || []).find(d => Number(d?.kihu_year) === sel);
+      // ★2) 変更先(年度+データ名)が既に存在するなら、複製せず既存へ入る（選択優先）
+      const existing = (this.datas || []).find(d => Number(d?.kihu_year) === sel && String(d?.data_name || 'default') === nm);
       if (existing && existing.id) {
+        alert('同一年度・同一データ名のデータが存在するため、そのデータを開きます。');
         window.location.href = `/furusato/syori?data_id=${existing.id}`;
         return;
       }
 
-      // 複製 → 年度置換 → 新IDで遷移
+      // 複製 → 年度/データ名 置換 → 新IDで遷移（同名衝突時はサーバが自動採番）
       fetch(`/api/data/${this.targetRow.id}/clone-year`, {
         method : 'POST',
         headers: {
@@ -367,7 +395,7 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
           'X-Requested-With' : 'XMLHttpRequest',
           'X-CSRF-TOKEN'     : document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
         },
-        body: JSON.stringify({ kihu_year: sel })
+        body: JSON.stringify({ kihu_year: sel, data_name: nm })
       })
       .then(async (r) => {
         const text = await r.text();
@@ -384,6 +412,9 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
       .then(json => {
         const newId = json?.id;
         if(!newId){ throw new Error('新規IDの取得に失敗しました。'); }
+        if (json?.renamed_from) {
+          alert(`同名が存在したためデータ名を「${json?.data_name || ''}」に変更して作成しました。`);
+        }
         // 複製後の処理メニューへ遷移
         window.location.href = `/furusato/syori?data_id=${newId}`;
       })

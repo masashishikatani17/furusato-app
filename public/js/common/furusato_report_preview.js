@@ -19,7 +19,10 @@
   const openSelectedBtn = $('#furusato-preview-open-selected');
   const selectedCountEl = $('#furusato-preview-selected-count');
 
-  const viewerGrid = $('#furusato-viewer-grid');
+  const layerCanvas = $('#furusato-layer-canvas');
+  const resetAllBtn = $('#furusato-layer-reset-all');
+
+  const MAX_LAYERS = 4;
 
   const modeModal = (modeModalEl && bootstrap?.Modal) ? bootstrap.Modal.getOrCreateInstance(modeModalEl) : null;
   const listModal = (listModalEl && bootstrap?.Modal) ? bootstrap.Modal.getOrCreateInstance(listModalEl) : null;
@@ -37,6 +40,7 @@
   // ---- state ----
   let pages = [];       // { html, key, idx }
   let selected = new Set(); // idx
+  let selectedOrder = [];
   let lastOpened = null;    // idx
   let sortable = null;
   let aborter = null;
@@ -198,11 +202,26 @@
     }
   };
 
+  const normalizeOrder = () => {
+    selectedOrder = selectedOrder.filter((x) => selected.has(x));
+    // 念のため重複排除
+    const seen = new Set();
+    selectedOrder = selectedOrder.filter((x) => (seen.has(x) ? false : (seen.add(x), true)));
+  };
+
   const toggleSelect = (idx, additive) => {
-    if (!additive) selected = new Set(); // 単独選択
-    if (selected.has(idx)) selected.delete(idx);
-    else selected.add(idx);
-    // UI反映
+    if (!additive) {
+      selected = new Set();
+      selectedOrder = [];
+    }
+    if (selected.has(idx)) {
+      selected.delete(idx);
+      selectedOrder = selectedOrder.filter((x) => x !== idx);
+    } else {
+      selected.add(idx);
+      selectedOrder.push(idx); // ★選択した順に積む（背面→前面）
+    }
+    normalizeOrder();
     $$('#furusato-preview-grid > div').forEach(applySelectionStyle);
     updateSelectedCount();
   };
@@ -218,22 +237,24 @@
     return 'col-12 col-md-3'; // 4以上
   };
 
-  const applyTransform = (canvas, state) => {
-    canvas.style.transform = `translate(${state.tx}px, ${state.ty}px) scale(${state.scale})`;
+  const applyTransform = (el, state) => {
+    el.style.transform = `translate(${state.tx}px, ${state.ty}px) scale(${state.scale})`;
   };
 
   // パンの移動範囲を「端までで止める」ためのクランプ
   // - 画面外に無限に飛ばないよう、(0 .. viewportW - scaledW) に収める（Yも同様）
   // - scaledW/H が viewport より小さい場合は中央寄せにする
-  const clampPan = (viewport, canvas, state) => {
+  // iframe（固定ベースサイズ）用のクランプ
+  const clampPan = (viewport, targetEl, state) => {
     const vw = viewport.clientWidth || 0;
     const vh = viewport.clientHeight || 0;
     if (vw <= 0 || vh <= 0) return;
 
     // canvas の “元サイズ” を取得（transform前のサイズ）
     // scrollWidth/scrollHeight が取れない場合は offsetWidth/offsetHeight を使う
-    const bw = canvas.scrollWidth || canvas.offsetWidth || 0;
-    const bh = canvas.scrollHeight || canvas.offsetHeight || 0;
+    // iframeは中身のサイズが取れないので、datasetで固定ベースサイズを持たせる
+    const bw = Number(targetEl.dataset.baseW || targetEl.offsetWidth || 0);
+    const bh = Number(targetEl.dataset.baseH || targetEl.offsetHeight || 0);
     if (bw <= 0 || bh <= 0) return;
 
     const sw = bw * state.scale;
@@ -259,7 +280,7 @@
     }
   };
 
-  const attachPan = (viewport, canvas, state) => {
+  const attachPan = (viewport, targetEl, state) => {
     let dragging = false;
     let sx = 0, sy = 0;
     let stx = 0, sty = 0;
@@ -282,8 +303,8 @@
       const dy = e.clientY - sy;
       state.tx = stx + dx;
       state.ty = sty + dy;
-      clampPan(viewport, canvas, state);
-      applyTransform(canvas, state);
+      clampPan(viewport, targetEl, state);
+      applyTransform(targetEl, state);
     };
     const onUp = () => {
       dragging = false;
@@ -362,48 +383,55 @@
       viewport.style.background = '#fff';
       viewport.style.cursor = 'grab';
 
-      const canvas = document.createElement('div');
-      canvas.className = 'viewer-canvas';
-      canvas.style.position = 'absolute';
-      canvas.style.left = '0';
-      canvas.style.top = '0';
-      canvas.style.transformOrigin = '0 0';
+      // ★CSSリーク防止：iframeで隔離（帳票HTML内の<style>が親を汚染しない）
+      const frame = document.createElement('iframe');
+      frame.className = 'viewer-frame';
+      frame.style.position = 'absolute';
+      frame.style.left = '0';
+      frame.style.top = '0';
+      frame.style.border = '0';
+      frame.style.transformOrigin = '0 0';
+      frame.style.pointerEvents = 'none';
+      frame.sandbox = 'allow-same-origin allow-forms allow-scripts';
+      // A4横相当のベースサイズ（サムネ側と同じ思想）
+      frame.dataset.baseW = '1400';
+      frame.dataset.baseH = '990';
+      frame.style.width = '1400px';
+      frame.style.height = '990px';
+      frame.srcdoc = page.html || '';
 
-      // HTML をそのまま埋め込む（iframeではなくdiv）
-      canvas.innerHTML = page.html || '';
-
-      viewport.appendChild(canvas);
+      viewport.appendChild(frame);
 
       const state = { scale: 1.0, tx: 0, ty: 0 };
       // 初期位置（中央寄せ）
-      clampPan(viewport, canvas, state);
-      applyTransform(canvas, state);
-      attachPan(viewport, canvas, state);
+      clampPan(viewport, frame, state);
+      applyTransform(frame, state);
+      attachPan(viewport, frame, state);
 
       const clampScale = (s) => Math.max(0.5, Math.min(3.0, s));
       const updateZoomLabel = () => {
         zoomLabel.textContent = `${Math.round(state.scale * 100)}%`;
       }
-      updateZoomLabel();+
+      updateZoomLabel();
 
       btnPlus.addEventListener('click', () => {
         state.scale = clampScale(state.scale * 1.12);
-        clampPan(viewport, canvas, state);
-        applyTransform(canvas, state);
+        clampPan(viewport, frame, state);
+        applyTransform(frame, state);
         updateZoomLabel();
       });
       btnMinus.addEventListener('click', () => {
         state.scale = clampScale(state.scale / 1.12);
-        clampPan(viewport, canvas, state);
-        applyTransform(canvas, state);
+        clampPan(viewport, frame, state);
+        applyTransform(frame, state);
         updateZoomLabel();
       });
       btnReset.addEventListener('click', () => {
         state.scale = 1.0;
         state.tx = 0;
         state.ty = 0;
-        clampPan(viewport, canvas, state);
-        applyTransform(canvas, state);
+        clampPan(viewport, frame, state);
+        applyTransform(frame, state);
         updateZoomLabel();
       });
 
@@ -432,16 +460,16 @@
         state.scale = newScale;
         state.tx = px - contentX * newScale;
         state.ty = py - contentY * newScale;
-        clampPan(viewport, canvas, state);
-        applyTransform(canvas, state);
+        clampPan(viewport, frame, state);
+        applyTransform(frame, state);
         updateZoomLabel();
       }, { passive: false });
 
       // ★ウィンドウサイズ変更で端クランプが崩れるのを防ぐ
       // （fullscreen内の列幅変化で viewport が変わるため）
       window.addEventListener('resize', () => {
-        clampPan(viewport, canvas, state);
-        applyTransform(canvas, state);
+        clampPan(viewport, frame, state);
+        applyTransform(frame, state);
       });
 
       tile.appendChild(header);
@@ -452,6 +480,14 @@
 
     viewerModal?.show();
   };
+
+  // ★モーダルを閉じたら iframe を破棄（CSSリーク防止＋メモリ軽減）
+  viewerModalEl?.addEventListener('hidden.bs.modal', () => {
+    const grid = document.getElementById('furusato-viewer-grid');
+    if (!grid) return;
+    grid.querySelectorAll('iframe.viewer-frame').forEach((f) => { try { f.srcdoc = ''; } catch (_e) {} });
+    grid.innerHTML = '';
+  });
 
   const enableSortable = () => {
     if (!gridEl || typeof Sortable === 'undefined') return;
@@ -593,22 +629,405 @@
 
   clearBtn?.addEventListener('click', () => {
     selected = new Set();
+    selectedOrder = [];
     $$('#furusato-preview-grid > div').forEach(applySelectionStyle);
     updateSelectedCount();
   });
 
-  openSelectedBtn?.addEventListener('click', () => {
-    // 選択済みを「サムネの現在の並び順（ドラッグ後）」で列挙する
-    const ordered = [];
-    $$('#furusato-preview-grid > div').forEach((col) => {
-      const idx = Number(col.dataset.idx || 0);
-      if (selected.has(idx)) ordered.push(idx);
+  // ============================
+  // レイヤー表示（重ねる）
+  // ============================
+  const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+
+  // ===== Bounds utils (MUST be defined) =====
+  // 現在の canvas サイズと layer の base サイズ  scale から、移動可能範囲を計算する
+  const computeBounds = (canvasEl, layerEl, st) => {
+    const cw = canvasEl?.clientWidth || 0;
+    const ch = canvasEl?.clientHeight || 0;
+    const bw = Number(layerEl?.dataset?.baseW || 1400);
+    const bh = Number(layerEl?.dataset?.baseH || 990);
+    const sw = bw * (Number(st?.scale) || 1);
+    const sh = bh * (Number(st?.scale) || 1);
+    return {
+      minTx: Math.min(0, cw - sw),
+      maxTx: Math.max(0, cw - sw),
+      minTy: Math.min(0, ch - sh),
+      maxTy: Math.max(0, ch - sh),
+    };
+  };
+
+  const clampLayerWithBounds = (st, b) => {
+    if (!st || !b) return;
+    st.tx = clamp(Number(st.tx) || 0, b.minTx, b.maxTx);
+    st.ty = clamp(Number(st.ty) || 0, b.minTy, b.maxTy);
+  };
+
+  // 端クランプ：端まで行ったら止める（⑤A）
+  // 重要：コンテンツがキャンバスより小さい場合も「動かせる」ようにする
+  //  tx: [0 .. (cw - sw)] / ty: [0 .. (ch - sh)]
+  const clampLayer = (canvasEl, layerEl, st) => {
+    const cw = canvasEl.clientWidth || 0;
+    const ch = canvasEl.clientHeight || 0;
+    if (cw <= 0 || ch <= 0) return;
+    const bw = Number(layerEl.dataset.baseW || 1400);
+    const bh = Number(layerEl.dataset.baseH || 990);
+    const sw = bw * st.scale;
+    const sh = bh * st.scale;
+
+    // X: コンテンツが小さい場合も「0〜余り」の範囲で動かせる
+    const minTx = Math.min(0, cw - sw); // sw>cw のとき負、sw<=cw のとき 0
+    const maxTx = Math.max(0, cw - sw); // sw<=cw のとき正、sw>cw のとき 0
+    st.tx = clamp(st.tx, minTx, maxTx);
+
+    // Y: 同様
+    const minTy = Math.min(0, ch - sh);
+    const maxTy = Math.max(0, ch - sh);
+    st.ty = clamp(st.ty, minTy, maxTy);
+  };
+
+  const applyLayerTransform = (layerEl, st) => {
+    layerEl.style.transform = `translate(${st.tx}px, ${st.ty}px) scale(${st.scale})`;
+  };
+
+  // z順（⑥）
+  const bringToFront = (canvasEl, layerId) => {
+    const layers = Array.from(canvasEl.querySelectorAll('.furusato-layer'));
+    const target = layers.find((x) => x.dataset.layerId === layerId);
+    if (!target) return;
+    canvasEl.appendChild(target); // DOM末尾＝最前面
+    refreshZ(canvasEl);
+  };
+  const sendToBack = (canvasEl, layerId) => {
+    const layers = Array.from(canvasEl.querySelectorAll('.furusato-layer'));
+    const target = layers.find((x) => x.dataset.layerId === layerId);
+    if (!target) return;
+    canvasEl.insertBefore(target, canvasEl.firstChild); // 先頭＝最背面
+    refreshZ(canvasEl);
+  };
+  const stepForward = (canvasEl, layerId) => {
+    const layers = Array.from(canvasEl.querySelectorAll('.furusato-layer'));
+    const i = layers.findIndex((x) => x.dataset.layerId === layerId);
+    if (i < 0 || i === layers.length - 1) return;
+    canvasEl.insertBefore(layers[i + 1], layers[i]); // 1つ前面へ
+    refreshZ(canvasEl);
+  };
+  const stepBackward = (canvasEl, layerId) => {
+    const layers = Array.from(canvasEl.querySelectorAll('.furusato-layer'));
+    const i = layers.findIndex((x) => x.dataset.layerId === layerId);
+    if (i <= 0) return;
+    canvasEl.insertBefore(layers[i], layers[i - 1]); // 1つ背面へ
+    refreshZ(canvasEl);
+  };
+  const refreshZ = (canvasEl) => {
+    // DOM順に z-index を振り直す（後ろ→前）
+    const layers = Array.from(canvasEl.querySelectorAll('.furusato-layer'));
+    layers.forEach((el, i) => { el.style.zIndex = String(10 + i); });
+  };
+
+  const makeLayer = (p, orderIndex) => {
+    // layerId は idx で安定
+    const layerId = String(p.idx);
+
+    const layer = document.createElement('div');
+    layer.className = 'furusato-layer position-absolute';
+    layer.dataset.layerId = layerId;
+    layer.style.left = '0';
+    layer.style.top = '0';
+    layer.style.zIndex = String(10 + orderIndex);
+
+    // “PDFそのもの”に見える枠
+    layer.style.boxShadow = '0 6px 18px rgba(0,0,0,0.25)';
+    layer.style.border = '1px solid rgba(0,0,0,0.2)';
+    layer.style.background = '#fff';
+
+    // 変形対象（iframe）を含めた container
+    const baseW = 1400;
+    const baseH = 990;
+    layer.dataset.baseW = String(baseW);
+    layer.dataset.baseH = String(baseH);
+    layer.style.width = `${baseW}px`;
+    layer.style.height = `${baseH + 34}px`; // 操作バー分
+
+    // 操作バー（ドラッグは“どこでも”にするが、バーがあると分かりやすい）
+    const bar = document.createElement('div');
+    bar.className = 'd-flex align-items-center justify-content-between px-2';
+    bar.style.height = '34px';
+    bar.style.background = 'rgba(248,249,250,0.95)';
+    bar.style.borderBottom = '1px solid rgba(0,0,0,0.12)';
+    bar.style.cursor = 'move';
+    bar.style.userSelect = 'none';
+
+    const title = document.createElement('div');
+    title.className = 'small text-muted';
+    title.textContent = (p.idx === 0) ? '表紙' : `${p.idx}ページ目`;
+
+    const btns = document.createElement('div');
+    btns.className = 'btn-group btn-group-sm';
+
+    const mkBtn = (txt) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-outline-secondary';
+      b.textContent = txt;
+      return b;
+    };
+
+    const btnMinus = mkBtn('−');
+    const zoomLabel = mkBtn('100%'); zoomLabel.classList.add('disabled');
+    const btnPlus = mkBtn('＋');
+    const btnReset = mkBtn('⟲');
+    const btnBack = mkBtn('◀');  // 1段背面
+    const btnFront = mkBtn('▶'); // 1段前面
+    const btnToBack = mkBtn('⤓'); // 最背面
+    const btnToFront = mkBtn('⤒'); // 最前面
+
+    btns.appendChild(btnMinus);
+    btns.appendChild(zoomLabel);
+    btns.appendChild(btnPlus);
+    btns.appendChild(btnReset);
+    btns.appendChild(btnBack);
+    btns.appendChild(btnFront);
+    btns.appendChild(btnToBack);
+    btns.appendChild(btnToFront);
+
+    bar.appendChild(title);
+    bar.appendChild(btns);
+
+    const viewport = document.createElement('div');
+    viewport.style.width = `${baseW}px`;
+    viewport.style.height = `${baseH}px`;
+    viewport.style.position = 'relative';
+    viewport.style.overflow = 'hidden';
+
+    const frame = document.createElement('iframe');
+    frame.className = 'layer-frame';
+    frame.sandbox = 'allow-same-origin allow-forms allow-scripts';
+    frame.style.width = `${baseW}px`;
+    frame.style.height = `${baseH}px`;
+    frame.style.border = '0';
+    // iframeがイベントを奪わない（ドラッグ移動しやすくする）
+    frame.style.pointerEvents = 'none';
+    frame.srcdoc = p.html || '';
+
+    viewport.appendChild(frame);
+
+    // ドラッグ用の透明オーバーレイ（③：長押し不要、ドラッグ即移動）
+    const dragOverlay = document.createElement('div');
+    dragOverlay.style.position = 'absolute';
+    dragOverlay.style.inset = '0';
+    dragOverlay.style.cursor = 'move';
+    dragOverlay.style.background = 'transparent';
+    dragOverlay.dataset.role = 'layer-drag-overlay';
+    dragOverlay.style.zIndex = '5';
+    dragOverlay.style.touchAction = 'none';    
+    viewport.appendChild(dragOverlay);
+
+    layer.appendChild(bar);
+    layer.appendChild(viewport);
+
+    const st = { scale: 1.0, tx: 0, ty: 0 }; // ★実寸確定後に自動スケールへ補正する
+    const clampScale = (s) => Math.max(0.2, Math.min(3.0, s));
+    const updateZoom = () => { zoomLabel.textContent = `${Math.round(st.scale * 100)}%`; };
+
+    // クリックしたら最前面へ（直感的）
+    const focusLayer = () => bringToFront(layerCanvas, layerId);
+
+    // drag
+    let dragging = false;
+    let sx = 0, sy = 0, stx = 0, sty = 0;
+    let bounds = null;
+    let rafId = 0;
+    let pendingTx = 0;
+    let pendingTy = 0;
+    const scheduleApply = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        st.tx = pendingTx;
+        st.ty = pendingTy;
+        if (bounds) clampLayerWithBounds(st, bounds);
+        applyLayerTransform(layer, st);
+      });
+    };
+    const onDown = (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      e.preventDefault();
+      dragging = true;
+      focusLayer();
+      dragOverlay.setPointerCapture?.(e.pointerId);
+      sx = e.clientX; sy = e.clientY;
+      stx = st.tx; sty = st.ty;
+      // ★ドラッグ中は影を消して軽量化（体感がかなり上がる）
+      layer.dataset._shadow = layer.style.boxShadow || '';
+      layer.style.boxShadow = 'none';
+      // ★このドラッグ中に使う境界を固定（毎move計算しない）
+      bounds = layerCanvas ? computeBounds(layerCanvas, layer, st) : null;
+    };
+    const onMove = (e) => {
+      if (!dragging) return;
+      pendingTx = stx + (e.clientX - sx);
+      pendingTy = sty + (e.clientY - sy);
+      scheduleApply();
+    };
+    const onUp = () => { 
+      dragging = false;
+      bounds = null;
+      if (layer.dataset._shadow !== undefined) {
+        layer.style.boxShadow = layer.dataset._shadow;
+        delete layer.dataset._shadow;
+      }
+    };
+    dragOverlay.addEventListener('pointerdown', onDown);
+    dragOverlay.addEventListener('pointermove', onMove);
+    dragOverlay.addEventListener('pointerup', onUp);
+    dragOverlay.addEventListener('pointercancel', onUp);
+
+    // zoom
+    btnPlus.addEventListener('click', (e) => {
+      e.stopPropagation();
+      focusLayer();
+      st.scale = clampScale(st.scale * 1.12);
+      if (layerCanvas) {
+        const b = computeBounds(layerCanvas, layer, st);
+        clampLayerWithBounds(st, b);
+      }
+      applyLayerTransform(layer, st);
+      updateZoom();
     });
-    if (ordered.length === 0) {
-      // 未選択なら先頭を1枚表示
-      if (pages[0]) ordered.push(pages[0].idx);
+    btnMinus.addEventListener('click', (e) => {
+      e.stopPropagation();
+      focusLayer();
+      st.scale = clampScale(st.scale / 1.12);
+      if (layerCanvas) {
+        const b = computeBounds(layerCanvas, layer, st);
+        clampLayerWithBounds(st, b);
+      }
+      applyLayerTransform(layer, st);
+      updateZoom();
+    });
+    btnReset.addEventListener('click', (e) => {
+      e.stopPropagation();
+      focusLayer();
+      st.scale = 0.45;
+      st.tx = 0;
+      st.ty = 0;
+      if (layerCanvas) {
+        const b = computeBounds(layerCanvas, layer, st);
+        clampLayerWithBounds(st, b);
+      }
+      applyLayerTransform(layer, st);
+      updateZoom();
+    });
+
+    // z buttons
+    btnToFront.addEventListener('click', (e) => { e.stopPropagation(); bringToFront(layerCanvas, layerId); });
+    btnToBack.addEventListener('click', (e) => { e.stopPropagation(); sendToBack(layerCanvas, layerId); });
+    btnFront.addEventListener('click', (e) => { e.stopPropagation(); stepForward(layerCanvas, layerId); });
+    btnBack.addEventListener('click', (e) => { e.stopPropagation(); stepBackward(layerCanvas, layerId); });
+
+    // ★初期配置は「モーダル表示後にキャンバスサイズ確定してから」セットする
+    // ここでは仮置き（0,0）にしておく
+    st.tx = 0;
+    st.ty = 0;
+    applyLayerTransform(layer, st);
+    updateZoom();
+
+    // canvas resize で端クランプ
+    window.addEventListener('resize', () => {
+      if (!layerCanvas) return;
+      const b = computeBounds(layerCanvas, layer, st);
+      clampLayerWithBounds(st, b);
+      applyLayerTransform(layer, st);
+    });
+
+    // expose for reset-all
+    layer._layerState = st;
+    layer._apply = () => {
+      if (layerCanvas) {
+        const b = computeBounds(layerCanvas, layer, st);
+        clampLayerWithBounds(st, b);
+      }
+      applyLayerTransform(layer, st);
+      updateZoom();
+    };
+
+    return layer;
+  };
+
+  const openLayerCanvas = (idxListInOrder) => {
+    if (!layerCanvas) return;
+    layerCanvas.innerHTML = '';
+
+    // ★4枚制限
+    const idxLimited = idxListInOrder.slice(0, MAX_LAYERS);
+    if (idxListInOrder.length > MAX_LAYERS) {
+      alert(`同時レイヤーは最大${MAX_LAYERS}枚までです。先頭${MAX_LAYERS}枚のみ表示します。`);
     }
-    openViewerTiles(ordered);
+
+    const list = idxLimited.map((idx) => pages.find((pp) => pp.idx === idx)).filter(Boolean);
+    // 選択順＝背面→前面（②A）
+    list.forEach((p, i) => {
+      const layer = makeLayer(p, i);
+      layerCanvas.appendChild(layer);
+    });
+    refreshZ(layerCanvas);
+    viewerModal?.show();
+
+    // ★モーダルが表示されてキャンバスサイズが確定してから初期配置＆クランプを実行
+    const afterShown = () => {
+      viewerModalEl?.removeEventListener('shown.bs.modal', afterShown);
+      if (!layerCanvas) return;
+      const cw = layerCanvas.clientWidth || 0;
+      const ch = layerCanvas.clientHeight || 0;
+      if (cw <= 0 || ch <= 0) return;
+
+      const layers = Array.from(layerCanvas.querySelectorAll('.furusato-layer'));
+      layers.forEach((layer, i) => {
+        const st = layer._layerState;
+        if (!st) return;
+        // キャンバスに収まる初期倍率（少し余白）
+        const bw = Number(layer.dataset.baseW || 1400);
+        const bh = Number(layer.dataset.baseH || 990);
+        const barH = 34;
+        const scaleW = (cw * 0.92) / bw;
+        const scaleH = (ch * 0.92) / (bh + barH);
+        st.scale = Math.max(0.2, Math.min(1.0, Math.min(scaleW, scaleH)));
+
+        // 少しずつずらして重なりが見えるように
+        st.tx = 30 + i * 28;
+        st.ty = 20 + i * 22;
+        layer._apply?.();
+      });
+    };
+    viewerModalEl?.addEventListener('shown.bs.modal', afterShown);
+  };
+
+  resetAllBtn?.addEventListener('click', () => {
+    if (!layerCanvas) return;
+    const layers = Array.from(layerCanvas.querySelectorAll('.furusato-layer'));
+    layers.forEach((layer, i) => {
+      const st = layer._layerState;
+      if (!st) return;
+      st.scale = 0.45;
+      st.tx = 30 + i * 28;
+      st.ty = 20 + i * 22;
+      layer._apply?.();
+    });
+  });
+
+  // 「選択を拡大」→レイヤーキャンバスを開く
+  openSelectedBtn?.addEventListener('click', () => {
+    const list = (selectedOrder && selectedOrder.length > 0)
+      ? [...selectedOrder]
+      : (pages[0] ? [pages[0].idx] : []);
+    openLayerCanvas(list);
+  });
+
+  // viewer を閉じたら破棄（⑦保存なし + CSS隔離のためiframe解放）
+  viewerModalEl?.addEventListener('hidden.bs.modal', () => {
+    if (!layerCanvas) return;
+    layerCanvas.querySelectorAll('iframe.layer-frame').forEach((f) => { try { f.srcdoc = ''; } catch (_e) {} });
+    layerCanvas.innerHTML = '';
   });
 
   // list modal を閉じたら fetch を止める

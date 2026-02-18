@@ -706,45 +706,28 @@ final class FurusatoController extends Controller
      * 住宅借入金等特別控除 内訳（保存→再計算）
      */
     public function saveKojoTokubetsuJutakuLoanDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase
     ): RedirectResponse {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        // 入力キー定義
-        $fields = [
-            'itax_borrow_cap_prev','itax_borrow_cap_curr',
-            'itax_year_end_balance_prev','itax_year_end_balance_curr',
-            'itax_credit_rate_percent_prev','itax_credit_rate_percent_curr',
-            'rtax_income_rate_percent_prev','rtax_income_rate_percent_curr',
-            // readonly 表示値（受信値は無視するが、存在していてもエラーにしない）
-            'rtax_carry_cap_prev','rtax_carry_cap_curr',
-        ];
-
-        // バリデーション（％は0～100を許容、金額は0以上）
-        $rules = [
-            'itax_borrow_cap_prev'           => ['bail','nullable','integer','min:0','max:5000000000'],
-            'itax_borrow_cap_curr'           => ['bail','nullable','integer','min:0','max:5000000000'],
-            'itax_year_end_balance_prev'     => ['bail','nullable','integer','min:0','max:5000000000'],
-            'itax_year_end_balance_curr'     => ['bail','nullable','integer','min:0','max:5000000000'],
-            'itax_credit_rate_percent_prev'  => ['bail','nullable','numeric','min:0','max:100','regex:/^\d{1,2}(\.\d)?$/'],
-            'itax_credit_rate_percent_curr'  => ['bail','nullable','numeric','min:0','max:100','regex:/^\d{1,2}(\.\d)?$/'],
-            'rtax_income_rate_percent_prev'  => ['bail','nullable','in:5,7'],
-            'rtax_income_rate_percent_curr'  => ['bail','nullable','in:5,7'],
-            'rtax_carry_cap_prev'            => ['bail','nullable','integer','min:0'],
-            'rtax_carry_cap_curr'            => ['bail','nullable','integer','min:0'],
-        ];
-
-        // 画面の数値（カンマ等）を整数・数値へ正規化
+        // ▼ Request 側で validate 済み（fields）
+        //    ※整数系のカンマ正規化は normalizeIntegerFieldsFromRequest を維持
         $this->normalizeIntegerFieldsFromRequest($req, [
             'itax_borrow_cap_prev','itax_borrow_cap_curr',
             'itax_year_end_balance_prev','itax_year_end_balance_curr',
             'rtax_carry_cap_prev','rtax_carry_cap_curr',
         ]);
-        // ％は normalizeIntegerFields は使わず raw 数値を許容
-        $validated = \Validator::make($req->only($fields), $rules)->validate();
+        $validated = $req->validated();
 
         $payload = [];
+        $fields = [
+            'itax_borrow_cap_prev','itax_borrow_cap_curr',
+            'itax_year_end_balance_prev','itax_year_end_balance_curr',
+            'itax_credit_rate_percent_prev','itax_credit_rate_percent_curr',
+            'rtax_income_rate_percent_prev','rtax_income_rate_percent_curr',
+            'rtax_carry_cap_prev','rtax_carry_cap_curr',
+        ];
         foreach ($fields as $k) {
             $v = $validated[$k] ?? $req->input($k);
             if (in_array($k, ['itax_credit_rate_percent_prev','itax_credit_rate_percent_curr'], true)) {
@@ -2168,16 +2151,51 @@ final class FurusatoController extends Controller
     }
 
     public function save(
-        Request $request,
+        FurusatoInputRequest $request,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
+        // ============================================================
+        // ▼ 「内訳」遷移（js-open-details など）では、第一表の全部入りバリデーションを走らせない
+        //   理由：
+        //    - 第一表は表示用にカンマ付き/ダッシュ(－)が混在する
+        //    - furusato.save の full rules で integer 判定すると遷移だけでエラーになる
+        //   方針：
+        //    - details へ行くだけなら保存・再計算は不要（SoTは details 側で保存）
+        //    - よって validate() を呼ばずに安全にリダイレクトする
+        // ============================================================
+        $goto = (string) $request->input('redirect_to', '');
+        $navOnlyGotos = [
+            'jigyo',
+            'fudosan',
+            'kifukin_details',
+            'joto_ichiji',
+            'kojo_seimei_jishin',
+            'kojo_jinteki',
+            'kojo_iryo',
+            'bunri_joto',
+            'bunri_kabuteki',
+            'bunri_sakimono',
+            'bunri_sanrin',
+            'kojo_tokubetsu_jutaku_loan',
+            'kyuyo_zatsu',
+        ];
+
+        $isNavOnly = $goto !== '' && in_array($goto, $navOnlyGotos, true);
+        $isRecalcAll = (int) $request->input('recalc_all') === 1;
+        if ($isNavOnly && ! $isRecalcAll) {
+            // data_id だけ正しく見て権限チェックして遷移（保存しない）
+            $data = $this->resolveAuthorizedDataOrFail($request, 'view');
+            return $this->redirectAfterGotoNoFlash($request, $data, $goto);
+        }
+
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         if ((int) $request->input('recalc_all') === 1) {
             $data = $this->resolveAuthorizedDataOrFail($request, 'update');
 
-            $updates = $request->except([
-                '_token',
+            // ▼ Request 側で validate 済み：未検証キーの混入を遮断
+            $validated = $request->validated();
+            $updates = Arr::except($validated, [
                 'data_id',
                 'redirect_to',
                 'show_result',
@@ -2193,7 +2211,7 @@ final class FurusatoController extends Controller
                 $request,
                 array_merge(self::BUNRI_CHOKI_SHOTOKU_FIELDS, self::BUNRI_TAISHOKU_MANUAL_FIELDS)
             );
-            $this->validateBunriChokiShotokuInputs($request);
+            // validate は FurusatoInputRequest に寄せる（Controller で Validator::make しない）
 
             $this->performFullRecalculation($request, $data, $updates, $recalculateUseCase);
 
@@ -2206,8 +2224,8 @@ final class FurusatoController extends Controller
         }
 
         $data = $this->resolveAuthorizedDataOrFail($request, 'update');
-        $updates = $request->except([
-            '_token',
+        $validated = $request->validated();
+        $updates = Arr::except($validated, [
             'data_id',
             'redirect_to',
             'show_result',
@@ -2222,7 +2240,7 @@ final class FurusatoController extends Controller
             $request,
             array_merge(self::BUNRI_CHOKI_SHOTOKU_FIELDS, self::BUNRI_TAISHOKU_MANUAL_FIELDS)
         );
-        $this->validateBunriChokiShotokuInputs($request);
+        // validate は FurusatoInputRequest に寄せる
         $goto = (string) $request->input('redirect_to', '');
         $shouldShowResult = $request->boolean('show_result') || $goto === '' || $goto === 'input';
 
@@ -2235,6 +2253,47 @@ final class FurusatoController extends Controller
         );
 
         return $this->redirectAfterGoto($request, $data, $goto, '保存しました');
+    }
+
+    /**
+     * ▼ ナビゲーション専用：flash(success) を付けずに details へ遷移する
+     */
+    private function redirectAfterGotoNoFlash(Request $request, Data $data, string $goto): RedirectResponse
+    {
+        $routeParams = ['data_id' => $data->id];
+        $originQuery = $this->buildOriginQuery($request);
+
+        switch ($goto) {
+            case 'jigyo':
+                return redirect()->route('furusato.details.jigyo', array_merge($routeParams, $originQuery));
+            case 'kyuyo_zatsu':
+                return redirect()->route('furusato.details.kyuyo_zatsu', array_merge($routeParams, $originQuery));
+            case 'fudosan':
+                return redirect()->route('furusato.details.fudosan', array_merge($routeParams, $originQuery));
+            case 'kifukin_details':
+                return redirect()->route('furusato.details.kifukin', array_merge($routeParams, $originQuery));
+            case 'joto_ichiji':
+                return redirect()->route('furusato.details.joto_ichiji', array_merge($routeParams, $originQuery));
+            case 'kojo_seimei_jishin':
+                return redirect()->route('furusato.details.kojo_seimei_jishin', array_merge($routeParams, $originQuery));
+            case 'kojo_jinteki':
+                return redirect()->route('furusato.details.kojo_jinteki', array_merge($routeParams, $originQuery));
+            case 'kojo_iryo':
+                return redirect()->route('furusato.details.kojo_iryo', array_merge($routeParams, $originQuery));
+            case 'bunri_joto':
+                return redirect()->route('furusato.details.bunri_joto', array_merge($routeParams, $originQuery));
+            case 'bunri_kabuteki':
+                return redirect()->route('furusato.details.bunri_kabuteki', array_merge($routeParams, $originQuery));
+            case 'bunri_sakimono':
+                return redirect()->route('furusato.details.bunri_sakimono', array_merge($routeParams, $originQuery));
+            case 'bunri_sanrin':
+                return redirect()->route('furusato.details.bunri_sanrin', array_merge($routeParams, $originQuery));
+            case 'kojo_tokubetsu_jutaku_loan':
+                return redirect()->route('furusato.details.kojo_tokubetsu_jutaku_loan', array_merge($routeParams, $originQuery));
+            default:
+                // 想定外は第一表へ（flashなし）
+                return redirect()->route('furusato.input', ['data_id' => $data->id]);
+        }
     }
 
     public function jigyoEigyoDetails(Request $req)
@@ -2262,19 +2321,30 @@ final class FurusatoController extends Controller
     }
 
     public function saveJigyoEigyoDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $labelUpdates = $this->validateAndNormalizeLabels($req, self::JIGYO_EIGYO_LABEL_FIELDS);
+        // ▼ Request 側で validate 済み（数値＋ラベル）
+        $validated = $req->validated();
 
-        $payload = $this->sanitizeDetailPayload($req->except(array_merge(
-            ['_token', 'data_id', 'origin_tab', 'origin_anchor'],
-            self::JIGYO_EIGYO_LABEL_FIELDS,
-        )));
+        // ラベル（DBカラム）：trimして空文字は null
+        $labelUpdates = [];
+        foreach (self::JIGYO_EIGYO_LABEL_FIELDS as $k) {
+            $v = $validated[$k] ?? null;
+            if ($v === null) {
+                $labelUpdates[$k] = null;
+                continue;
+            }
+            $t = trim((string) $v);
+            $labelUpdates[$k] = ($t === '') ? null : $t;
+        }
+
+        // payload（数値のみ）：validated から label/data_id を除外して SoT 化
+        $payload = $this->sanitizeDetailPayload(Arr::except($validated, array_merge(['data_id'], self::JIGYO_EIGYO_LABEL_FIELDS)));
 
         // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
         //   - jigyo_eigyo_details では JS が空欄を '' のまま hidden へ入れて送るため、
@@ -2345,19 +2415,30 @@ final class FurusatoController extends Controller
     }
 
     public function saveFudosanDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $labelUpdates = $this->validateAndNormalizeLabels($req, self::FUDOSAN_LABEL_FIELDS);
+        // ▼ Request 側で validate 済み（数値＋ラベル）
+        $validated = $req->validated();
 
-        $payload = $this->sanitizeDetailPayload($req->except(array_merge(
-            ['_token', 'data_id', 'origin_tab', 'origin_anchor'],
-            self::FUDOSAN_LABEL_FIELDS,
-        )));
+        // ラベル（DBカラム）：trimして空文字は null
+        $labelUpdates = [];
+        foreach (self::FUDOSAN_LABEL_FIELDS as $k) {
+            $v = $validated[$k] ?? null;
+            if ($v === null) {
+                $labelUpdates[$k] = null;
+                continue;
+            }
+            $t = trim((string) $v);
+            $labelUpdates[$k] = ($t === '') ? null : $t;
+        }
+
+        // payload（数値のみ）：validated から label/data_id を除外して SoT 化
+        $payload = $this->sanitizeDetailPayload(Arr::except($validated, array_merge(['data_id'], self::FUDOSAN_LABEL_FIELDS)));
 
         // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
         //   - fudosan_details では JS が空欄を '' のまま hidden へ入れて送るため、
@@ -2428,40 +2509,16 @@ final class FurusatoController extends Controller
     }
 
     public function saveKifukinDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $categories = [
-            'furusato',
-            'kyodobokin_nisseki',
-            'seito',
-            'npo',
-            'koueki',
-            'kuni',
-            'sonota',
-        ];
-        $periods = ['prev', 'curr'];
-        $areas = ['pref', 'muni'];
-
-        $rules = [];
-        foreach ($categories as $category) {
-            foreach ($periods as $period) {
-                foreach ($areas as $area) {
-                    $key = sprintf('juminzei_zeigakukojo_%s_%s_%s', $area, $category, $period);
-                    $rules[$key] = ['bail', 'nullable', 'integer', 'min:0'];
-                }
-            }
-        }
-
-        if ($rules !== []) {
-            Validator::make($req->only(array_keys($rules)), $rules)->validate();
-        }
-
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'redirect_to', 'origin_tab', 'origin_anchor']));
+        // ▼ Request 側で validate 済み（寄付入力の全キー）
+        $validated = $req->validated();
+        $payload = $this->sanitizeDetailPayload(Arr::except($validated, ['data_id']));
         $updatesForRecalc = $payload;
 
         // ▼ ワンストップ特例（syori_menu）= 利用する場合
@@ -2531,7 +2588,7 @@ final class FurusatoController extends Controller
      * 給与・雑 details 保存
      */
     public function saveKyuyoZatsuDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase
     ): RedirectResponse {
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
@@ -2576,7 +2633,8 @@ final class FurusatoController extends Controller
             'zatsu_sonota_shiharai_curr' => ['bail', 'nullable', 'integer', 'min:0'],
         ];
         $this->normalizeIntegerFieldsFromRequest($req, $fields);
-        $validated = Validator::make($req->only($fields), $rules)->validate();
+        // ▼ Request 側で validate 済み（数値＋checkbox hidden）
+        $validated = $req->validated();
 
         // サニタイズ
         $payload = [];
@@ -2647,25 +2705,16 @@ final class FurusatoController extends Controller
     }
 
     public function saveJotoIchijiDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $bases = ['joto_ichiji_shunyu', 'joto_ichiji_keihi'];
-        $rules = [];
-        foreach ($bases as $base) {
-            foreach (['prev', 'curr'] as $period) {
-                $rules[sprintf('%s_%s', $base, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-            }
-        }
-
-        Validator::make($req->only(array_keys($rules)), $rules)->validate();
-
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
-        $this->normalizeJotoIchijiKeys($payload);
+        // ▼ Request 側で validate 済み（syunyu/keihi + sashihiki_joto_*_sogo_*）
+        $validated = $req->validated();
+        $payload = $this->sanitizeDetailPayload(Arr::except($validated, ['data_id']));
 
         // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
         //   - joto_ichiji_details は JS が空欄を '' のまま hidden へ入れて送る
@@ -2733,42 +2782,17 @@ final class FurusatoController extends Controller
     }
 
     public function saveBunriJotoDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $rowKeys = [
-            'tanki_ippan',
-            'tanki_keigen',
-            'choki_ippan',
-            'choki_tokutei',
-            'choki_keika',
-        ];
-        // tsusango_%_% は「第2次損益通算後（after_2jitsusan_%_%）」を
-        // サーバ側で一意に決定するため、POST 入力は受け付けない（表示専用）。
-        $editablePrefixes = ['syunyu', 'keihi', 'tokubetsukojo'];
-        $rules = [];
-
-        foreach ($rowKeys as $rowKey) {
-            foreach ($editablePrefixes as $prefix) {
-                foreach (['prev', 'curr'] as $period) {
-                    $rules[sprintf('%s_%s_%s', $prefix, $rowKey, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-                }
-            }
-        }
-
-        foreach (['prev', 'curr'] as $period) {
-            $rules[sprintf('joto_choki_tokutei_sonshitsu_%s', $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-        }
-
-        Validator::make($req->only(array_keys($rules)), $rules)->validate();
-
-        // バリデーション対象のキーだけを保存対象にする
-        // （tsusango_%_% は rules に含めていないので payload には入らない）
-        $payload = $this->sanitizeDetailPayload($req->only(array_keys($rules)));
+        // ▼ Request（FurusatoInputRequest）側で画面固有の入力キーのみ validate 済み
+        //    - payload は validated のみから構築し、display-only の混入を防ぐ
+        $validated = $req->validated();
+        $payload = $this->sanitizeDetailPayload(Arr::except($validated, ['data_id']));
 
         // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
         //   対象：syunyu_*/keihi_*/tokubetsukojo_*/joto_choki_tokutei_sonshitsu_*（いずれも入力SoT）
@@ -2833,34 +2857,17 @@ final class FurusatoController extends Controller
     }
 
     public function saveBunriKabutekiDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        // ▼ 入力SoTを限定：
-        //   - syunyu_*/keihi_* と kurikoshi_jojo_joto_* だけを保存する
-        //   - tsusango_*/shotoku_*/shotoku_after_kurikoshi_* はサーバ計算で毎回上書きするため、POSTを受け取らない
-        $rules = [];
-        foreach (['prev', 'curr'] as $period) {
-            foreach ([
-                'ippan_joto',
-                'jojo_joto',
-                'jojo_haito',
-            ] as $kind) {
-                $rules[sprintf('syunyu_%s_%s', $kind, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-                $rules[sprintf('keihi_%s_%s',  $kind, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-            }
-            // 繰越は上場株式等の譲渡のみ
-            $rules[sprintf('kurikoshi_jojo_joto_%s', $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-        }
-
-        Validator::make($req->only(array_keys($rules)), $rules)->validate();
-
-        // 保存対象は rules のキーだけに限定（display-only が混入しない）
-        $payload = $this->sanitizeDetailPayload($req->only(array_keys($rules)));
+        // ▼ Request 側で validate 済み（syunyu/keihi/kurikoshi のみ）
+        //    - payload は validated から構築し、display-only の混入を防ぐ
+        $validated = $req->validated();
+        $payload = $this->sanitizeDetailPayload(Arr::except($validated, ['data_id']));
 
         // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
         foreach ($payload as $k => $v) {
@@ -2924,24 +2931,17 @@ final class FurusatoController extends Controller
     }
 
     public function saveBunriSakimonoDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $rules = [];
-        foreach (['syunyu_sakimono', 'keihi_sakimono', 'kurikoshi_sakimono'] as $base) {
-            foreach (['prev', 'curr'] as $period) {
-                $rules[sprintf('%s_%s', $base, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-            }
-        }
-
-        Validator::make($req->only(array_keys($rules)), $rules)->validate();
-
-        $payload = $this->sanitizeDetailPayload($req->except(['_token', 'data_id', 'origin_tab', 'origin_anchor']));
-
+        // ▼ Request 側で validate 済み（syunyu/keihi/kurikoshi のみ）
+        //    - payload は validated から構築し、display-only の混入を防ぐ
+        $validated = $req->validated();
+        $payload = $this->sanitizeDetailPayload(Arr::except($validated, ['data_id']));
         $updatesForRecalc = $payload;
 
         if ((int) $req->input('recalc_all') === 1) {
@@ -2998,25 +2998,16 @@ final class FurusatoController extends Controller
     }
 
     public function saveBunriSanrinDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $rules = [];
-         // 山林の入力SoTは「収入・必要経費」のみ（特別控除はサーバ側で必ず算出）
-         foreach (['syunyu_sanrin', 'keihi_sanrin'] as $base) {
-            foreach (['prev', 'curr'] as $period) {
-                $rules[sprintf('%s_%s', $base, $period)] = ['bail', 'nullable', 'integer', 'min:0'];
-            }
-        }
-
-        Validator::make($req->only(array_keys($rules)), $rules)->validate();
-
-         // 保存対象は rules のキーに限定（画面制御キーの混入を防ぐ）
-         $payload = $this->sanitizeDetailPayload($req->only(array_keys($rules)));
+        // ▼ Request 側で validate 済み（syunyu_sanrin/keihi_sanrin のみ）
+        $validated = $req->validated();
+        $payload = $this->sanitizeDetailPayload(Arr::except($validated, ['data_id']));
 
          // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
          foreach ($payload as $k => $v) {
@@ -3094,40 +3085,16 @@ final class FurusatoController extends Controller
     }
 
     public function saveKojoSeimeiJishinDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $inputKeys = [
-            'kojo_seimei_shin_prev',
-            'kojo_seimei_shin_curr',
-            'kojo_seimei_kyu_prev',
-            'kojo_seimei_kyu_curr',
-            'kojo_seimei_nenkin_shin_prev',
-            'kojo_seimei_nenkin_shin_curr',
-            'kojo_seimei_nenkin_kyu_prev',
-            'kojo_seimei_nenkin_kyu_curr',
-            'kojo_seimei_kaigo_iryo_prev',
-            'kojo_seimei_kaigo_iryo_curr',
-            'kojo_seimei_gokei_prev',
-            'kojo_seimei_gokei_curr',
-            'kojo_jishin_prev',
-            'kojo_jishin_curr',
-            'kojo_kyuchoki_songai_prev',
-            'kojo_kyuchoki_songai_curr',
-            'kojo_jishin_gokei_prev',
-            'kojo_jishin_gokei_curr',
-        ];
-
-        $rules = array_fill_keys($inputKeys, ['bail', 'nullable', 'integer', 'min:0']);
-
-        Validator::make($req->only($inputKeys), $rules)->validate();
-
-        $payload = Arr::only($req->all(), $inputKeys);
-        $payload = $this->sanitizeDetailPayload($payload);
+        // ▼ Request 側で validate 済み（入力SoTのみ）
+        $validated = $req->validated();
+        $payload = $this->sanitizeDetailPayload(Arr::except($validated, ['data_id']));
 
         $updatesForRecalc = $payload;
 
@@ -3177,220 +3144,16 @@ final class FurusatoController extends Controller
     }
 
     public function saveKojoJintekiDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $toggleFields = [
-            // 〇/×
-            'kojo_kafu_applicable_prev',
-            'kojo_kafu_applicable_curr',
-            'kojo_kinrogakusei_applicable_prev',
-            'kojo_kinrogakusei_applicable_curr',
-            // 父/母/×（互換で〇も許容）
-            'kojo_hitorioya_applicable_prev',
-            'kojo_hitorioya_applicable_curr',
-        ];
-
-        $categoryFields = [
-            'kojo_haigusha_category_prev',
-            'kojo_haigusha_category_curr',
-        ];
-
-        $numericFields = [
-            'kojo_shogaisha_count_prev',
-            'kojo_shogaisha_count_curr',
-            'kojo_tokubetsu_shogaisha_count_prev',
-            'kojo_tokubetsu_shogaisha_count_curr',
-            'kojo_doukyo_tokubetsu_shogaisha_count_prev',
-            'kojo_doukyo_tokubetsu_shogaisha_count_curr',
-            'kojo_haigusha_tokubetsu_gokeishotoku_prev',
-            'kojo_haigusha_tokubetsu_gokeishotoku_curr',
-            'kojo_fuyo_ippan_count_prev',
-            'kojo_fuyo_ippan_count_curr',
-            'kojo_fuyo_tokutei_count_prev',
-            'kojo_fuyo_tokutei_count_curr',
-            'kojo_fuyo_roujin_doukyo_count_prev',
-            'kojo_fuyo_roujin_doukyo_count_curr',
-            'kojo_fuyo_roujin_sonota_count_prev',
-            'kojo_fuyo_roujin_sonota_count_curr',
-            'kojo_tokutei_shinzoku_1_shotoku_prev',
-            'kojo_tokutei_shinzoku_1_shotoku_curr',
-            'kojo_tokutei_shinzoku_2_shotoku_prev',
-            'kojo_tokutei_shinzoku_2_shotoku_curr',
-            'kojo_tokutei_shinzoku_3_shotoku_prev',
-            'kojo_tokutei_shinzoku_3_shotoku_curr',
-        ];
-
-        $rules = [];
-        foreach ($numericFields as $field) {
-            $rules[$field] = ['bail', 'nullable', 'integer', 'min:0'];
-        }
-
-        foreach ($toggleFields as $field) {
-            if (str_starts_with($field, 'kojo_hitorioya_applicable_')) {
-                // ひとり親控除：父/母/×（互換で旧〇も通す）
-                $rules[$field] = ['bail', 'nullable', 'in:父,母,×,〇'];
-            } else {
-                // 寡婦・勤労学生：〇/×
-                $rules[$field] = ['bail', 'nullable', 'in:〇,×'];
-            }
-        }
-
-        foreach ($categoryFields as $field) {
-            $rules[$field] = ['bail', 'nullable', 'in:ippan,roujin,none'];
-        }
-
-        // ▼ 画面入力のバリデーション
-        //   - 合計所得金額5,000,000円超時の寡婦／ひとり親控除
-        //   - 合計所得金額10,000,000円超時の配偶者控除・配偶者特別控除
-        //   - 勤労学生控除の年次要件（75万円／85万円）のチェック
-        $validator = Validator::make(
-            $req->only(array_keys($rules)),
-            $rules,
-            [
-                // デフォルト（個別指定が無い場合）
-                'in' => ':attributeの選択が不正です。',
-                // ひとり親控除：ユーザー向け
-                'kojo_hitorioya_applicable_prev.in' => 'ひとり親控除（前年）は「父」「母」「×」から選択してください。',
-                'kojo_hitorioya_applicable_curr.in' => 'ひとり親控除（当年）は「父」「母」「×」から選択してください。',
-            ],
-            [
-                'kojo_kafu_applicable_prev' => '寡婦控除（前年）',
-                'kojo_kafu_applicable_curr' => '寡婦控除（当年）',
-                'kojo_hitorioya_applicable_prev' => 'ひとり親控除（前年）',
-                'kojo_hitorioya_applicable_curr' => 'ひとり親控除（当年）',
-                'kojo_kinrogakusei_applicable_prev' => '勤労学生控除（前年）',
-                'kojo_kinrogakusei_applicable_curr' => '勤労学生控除（当年）',
-            ],
-        );
-
-        $validator->after(function ($v) use ($data, $req) {
-            // 合計所得金額（sum_for_gokeishotoku_*）は CommonSumsCalculator の SoT。
-            // 人的控除内訳の入力では、この値と対象年を見て
-            //  - 寡婦／ひとり親控除（5,000,000円以下）
-            //  - 配偶者控除／配偶者特別控除（10,000,000円以下＋配偶者所得ゾーン）
-            //  - 勤労学生控除（75万円／85万円） を判定する。
-            $payload  = $this->getFurusatoInputPayload($data);
-            $kihuYear = $data->kihu_year ? (int) $data->kihu_year : null;
-
-            foreach (['prev', 'curr'] as $period) {
-                $sumKey = sprintf('sum_for_gokeishotoku_%s', $period);
-                $total  = isset($payload[$sumKey]) ? (int) $payload[$sumKey] : 0;
-
-                // 対象年（prev: kihu_year-1 / curr: kihu_year）
-                $targetYear = null;
-                if ($kihuYear !== null) {
-                    $targetYear = ($period === 'prev') ? $kihuYear - 1 : $kihuYear;
-                }
-
-                // 1) 寡婦控除・ひとり親控除：合計所得金額が 5,000,000 円超なら適用不可
-                if ($total > 5_000_000) {
-                    $kafuKey      = sprintf('kojo_kafu_applicable_%s', $period);
-                    $hitorioyaKey = sprintf('kojo_hitorioya_applicable_%s', $period);
-                    $kafuVal      = $req->input($kafuKey);
-                    $hitorioyaVal = $req->input($hitorioyaKey);
-
-                    if ($kafuVal === '〇') {
-                        $v->errors()->add(
-                            $kafuKey,
-                            '合計所得金額が500万円を超えるため、この年分について寡婦控除は適用できません。'
-                        );
-                    }
-                    // ひとり親：父/母/〇（互換）を “適用” 扱い
-                    if (in_array((string) $hitorioyaVal, ['父', '母', '〇'], true)) {
-                        $v->errors()->add(
-                            $hitorioyaKey,
-                            '合計所得金額が500万円を超えるため、この年分についてひとり親控除は適用できません。'
-                        );
-                    }
-                }
-
-                // 2) 勤労学生控除：対象年ごとに 75万円 / 85万円 を閾値として判定
-                if ($targetYear !== null) {
-                    $kinroThreshold = ($targetYear >= 2025) ? 850_000 : 750_000;
-                    $kinroKey       = sprintf('kojo_kinrogakusei_applicable_%s', $period);
-                    $kinroVal       = $req->input($kinroKey);
-
-                    if ($kinroVal === '〇' && $total > $kinroThreshold) {
-                        $man = ($kinroThreshold === 850_000) ? '85万円' : '75万円';
-                        $v->errors()->add(
-                            $kinroKey,
-                            "合計所得金額が{$man}を超えるため、この年分について勤労学生控除は適用できません。"
-                        );
-                    }
-                }
-
-                // 3) 配偶者控除・配偶者特別控除
-                $haigushaCategoryKey = sprintf('kojo_haigusha_category_%s', $period);
-                $haigushaCategoryVal = (string) $req->input($haigushaCategoryKey, '');
-                $spouseIncomeKey     = sprintf('kojo_haigusha_tokubetsu_gokeishotoku_%s', $period);
-                $spouseIncomeRaw     = $req->input($spouseIncomeKey);
-                $spouseIncome        = $this->toNullableInt($spouseIncomeRaw) ?? 0;
-
-                // 3-1) 本人合計所得金額が 10,000,000 円超なら配偶者控除・配偶者特別控除ともに適用不可
-                if ($total > 10_000_000) {
-                    if ($haigushaCategoryVal !== 'none') {
-                        $v->errors()->add(
-                            $haigushaCategoryKey,
-                            '合計所得金額が1,000万円を超えるため、この年分について配偶者控除は適用できません。'
-                        );
-                    }
-                    if ($spouseIncome > 0) {
-                        $v->errors()->add(
-                            $spouseIncomeKey,
-                            '合計所得金額が1,000万円を超えるため、この年分について配偶者特別控除は適用できません。'
-                        );
-                    }
-                    // 本人が1,000万円超のときは配偶者関連の他のチェックは不要
-                    continue;
-                }
-
-                // 3-2) 本人合計所得金額が 10,000,000 円以下のときのみ、配偶者側の所得ゾーンをチェック
-                if ($targetYear !== null && $spouseIncome > 0) {
-                    // 配偶者特別控除の起算点：2024年分までは48万円超、2025年分以降は58万円超
-                    $startThreshold = ($targetYear >= 2025) ? 580_000 : 480_000;
-
-                    // 133万円超は配偶者特別控除の対象外
-                    if ($spouseIncome > 1_330_000) {
-                        $v->errors()->add(
-                            $spouseIncomeKey,
-                            '配偶者の合計所得金額が133万円を超えているため、この年分について配偶者特別控除は適用できません。'
-                        );
-                    }
-
-                    // 「配偶者控除ゾーン（S ≤ 閾値）」なのに配偶者区分が none のまま → エラー
-                    if ($spouseIncome <= $startThreshold && $haigushaCategoryVal === 'none') {
-                        $man = ($startThreshold === 580_000) ? '58' : '48';
-                        $v->errors()->add(
-                            $spouseIncomeKey,
-                            "この年分の配偶者の合計所得金額は{$man}万円以下のため、配偶者特別控除ではなく配偶者控除の対象です。"
-                        );
-                    }
-                }
-            }
-        });
-
-        $validated = $validator->validate();
-
-        $payload = [];
-
-        foreach ($numericFields as $field) {
-            $payload[$field] = $this->toNullableInt($validated[$field] ?? $req->input($field));
-        }
-
-        foreach ($toggleFields as $field) {
-            $value = $validated[$field] ?? null;
-            $payload[$field] = $value === null || $value === '' ? null : $value;
-        }
-
-        foreach ($categoryFields as $field) {
-            $value = $validated[$field] ?? null;
-            $payload[$field] = $value === null || $value === '' ? null : $value;
-        }
+        // ▼ Request 側で validate + after（withValidator）済み
+        $validated = $req->validated();
+        $payload = Arr::except($validated, ['data_id']);
 
         $updatesForRecalc = $payload;
 
@@ -3446,7 +3209,39 @@ final class FurusatoController extends Controller
         [$shotokuGokeiPrev, $shotokuGokeiCurr] = $this->resolveShotokuGokei($data->id);
         $payload['kojo_iryo_shotoku_gokei_prev'] = $shotokuGokeiPrev;
         $payload['kojo_iryo_shotoku_gokei_curr'] = $shotokuGokeiCurr;
-
+  
+         // ============================================================
+         // ▼ 医療費控除（表示用の派生値）をサーバで確定
+         //   方針：
+         //     - SoTはサーバ（保存はA/Bのみ）
+         //     - 表示（ⒸⒺⒻⒼ）もサーバ計算値をそのまま表示する（JSで再計算しない）
+         //   制度（所得控除）：
+         //     C = max(A - B, 0)
+         //     threshold = min(100,000, floor(max(0,D)*0.05))
+         //     G = min( max(C - threshold, 0), 2,000,000 )
+         //     ※上限2,000,000は「最後」に適用
+         // ============================================================
+         foreach (['prev', 'curr'] as $p) {
+             $a = $this->valueOrZero($this->toNullableInt($payload["kojo_iryo_shiharai_{$p}"] ?? null));
+             $b = $this->valueOrZero($this->toNullableInt($payload["kojo_iryo_hotengaku_{$p}"] ?? null));
+             $d = $this->valueOrZero($this->toNullableInt($payload["kojo_iryo_shotoku_gokei_{$p}"] ?? null));
+             $d = max(0, (int) $d);
+ 
+             // 表示用：差引金額（Ⓐ－Ⓑ）は生の差（マイナスも表示し得る）
+             $cRaw = (int) $a - (int) $b;
+             $payload["kojo_iryo_sashihiki_{$p}"] = $cRaw;
+ 
+             // 制度上：対象額は 0 下限（医療費控除の対象となる自己負担分）
+             $c = max(0, $cRaw);
+             $e = (int) floor($d * 0.05);          // Ⓔ（円単位）
+             $f = (int) min($e, 100_000);          // Ⓕ
+             $g = (int) min(max($c - $f, 0), 2_000_000); // Ⓖ（上限は最後）
+ 
+             $payload["kojo_iryo_shotoku_5pct_{$p}"] = $e;
+             $payload["kojo_iryo_min_threshold_{$p}"] = $f;
+             $payload["kojo_iryo_kojogaku_{$p}"] = $g;
+         }
+ 
         return view('tax.furusato.details.kojo_iryo_details', [
             'dataId' => $data->id,
             'kihuYear' => $kihuYear,
@@ -3457,24 +3252,16 @@ final class FurusatoController extends Controller
     }
 
     public function saveKojoIryoDetails(
-        Request $req,
+        FurusatoInputRequest $req,
         RecalculateFurusatoPayload $recalculateUseCase,
     ): RedirectResponse
     {
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        $inputFields = [
-            'kojo_iryo_shiharai_prev',
-            'kojo_iryo_shiharai_curr',
-            'kojo_iryo_hotengaku_prev',
-            'kojo_iryo_hotengaku_curr',
-        ];
-
-        $rules = array_fill_keys($inputFields, ['bail', 'nullable', 'integer', 'min:0']);
-        Validator::make($req->only($inputFields), $rules)->validate();
-
-        $payload = $this->sanitizeDetailPayload(Arr::only($req->all(), $inputFields));
+        // ▼ Request 側で validate 済み（支払額/補填額のみ）
+        $validated = $req->validated();
+        $payload = $this->sanitizeDetailPayload(Arr::except($validated, ['data_id']));
 
         $updatesForRecalc = $payload;
 
@@ -3856,20 +3643,6 @@ final class FurusatoController extends Controller
 
             $record->save();
         });
-    }
-
-    private function validateBunriChokiShotokuInputs(Request $request): void
-    {
-        // 分離長期（tokutei/keika）＋退職（第三表手入力分）をまとめて整数バリデーション
-        $fields = array_merge(self::BUNRI_CHOKI_SHOTOKU_FIELDS, self::BUNRI_TAISHOKU_MANUAL_FIELDS);
-
-        if ($fields === []) {
-            return;
-        }
-
-        $rules = array_fill_keys($fields, ['bail', 'nullable', 'integer']);
-
-        Validator::make($request->only($fields), $rules)->validate();
     }
 
     /**
@@ -4721,11 +4494,19 @@ final class FurusatoController extends Controller
         }
         $d = max(0, $d);
 
+        // ============================================================
+        // ▼ 医療費控除（所得控除）
+        //   制度：
+        //     C = max(A - B, 0)
+        //     threshold = min(100,000, floor(D*0.05))
+        //     G = min( max(C - threshold, 0), 2,000,000 )
+        //     ※上限2,000,000は「最後」に適用する（足切り後の控除額に対して上限）
+        // ============================================================
         $c       = max(0, $a - $b);
-        $cCapped = min($c, 2_000_000);
         $e       = (int) floor($d * 0.05);
         $f       = min($e, 100_000);
-        $g       = max(0, $cCapped - $f);
+        $gRaw    = max(0, $c - $f);
+        $g       = min($gRaw, 2_000_000);
         return $g;
     }
 

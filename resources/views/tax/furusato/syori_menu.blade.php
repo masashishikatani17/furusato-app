@@ -246,26 +246,29 @@
         @endforeach
       </div>
       <hr class="mx-3 mb-2">
-      <div class="btn-footer">
-        <div class="d-flex justify-content-end gap-2 me-3 mb-3">
-          <button type="submit" class="btn-base-green" formnovalidate>保 存</button>
-          <button type="submit"
-                  class="btn-base-blue"
-                  formnovalidate
-                  name="redirect_to"
-                  value="input">入力へ進む</button>
-          <button type="submit"
-                  class="btn-base-blue"
-                  formnovalidate
-                  name="redirect_to"
-                  value="data_master">戻 る</button>
-          <button type="submit"
-                  class="btn-base-blue"
-                  formnovalidate
-                  name="redirect_to"
-                  value="master">マスター</button>
+      
+        <div class="d-flex justify-content-between gap-2 mx-3 mb-2">
+          <div>
+            <button type="submit" class="btn-base-green" formnovalidate>保 存</button>
+            <button type="submit"
+                    class="btn-base-blue"
+                    formnovalidate
+                    name="redirect_to"
+                    value="input">入力へ進む</button>
+            <button type="submit"
+                    class="btn-base-blue"
+                    formnovalidate
+                    name="redirect_to"
+                    value="master">マスター</button>
+          </div>
+          <div class="d-flex">
+            <button type="submit"
+                    class="btn-base-blue"
+                    formnovalidate
+                    name="redirect_to"
+                    value="data_master">戻 る</button>
+          </div>          
         </div>
-      </div>
     </form>
 </div>
 <script>

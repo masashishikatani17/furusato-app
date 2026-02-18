@@ -113,7 +113,7 @@
                                            id="edit-name"
                                            name="name"
                                            value="{{ old('name', $targetUser->name) }}"
-                                           class="form-control kana9"
+                                           class="form-control kana20"
                                            {{ $canUpdate ? '' : 'disabled' }}
                                            style="height:30px;">
                                     @error('name')
@@ -186,10 +186,11 @@
                         </tbody>
                     </table>
                     <div class="d-flex justify-content-between m-2">
+                        <button type="submit" class="btn-base-green" {{ $canUpdate ? '' : 'disabled' }}>保存する</button>
                         @if ($indexRoute)
                             <a href="{{ $indexRoute }}" class="btn-base-blue">一覧に戻る</a>
                         @endif
-                        <button type="submit" class="btn-base-blue" {{ $canUpdate ? '' : 'disabled' }}>保存する</button>
+                        
                     </div>
                 </form>
 

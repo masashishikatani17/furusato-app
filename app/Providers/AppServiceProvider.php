@@ -33,6 +33,7 @@ use App\Domain\Tax\Calculators\ShinkokushoKifukinTotalsCalculator;
 use App\Domain\Tax\Calculators\ItaxHaitoCreditCalculator;
 use App\Domain\Tax\Calculators\JuminHaitoCreditCalculator;
 use App\Domain\Tax\Calculators\TaxGokeiCalculator;
+use App\Domain\Tax\Calculators\ItaxKaisyuCreditCalculator;
 use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Domain\Tax\Providers\MasterProvider;
 use App\Domain\Tax\Support\PayloadNormalizer;
@@ -89,6 +90,7 @@ class AppServiceProvider extends ServiceProvider
             JutakuLoanCreditCalculator::class,
             SeitotoTokubetsuZeigakuKojoCalculator::class,
             SeitotoTokubetsuLegacyMirrorCalculator::class,
+            ItaxKaisyuCreditCalculator::class,
             JuminTaxCalculator::class,
             JuminHaitoCreditCalculator::class,
             JuminJutakuLoanCreditCalculator::class,
@@ -99,7 +101,9 @@ class AppServiceProvider extends ServiceProvider
             FurusatoResultCalculator::class,
             TaxBaseMirrorCalculator::class,
         ];
-\Log::info('[PIPE ORDER]', array_map(fn($c)=>defined("$c::ID")?$c::ID:$c, $taggedCalculatorClasses));
+        if (config('app.debug')) {
+            \Log::info('[PIPE ORDER]', array_map(fn($c)=>defined("$c::ID")?$c::ID:$c, $taggedCalculatorClasses));
+        }
         /**
          * Root fix: Calculator ID（各クラスの ::ID）をキーにユニーク化する。
          * - 同一クラスの二重登録

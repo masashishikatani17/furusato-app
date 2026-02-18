@@ -12,6 +12,7 @@ use App\Domain\Tax\Calculators\SogoShotokuNettingCalculator;
 use App\Domain\Tax\Calculators\SogoShotokuNettingStagesCalculator;
 use App\Domain\Tax\Calculators\SakimonoCalculator;
 use App\Domain\Tax\Calculators\KyuyoNenkinCalculator;
+use App\Domain\Tax\Calculators\JigyoFudosanDetailsCalculator;
 use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Models\Data;
 use App\Models\FurusatoInput;
@@ -469,7 +470,21 @@ class RecalculateFurusatoPayload
             $detailsAliasCalculator->compute($payload, 'curr'),
         );
         $this->assertProvidedKeys($payload, $detailsAliasCalculator);
- 
+
+        /**
+         * ▼ 事業（営業等）・不動産：内訳入力から派生値（経費合計/差引/青色前/所得）をサーバ側で確定する
+         *   - JSで見えている値だけにせず、payload に必ず保存する（古い所得が残る問題の根本対策）
+         *   - 所得は損益通算に使うためマイナスも保持。ただし青色控除・負債利子でマイナス幅を広げない。
+         */
+        /** @var JigyoFudosanDetailsCalculator $jfCalc */
+        $jfCalc = app(JigyoFudosanDetailsCalculator::class);
+        $payload = array_replace(
+            $payload,
+            $jfCalc->compute($payload, 'prev'),
+            $jfCalc->compute($payload, 'curr'),
+        );
+        $this->assertProvidedKeys($payload, $jfCalc);
+
         /** @var SakimonoCalculator $sakimonoCalculator */
         $sakimonoCalculator = app(SakimonoCalculator::class);
         $payload = array_replace(

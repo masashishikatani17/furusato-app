@@ -67,11 +67,11 @@
                       <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
                       <input type="hidden" name="{{ $name }}" value="0">
                     @else
-                      <input type="number" min="0" step="1"
+                      <input type="text" inputmode="numeric" autocomplete="off"
+                             data-format="comma-int" data-name="{{ $name }}"
                              class="form-control suji11 text-end"
-                             data-name="{{ $name }}"
-                             value="{{ $inputs[$name] ?? null }}">
-                      <input type="hidden" name="{{ $name }}" value="{{ $inputs[$name] ?? null }}">
+                             value="{{ old($name, $inputs[$name] ?? null) }}">
+                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
                     @endif
                   </td>
                   @php($name = 'keihi_sakimono_' . $period)
@@ -80,12 +80,12 @@
                       <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
                       <input type="hidden" name="{{ $name }}" value="0">
                     @else
-                      <input type="number" min="0" step="1"
+                      <input type="text" inputmode="numeric" autocomplete="off"
+                             data-format="comma-int" data-name="{{ $name }}"
                              class="form-control suji11 text-end"
-                             data-name="{{ $name }}"
-                             value="{{ $inputs[$name] ?? null }}">
-                      <input type="hidden" name="{{ $name }}" value="{{ $inputs[$name] ?? null }}">
-                    @endif
+                             value="{{ old($name, $inputs[$name] ?? null) }}">
+                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                     @endif
                   </td>
                   @php($name = 'shotoku_sakimono_' . $period)
                   <td>
@@ -93,12 +93,12 @@
                       <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
                       <input type="hidden" name="{{ $name }}" value="0">
                     @else
-                      <input type="number" step="1"
+                     <input type="text" inputmode="numeric" autocomplete="off"
+                             data-format="comma-int" data-name="{{ $name }}"
                              class="form-control suji11 text-end bg-light"
-                             data-name="{{ $name }}"
-                             value="{{ $inputs[$name] ?? null }}" readonly>
-                      <input type="hidden" name="{{ $name }}" value="{{ $inputs[$name] ?? null }}">
-                    @endif
+                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                     @endif
                   </td>
                   @php($name = 'kurikoshi_sakimono_' . $period)
                   <td>
@@ -106,12 +106,12 @@
                       <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
                       <input type="hidden" name="{{ $name }}" value="0">
                     @else
-                      <input type="number" min="0" step="1"
+                     <input type="text" inputmode="numeric" autocomplete="off"
+                             data-format="comma-int" data-name="{{ $name }}"
                              class="form-control suji11 text-end"
-                             data-name="{{ $name }}"
-                             value="{{ $inputs[$name] ?? null }}">
-                      <input type="hidden" name="{{ $name }}" value="{{ $inputs[$name] ?? null }}">
-                    @endif
+                             value="{{ old($name, $inputs[$name] ?? null) }}">
+                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                     @endif
                   </td>
                   @php($name = 'shotoku_sakimono_after_kurikoshi_' . $period)
                   <td>
@@ -119,12 +119,12 @@
                       <input type="text" class="form-control suji11 text-center bg-light" readonly value="－">
                       <input type="hidden" name="{{ $name }}" value="0">
                     @else
-                      <input type="number" step="1"
+                      <input type="text" inputmode="numeric" autocomplete="off"
+                             data-format="comma-int" data-name="{{ $name }}"
                              class="form-control suji11 text-end bg-light"
-                             data-name="{{ $name }}"
-                             value="{{ $inputs[$name] ?? null }}" readonly>
-                      <input type="hidden" name="{{ $name }}" value="{{ $inputs[$name] ?? null }}">
-                    @endif
+                             value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
+                      <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
+                     @endif
                   </td>
                 </tr>
               </tbody>
@@ -132,13 +132,17 @@
           </div>
         @endforeach
         <hr class="mb-2">
-        <div class="text-end gap-2">
-          <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
-          <button type="submit"
-                  class="btn-base-green"
-                  id="btn-recalc"
-                  data-disable-on-submit>再計算</button>
-        </div>
+        <div class="d-flex justify-content-between">
+            <div>
+              <button type="submit"
+                      class="btn-base-green"
+                      id="btn-recalc"
+                      data-disable-on-submit>再計算</button>
+            </div>
+            <div class="d-flex">
+              <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
+            </div>
+          </div>
       </form>
   </div>
 </div>
@@ -167,78 +171,179 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     });
   })();
-  // --- 見える input(data-name) と hidden(name) の同期ユーティリティ ---
-  const byData = (name) => document.querySelector(`[data-name="${name}"]`);
-  const byName = (name) => document.querySelector(`[name="${name}"]`);
-  const toInt = (v) => {
-    const s = String(v ?? '').replace(/[^\-0-9]/g, '').trim();
-    if (s === '' || s === '-') return 0;
-    const n = Number(s);
-    return Number.isFinite(n) ? Math.trunc(n) : 0;
-  };
-  const get = (name) => {
-    const vis = byData(name);
-    if (!vis) return 0;
-    return toInt(vis.value);
-  };
-  const setBoth = (name, value) => {
-    const vis = byData(name);
-    const hid = byName(name);
-    const v = toInt(value);
-    if (vis) vis.value = String(v);
-    if (hid) hid.value = String(v);
-  };
-  const syncHiddenFromVisible = (name) => {
-    const vis = byData(name);
-    const hid = byName(name);
-    if (!vis || !hid) return;
-    hid.value = String(toInt(vis.value));
+
+  // ============================
+  // comma-int（表示=3桁カンマ / 送信=生整数）ユーティリティ
+  // ============================
+  const toRawInt = (value) => {
+    if (typeof value !== 'string') {
+      value = String(value ?? '');
+    }
+    const stripped = value.replace(/,/g, '').trim();
+    if (stripped === '' || stripped === '-') {
+      return '';
+    }
+    if (!/^(-)?\d+$/.test(stripped)) {
+      return '';
+    }
+    const parsed = parseInt(stripped, 10);
+    return Number.isNaN(parsed) ? '' : parsed.toString();
   };
 
+  const formatWithComma = (raw) => {
+    if (raw === '') {
+      return '';
+    }
+    const parsed = parseInt(raw, 10);
+    return Number.isNaN(parsed) ? '' : parsed.toLocaleString('ja-JP');
+  };
+
+  const hiddenCache = new Map();
+
+  const getHidden = (name) => {
+    if (hiddenCache.has(name)) {
+      return hiddenCache.get(name);
+    }
+    const hidden = document.querySelector(`input[type="hidden"][name="${name}"]`);
+    if (hidden) {
+      hiddenCache.set(name, hidden);
+    }
+    return hidden || null;
+  };
+
+  const getDisplay = (name) => document.querySelector(`[data-format="comma-int"][data-name="${name}"]`);
+
+  const ensureHidden = (input) => {
+    const name = input.dataset.name;
+    if (!name) {
+      return null;
+    }
+
+    let hidden = getHidden(name);
+    if (!hidden) {
+      hidden = document.createElement('input');
+      hidden.type = 'hidden';
+      hidden.name = name;
+      hidden.dataset.commaMirror = '1';
+      const parent = input.parentElement;
+      if (parent) {
+        parent.appendChild(hidden);
+      } else {
+        const form = input.closest('form');
+        (form || document.body).appendChild(hidden);
+      }
+      hiddenCache.set(name, hidden);
+    }
+
+    const hiddenRaw = toRawInt(hidden.value ?? '');
+    const inputRaw = toRawInt(input.value ?? '');
+    const raw = hiddenRaw !== '' ? hiddenRaw : inputRaw;
+    hidden.value = raw;
+    input.value = raw === '' ? '' : formatWithComma(raw);
+
+    return hidden;
+  };
+
+  const getIntValue = (name) => {
+    const hidden = getHidden(name);
+    if (!hidden) {
+      return 0;
+    }
+    const raw = toRawInt(hidden.value ?? '');
+    if (raw === '') {
+      return 0;
+    }
+    const parsed = parseInt(raw, 10);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const setValue = (name, value) => {
+    const hidden = getHidden(name);
+    const display = getDisplay(name);
+    if (value === '' || value === null || typeof value === 'undefined' || Number.isNaN(value)) {
+      if (hidden) {
+        hidden.value = '';
+      }
+      if (display) {
+        display.value = '';
+      }
+      return;
+    }
+    const raw = Math.trunc(Number(value)).toString();
+    if (hidden) {
+      hidden.value = raw;
+    }
+    if (display) {
+      display.value = formatWithComma(raw);
+    }
+  };
+
+  // ============================
+  // 先物取引：表示はカンマ付き / 計算はhidden(生整数)で実施
+  // ============================
   const recalc = (period) => {
-    const base = `sakimono_${period}`;
-    const syunyu = get(`syunyu_${base}`);
-    const keihi  = get(`keihi_${base}`);
-    const shotoku = syunyu - keihi;
-    setBoth(`shotoku_${base}`, shotoku);
+    const syunyu = Math.trunc(Number(getIntValue(`syunyu_sakimono_${period}`)));
+    const keihi  = Math.trunc(Number(getIntValue(`keihi_sakimono_${period}`)));
+    const shotoku = Math.trunc(syunyu - keihi);
+    setValue(`shotoku_sakimono_${period}`, shotoku);
 
-    const kurikoshi = get(`kurikoshi_${base}`);
-    const after = Math.max(0, shotoku - kurikoshi);
-    setBoth(`shotoku_sakimono_after_kurikoshi_${period}`, after);
+    const kurikoshi = Math.trunc(Number(getIntValue(`kurikoshi_sakimono_${period}`)));
+    const after = Math.trunc(Math.max(0, shotoku - kurikoshi));
+    setValue(`shotoku_sakimono_after_kurikoshi_${period}`, after);
   };
 
-  const bindBlur = () => {
-    document.querySelectorAll('input[type="number"][data-name]').forEach((el) => {
-      if (el.readOnly) return;
-      const dn = el.getAttribute('data-name') || '';
-      const m = dn.match(/_(prev|curr)$/);
-      if (!m) return;
-      const period = m[1];
-      // 入力のたびに hidden へ同期し、blur で再計算（input 時にも軽く同期）
-      el.addEventListener('input', () => syncHiddenFromVisible(dn));
-      el.addEventListener('blur',  () => { syncHiddenFromVisible(dn); recalc(period); });
-    });
-  };
+  const inputs = document.querySelectorAll('[data-format="comma-int"]');
 
-  bindBlur();
-  // 初期表示：hidden と visible の整合を取り、両年分を再計算
-  ['prev','curr'].forEach((p) => {
-    ['syunyu','keihi','kurikoshi','shotoku','shotoku_sakimono_after_kurikoshi'].forEach((k) => {
-      const key = k === 'shotoku_sakimono_after_kurikoshi'
-        ? `${k}_${p}` : `${k}_sakimono_${p}`;
-      // 初期は visible を正とみなし hidden を同期（old()撤廃に伴う確定表示）
-      syncHiddenFromVisible(key);
+  inputs.forEach((input) => {
+    const name = input.dataset.name;
+    if (!name) {
+      return;
+    }
+
+    ensureHidden(input);
+
+    if (input.readOnly) {
+      return;
+    }
+
+    input.addEventListener('focus', () => {
+      const hidden = getHidden(name);
+      input.value = hidden ? hidden.value : toRawInt(input.value ?? '');
+      input.select();
     });
-    recalc(p);
+
+    input.addEventListener('blur', () => {
+      const raw = toRawInt(input.value ?? '');
+      const hidden = getHidden(name);
+      if (hidden) {
+        hidden.value = raw;
+      }
+      input.value = raw === '' ? '' : formatWithComma(raw);
+      const match = name.match(/_(prev|curr)$/);
+      if (match) {
+        recalc(match[1]);
+      }
+    });
   });
 
-  // 送信直前ガード：全 data-name を hidden へ同期
+  // 初期表示：hidden整合＋計算結果反映
+  ['prev','curr'].forEach(recalc);
+
+  // 送信直前ガード：hiddenへ最終同期（カンマ除去）
   const form = document.querySelector('form');
   if (form) {
     form.addEventListener('submit', () => {
-      document.querySelectorAll('input[data-name]').forEach((el) => {
-        const dn = el.getAttribute('data-name');
-        if (dn) syncHiddenFromVisible(dn);
+      inputs.forEach((input) => {
+        const name = input.dataset.name;
+        if (!name) {
+          return;
+        }
+        const hidden = getHidden(name) || ensureHidden(input);
+        if (!hidden) {
+          return;
+        }
+        const raw = toRawInt(input.value ?? hidden.value ?? '');
+        hidden.value = raw;
       });
     });
   }

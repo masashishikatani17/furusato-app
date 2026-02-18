@@ -108,9 +108,9 @@
                 </td>
               </tr>
               @foreach ($expenseFields as $field)
-                @php($isTotalRow = (($field['label'] ?? '') === '合計'))
+                @php($isTotalRow = (($field['name'] ?? '') === 'fudosan_keihi_gokei'))
                 <tr class="{{ $isTotalRow ? 'is-total-row' : '' }}">
-                  <th class="{{ $isTotalRow ? 'text-center' : 'text-start' }} u-nowrap th-ddd ps-1">
+                  <th class="{{ $isTotalRow ? 'text-center' : 'text-start' }} u-nowrap th-ddd{{ $isTotalRow ? '' : ' ' }}">
               @php($labelName = $field['labelInput'] ?? null)
                     @if($labelName)
                       @php($placeholder = $field['placeholder'] ?? '')
@@ -174,12 +174,16 @@
           </table>
         </div>
         <hr class="mb-2">
-          <div class="text-end gap-2">
-            <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
-            <button type="submit"
-                    class="btn-base-green"
-                    id="btn-recalc"
-                    data-disable-on-submit>再計算</button>
+          <div class="d-flex justify-content-between">
+            <div>
+              <button type="submit"
+                      class="btn-base-green"
+                      id="btn-recalc"
+                      data-disable-on-submit>再計算</button>
+            </div>
+            <div class="d-flex">
+              <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
+            </div>
           </div>
       </form>
   </div>
@@ -335,5 +339,13 @@ document.addEventListener('DOMContentLoaded', function () {
  
 {{-- Enter移動（ふるさと全画面共通） --}}
 @include('tax.furusato.partials.enter_nav')
+    @push('styles')
+    <style>
+      /* 不動産：必要経費の項目名（8行＋その他）だけ、入力欄の左に余白を付ける */
+      input.form-control.kana10[name^="fudosan_keihi_label_"] {
+        padding-left: 0.25rem; /* bootstrap の ps-1 相当 */
+      }
+    </style>
+    @endpush
 
 @endsection

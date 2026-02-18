@@ -68,17 +68,12 @@
     $remainingSeats = $seatUsage['remaining'];
 @endphp
 
-<div class="container px-4 py-4" style="width:820px; background-color:#E8EFF0;">
+<div class="container px-4 py-4" style="width:870px; background-color:#E8EFF0;">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3">
         <div class="mb-2 mb-md-0">
-            <hb class="mt-2 ms-2">ユーザー管理</hb>
+            <hb class="mt-1 ms-2">ユーザー管理</hb>
         </div>
         <div class="d-flex gap-2 align-items-center">
-            {{-- 設定TOPへ --}}
-            @if (\Illuminate\Support\Facades\Route::has('admin.settings'))
-                <a href="{{ route('admin.settings') }}" class="btn-base-blue">設定TOPへ</a>
-            @endif
-
             {{-- 招待一覧 --}}
             @if (\Illuminate\Support\Facades\Route::has('admin.invitations.index'))
                 <a href="{{ route('admin.invitations.index') }}" class="btn-base-blue">招待一覧</a>
@@ -87,6 +82,10 @@
             {{-- ユーザー招待 --}}
             @if ($canInviteUsers)
                 <a href="{{ $createRoute }}" class="btn-base-blue">ユーザーを招待</a>
+            @endif
+             {{-- 設定TOPへ --}}
+            @if (\Illuminate\Support\Facades\Route::has('admin.settings'))
+                <a href="{{ route('admin.settings') }}" class="btn-base-blue">設定TOPへ戻る</a>
             @endif
         </div>
     </div>
@@ -139,7 +138,7 @@
                 <table class="table-input align-middle w-auto p-2">
                     <thead>
                         <tr style="height: 30px;">
-                            <th scope="col" class="text-center" style="width: 150px;">氏 名</th>
+                            <th scope="col" class="text-center" style="width: 200px;">氏 名</th>
                             <th scope="col" class="text-center" style="width: 220px;">メールアドレス</th>
                             <th scope="col" class="text-center" style="width: 100px;">部 署</th>
                             <th scope="col" class="text-center" style="width: 60px;">役 割</th>

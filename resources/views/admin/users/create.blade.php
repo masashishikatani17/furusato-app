@@ -33,7 +33,7 @@
     $hasIsActive = Schema::hasColumn('users', 'is_active');
 @endphp
 
-<div class="container px-4 py-4" style="width:700px; background-color:#E8EFF0;">
+<div class="container px-4 py-4" style="width:650px; background-color:#E8EFF0;">
     <div class="d-flex align-items-start gap-2 ms-2 mb-3">
         <hb>ユーザー招待</hb>
         <hs>ユーザーに招待メールを送り、furusato を利用できるようにします。</hs>
@@ -69,46 +69,104 @@
             <form method="POST" action="{{ $storeRoute ?? '#' }}">
                 @csrf
 
-                <div class="mt-2 mb-3 ms-3 me-2">
-                    <label for="invite-name" class="form-label me-5"><hb>・氏名</hb></label>
-                    <input type="text" id="invite-name" name="name" value="{{ old('name') }}" class="form-control kana9" {{ $canSubmit ? '' : 'disabled' }}>
-                    @error('name')
-                        <div class="text-danger small mt-1">{{ $message }}</div>
-                    @enderror
-                </div>
+                {{-- 招待フォーム（4行×2列：枠線なし、max 600px） --}}
+                <div class="ms-3 me-3 mb-3" style="max-width:550px;">
+                  <table style="table-layout: fixed; border-collapse: separate; border-spacing: 10px 6px; width:550px;">
+                    <colgroup>
+                      <col style="width: 100px;">
+                      <col style="width: 450px;">
+                    </colgroup>
+                    <tbody>
+                      <tr>
+                        <td class="align-middle">
+                          <label for="invite-name" class="form-label mb-0">
+                            <hb>・氏名</hb>
+                          </label>
+                        </td>
+                        <td>
+                          <input type="text"
+                                 id="invite-name"
+                                 name="name"
+                                 value="{{ old('name') }}"
+                                 class="form-control kana20"
+                                 {{ $canSubmit ? '' : 'disabled' }}>
+                          @error('name')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                          @enderror
+                        </td>
+                      </tr>
 
-                <div class="d-flex align-items-center mb-3 ms-3 me-3">
-                  <label for="invite-email" class="form-label me-2 mb-0">
-                    <hb>・メールアドレス<span class="text-danger">*</span></hb>
-                  </label>
-                  <input type="email"
-                         id="invite-email"
-                         name="email"
-                         style="width: 500px;"
-                         value="{{ old('email') }}"
-                         class="form-control"
-                         required {{ $canSubmit ? '' : 'disabled' }}>
-                  @error('email')
-                    <div class="text-danger small ms-2">{{ $message }}</div>
-                  @enderror
-                </div>
-                
-                {{-- 付与する役割 --}}
-                <div class="d-flex align-items-center mb-1 ms-3 me-3">
-                  <label for="invite-role" class="form-label me-2 mb-0">
-                    <hb>・付与する役割<span class="text-danger">*</span></hb>
-                  </label>
-                  <select id="invite-role"
-                          name="role"
-                          class="form-select"
-                          style="width: 200px;"
-                          required {{ $canSubmit ? '' : 'disabled' }}>
-                    @foreach ($roleOptions as $value => $label)
-                      <option value="{{ $value }}" @selected($defaultRole === $value)>{{ $label }}</option>
-                    @endforeach
-                  </select>
-                </div>
+                      <tr>
+                        <td class="align-middle">
+                          <label for="invite-email" class="form-label mb-0">
+                            <hb>・メールアドレス<span class="text-danger">*</span></hb>
+                          </label>
+                        </td>
+                        <td>
+                          <input type="email"
+                                 id="invite-email"
+                                 name="email"
+                                 value="{{ old('email') }}"
+                                 class="form-control kana25"
+                                 required {{ $canSubmit ? '' : 'disabled' }}>
+                          @error('email')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                          @enderror
+                        </td>
+                      </tr>
 
+                      <tr>
+                        <td class="align-middle">
+                          <label for="invite-role" class="form-label mb-0">
+                            <hb>・付与する役割<span class="text-danger">*</span></hb>
+                          </label>
+                        </td>
+                        <td>
+                          <select id="invite-role"
+                                  name="role"
+                                  class="form-select"
+                                  style="width: 200px;"
+                                  required {{ $canSubmit ? '' : 'disabled' }}>
+                            @foreach ($roleOptions as $value => $label)
+                              <option value="{{ $value }}" @selected($defaultRole === $value)>{{ $label }}</option>
+                            @endforeach
+                          </select>
+                        </td>
+                      </tr>
+
+                      <tr>
+                        <td class="align-middle">
+                          <label for="invite-group" class="form-label mb-0">
+                            <hb>・部 署</hb>
+                          </label>
+                        </td>
+                        <td>
+                          {{-- 注意文（td内：部署の「前」相当＝selectの上） --}}
+                          <p-small class="mb-2" style="display:block;">
+                            Owner の招待はできません。必要な場合は代表者権限の譲渡をご利用ください。
+                          </p-small>
+
+                          <select id="invite-group"
+                                  name="group_id"
+                                  class="form-select"
+                                  style="width: 200px;"
+                                  {{ $canSubmit ? '' : 'disabled' }}>
+                            <option value="">（指定なし）</option>
+                            @foreach ($groups as $group)
+                              <option value="{{ $group->id }}" @selected((string) old('group_id') === (string) $group->id)>
+                                {{ $group->name }}
+                              </option>
+                            @endforeach
+                          </select>
+                          {{-- 注意文（td内：部署の直後） --}}
+                          <p-small class="mt-1 mb-0" style="display:block;">
+                            Registrar を付与する場合は部署を空欄にしてください。
+                          </p-small>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
                 {{-- client の場合：既存紐付け or 新規作成 --}}
                 <div class="mt-3 ms-3 me-3 d-none" id="client-mode-block">
                   <hb>○顧問先（Client）の指定</hb>
@@ -158,38 +216,13 @@
                          value="{{ old('guest_name') }}"
                          {{ $canSubmit ? '' : 'disabled' }}>
                 </div>
-
-                {{-- 注意文 --}}
-                <p-small class="ms-5 mb-3">
-                  Owner の招待はできません。必要な場合は代表者権限の譲渡をご利用ください。
-                </p-small>
-                <div class="d-flex align-items-center mt-3 mb-1 ms-3 me-3">
-                  <label for="invite-group" class="form-label me-5 mb-0">
-                    <hb>・部 署</hb>
-                  </label>
-                  <select id="invite-group"
-                          name="group_id"
-                          class="form-select"
-                          style="width: 200px;"
-                          {{ $canSubmit ? '' : 'disabled' }}>
-                    <option value="">（指定なし）</option>
-                    @foreach ($groups as $group)
-                      <option value="{{ $group->id }}" @selected((string) old('group_id') === (string) $group->id)>
-                        {{ $group->name }}
-                      </option>
-                    @endforeach
-                  </select>
-                </div>
-                
-                <p-small class="ms-5">
-                  Registrar を付与する場合は部署を空欄にしてください。
-                </p-small>
                 <hr>
                 <div class="d-flex justify-content-between">
-                    @if ($indexRoute)
-                        <a href="{{ $indexRoute }}" class="btn-base-blue">一覧に戻る</a>
-                    @endif
                     <button type="submit" class="btn-base-blue" {{ $canSubmit ? '' : 'disabled' }}>招待メールを送信</button>
+                    @if ($indexRoute)
+                        <a href="{{ $indexRoute }}" class="btn-base-blue">ユーザー管理へ戻る</a>
+                    @endif
+                    
                 </div>
             </form>
         </div>

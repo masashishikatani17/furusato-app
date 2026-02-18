@@ -105,6 +105,9 @@ class JuminKeigengakuReport implements ReportInterface
         $reportKey = strtolower((string)($context['report_key'] ?? ''));
         $mode = str_ends_with($reportKey, '_curr') ? 'current' : 'max';
 
+        // branch 参照事故防止（report3で出ていたUndefined対策と同じ思想）
+        $payloadAt = null; $payloadAtMax = null;
+
         $payloadNoFuru = $this->withFurusatoMax($payload, 0);
         if ($mode === 'current') {
             $payloadAt = $this->withFurusatoCurrent($payload);
@@ -128,9 +131,6 @@ class JuminKeigengakuReport implements ReportInterface
         $juminNoFuru = $this->n($outNoFuru['tax_gokei_jumin_curr'] ?? 0);
         $juminAtMax  = $this->n($outAtMax['tax_gokei_jumin_curr'] ?? 0);
         $juminSaved  = max(0, $juminNoFuru - $juminAtMax);
-
-        $savedTotal = $itaxSaved + $juminSaved;
-        $burden = max(0, $yMax - $savedTotal);
 
         // ------------------------------
         // 5) 住民税の計算過程（①〜⑭）を組み立て（currのみ）
@@ -200,25 +200,68 @@ class JuminKeigengakuReport implements ReportInterface
         $tokureiJogenMuni = $this->n($outAtMax["tokurei_kojo_jogen_muni_{$p}"] ?? 0);
 
         // ⑭（合計=天井後SoT）
-        $kifukinPref = $this->n($outAtMax["kifukin_zeigaku_kojo_pref_{$p}"] ?? 0);
-        $kifukinMuni = $this->n($outAtMax["kifukin_zeigaku_kojo_muni_{$p}"] ?? 0);
-        $kifukinGokei = $this->n($outAtMax["kifukin_zeigaku_kojo_gokei_{$p}"] ?? ($kifukinPref + $kifukinMuni));
+        // ▼ SoT（天井後）
+        $kifukinPostPref  = $this->n($outAtMax["kifukin_zeigaku_kojo_pref_{$p}"] ?? 0);
+        $kifukinPostMuni  = $this->n($outAtMax["kifukin_zeigaku_kojo_muni_{$p}"] ?? 0);
+        $kifukinPostGokei = $this->n($outAtMax["kifukin_zeigaku_kojo_gokei_{$p}"] ?? ($kifukinPostPref + $kifukinPostMuni));
 
-        // 下段（ふるさと以外 / ふるさとだけ / 控除不能 / 最終）
-        $otherPref = $this->n($outNoFuru["kifukin_zeigaku_kojo_pref_{$p}"] ?? 0);
-        $otherMuni = $this->n($outNoFuru["kifukin_zeigaku_kojo_muni_{$p}"] ?? 0);
-        $otherGokei = $this->n($outNoFuru["kifukin_zeigaku_kojo_gokei_{$p}"] ?? ($otherPref + $otherMuni));
+        // ▼ 表示（天井前）：基本 + 上限後特例（ワンストップなら申告特例）
+        $kifukinPrePref  = max(0, $kihonPref) + max(0, $tokureiJogenPref);
+        $kifukinPreMuni  = max(0, $kihonMuni) + max(0, $tokureiJogenMuni);
+        $kifukinPreGokei = $kifukinPrePref + $kifukinPreMuni;
 
-        $furuOnlyPref = max(0, $kifukinPref - $otherPref);
-        $furuOnlyMuni = max(0, $kifukinMuni - $otherMuni);
-        $furuOnlyGokei = max(0, $kifukinGokei - $otherGokei);
+        // ------------------------------------------------------------
+        // ▼ 下段4行（新仕様）
+        //  1) other：ふるさと以外の減税額（基本控除のみ、-2,000はふるさと優先）
+        //  2) furu_pre：ふるさとだけの減税額（天井前）= ⑭(天井前) - other
+        //  3) unable：税額控除不能分（★）= furu_pre - furu_post
+        //  4) final：住民税の最終減税額（天井後のふるさと分）= ⑭(天井後) - other
+        // ------------------------------------------------------------
+        // other（基本控除のみを帳票内で再計算）
+        $otherCats = ['kyodobokin_nisseki', 'npo', 'koueki', 'sonota'];
+        $otherPrefSum = 0;
+        $otherMuniSum = 0;
+        foreach ($otherCats as $cat) {
+            $otherPrefSum += $this->n($payloadAtMax["juminzei_zeigakukojo_pref_{$cat}_{$p}"] ?? 0);
+            $otherMuniSum += $this->n($payloadAtMax["juminzei_zeigakukojo_muni_{$cat}_{$p}"] ?? 0);
+        }
+        // ふるさと寄付があるときは other 側で -2,000 を引かない
+        // ▼ ルール（改）：-2,000円は「ふるさと優先」だが、
+        //   ふるさと寄付が 2,000 円未満なら残りを other 側へ回す。
+        //   deductFuru  = min(2000, furusatoTotal)
+        //   deductOther = 2000 - deductFuru
+        $deductFuru  = min(2_000, max(0, $furusatoTotal));
+        $deductOther = max(0, 2_000 - $deductFuru);
+        $eligibleOtherPref = max(min($otherPrefSum, $cap30) - $deductOther, 0);
+        $eligibleOtherMuni = max(min($otherMuniSum, $cap30) - $deductOther, 0);
+        $otherPref = (int) ceil($eligibleOtherPref * $basicPrefRate);
+        $otherMuni = (int) ceil($eligibleOtherMuni * $basicMuniRate);
+        $otherGokei = max(0, $otherPref + $otherMuni);
 
-        // 控除不能分（= 算定合計 - 天井後）を“pref/muni別”に近似（表示用）
-        $partsPref = max(0, $kihonPref) + max(0, $tokureiJogenPref);
-        $partsMuni = max(0, $kihonMuni) + max(0, $tokureiJogenMuni);
-        $unablePref = max(0, $partsPref - $kifukinPref);
-        $unableMuni = max(0, $partsMuni - $kifukinMuni);
-        $unableGokei = $unablePref + $unableMuni;
+        // furu（天井後）= SoT(天井後合計) - other
+        $furuPostGokei = max(0, $kifukinPostGokei - $otherGokei);
+        // 県/市の配賦（特例控除の按分比）
+        $furuPostPref = (int) floor($furuPostGokei * $sharePref);
+        $furuPostMuni = max(0, $furuPostGokei - $furuPostPref);
+
+        // furu（天井前）= 表示合計(天井前) - other
+        $furuPreGokei = max(0, $kifukinPreGokei - $otherGokei);
+        $furuPrePref = (int) floor($furuPreGokei * $sharePref);
+        $furuPreMuni = max(0, $furuPreGokei - $furuPrePref);
+
+        // unable（★）= furu_pre - furu_post
+        $unableGokei = max(0, $furuPreGokei - $furuPostGokei);
+        $unablePref = (int) floor($unableGokei * $sharePref);
+        $unableMuni = max(0, $unableGokei - $unablePref);
+
+        // ------------------------------------------------------------
+        // ▼ 右上「減税額」：帳票定義に固定
+        //   - 所得税：dry-run差分
+        //   - 住民税：天井後の“ふるさと分”（final）
+        // ------------------------------------------------------------
+        $juminSavedForCompare = (int) $furuPostGokei;
+        $savedTotalForCompare = (int) ($itaxSaved + $juminSavedForCompare);
+        $burden = max(0, $yMax - $savedTotalForCompare);
 
         return [
             'title'      => '住民税の軽減額',
@@ -237,8 +280,12 @@ class JuminKeigengakuReport implements ReportInterface
 
             // 寄附金額と減税額の比較
             'donation_amount'  => (int)$yMax,
-            'tax_saved_total'  => (int)$savedTotal,
+            'tax_saved_total'  => (int)$savedTotalForCompare,
             'burden_amount'    => (int)$burden,
+
+            // 参考：dry-run差分（デバッグ/検証用）
+            'jumin_saved_dryrun' => (int)$juminSaved,
+            'jumin_saved_final'  => (int)$juminSavedForCompare,
 
             // 住民税（①〜⑭）
             'jumin_rows' => [
@@ -273,15 +320,19 @@ class JuminKeigengakuReport implements ReportInterface
                     'jogen' => ['muni'=>$tokureiJogenMuni, 'pref'=>$tokureiJogenPref, 'total'=>$tokureiJogenMuni+$tokureiJogenPref],
                 ],
 
-                'kifukin_total' => ['muni'=>$kifukinMuni, 'pref'=>$kifukinPref, 'total'=>$kifukinGokei],
+                // ⑭：天井前表示
+                'kifukin_total' => ['muni'=>$kifukinPreMuni, 'pref'=>$kifukinPrePref, 'total'=>$kifukinPreGokei],
             ],
 
             // 下段まとめ
             'jumin_summary' => [
                 'other' => ['muni'=>$otherMuni, 'pref'=>$otherPref, 'total'=>$otherGokei],
-                'furusato_only' => ['muni'=>$furuOnlyMuni, 'pref'=>$furuOnlyPref, 'total'=>$furuOnlyGokei],
+                // ふるさとだけ（天井前）
+                'furusato_only' => ['muni'=>$furuPreMuni, 'pref'=>$furuPrePref, 'total'=>$furuPreGokei],
+                // 控除不能分（★）
                 'unable' => ['muni'=>$unableMuni, 'pref'=>$unablePref, 'total'=>$unableGokei],
-                'final'  => ['muni'=>$kifukinMuni, 'pref'=>$kifukinPref, 'total'=>$kifukinGokei],
+                // 最終減税額（天井後のふるさと分）
+                'final'  => ['muni'=>$furuPostMuni, 'pref'=>$furuPostPref, 'total'=>$furuPostGokei],
             ],
         ];
     }

@@ -106,6 +106,17 @@ final class FurusatoJuminKeigengakuTemplateWriter
                 // ★ワンストップの数値：基本は 90% ストレッチ（※例外行は処理側で無効化）
                 'stretch' => 90.0,
             ],
+            // 下段まとめ（4行） col: [79,27,27,27] 相当（通常版と同じ配列で出す）
+            // ※背景に罫線が無い可能性があるため、まずはページ下部の空きに印字だけする
+            'summary' => [
+                'x' => 27.8,     // jumin表と同じ左端に合わせる
+                'y' => 186.0,    // ★仮：表の直下（要調整）
+                'cols' => [79.0, 27.0, 27.0, 27.0],
+                'row_h' => 4.8,  // ★仮：4行入るように少し詰める
+                'font'  => 9.5,
+                'pad_r' => 0.8,
+                'stretch' => 90.0,
+            ],
         ],
 
         'debug' => [
@@ -527,6 +538,43 @@ final class FurusatoJuminKeigengakuTemplateWriter
                 $rowFont, $pr2, $debug,
                 $isBoldTotalRow ? 'B' : ''
             );
+        }
+
+        // ------------------------------------------------------------
+        // ▼ 下段まとめ（4行）：jumin_summary があれば印字
+        //   - other / furusato_only / unable / final
+        //   - 合計列は「furusato_only」「final」を太字（通常版と揃える）
+        // ------------------------------------------------------------
+        $sum = is_array($vars['jumin_summary'] ?? null) ? $vars['jumin_summary'] : [];
+        if ($sum !== [] && isset($L['summary'])) {
+            $s = $L['summary'];
+            $sx = (float)$s['x'];
+            $sy = (float)$s['y'];
+            $scols = $s['cols'];
+            $scolX = $this->colLefts($sx, $scols);
+            $sRowH = (float)$s['row_h'];
+            $sFs = (float)$s['font'];
+            $sFsSmall = max(1.0, $sFs - 0.5);
+            $sPr = (float)$s['pad_r'];
+            $sStretch = array_key_exists('stretch', $s) ? (float)$s['stretch'] : null;
+
+            // 数値列 index: muni=1, pref=2, total=3
+            $sM = 1; $sP = 2; $sT = 3;
+            $sumSeq = ['other','furusato_only','unable','final'];
+            foreach ($sumSeq as $i => $k) {
+                $y = $sy + ($sRowH * (float)$i);
+                $row = is_array($sum[$k] ?? null) ? $sum[$k] : ['muni'=>0,'pref'=>0,'total'=>0];
+                $this->textBox($pdf, $font, (float)$scolX[$sM], $y, (float)$scols[$sM], $sRowH, $this->fmtYen($this->n($row['muni'] ?? 0)), 'R', $sFsSmall, $sPr, 0.0, '', $sStretch);
+                $this->textBox($pdf, $font, (float)$scolX[$sP], $y, (float)$scols[$sP], $sRowH, $this->fmtYen($this->n($row['pref'] ?? 0)), 'R', $sFsSmall, $sPr, 0.0, '', $sStretch);
+                // 太字：furusato_only と final の合計列
+                $style = (((int)$i === 1) || ((int)$i === 3)) ? 'B' : '';
+                $this->textBox($pdf, $font, (float)$scolX[$sT], $y, (float)$scols[$sT], $sRowH, $this->fmtYen($this->n($row['total'] ?? 0)), 'R', $sFsSmall, $sPr, 0.0, $style, $sStretch);
+                if ($debug) {
+                    $this->debugRect($pdf, (float)$scolX[$sM], $y, (float)$scols[$sM], $sRowH);
+                    $this->debugRect($pdf, (float)$scolX[$sP], $y, (float)$scols[$sP], $sRowH);
+                    $this->debugRect($pdf, (float)$scolX[$sT], $y, (float)$scols[$sT], $sRowH);
+                }
+            }
         }
     }
 

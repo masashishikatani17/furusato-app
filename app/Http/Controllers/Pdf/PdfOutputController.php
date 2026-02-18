@@ -628,7 +628,7 @@ class PdfOutputController extends Controller
                         return "{$base}ページ";
                     }
                     $suffix = $seen[$base] - 1; // 2回目→1
-                    return "{$base}-{$suffix}ページ";
+                    return "{$base}－{$suffix}ページ";
                 }
                 return "{$base}ページ";
             };
@@ -927,11 +927,13 @@ class PdfOutputController extends Controller
             $dateIso  = (string)($data->proposal_date ?? $data->data_created_on ?? now()->toDateString());
             $dateWareki = \App\Support\WarekiDate::format($dateIso);
             $org   = ''; // 必要ならここに事務所名等
+            $dataName = (string)($data->data_name ?? 'default');
 
             $pdfStr = $writer->render([
                 'guest_name' => $guest !== '' ? ($guest . '様') : '',
                 'date'       => $dateWareki !== '' ? $dateWareki : $dateIso,
                 'org'        => $org,
+                'data_name'  => $dataName,
                 // 初期はtrue（TEST-XYを表示）。座標が合ったらfalseにしてOK
                 'show_test'  => true,
             ]);

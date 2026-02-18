@@ -66,7 +66,7 @@
         <th class="text-start ps-2" style="height:33px;">お客様名</th>
         <td class="text-start">
           <input type="text" name="guest_name" id="guest_name"
-                 class="form-control kana10"
+                 class="form-control kana20"
                  style="height:32px;"
                  value="{{ $isClient && $clientGuest ? $clientGuest->name : old('guest_name') }}"
                  maxlength="25"
@@ -133,6 +133,23 @@
           </select>
         </td>
       </tr>
+      {{-- データ名 --}}
+      <tr>
+        <th class="text-start ps-2" style="height:33px;">データ名</th>
+        <td class="text-start">
+          <input type="text"
+                 name="data_name"
+                 id="data_name"
+                 class="form-control kana20"
+                 style="height:32px; max-width: 260px;"
+                 maxlength="25"
+                 value="{{ old('data_name', '') }}"
+                 required>
+          <div class="text-muted mt-1 ms-1 mb-1" style="font-size:12px;">
+            ※改行・タブ・制御文字・\ / : * ? " &lt; &gt; | は使用できません。
+          </div>
+        </td>
+      </tr>
       {{-- データ作成日（編集不可） --}}
       <tr>
         <th class="text-start ps-2" style="height:33px;">データ作成日</th>
@@ -172,28 +189,30 @@
 {{-- ▼ 既存ゲスト選択モーダル（client は使用しない） --}}
 @if (! $isClient)
 <div class="modal fade" id="guestModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-scrollable">
+  <div class="modal-dialog modal-dialog-scrollable modal-guest-narrow">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">お客様を選択</h5>
+        <h15 class="modal-title">お客様を選択</h15>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body p-0">
-        <table class="table table-hover table-bordered mb-0">
-          <tbody id="guestListBody">
-          @forelse ($guests as $g)
-            <tr class="selectable-guest"
-                data-id="{{ $g->id }}"
-                data-name="{{ $g->name }}"
-                data-birth-date="{{ optional($g->birth_date)->format('Y-m-d') }}"
-                style="cursor:pointer;">
-              <td class="py-2 px-2">{{ $g->name }}</td>
-            </tr>
-          @empty
-            <tr><td class="text-muted py-3 px-2">（登録済のお客様がありません）</td></tr>
-          @endforelse
-          </tbody>
-        </table>
+      <div class="modal-body p-2">
+        <div class="guest-modal-inner text-start ms-3 me-3">
+            <table class="table table-hover table-bordered">
+              <tbody id="guestListBody">
+              @forelse ($guests as $g)
+                <tr class="selectable-guest"
+                    data-id="{{ $g->id }}"
+                    data-name="{{ $g->name }}"
+                    data-birth-date="{{ optional($g->birth_date)->format('Y-m-d') }}"
+                    style="cursor:pointer;">
+                  <td class="py-1 px-2">{{ $g->name }}</td>
+                </tr>
+              @empty
+                <tr><td class="text-muted py-3 px-2">（登録済のお客様がありません）</td></tr>
+              @endforelse
+              </tbody>
+          </table>
+         </div>
       </div>
     </div>
   </div>
@@ -204,7 +223,7 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">登録できません</h5>
+        <h15 class="modal-title">登録できません</h15>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -216,6 +235,20 @@
     </div>
   </div>
 </div>
+    <style>
+    /* guestModal: 見た目だけ調整（他へ副作用なし） */
+    #guestModal .guest-modal-inner{
+      font-size: 14px;
+    }
+    #guestModal table,
+    #guestModal td,
+    #guestModal th{
+      font-size: 14px;
+    }
+    #guestModal .modal-guest-narrow{
+      max-width: 400px;
+    }
+    </style>
 @endsection
 
 @push('scripts')

@@ -210,6 +210,7 @@ final class FurusatoKazeigakuZeigakuYosokuTemplateWriter
             ['key'=>'haito',         'itax'=>true,  'jumin'=>true],
             ['key'=>'jutaku',        'itax'=>true,  'jumin'=>true],
             ['key'=>'seitoto',       'itax'=>true,  'jumin'=>false],
+            ['key'=>'kaisyu',        'itax'=>true,  'jumin'=>false],
             ['key'=>'after14',       'itax'=>true,  'jumin'=>true],
             ['key'=>'kifukin_other', 'itax'=>false, 'jumin'=>true],
             ['key'=>'kifukin_furu',  'itax'=>false, 'jumin'=>true],
@@ -224,8 +225,8 @@ final class FurusatoKazeigakuZeigakuYosokuTemplateWriter
 
             if ($row['itax']) {
                 $v = $this->n($c['itax'] ?? 0);
-+                // ★上段と同じ位置に揃える（列5のみ右余白補正）
-+                $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y, $rowH, $this->fmtYen($v), $fontSize, $padR + 1.2, $showTest);
+                // ★上段と同じ位置に揃える（列5のみ右余白補正）
+                $this->putCell($pdf, $font, $colX, $cols, $cTaxItax, $y, $rowH, $this->fmtYen($v), $fontSize, $padR + 1.2, $showTest);
                }
                
             if ($row['jumin']) {

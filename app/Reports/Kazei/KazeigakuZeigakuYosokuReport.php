@@ -105,6 +105,9 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
         $mode = str_ends_with($reportKey, '_curr') ? 'current' : 'max';
 
         $y = 0;
+        // 後段の帳票表示用（寄付金入力の参照ぶれ対策）：必ず定義しておく
+        $payloadAt = null;
+        $payloadAtMax = null;
         if ($mode === 'current') {
             $payloadAt = $this->withFurusatoCurrent($payload);
             $y = $this->resolveCurrentFurusatoDonationCurr($payloadAt);
@@ -173,8 +176,11 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
         // ④政党等（所得税）
         $seitotoItax = $I($outFull, "tax_credit_shotoku_total_{$p}");
 
-        // 「①〜④控除後の所得割額」：所得税は tax_sashihiki_shotoku を採用（百円未満切捨てしない）
-        $after14Itax = max(0, (int) $I($outFull, "tax_sashihiki_shotoku_{$p}"));
+        // ⑤住宅耐震改修特別控除（所得税：適用額）
+        $kaisyuItaxApplied = $I($outFull, "tax_kaisyu_applied_shotoku_{$p}");
+
+        // 「①〜⑤控除後の残税額（A）」：所得税は tax_after_kaisyu_shotoku を最優先（無ければ従来キーへ）
+        $after14Itax = max(0, (int) ($outFull["tax_after_kaisyu_shotoku_{$p}"] ?? $outFull["tax_sashihiki_shotoku_{$p}"] ?? 0));
 
         // 住民税は、TaxGokeiCalculator と同じ share で「配当→住宅」を按分して残額を作る（1円単位）
         $basePref = $I($outFull, "choseigo_shotokuwari_pref_{$p}");
@@ -189,18 +195,121 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
         $after14JuminTotal = max(0, (int) ($afterJutakuPref + $afterJutakuMuni));
         [$after14JuminPref, $after14JuminMuni] = $this->splitByShare($after14JuminTotal, $sharePref, $shareMuni, 1);
 
-        // 寄附金税額控除（下記以外 / ふるさと）…other-only を1回引いて差分で分解
+        // 寄附金税額控除（下記以外 / ふるさと）
+        // ------------------------------------------------------------
+        // ▼ 表示仕様変更（帳票3のみ）
+        //  -2,000円は「ふるさと納税側に優先して充当」して分解表示する。
+        //  SoT（天井後の合計 = kifukin_zeigaku_kojo_*）は変更しない。
+        //
+        //  1) other（下記以外）は「基本控除」だけを帳票内で再計算して表示
+        //     - ふるさと寄付がある場合：other 側は -2,000 を引かない（ふるさと優先）
+        //     - ふるさと寄付が無い場合：other 側で -2,000
+        //  2) furu は「天井後合計 - other」を採用し、特例按分（0.4/0.6 等）で県市に割る
+        // ------------------------------------------------------------
         $fullPref = $I($outFull, "kifukin_zeigaku_kojo_pref_{$p}");
         $fullMuni = $I($outFull, "kifukin_zeigaku_kojo_muni_{$p}");
         $fullTot  = $I($outFull, "kifukin_zeigaku_kojo_gokei_{$p}");
 
-        $otherPref = $I($outOther, "kifukin_zeigaku_kojo_pref_{$p}");
-        $otherMuni = $I($outOther, "kifukin_zeigaku_kojo_muni_{$p}");
-        $otherTot  = $I($outOther, "kifukin_zeigaku_kojo_gokei_{$p}");
+        // ------------------------------------------------------------
+        // ▼ 帳票3の分解は「寄付金入力（juminzei_zeigakukojo_*）がどこに乗るか」に揺れがあるため、
+        //    outFull（dry-run後payload）→（今回使ったpayload）→ 元payload の順で参照する。
+        //    ※ current/max どちらでも参照できるように $payloadView を用意する。
+        // ------------------------------------------------------------
+        $payloadView =
+            ($mode === 'current' && is_array($payloadAt)) ? $payloadAt
+          : (($mode === 'max' && is_array($payloadAtMax)) ? $payloadAtMax : $payload);
 
-        $furuPref = max(0, $fullPref - $otherPref);
-        $furuMuni = max(0, $fullMuni - $otherMuni);
-        $furuTot  = max(0, $fullTot  - $otherTot);
+        $pick = function (string $key) use ($outFull, $payloadView, $payload): int {
+            if (array_key_exists($key, $outFull)) return $this->n($outFull[$key] ?? 0);
+            if (array_key_exists($key, $payloadView)) return $this->n($payloadView[$key] ?? 0);
+            if (array_key_exists($key, $payload)) return $this->n($payload[$key] ?? 0);
+            return 0;
+        };
+
+        // ふるさと寄付額（同額コピー想定）：max(pref,muni)
+        $furPref = $pick("juminzei_zeigakukojo_pref_furusato_{$p}");
+        $furMuni = $pick("juminzei_zeigakukojo_muni_furusato_{$p}");
+        $furTotal = max(0, max($furPref, $furMuni));
+        $hasFuru = $furTotal > 0;
+
+        // ------------------------------------------------------------
+        // ▼ other 寄付（住民税：税額控除の対象カテゴリのみ）
+        //   カテゴリ名の揺れを避けるため、実データのキーから自動抽出して合計する。
+        //   対象外（kuni/seito 等）は除外する。furusato も除外（別枠で扱う）。
+        // ------------------------------------------------------------
+        $otherPrefSum = 0;
+        $otherMuniSum = 0;
+        $excludeCats = [
+            'furusato',
+            'kuni',                 // 国への寄付等（住民税側の税額控除対象外想定）
+            'seito',                // 政党等（住民税側の税額控除対象外想定）
+            'seitoto_tokubetsu',    // 表記揺れ保険
+            'seitoto_tokubetsu_legacy',
+        ];
+        $srcForScan = is_array($outFull) ? $outFull : [];
+        foreach ($srcForScan as $k => $v) {
+            if (!is_string($k)) continue;
+            if (preg_match('/^juminzei_zeigakukojo_pref_([a-z0-9_]+)_' . preg_quote($p, '/') . '$/i', $k, $m) === 1) {
+                $cat = (string)($m[1] ?? '');
+                if ($cat === '' || in_array($cat, $excludeCats, true)) continue;
+                $otherPrefSum += $this->n($v);
+            } elseif (preg_match('/^juminzei_zeigakukojo_muni_([a-z0-9_]+)_' . preg_quote($p, '/') . '$/i', $k, $m) === 1) {
+                $cat = (string)($m[1] ?? '');
+                if ($cat === '' || in_array($cat, $excludeCats, true)) continue;
+                $otherMuniSum += $this->n($v);
+            }
+        }
+        // outFull に無い（=calculatorが乗せない）場合の保険：payloadView もスキャン
+        if (($otherPrefSum + $otherMuniSum) === 0 && is_array($payloadView)) {
+            foreach ($payloadView as $k => $v) {
+                if (!is_string($k)) continue;
+                if (preg_match('/^juminzei_zeigakukojo_pref_([a-z0-9_]+)_' . preg_quote($p, '/') . '$/i', $k, $m) === 1) {
+                    $cat = (string)($m[1] ?? '');
+                    if ($cat === '' || in_array($cat, $excludeCats, true)) continue;
+                    $otherPrefSum += $this->n($v);
+                } elseif (preg_match('/^juminzei_zeigakukojo_muni_([a-z0-9_]+)_' . preg_quote($p, '/') . '$/i', $k, $m) === 1) {
+                    $cat = (string)($m[1] ?? '');
+                    if ($cat === '' || in_array($cat, $excludeCats, true)) continue;
+                    $otherMuniSum += $this->n($v);
+                }
+            }
+        }
+
+        // 30% cap（母数は sum_for_sogoshotoku_etc）
+        $mother = max(0, $I($outFull, "sum_for_sogoshotoku_etc_{$p}"));
+        $cap30  = (int) floor($mother * 0.3);
+
+        // 基本控除率（jumin_master: 基本控除）
+        $basicPrefRate = $this->juminRate($rateRows, '基本控除', null, $shitei, 'pref');
+        $basicMuniRate = $this->juminRate($rateRows, '基本控除', null, $shitei, 'city');
+
+        // other の控除対象額（帳票表示用）
+        // ▼ ルール（改）：
+        //   -2,000円は「ふるさと優先」で充当する。
+        //   ただし、ふるさと寄付額が 2,000 円未満の場合は、
+        //   ふるさと側で使い切れない残り（2000 - furTotal）を other 側に回して控除する。
+        //
+        //   deductFuru  = min(2000, furTotal)
+        //   deductOther = 2000 - deductFuru
+        $deductFuru  = min(2_000, max(0, $furTotal));
+        $deductOther = max(0, 2_000 - $deductFuru);
+        $eligibleOtherPref = max(min($otherPrefSum, $cap30) - $deductOther, 0);
+        $eligibleOtherMuni = max(min($otherMuniSum, $cap30) - $deductOther, 0);
+        $otherPref = (int) ceil(max(0, $eligibleOtherPref) * $basicPrefRate);
+        $otherMuni = (int) ceil(max(0, $eligibleOtherMuni) * $basicMuniRate);
+        $otherTot  = max(0, $otherPref + $otherMuni);
+
+        // safety: other が天井後合計を超える場合は按分で丸める
+        if ($otherTot > $fullTot) {
+            $otherTot = $fullTot;
+            $otherPref = (int) floor($otherTot * $sharePref);
+            $otherMuni = max(0, $otherTot - $otherPref);
+        }
+
+        // ふるさと分（天井後）
+        $furuTot = max(0, $fullTot - $otherTot);
+        $furuPref = (int) floor($furuTot * $sharePref);
+        $furuMuni = max(0, $furuTot - $furuPref);
 
         // 災害減免（入力値＝適用額として扱う。住民税は share で按分）
         $saigaiItax = $I($outFull, "tax_saigai_genmen_shotoku_{$p}");
@@ -236,6 +345,9 @@ class KazeigakuZeigakuYosokuReport implements ReportInterface
                     'haito'  => ['itax'=>$haitoItaxApplied, 'muni'=>$this->splitByShare($haitoJuminApplied, $sharePref, $shareMuni, 100)[1], 'pref'=>$this->splitByShare($haitoJuminApplied, $sharePref, $shareMuni, 100)[0], 'total'=>$haitoJuminApplied],
                     'jutaku' => ['itax'=>$jutakuItaxApplied,'muni'=>$this->splitByShare($jutakuJuminApplied,$sharePref,$shareMuni,100)[1], 'pref'=>$this->splitByShare($jutakuJuminApplied,$sharePref,$shareMuni,100)[0], 'total'=>$jutakuJuminApplied],
                     'seitoto'=> ['itax'=>$seitotoItax],
+                    // ★耐震改修（所得税のみ）
+                    'kaisyu' => ['itax'=>$kaisyuItaxApplied],
+                    // ★A：耐震改修控除後の残税額（所得税）＋（住民税は従来どおり）
                     'after14'=> ['itax'=>$after14Itax, 'muni'=>$after14JuminMuni, 'pref'=>$after14JuminPref, 'total'=>$after14JuminTotal],
                     'kifukin_other'=> ['muni'=>$otherMuni, 'pref'=>$otherPref, 'total'=>$otherTot],
                     'kifukin_furu' => ['muni'=>$furuMuni,  'pref'=>$furuPref,  'total'=>$furuTot],

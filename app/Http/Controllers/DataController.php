@@ -17,6 +17,158 @@ use Illuminate\Validation\ValidationException;
 
 class DataController extends Controller
 {
+    /** data_name 禁止文字（仕様） */
+    private function assertValidDataNameOrFail(?string $name): void
+    {
+        $s = (string)($name ?? '');
+        // 必須/最大長は validator 側で担保。ここでは禁止文字だけ見る。
+        // 改行/タブ/制御文字（0x00-0x1F,0x7F）＋ファイル名危険記号を禁止
+        if (preg_match("/[\r\n\t]/u", $s) === 1) {
+            throw ValidationException::withMessages(['data_name' => 'データ名に改行やタブは使用できません。']);
+        }
+        if (preg_match("/[\x00-\x1F\x7F]/u", $s) === 1) {
+            throw ValidationException::withMessages(['data_name' => 'データ名に制御文字は使用できません。']);
+        }
+        if (preg_match('/[\\\\\/\:\*\?\"\<\>\|]/u', $s) === 1) {
+            throw ValidationException::withMessages(['data_name' => 'データ名に使用できない記号が含まれています（\\ / : * ? " < > |）。']);
+        }
+    }
+
+    /**
+     * copy/clone 用：同一(guest,year,name)が存在する場合、末尾に数字を付けて空きを作る
+     * - 例：XXX_コピー → XXX_コピー2 → XXX_コピー3 ...
+     * - 25文字上限を守る（末尾の数字が入る分だけ切り詰める）
+     */
+    private function resolveAvailableCopyName(int $guestId, int $year, string $baseName): array
+    {
+        $base = (string)$baseName;
+        if ($base === '') {
+            $base = 'default_コピー';
+        }
+
+        // まず base のまま存在しないならそれを採用
+        $exists = Data::query()
+            ->where('guest_id', $guestId)
+            ->where('kihu_year', $year)
+            ->where('data_name', $base)
+            ->exists();
+        if (!$exists) {
+            return [$base, null]; // [final, renamed_from]
+        }
+
+        // ★コピー系列（xxx_コピー / xxx_コピーN）の場合は「最小の空き番号」を探す
+        if (preg_match('/^(.*)_コピー(\d+)?$/u', $base, $m) === 1) {
+            $seriesBase = (string)($m[1] ?? '');
+            if ($seriesBase === '') {
+                $seriesBase = 'default';
+            }
+
+            $used = [];
+            $names = Data::query()
+                ->where('guest_id', $guestId)
+                ->where('kihu_year', $year)
+                ->where(function($q) use ($seriesBase) {
+                    $q->where('data_name', $seriesBase . '_コピー')
+                      ->orWhere('data_name', 'like', $seriesBase . '_コピー%');
+                })
+                ->pluck('data_name')
+                ->all();
+
+            foreach ($names as $nm) {
+                $s = (string)$nm;
+                if (preg_match('/^' . preg_quote($seriesBase, '/') . '_コピー(\d+)?$/u', $s, $mm) === 1) {
+                    $n = isset($mm[1]) && $mm[1] !== '' ? (int)$mm[1] : 1; // _コピー は 1 扱い
+                    $used[$n] = true;
+                }
+            }
+
+            for ($n = 1; $n <= 999; $n++) {
+                if (isset($used[$n])) continue;
+                $suffix = ($n === 1) ? '_コピー' : ('_コピー' . $n);
+                $candidate = mb_substr($seriesBase, 0, max(0, 25 - mb_strlen($suffix))) . $suffix;
+                // 念のため DB でも確認（並行作成対策）
+                $ok = !Data::query()
+                    ->where('guest_id', $guestId)
+                    ->where('kihu_year', $year)
+                    ->where('data_name', $candidate)
+                    ->exists();
+                if ($ok) {
+                    return [$candidate, $base];
+                }
+            }
+            throw ValidationException::withMessages(['data_name' => 'データ名の自動採番に失敗しました。別の名前を入力してください。']);
+        }
+
+        // ★それ以外は従来どおり末尾に数字を付けて空きを探す（最小空きを探す）
+        for ($i = 2; $i <= 999; $i++) {
+            $suffix = (string)$i;
+            $candidate = mb_substr($base, 0, max(0, 25 - mb_strlen($suffix))) . $suffix;
+            $ok = !Data::query()
+                ->where('guest_id', $guestId)
+                ->where('kihu_year', $year)
+                ->where('data_name', $candidate)
+                ->exists();
+            if ($ok) {
+                return [$candidate, $base];
+            }
+        }
+        throw ValidationException::withMessages(['data_name' => 'データ名の自動採番に失敗しました。別の名前を入力してください。']);
+    }
+    
+    /**
+     * copyForm(GET) 用：DBを見て「次に提案すべき _コピー名」を返す
+     * - base が "テストデータ" のとき、既存に
+     *   テストデータ_コピー, テストデータ_コピー2 があれば テストデータ_コピー3 を返す
+     * - base 自体が "xxx_コピー" や "xxx_コピー2" の場合も、
+     *   「xxx」の系列として次番号を返す（UIで _コピー_コピー を作らない）
+     */
+    private function suggestNextCopyNameForForm(int $guestId, int $year, string $sourceName): string
+    {
+        $src = (string)$sourceName;
+        if ($src === '') {
+            $src = 'default';
+        }
+
+        // 末尾が _コピー or _コピーN なら base を取り出す
+        $base = $src;
+        if (preg_match('/^(.*)_コピー(\d+)?$/u', $src, $m) === 1) {
+            $base = (string)($m[1] ?? '');
+            if ($base === '') {
+                $base = 'default';
+            }
+        }
+
+        // 既存の base_コピー 系を列挙（同一 guest/year のみ）
+        $rows = Data::query()
+            ->where('guest_id', $guestId)
+            ->where('kihu_year', $year)
+            ->where(function($q) use ($base) {
+                $q->where('data_name', $base . '_コピー')
+                  ->orWhere('data_name', 'like', $base . '_コピー%');
+            })
+            ->pluck('data_name')
+            ->all();
+
+        // 使われている番号を収集（_コピー=1, _コピーN=N）
+        $used = [];
+        foreach ($rows as $name) {
+            $s = (string)$name;
+            if (preg_match('/^' . preg_quote($base, '/') . '_コピー(\d+)?$/u', $s, $mm) === 1) {
+                $n = isset($mm[1]) && $mm[1] !== '' ? (int)$mm[1] : 1;
+                $used[$n] = true;
+            }
+        }
+        // ★最小の空き番号を探す
+        for ($n = 1; $n <= 999; $n++) {
+            if (isset($used[$n])) continue;
+            $suffix = ($n === 1) ? '_コピー' : ('_コピー' . $n);
+            return mb_substr($base, 0, max(0, 25 - mb_strlen($suffix))) . $suffix;
+        }
+        // 通常は到達しない
+        $suffix = '_コピー999';
+        return mb_substr($base, 0, max(0, 25 - mb_strlen($suffix))) . $suffix;
+    }
+
     /** client 判定（顧問先アカウント） */
     private function isClient(): bool
     {
@@ -173,10 +325,10 @@ class DataController extends Controller
         $datas = collect();
         if ($guest) {
             $dq = Data::query()
-                ->select('id', 'guest_id', 'kihu_year', 'owner_user_id', 'user_id', 'visibility')
+                ->select('id', 'guest_id', 'kihu_year', 'data_name', 'owner_user_id', 'user_id', 'visibility')
                 ->where('guest_id', $guest->id)
                 ->whereNotNull('kihu_year')
-                ->orderByDesc('kihu_year')->orderByDesc('id');
+                ->orderByDesc('kihu_year')->orderBy('data_name')->orderByDesc('id');
 
             // private は作成者のみ（一覧にも出さない）
             if (config('feature.data_privacy')) {
@@ -227,10 +379,10 @@ class DataController extends Controller
         }
 
         $q = Data::query()
-            ->select('id', 'guest_id', 'kihu_year', 'owner_user_id', 'user_id', 'visibility')
+            ->select('id', 'guest_id', 'kihu_year', 'data_name', 'owner_user_id', 'user_id', 'visibility')
             ->where('guest_id', $guest->id)
             ->whereNotNull('kihu_year')
-            ->orderByDesc('kihu_year')->orderByDesc('id')
+            ->orderByDesc('kihu_year')->orderBy('data_name')->orderByDesc('id')
             ;
 
         // private は作成者のみ（一覧にも出さない）
@@ -278,40 +430,30 @@ class DataController extends Controller
         $this->assertCanAccessData($data);
 
         $validated = $request->validate([
-            'kihu_year' => ['required','integer','between:2025,2035'],
+            'kihu_year'  => ['required','integer','between:2025,2035'],
+            'data_name'  => ['required','string','max:25'],
         ],[
             'kihu_year.required' => '年度を選択してください。',
             'kihu_year.between'  => '年度の指定が不正です（2025〜2035）。',
+            'data_name.required' => 'データ名を入力してください。',
+            'data_name.max'      => 'データ名は25文字以内で入力してください。',
         ]);
         $year = (int)$validated['kihu_year'];
+        $baseName = (string)$validated['data_name'];
+        $this->assertValidDataNameOrFail($baseName);
 
-        // 同一ゲスト×同一年が既にある場合は「既存へ遷移」させたいのでIDを返す
-        $existing = Data::query()
-            ->where('guest_id', $data->guest_id)
-            ->where('kihu_year', $year)
-            ->first();
-        if ($existing) {
-            AuditLogger::log('data.year_select.existing', [
-                'guest_id' => (int)$data->guest_id,
-                'from_data_id' => (int)$data->id,
-                'to_data_id' => (int)$existing->id,
-                'to_year' => (int)$year,
-            ], $existing);
-            return response()->json([
-                'id'       => $existing->id,
-                'guest_id' => $existing->guest_id,
-                'action'   => 'existing',
-            ], 200);
-        }
+        // ★clone-year は自動採番（仕様）：同名があれば _コピー2 などに寄せて複製する
+        [$finalName, $renamedFrom] = $this->resolveAvailableCopyName((int)$data->guest_id, $year, $baseName);
+        $this->assertValidDataNameOrFail($finalName);
 
         // 入力だけコピーして、結果は再計算で生成する
-        $new = DB::transaction(function () use ($data, $year) {
-            // 1) Data本体を複製（datasテーブルの1行）
+        $new = DB::transaction(function () use ($data, $year, $finalName) {
+            // 1) Data本体を複製（★ユニーク制約があるため、保存前に key を必ず変更する）
             $cloned = $data->replicate();
             $cloned->exists = false;
-            $cloned->save(); // ← まずIDを確定させる
 
-            $cloned->kihu_year = $year;
+            $cloned->kihu_year     = $year;
+            $cloned->data_name     = $finalName;
             $cloned->owner_user_id = Auth::id();
 
             // 複製で作られる新データの「データ作成日」は複製した日（当日）
@@ -340,6 +482,8 @@ class DataController extends Controller
             'id'       => $new->id,
             'guest_id' => $new->guest_id,
             'action'   => 'cloned',
+            'data_name'=> (string)$new->data_name,
+            'renamed_from' => $renamedFrom, // null or string
         ], 201);
     }
 
@@ -428,6 +572,7 @@ class DataController extends Controller
         $rules = [
             'proposal_date' => ['required','date_format:Y-m-d'],
             'kihu_year'     => ['required','integer','between:2025,2035'],
+            'data_name'     => ['required','string','max:25'],
         ];
         if (config('feature.data_privacy')) {
             $rules['visibility'] = ['required','in:shared,private'];
@@ -437,6 +582,8 @@ class DataController extends Controller
             'proposal_date.date_format' => '提案書日は YYYY-MM-DD 形式で入力してください。',
             'kihu_year.required' => '年度を選択してください。',
             'kihu_year.between'  => '年度の指定が不正です（2025〜2035）。',
+            'data_name.required' => 'データ名を入力してください。',
+            'data_name.max'      => 'データ名は25文字以内で入力してください。',
             'visibility.required' => '共有設定を選択してください。',
             'visibility.in' => '共有設定が不正です。',
         ];
@@ -446,15 +593,19 @@ class DataController extends Controller
         $oldYear = (int)($data->kihu_year ?? 0);
         $newVis  = config('feature.data_privacy') ? (string)$validated['visibility'] : (string)($data->visibility ?? 'shared');
         $newProposal = (string)$validated['proposal_date'];
+        $newName = (string)$validated['data_name'];
+        $this->assertValidDataNameOrFail($newName);
 
         $confirmOverwrite = (int)$request->input('confirm_overwrite', 0) === 1;
 
-        // 年度変更なし：メタ更新のみ
-        if ($newYear === $oldYear) {
+        // 年度/データ名とも変更なし：メタ更新のみ
+        $oldName = (string)($data->data_name ?? 'default');
+        if ($newYear === $oldYear && $newName === $oldName) {
             $data->proposal_date = $newProposal;
             if (config('feature.data_privacy')) {
                 $data->visibility = $newVis;
             }
+            $data->data_name = $newName;
             $data->save();
 
             AuditLogger::log('data.updated', [
@@ -470,16 +621,18 @@ class DataController extends Controller
                 ->with('success', 'データ情報を更新しました。');
         }
 
-        // 年度変更あり：同一guest内のターゲットを探す
+        // 変更あり：同一guest内のターゲットを探す（key=年度+データ名）
         $target = Data::query()
             ->where('guest_id', (int)$data->guest_id)
             ->where('kihu_year', $newYear)
+            ->where('data_name', $newName)
             ->first();
 
         // 変更先が存在しない → 移動（data_idはそのまま、結果は削除）
         if (!$target) {
             DB::transaction(function () use ($data, $newYear, $newProposal, $newVis) {
                 $data->kihu_year = $newYear;
+                $data->data_name = request()->input('data_name');
                 $data->proposal_date = $newProposal;
                 if (config('feature.data_privacy')) {
                     $data->visibility = $newVis;
@@ -512,8 +665,10 @@ class DataController extends Controller
                 ->with('overwrite_conflict', [
                     'from_data_id' => (int)$data->id,
                     'from_year' => $oldYear,
+                    'from_name' => $oldName,
                     'to_data_id' => (int)$target->id,
                     'to_year' => $newYear,
+                    'to_name' => $newName,
                     'guest_id' => (int)$data->guest_id,
                 ]);
         }
@@ -529,6 +684,7 @@ class DataController extends Controller
 
             // 3) BのメタもAで上書き（ユーザー承諾済み）
             $target->proposal_date = $newProposal;
+            $target->data_name = request()->input('data_name');
             if (config('feature.data_privacy')) {
                 $target->visibility = $newVis;
             }
@@ -724,6 +880,7 @@ class DataController extends Controller
             'guest_id'   => ['required_if:guest_mode,existing','nullable','integer','exists:guests,id'],
             'guest_name' => ['required_if:guest_mode,new','nullable','string','max:25'],
             'kihu_year'  => ['required','integer','between:2025,2035'],
+            'data_name'  => ['required','string','max:25'],
             'birth_date' => ['nullable','date_format:Y-m-d'],
             'proposal_date' => ['nullable','date_format:Y-m-d'],
         ];
@@ -739,11 +896,14 @@ class DataController extends Controller
             'guest_name.max'         => 'お客様名は25文字以内で入力してください。',
             'kihu_year.required'  => '年度を選択してください。',
             'kihu_year.between'   => '年度の指定が不正です（2025〜2035）。',
+            'data_name.required'  => 'データ名を入力してください。',
+            'data_name.max'       => 'データ名は25文字以内で入力してください。',
             'visibility.in'       => '共有設定が不正です。',
             'birth_date.date_format' => '生年月日は YYYY-MM-DD 形式で入力してください。',
             'proposal_date.date_format' => '提案書日は YYYY-MM-DD 形式で入力してください。',
         ];
         $validated = $request->validate($rules, $messages);
+        $this->assertValidDataNameOrFail((string)$validated['data_name']);
 
         $me = auth()->user();
         $companyId = (int)$me->company_id;
@@ -778,17 +938,18 @@ class DataController extends Controller
 
         $this->updateGuestBirthDate($guest, $birthDate);
 
-        // 3) 同一年度ユニークのサーバ検証（422は返さず、302戻り＋モーダル）
+        // 3) 同一(年度+データ名)ユニークのサーバ検証（create は自動採番しない）
         $exists = Data::query()
             ->where('guest_id', $guest->id)
             ->where('kihu_year', (int)$validated['kihu_year'])
+            ->where('data_name', (string)$validated['data_name'])
             ->exists();
         if ($exists) {
             return back()
                 ->withInput()
                 ->with('modal_error', [
                     'duplicate_year' => true,
-                    'message' => '同じお客様について 同一の年度 のデータは登録できません。',
+                    'message' => '同じお客様について 同一の年度・同一のデータ名 のデータは登録できません。',
                 ]);
         }
 
@@ -799,6 +960,7 @@ class DataController extends Controller
         $data->group_id   = (int)$guest->group_id;
         $data->user_id    = $me->id;
         $data->kihu_year  = (int)$validated['kihu_year'];
+        $data->data_name  = (string)$validated['data_name'];
 
         // データ作成日（当日・編集不可）／提案日（初期＝当日・後で編集可）
         [$createdOn, $proposalDate] = $this->defaultCreatedAndProposalDates();
@@ -851,11 +1013,21 @@ class DataController extends Controller
         }
         $defaultBirthDate = $this->formatBirthDateForView($source->guest?->birth_date ?? null);
 
+        // ★コピー画面のデフォルト data_name は「実際に作られる名前」と一致させる
+        // - 初期はコピー元と同じ年度（source->kihu_year）
+        // - コピー先の初期は copy_mode=same なので guest は source->guest を前提に算出
+        $defaultYear = (int)($source->kihu_year ?? 0);
+        if ($defaultYear < 2025) $defaultYear = 2025;
+        if ($defaultYear > 2035) $defaultYear = 2035;
+        $baseName = (string)($source->data_name ?? 'default');
+        $suggestedCopyName = $this->suggestNextCopyNameForForm((int)$source->guest_id, $defaultYear, $baseName);
+
         return view('data.data_copy', [
             'source' => $source,
             'guests' => $guests,
             'defaultBirthDate' => $defaultBirthDate,
             'clientGuest' => $this->isClient() ? ($this->resolveClientGuestOrFail()) : null,
+            'suggestedCopyName' => $suggestedCopyName,
         ]);
     }
 
@@ -877,8 +1049,8 @@ class DataController extends Controller
             'copy_mode'        => ['required','in:same,existing,new'],
             'target_guest_id'  => ['nullable','integer','required_if:copy_mode,existing','exists:guests,id'],
             'target_guest_name'=> ['nullable','string','max:25','required_if:copy_mode,new'],
-            'years'            => ['required','array','min:1','max:21'],
-            'years.*'          => ['integer','between:2025,2035'],
+            'kihu_year'        => ['required','integer','between:2025,2035'],
+            'data_name'        => ['required','string','max:25'],
             'birth_date'       => ['nullable','date_format:Y-m-d'],
             'proposal_date'    => ['nullable','date_format:Y-m-d'],
         ];
@@ -892,13 +1064,15 @@ class DataController extends Controller
             'target_guest_id.exists'        => '選択したお客様が見つかりません。',
             'target_guest_name.required_if' => '新規のお客様の場合は、お客様名を入力してください。',
             'target_guest_name.max'         => 'お客様名は25文字以内で入力してください。',
-            'years.required' => '年度を1つ以上選択してください。',
-            'years.array'    => '年度の指定が不正です。',
-            'years.*.between'=> '年度の指定が不正です（2025〜2035）。',
+            'kihu_year.required' => '年度を選択してください。',
+            'kihu_year.between'  => '年度の指定が不正です（2025〜2035）。',
+            'data_name.required' => 'データ名を入力してください。',
+            'data_name.max'      => 'データ名は25文字以内で入力してください。',
             'birth_date.date_format' => '生年月日は YYYY-MM-DD 形式で入力してください。',
             'proposal_date.date_format' => '提案書日は YYYY-MM-DD 形式で入力してください。',
         ];
         $validated = $request->validate($rules, $messages);
+        $this->assertValidDataNameOrFail((string)$validated['data_name']);
 
         $me = auth()->user();
         $companyId = (int)$me->company_id;
@@ -939,79 +1113,64 @@ class DataController extends Controller
             $this->updateGuestBirthDate($targetGuest, $birthDate);
         }
 
-        // 4) 年度ごとに複製
-        $years = collect($validated['years'] ?? [])->map(fn($y)=>(int)$y)->unique()->values()->all();
-        $created = [];
-        $duplicated = [];
+        // 4) 単一年度で複製（copy は自動採番あり）
+        $yy = (int)$validated['kihu_year'];
+        $baseName = (string)$validated['data_name'];
+        [$finalName, $renamedFrom] = $this->resolveAvailableCopyName((int)$targetGuest->id, $yy, $baseName);
+        $this->assertValidDataNameOrFail($finalName);
 
-        foreach ($years as $yy) {
-            $dup = Data::query()
-                ->where('guest_id', $targetGuest->id)
-                ->where('kihu_year', $yy)
-                ->exists();
-            if ($dup) {
-                $duplicated[] = $yy;
-                continue;
+        $new = \DB::transaction(function () use ($source, $targetGuest, $yy, $me, $finalName, $proposalIn) {
+            // ★ユニーク制約があるため、copy は「新規Data行を先に正しいkeyで作る」方式に統一する
+            $cloned = $source->replicate();
+            $cloned->exists = false;
+
+            $cloned->guest_id   = (int)$targetGuest->id;
+            $cloned->company_id = (int)$targetGuest->company_id;
+            $cloned->group_id   = (int)$targetGuest->group_id;
+            $cloned->user_id    = (int)$me->id;
+            $cloned->kihu_year  = (int)$yy;
+            $cloned->data_name  = (string)$finalName;
+
+            // コピーで作られる新データの「データ作成日」はコピー実行日（当日）
+            $today = now()->toDateString();
+            $cloned->setAttribute('data_created_on', $today);
+            // 提案書日は入力があれば優先。無ければ当日。
+            $cloned->setAttribute('proposal_date', (string)($proposalIn ?: $today));
+
+            if (config('feature.data_privacy')) {
+                $vis = strtolower((string)request()->input('visibility','shared'));
+                $cloned->visibility    = in_array($vis, ['shared','private'], true) ? $vis : 'shared';
+                $cloned->owner_user_id = (int)$me->id;
             }
-            // deep copy → 保存
-            $new = \DB::transaction(function () use ($source, $targetGuest, $yy, $me) {
-                if (class_exists(\App\Services\Data\DeepCopyService::class)) {
-                    /** @var \App\Services\Data\DeepCopyService $svc */
-                    $svc = app(\App\Services\Data\DeepCopyService::class);
-                    $cloned = $svc->deepCopy($source, $targetGuest->id);
-                } else {
-                    $cloned = $source->replicate();
-                    $cloned->exists = false;
-                    $cloned->save();
-                }
-                // 上書き
-                $cloned->guest_id   = $targetGuest->id;
-                $cloned->company_id = (int)$targetGuest->company_id;
-                $cloned->group_id   = (int)$targetGuest->group_id;
-                $cloned->user_id    = $me->id;
-                $cloned->kihu_year  = (int)$yy;
 
-                // コピーで作られる新データの「データ作成日」はコピー実行日（当日）
-                $today = now()->toDateString();
-                $cloned->setAttribute('data_created_on', $today);
-                // 提案書日は入力があれば優先。無ければ当日。
-                $cloned->setAttribute('proposal_date', request()->input('proposal_date') ?: $today);
+            // ★ここで初回保存（keyは衝突しない）
+            $cloned->save();
 
-                if (config('feature.data_privacy')) {
-                    $vis = strtolower((string)request()->input('visibility','shared'));
-                    $cloned->visibility    = in_array($vis, ['shared','private'], true) ? $vis : 'shared';
-                    $cloned->owner_user_id = $me->id;
-                }
-                $cloned->save();
-                return $cloned;
-            });
-            $created[] = $new->id;
-        }
+            // ★入力だけコピーして、結果は破棄（再計算で生成）
+            $this->copyTableByDataId('furusato_inputs', (int)$source->id, (int)$cloned->id);
+            $this->copyTableByDataId('furusato_syori_settings', (int)$source->id, (int)$cloned->id);
+            \DB::table('furusato_results')->where('data_id', (int)$cloned->id)->delete();
 
-        if (count($created) > 0) {
-            AuditLogger::log('data.copied', [
-                'from_data_id' => (int)$source->id,
-                'from_guest_id' => (int)$source->guest_id,
-                'to_guest_id' => (int)$targetGuest->id,
-                'years' => $years,
-                'created_data_ids' => $created,
-                'skipped_years' => $duplicated,
-                'proposal_date' => (string)($proposalIn ?? ''),
-            ], $source);
-        }
+            return $cloned;
+        });
 
-        // 5) 結果の返却
-        if (count($created) === 0 && count($duplicated) > 0) {
-            // 全て重複 → copyForm に戻してモーダルで案内
-            return back()
-                ->withInput()
-                ->with('modal_error', ['duplicate_years' => $duplicated]);
-        }
-        // 一部でも作成されたら一覧へ。重複があれば情報メッセージも付与
+        AuditLogger::log('data.copied', [
+            'from_data_id' => (int)$source->id,
+            'from_guest_id' => (int)$source->guest_id,
+            'to_guest_id' => (int)$targetGuest->id,
+            'year' => $yy,
+            'requested_name' => $baseName,
+            'final_name' => $finalName,
+            'renamed_from' => $renamedFrom,
+            'created_data_id' => (int)$new->id,
+            'proposal_date' => (string)($proposalIn ?? ''),
+        ], $source);
+
+        // 5) 返却（リネームが発生したら info に出す）
         $redir = redirect()->route('data.index', ['guest_id' => $targetGuest->id])
             ->with('success', 'コピーを作成しました。');
-        if (count($duplicated) > 0) {
-            $redir->with('info', '一部の年度は既に存在するためスキップしました（'.implode('年, ', $duplicated).'年）。');
+        if (is_string($renamedFrom) && $renamedFrom !== '') {
+            $redir->with('info', '同名が存在したためデータ名を「'.$finalName.'」に変更して作成しました。');
         }
         return $redir;
     }

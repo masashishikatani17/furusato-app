@@ -22,6 +22,8 @@ final class FurusatoHyoshiTemplateWriter
         'date'  => ['x' => 130.0, 'y' => 135.0, 'size' => 18.0, 'rgb' => [0, 0, 0]],
         // 事務所名（必要なら）
         'org'   => ['x' => 75.0, 'y' => 155.0, 'size' => 20.0, 'rgb' => [0, 0, 0]],
+        // データ名（右上）
+        'data_name' => ['x' => 150.0, 'y' => 37.0, 'w' => 105.0, 'size' => 15.0, 'rgb' => [0, 0, 0]],
     ];
 
     public function __construct(
@@ -34,6 +36,7 @@ final class FurusatoHyoshiTemplateWriter
      *   guest_name?:string,
      *   date?:string,
      *   org?:string,
+     *   data_name?:string,
      *   show_test?:bool
      * } $vars
      */
@@ -76,17 +79,20 @@ final class FurusatoHyoshiTemplateWriter
         // TEST（初期は常に出してOK：座標印字できているかの確認用）
         $showTest = array_key_exists('show_test', $vars) ? (bool)$vars['show_test'] : true;
         if ($showTest) {
-            $this->text($pdf, $font, self::POS['test'], 'TEST-XY');
+            $this->text($pdf, $font, self::POS['test'], '');
+            $this->cellRight($pdf, $font, self::POS['data_name'], '');
         }
 
-        // 本番値
+        // 氏名/日付/事務所名は従来どおり trim（表示の崩れ防止）
         $guest = trim((string)($vars['guest_name'] ?? ''));
         $date  = trim((string)($vars['date'] ?? ''));
         $org   = trim((string)($vars['org'] ?? ''));
+        $dataName = (string)($vars['data_name'] ?? '');
 
         if ($guest !== '') $this->text($pdf, $font, self::POS['guest'], $guest);
         if ($date  !== '') $this->text($pdf, $font, self::POS['date'],  $date);
         if ($org   !== '') $this->text($pdf, $font, self::POS['org'],   $org);
+        if ($dataName !== '') $this->cellRight($pdf, $font, self::POS['data_name'], $dataName);
 
         return $pdf->Output('', 'S');
     }
@@ -108,5 +114,49 @@ final class FurusatoHyoshiTemplateWriter
 
         // ★疑似太字：ごく小さいオフセットで同じ文字をもう一度描く（見た目が確実に太くなる）
         $pdf->Text($x + 0.2, $y, $text); // 0.2mm（必要なら 0.15〜0.30 で調整）
+    }
+
+    /**
+     * 右寄せセル描画（右上の data_name 用）
+     * - 文字が長い場合はセル幅に収まるように末尾を「…」で省略
+     *
+     * @param array{x:float,y:float,w:float,size:float,rgb:array{0:int,1:int,2:int}} $pos
+     */
+    private function cellRight(TcpdfFpdi $pdf, string $font, array $pos, string $text): void
+    {
+        $size = (float)$pos['size'];
+        $pdf->SetFont($font, '', $size);
+        $rgb = $pos['rgb'] ?? [0, 0, 0];
+        $pdf->SetTextColor((int)$rgb[0], (int)$rgb[1], (int)$rgb[2]);
+
+        $x = (float)$pos['x'];
+        $y = (float)$pos['y'];
+        $w = (float)$pos['w'];
+
+        $t = $this->fitToWidth($pdf, $text, $w);
+        $pdf->SetXY($x, $y);
+        // 右寄せで描画（枠線なし、改行なし）
+        $pdf->Cell($w, 0, $t, 0, 0, 'R', false, '', 0, false, 'T', 'M');
+        // 疑似太字（ほんの少し右へ）
+        $pdf->SetXY($x + 0.2, $y);
+        $pdf->Cell($w, 0, $t, 0, 0, 'R', false, '', 0, false, 'T', 'M');
+    }
+
+    /**
+     * セル幅に収まるように末尾省略する（…）
+     */
+    private function fitToWidth(TcpdfFpdi $pdf, string $text, float $maxWidthMm): string
+    {
+        // 収まっていればそのまま
+        if ($pdf->GetStringWidth($text) <= $maxWidthMm) {
+            return $text;
+        }
+        $ellipsis = '…';
+        $s = $text;
+        // 末尾から削る（25文字上限なのでループは軽い）
+        while ($s !== '' && $pdf->GetStringWidth($s . $ellipsis) > $maxWidthMm) {
+            $s = mb_substr($s, 0, max(0, mb_strlen($s) - 1));
+        }
+        return $s === '' ? $ellipsis : ($s . $ellipsis);
     }
 }

@@ -22,7 +22,7 @@
         ['label' => '上場株式等の配当等', 'key' => 'jojo_haito', 'has_kurikoshi' => false],
     ];
 @endphp
-<div class="container-blue mt-2" style="width: 980px;">
+<div class="container-blue mt-2" style="width: 1000px;">
   <div class="card-header d-flex align-items-start justify-content-between">
     <div class="d-flex align-items-start">
       @include('components.kado_lefttop_img')
@@ -57,7 +57,7 @@
             <table class="table-input align-middle text-center">
               <thead>
                 <tr>
-                  <th style="height:30px;"></th>
+                  <th style="height:30px; width:127px;"></th>
                   <th>収入金額</th>
                   <th>必要経費</th>
                   <th>所得金額</th>
@@ -161,12 +161,17 @@
           </div>
         @endforeach
         <hr class="mb-2">
-        <div class="text-end gap-2">
-          <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
-          <button type="submit"
-                  class="btn-base-green"
-                  data-disable-on-submit>再計算</button>
-        </div>
+        <div class="d-flex justify-content-between">
+            <div>
+              <button type="submit"
+                      class="btn-base-green"
+                      id="btn-recalc"
+                      data-disable-on-submit>再計算</button>
+            </div>
+            <div class="d-flex">
+              <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
+            </div>
+          </div>
       </form>
   </div>
 </div>

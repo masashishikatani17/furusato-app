@@ -8,7 +8,7 @@
   $clientGuest = $clientGuest ?? null;
 @endphp
 
-<div class="container" style="width: 760px;">
+<div class="container" style="width: 660px;">
   <div class="d-flex justify-content-between align-items-center m-3">
     <hb>▶ 既存データのコピー（年度指定）</hb>
   </div>
@@ -60,12 +60,11 @@
       <h1 class="ms-2 mb-3">○コピー先の指定</h1>
 
       {{-- ▼ ここからテーブル化（見た目のみ変更 / name・id・JS参照は維持） --}}
-      <table class="table-input align-middle mx-auto" style="max-width:670px;">
+      <table class="table-input align-middle mx-auto" style="max-width:570px;">
         <tbody>
-
           {{-- 1) コピー先お客様の指定 --}}
           <tr>
-            <th class="text-start ps-1" style="height:33px; min-width:90px; white-space:nowrap;">
+            <th class="text-start ps-1" style="height:33px; white-space:nowrap;">
               コピー先お客様
             </th>
             <td class="text-start bg-cream">
@@ -96,7 +95,7 @@
               <input type="text"
                      name="target_guest_name"
                      id="target_guest_name"
-                     class="form-control kana10"
+                     class="form-control kana20"
                      style="height:32px; max-width: 420px;"
                      maxlength="25"
                      placeholder="新規のお客様名を入力"
@@ -122,10 +121,10 @@
             </td>
           </tr>
 
-          {{-- 4) 年度（複数可） --}}
+          {{-- 4) 年度（単数） --}}
           <tr>
             <th class="text-start ps-1" style="min-width:120px; white-space:nowrap;">
-              年度（複数可）
+              年度
             </th>
             <td class="text-start">
               @php
@@ -136,27 +135,34 @@
                 $defaultY = (int)($source->kihu_year ?: $default);
                 if ($defaultY < $minY) $defaultY = $minY;
                 if ($defaultY > $maxY) $defaultY = $maxY;
-                $years = [];
-                for($y=$maxY; $y>=$minY; $y--){ $years[] = $y; }
-                $oldYearsRaw = collect(old('years', [$defaultY]))->map(fn($v)=>(int)$v)->unique()->values()->all();
-                $oldYears = array_values(array_filter($oldYearsRaw, fn($y)=>$y >= $minY && $y <= $maxY));
-                if (count($oldYears) === 0) { $oldYears = [$defaultY]; }
+                $oldYear = (int) old('kihu_year', $defaultY);
+                if ($oldYear < $minY) $oldYear = $minY;
+                if ($oldYear > $maxY) $oldYear = $maxY;
               @endphp
 
-              {{-- いまの並び（詰めて4列相当）を維持 --}}
-              <div class="d-flex flex-wrap gap-0 mt-1 ms-1" id="year-checkboxes">
-                @foreach($years as $y)
-                  <label class="form-check form-check-inline me-0" style="min-width: 90px;">
-                    <input class="form-check-input" type="checkbox" name="years[]" value="{{ $y }}"
-                           @checked(in_array($y, $oldYears, true))>
-                    <span class="ms-1">{{ \App\Support\WarekiDate::formatYear((int)$y) }}</span>
-                  </label>
-                @endforeach
-              </div>
+              <select name="kihu_year" class="form-select" style="height:32px; max-width:120px;">
+                @for ($y = $maxY; $y >= $minY; $y--)
+                  <option value="{{ $y }}" @selected((int)$oldYear === (int)$y)>{{ \App\Support\WarekiDate::formatYear((int)$y) }}</option>
+                @endfor
+              </select>
+            </td>
+          </tr>
 
-              <div class="text-end mt-1 mb-1 me-1 gap-2">
-                <button type="button" class="btn-base-blue" id="btn-select-all">すべて選択</button>
-                <button type="button" class="btn btn-base-red" id="btn-clear-all">すべて解除</button>
+          {{-- データ名 --}}
+          <tr>
+            <th class="text-start ps-1" style="height:33px; white-space:nowrap;">
+              データ名
+            </th>
+            <td class="text-start">
+              <input type="text"
+                     name="data_name"
+                     class="form-control kana20"
+                     style="height:32px; max-width: 320px;"
+                     maxlength="25"
+                     value="{{ old('data_name', $suggestedCopyName ?? (($source->data_name ?? 'default').'_コピー')) }}"
+                     required>
+              <div class="text-muted mt-1" style="font-size:12px;">
+                ※改行・タブ・制御文字・\ / : * ? " &lt; &gt; | は使用できません。
               </div>
             </td>
           </tr>
@@ -187,7 +193,7 @@
             <th class="text-start ps-1" style="height:33px;">
               データ作成日
             </th>
-            <td class="text-start">
+            <td class="text-start ps-1">
               <x-furusato.wareki-date
                 :name="null"
                 id="copy_data_created_on_view"
@@ -228,7 +234,7 @@
   {{-- 既存お客様選択モーダル --}}
   @if (! $isClient)
   <div class="modal fade" id="guestModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable" style="max-width:300px;">
+    <div class="modal-dialog modal-dialog-scrollable" style="max-width:340px;">
       <div class="modal-content">
         <div class="modal-header">
           <h14 class="modal-title">お客様を選択</h14>
@@ -261,7 +267,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">登録できません</h5>
+          <h15 class="modal-title">登録できません</h15>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -276,7 +282,7 @@
           @endif
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">O K</button>
         </div>
       </div>
     </div>
@@ -365,12 +371,7 @@
 
   // 年度 チェックボックス一括操作
   const yearBoxWrap = document.getElementById('year-checkboxes');
-  document.getElementById('btn-select-all')?.addEventListener('click', () => {
-    yearBoxWrap?.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = true);
-  });
-  document.getElementById('btn-clear-all')?.addEventListener('click', () => {
-    yearBoxWrap?.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-  });
+// 年度は単数プルダウンに変更（旧チェックボックス操作は廃止）
 
   // 初期状態
   setSame(false);

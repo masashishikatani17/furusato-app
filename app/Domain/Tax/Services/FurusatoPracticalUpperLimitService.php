@@ -2,6 +2,7 @@
 
 namespace App\Domain\Tax\Services;
 
+use App\Domain\Tax\Contracts\MasterProviderContract;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -17,6 +18,7 @@ final class FurusatoPracticalUpperLimitService
 {
     public function __construct(
         private readonly FurusatoDryRunCalculatorRunner $runner,
+        private readonly MasterProviderContract $masterProvider,
     ) {}
 
     /**
@@ -26,6 +28,14 @@ final class FurusatoPracticalUpperLimitService
      */
     public function compute(array $basePayload, array $ctx): array
     {
+        // ------------------------------------------------------------
+        // safety: return/ログで参照する変数は先に初期化（Undefined防止）
+        // ------------------------------------------------------------
+        $payBase  = 0;
+        $payMax   = 0;
+        $taxSaved = 0;
+        $burden   = 0;
+
         // ============================================================
         // dry-run ctx（上限探索中は「計算ログ（特に住宅ローン控除など）」を抑制する）
         // - 下流 Calculator が ctx['dry_run'] を見てログを出さないようにする
@@ -67,6 +77,7 @@ final class FurusatoPracticalUpperLimitService
         $payloadZero = $this->withFurusato($basePayload, 0);
         $stageCounts['base']++;
         $outZero = $this->runner->run($payloadZero, $ctxDry);
+        // ★上限探索の定義は「税額総額差」：所得税 + 住民税（総額）
         $payBase = $this->payTotalCurr($outZero);
 
         // 探索上界：0.4*S40（S40 = sum_for_sogoshotoku_etc_curr）
@@ -167,10 +178,8 @@ final class FurusatoPracticalUpperLimitService
         $stageCounts['base']++;
         $outMax = $this->runner->run($this->withFurusato($basePayload, $yMaxTotal), $ctxDry);
         $payMax = $this->payTotalCurr($outMax);
-        // 減税額は 1円単位（百円未満切捨てしない）
-        $taxSavedRaw = max(0, $payBase - $payMax);
-        $taxSaved = (int) floor($taxSavedRaw);
-        $burden = $yMaxTotal - $taxSaved;
+        $taxSaved = max(0, $payBase - $payMax);
+        $burden = max(0, $yMaxTotal - $taxSaved);
   
         // perf log（必要時のみ：FURUSATO_PERF_LOG=1）
         if ($enablePerf && is_object($dryRunMetrics)) {
@@ -248,12 +257,10 @@ final class FurusatoPracticalUpperLimitService
             return false;
         }
 
-        // 自己負担判定：burden = y - (payBase - payY)
+        // 自己負担判定：burden = y - (pay(0) - pay(y))
         $payY = $this->payTotalCurr($out);
-        // 減税額は 1円単位（百円未満切捨てしない）
-        $taxSavedRaw = max(0, $payBase - $payY);
-        $taxSaved = (int) floor($taxSavedRaw);
-        $burden = $y - $taxSaved;
+        $taxSaved = max(0, $payBase - $payY);
+        $burden = max(0, $y - $taxSaved);
 
         return $burden <= 2000;
     }
@@ -298,5 +305,66 @@ final class FurusatoPracticalUpperLimitService
     {
         $ctx['dry_run'] = true;
         return $ctx;
+    }
+
+    /**
+     * 住民税：ふるさと only final（天井後ふるさと分）
+     * = max(0, kifukin_zeigaku_kojo_gokei - other_basic)
+     */
+    private function furusatoOnlyJuminFinal(array $outDryRun, array $payloadUsed, array $ctx, string $period): int
+    {
+        $p = $period;
+        $kifukinPost = $this->n($outDryRun["kifukin_zeigaku_kojo_gokei_{$p}"] ?? 0);
+        if ($kifukinPost <= 0) return 0;
+
+        // ▼ UI同額コピー対策：カテゴリごと max(pref,muni) を1回だけ採用
+        $getCatTotal = function (string $cat) use ($payloadUsed, $p): int {
+            $pref = $this->n($payloadUsed["juminzei_zeigakukojo_pref_{$cat}_{$p}"] ?? 0);
+            $muni = $this->n($payloadUsed["juminzei_zeigakukojo_muni_{$cat}_{$p}"] ?? 0);
+            return max(0, max($pref, $muni));
+        };
+
+        $furusatoTotal = $getCatTotal('furusato');
+        $otherCats = ['kyodobokin_nisseki', 'npo', 'koueki', 'sonota'];
+        $otherTotal = 0;
+        foreach ($otherCats as $c) {
+            $otherTotal += $getCatTotal($c);
+        }
+
+        // -2,000 は furusato 優先（furusato<2000 の残りは other）
+        $deductFuru  = min(2_000, $furusatoTotal);
+        $deductOther = max(0, 2_000 - $deductFuru);
+        $otherAfter  = max(0, $otherTotal - $deductOther);
+
+        $mother = $this->n($outDryRun["sum_for_sogoshotoku_etc_{$p}"] ?? 0);
+        $cap30  = (int) floor(max(0, $mother) * 0.3);
+
+        $year = isset($ctx['master_kihu_year']) ? (int) $ctx['master_kihu_year'] : 0;
+        $companyId = isset($ctx['company_id']) && $ctx['company_id'] !== '' ? (int) $ctx['company_id'] : null;
+        $dataId = isset($ctx['data_id']) && $ctx['data_id'] !== '' ? (int) $ctx['data_id'] : null;
+        $settings = is_array($ctx['syori_settings'] ?? null) ? $ctx['syori_settings'] : [];
+        $shitei = $this->n($settings["shitei_toshi_flag_{$p}"] ?? $settings['shitei_toshi_flag'] ?? 0) === 1;
+
+        $prefRate = 0.0; $muniRate = 0.0;
+        if ($year > 0) {
+            $rows = $this->masterProvider->getJuminRates($year, $companyId, $dataId)->all();
+            foreach ($rows as $r) {
+                $r = is_array($r) ? $r : (array)$r;
+                if ((string)($r['category'] ?? '') !== '基本控除') continue;
+                $prefPct = (float)($shitei ? ($r['pref_specified'] ?? 0) : ($r['pref_non_specified'] ?? 0));
+                $muniPct = (float)($shitei ? ($r['city_specified'] ?? 0) : ($r['city_non_specified'] ?? 0));
+                $prefRate = max(0.0, $prefPct / 100.0);
+                $muniRate = max(0.0, $muniPct / 100.0);
+                break;
+            }
+        }
+
+        // other の基本控除（合算ベースを1回だけ作り、県/市率で別々にceil）
+        $eligibleOther = max(min($otherAfter, $cap30), 0);
+        $otherBasicPref = (int) ceil($eligibleOther * $prefRate);
+        $otherBasicMuni = (int) ceil($eligibleOther * $muniRate);
+        $otherBasicTotal = max(0, $otherBasicPref + $otherBasicMuni);
+
+        return max(0, $kifukinPost - $otherBasicTotal);
     }
 }

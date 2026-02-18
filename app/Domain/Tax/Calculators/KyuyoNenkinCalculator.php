@@ -284,16 +284,35 @@ class KyuyoNenkinCalculator implements ProvidesKeys
             return max(0, $income - 1_950_000);
         }
 
+        // ------------------------------------------------------------
+        // 令和7年分（2025年分）以降：国税庁「合計所得金額の計算について」
+        //   1,900,000～3,599,999：B = A÷4（千円未満切捨て）→ A - (B×2.8 - 80,000)
+        //   3,600,000～6,599,999：B = A÷4（千円未満切捨て）→ A - (B×3.2 - 440,000)
+        //  ※ B の千円未満切捨てがポイント（例：6,251,004 → B=1,562,000）
+        // ------------------------------------------------------------
+        $b = function (int $a): int {
+            // B = floor((A / 4) / 1000) * 1000  （千円未満切捨て）
+            return intdiv(intdiv($a, 4), 1000) * 1000;
+        };
+
         if ($income <= 1_900_000) {
             return max(0, $income - 650_000);
         }
 
-        if ($income <= 3_600_000) {
-            return max(0, $income - ($this->percent($income, 30) + 80_000));
+        // 1,900,000 ～ 3,599,999
+        if ($income <= 3_599_999) {
+            $B = $b($income);
+            // 給与所得金額 = B*2.8 - 80,000  （2.8 = 28/10）
+            $shotoku = intdiv($B * 28, 10) - 80_000;
+            return max(0, $shotoku);
         }
 
-        if ($income <= 6_600_000) {
-            return max(0, $income - ($this->percent($income, 20) + 440_000));
+        // 3,600,000 ～ 6,599,999
+        if ($income <= 6_599_999) {
+            $B = $b($income);
+            // 給与所得金額 = B*3.2 - 440,000 （3.2 = 32/10）
+            $shotoku = intdiv($B * 32, 10) - 440_000;
+            return max(0, $shotoku);
         }
 
         if ($income <= 8_500_000) {

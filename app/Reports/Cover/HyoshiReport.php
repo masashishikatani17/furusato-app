@@ -29,6 +29,7 @@ class HyoshiReport implements ReportInterface
             'guest_name' => $guest !== '' ? ($guest . '様') : '',
             'date'       => $date,
             'org'        => '',
+            'data_name'  => (string)($data->data_name ?? 'default'),
             // 互換（Blade側が cover_* を見ている場合の保険）
             'cover_guest_name' => $guest !== '' ? ($guest . '様') : '',
             'cover_date'       => $date,

@@ -193,13 +193,17 @@
           </table>
          </div>
         <hr class="mb-2">
-        <div class="text-end gap-2">
-          <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
-          <button type="submit"
-                  class="btn-base-green"
-                  id="btn-recalc"
-                  data-disable-on-submit>再計算</button>
-        </div>
+        <div class="d-flex justify-content-between">
+            <div>
+              <button type="submit"
+                      class="btn-base-green"
+                      id="btn-recalc"
+                      data-disable-on-submit>再計算</button>
+            </div>
+            <div class="d-flex">
+              <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
+            </div>
+          </div>
       </form>
   </div>    
 </div>

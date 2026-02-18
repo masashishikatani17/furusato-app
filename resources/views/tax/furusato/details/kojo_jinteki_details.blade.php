@@ -27,7 +27,7 @@
     $kinroPrev = old('kojo_kinrogakusei_applicable_prev', $inputs['kojo_kinrogakusei_applicable_prev'] ?? '×');
     $kinroCurr = old('kojo_kinrogakusei_applicable_curr', $inputs['kojo_kinrogakusei_applicable_curr'] ?? '×');
 @endphp
-<div class="container-blue mt-2" style="width:850px;">
+<div class="container-blue mt-2" style="width:810px;">
   <div class="card-header d-flex align-items-start">
     @include('components.kado_lefttop_img')
     <h0 class="mb-0 mt-2">人的控除の詳細</h0>
@@ -52,14 +52,14 @@
         <input type="hidden" name="stay_on_details" id="stay-on-details-flag" value="0">
     
         <div class="table-responsive mb-3">
-          <table class="table-input align-middle table-jinteki" style="width:752px">
+          <table class="table-input align-middle table-jinteki" style="width:712px">
              <colgroup>
               <col style="width:30px">
               <col style="width:70px">
               <col style="width:80px">
               <col style="width:40px">
-              <col style="width:156px">
-              <col style="width:156px">
+              <col style="width:136px">
+              <col style="width:136px">
               <col style="width:220px">
             </colgroup>
               <tr style="height:30px;">
@@ -204,14 +204,14 @@
                   @php($haigushaTokubetsuPrev = old('kojo_haigusha_tokubetsu_gokeishotoku_prev', $inputs['kojo_haigusha_tokubetsu_gokeishotoku_prev'] ?? null))
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="kojo_haigusha_tokubetsu_gokeishotoku_prev"
-                           class="form-control suji11 text-end me-1"
+                           class="form-control suji9 text-end me-1"
                            value="{{ $haigushaTokubetsuPrev }}" aria-label="{{ $warekiPrevLabel }}の配偶者合計所得金額">円
                 </td>
                 <td nowrap="nowrap" class="text-start">
                   @php($haigushaTokubetsuCurr = old('kojo_haigusha_tokubetsu_gokeishotoku_curr', $inputs['kojo_haigusha_tokubetsu_gokeishotoku_curr'] ?? null))
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="kojo_haigusha_tokubetsu_gokeishotoku_curr"
-                           class="form-control suji11 text-end me-1"
+                           class="form-control suji9 text-end me-1"
                            value="{{ $haigushaTokubetsuCurr }}" aria-label="{{ $warekiCurrLabel }}の配偶者合計所得金額">円
                 </td>
                 <td class="remarks-col text-start ps-1">配偶者の合計所得金額を入力</td>
@@ -287,14 +287,14 @@
                   @php($tokutei1Prev = old('kojo_tokutei_shinzoku_1_shotoku_prev', $inputs['kojo_tokutei_shinzoku_1_shotoku_prev'] ?? null))
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="kojo_tokutei_shinzoku_1_shotoku_prev"
-                           class="form-control suji11 text-end me-1"
+                           class="form-control suji9 text-end me-1"
                            value="{{ $tokutei1Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（1人目）の合計所得金額">円
                 </td>
                 <td nowrap="nowrap" class="text-start">
                   @php($tokutei1Curr = old('kojo_tokutei_shinzoku_1_shotoku_curr', $inputs['kojo_tokutei_shinzoku_1_shotoku_curr'] ?? null))
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="kojo_tokutei_shinzoku_1_shotoku_curr"
-                           class="form-control suji11 text-end me-1"
+                           class="form-control suji9 text-end me-1"
                            value="{{ $tokutei1Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（1人目）の合計所得金額">円
                 </td>
                 <td class="remarks-col text-start ps-1">特定親族の合計所得金額を入力</td>
@@ -305,14 +305,14 @@
                   @php($tokutei2Prev = old('kojo_tokutei_shinzoku_2_shotoku_prev', $inputs['kojo_tokutei_shinzoku_2_shotoku_prev'] ?? null))
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="kojo_tokutei_shinzoku_2_shotoku_prev"
-                           class="form-control suji11 text-end me-1"
+                           class="form-control suji9 text-end me-1"
                            value="{{ $tokutei2Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（2人目）の合計所得金額">円
                 </td>
                 <td nowrap="nowrap" class="text-start">
                   @php($tokutei2Curr = old('kojo_tokutei_shinzoku_2_shotoku_curr', $inputs['kojo_tokutei_shinzoku_2_shotoku_curr'] ?? null))
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="kojo_tokutei_shinzoku_2_shotoku_curr"
-                           class="form-control suji11 text-end me-1"
+                           class="form-control suji9 text-end me-1"
                            value="{{ $tokutei2Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（2人目）の合計所得金額">円
                 </td>
                 <td class="remarks-col">　〃　〃　</td>
@@ -323,14 +323,14 @@
                   @php($tokutei3Prev = old('kojo_tokutei_shinzoku_3_shotoku_prev', $inputs['kojo_tokutei_shinzoku_3_shotoku_prev'] ?? null))
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="kojo_tokutei_shinzoku_3_shotoku_prev"
-                           class="form-control suji11 text-end me-1"
+                           class="form-control suji9 text-end me-1"
                            value="{{ $tokutei3Prev }}" aria-label="{{ $warekiPrevLabel }}の特定親族特別控除（3人目）の合計所得金額">円
                 </td>
                 <td nowrap="nowrap" class="text-start">
                   @php($tokutei3Curr = old('kojo_tokutei_shinzoku_3_shotoku_curr', $inputs['kojo_tokutei_shinzoku_3_shotoku_curr'] ?? null))
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="kojo_tokutei_shinzoku_3_shotoku_curr"
-                           class="form-control suji11 text-end me-1"
+                           class="form-control suji9 text-end me-1"
                            value="{{ $tokutei3Curr }}" aria-label="{{ $warekiCurrLabel }}の特定親族特別控除（3人目）の合計所得金額">円
                 </td>
                 <td class="remarks-col">　〃　〃　</td>
@@ -339,13 +339,17 @@
           </table>
         </div>
         <hr class="mb-2">
-            <div class="text-end gap-2">
-              <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
+            <div class="d-flex justify-content-between">
+            <div>
               <button type="submit"
                       class="btn-base-green"
                       id="btn-recalc"
                       data-disable-on-submit>再計算</button>
             </div>
+            <div class="d-flex">
+              <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
+            </div>
+          </div>
       </form>
   </div>    
 </div>

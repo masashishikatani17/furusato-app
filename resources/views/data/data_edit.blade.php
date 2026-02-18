@@ -10,12 +10,12 @@
   $today = now()->format('Y-m-d');
 @endphp
 
-<div class="container" style="max-width:600px;">
+<div class="container" style="max-width:650px;">
   <div class="d-flex justify-content-between align-items-center m-3">
     <hb>▶ データ編集</hb>
     
   </div>
-  <div class="align-middle mb-3 p-3 border rounded bg-pale" style="width:550px;">
+  <div class="align-middle mb-3 p-3 border rounded bg-pale" style="width:570px;">
     <div><strong>お客様名：</strong>{{ $guest?->name }}</div>
     <div><strong>現在の年度：</strong>{{ (int)($data->kihu_year ?? 0) }}年</div>
   </div>
@@ -42,11 +42,11 @@
         <input type="hidden" name="confirm_overwrite" id="confirm_overwrite" value="0">
         <input type="hidden" name="source_data_id" value="{{ $data->id }}">
     
-        <table class="table-input align-middle" style="width:550px; table-layout: fixed;">
+        <table class="table-input align-middle" style="width:570px; table-layout: fixed;">
           <tbody>
             <tr>
               <th class="text-start ps-2" style="height:33px; width:150px;">データ作成日</th>
-              <td class="text-start" style="width:400px;">
+              <td class="text-start" style="width:420px;">
                 <x-furusato.wareki-date
                   :name="null"
                   id="edit_data_created_on_view"
@@ -96,15 +96,35 @@
                 </select>
               </td>
             </tr>
+            <tr>
+              <th class="text-start ps-2" style="height:33px;">データ名</th>
+              <td class="text-start">
+                <input type="text"
+                       name="data_name"
+                       class="form-control kana20"
+                       style="height:32px; width:260px;"
+                       maxlength="25"
+                       value="{{ old('data_name', (string)($data->data_name ?? 'default')) }}"
+                       required>
+                <div class="text-muted mt-1" style="font-size:12px;">
+                  ※改行・タブ・制御文字・\ / : * ? " &lt; &gt; | は使用できません。
+                </div>
+              </td>
+            </tr>
           </tbody>
         </table>
     <hr class="mb-2">
-        <div class="d-flex justify-content-end gap-2">
-          <button type="button" class="btn-base-red" data-bs-toggle="modal" data-bs-target="#deleteModal">
-        このデータを削除
-      </button>
-          <a href="{{ route('data.index', ['guest_id' => $guest?->id]) }}" class="btn btn-base-blue">戻 る</a>
-          <button type="submit" class="btn btn-base-blue">保 存</button>
+        <div class="d-flex justify-content-between mx-2 mb-2">
+          <div>
+              <button type="submit" class="btn btn-base-green">保 存</button>
+              <button type="button" class="btn-base-red" data-bs-toggle="modal" data-bs-target="#deleteModal">
+            このデータを削除
+              </button>
+             
+          </div>
+          <div class="d-flex">    
+              <a href="{{ route('data.index', ['guest_id' => $guest?->id]) }}" class="btn btn-base-blue">戻 る</a>
+          </div>
         </div>
     </div>
   </form>
@@ -121,17 +141,17 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">年度データの上書き確認</h5>
+          <h15 class="modal-title">年度データの上書き確認</h15>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
           @php $oc = session('overwrite_conflict'); @endphp
           @if($oc)
             <p class="mb-2">
-              変更先の年度（{{ (int)$oc['to_year'] }}年）には既にデータが存在します。
+              変更先（{{ (int)$oc['to_year'] }}年 / {{ (string)($oc['to_name'] ?? '') }}）には既にデータが存在します。
             </p>
             <p class="mb-2">
-              上書きすると、元の{{ (int)$oc['to_year'] }}年のデータは削除され、 {{ (int)$oc['from_year'] }}年の入力内容に置き換わります。<br>
+              既に（{{ (int)$oc['to_year'] }}年 / {{ (string)($oc['to_name'] ?? '') }}）というデータは存在します。上書きしますか？<br>
             <strong>上書きしてもよろしいでしょうか？</strong>
             </p>
           @else
@@ -139,8 +159,8 @@
           @endif
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
-          <button type="button" class="btn btn-danger" id="btn-do-overwrite">上書きして保存</button>
+          <button type="button" class="btn btn-base-blue" data-bs-dismiss="modal">キャンセル</button>
+          <button type="button" class="btn btn-base-green" id="btn-do-overwrite">上書きして保存</button>
         </div>
       </div>
     </div>
@@ -152,7 +172,7 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">削除確認</h5>
+          <h15 class="modal-title">削除確認</h15>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">
@@ -161,11 +181,11 @@
           </p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+          <button type="button" class="btn btn-base-blue" data-bs-dismiss="modal">キャンセル</button>
           <form method="POST" action="{{ route('data.destroy', ['data'=>$data->id]) }}">
             @csrf
             @method('DELETE')
-            <button type="submit" class="btn btn-danger">削除する</button>
+            <button type="submit" class="btn btn-base-red">削除する</button>
           </form>
         </div>
       </div>

@@ -11,8 +11,12 @@
     $originTabRaw = request()->input('origin_tab', 'input');
     $originTab = is_string($originTabRaw) && trim($originTabRaw) === 'input' ? 'input' : '';
     $originAnchor = preg_replace('/[^A-Za-z0-9_-]/', '', (string) request()->input('origin_anchor', ''));
+    
+  // 総合譲渡＋一時（同一ページ内で2モーダル）辞書
+  $sogoIchijiHelpPath = resource_path('views/tax/furusato/helps/help_sogojotoichiji_modal.php');
+  $HELP_TEXTS_SOGOICHIJI = file_exists($sogoIchijiHelpPath) ? require $sogoIchijiHelpPath : [];
 @endphp
-<div class="container mt-2" style="width: 1200px;">
+<div class="container-blue mt-2" style="width: 1200px;">
   <div class="card-header d-flex align-items-start">
     @include('components.kado_lefttop_img')
     <h0 class="mb-2 mt-2">総合譲渡・一時の内訳</h0>
@@ -309,13 +313,27 @@
           }
         </script>
         <hr class="mb-2">
-        <div class="text-end gap-2">
-          <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
-          <button type="submit"
-                  class="btn-base-green"
-                  id="btn-recalc"
-                  data-disable-on-submit>再計算</button>
-        </div>
+        <div class="d-flex justify-content-between">
+            <div>
+              <button type="submit"
+                      class="btn-base-green"
+                      id="btn-recalc"
+                      data-disable-on-submit>再計算</button>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="button"
+                      class="btn-base-blue js-help-btn-sogoichiji"
+                      data-help-key="help_sogo_joto"
+                      data-bs-toggle="modal"
+                      data-bs-target="#helpModalSogoJoto">HELP総合譲渡</button>
+              <button type="button"
+                      class="btn-base-blue js-help-btn-sogoichiji"
+                      data-help-key="help_ichiji"
+                      data-bs-toggle="modal"
+                      data-bs-target="#helpModalIchiji">HELP一時</button>
+              <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
+            </div>
+          </div>
       </form>
   </div> 
 </div>
@@ -485,6 +503,131 @@
   });
 </script>
 @endpush
- 
+@push('styles')
+<style>
+  /* このページのHELPモーダルだけ（2つ共通） */
+  #helpModalSogoJoto, #helpModalIchiji { }
+  #helpModalSogoJoto .modal-dialog,
+  #helpModalIchiji  .modal-dialog { max-width: 550px; }
+  #helpModalSogoJoto .modal-content,
+  #helpModalIchiji  .modal-content { font-family: inherit; font-size: 15px; }
+  #helpModalSogoJoto .modal-body,
+  #helpModalIchiji  .modal-body { padding-left: 2rem; padding-right: 2rem; }
+
+  /* ○行：太字＋色（指定どおり） */
+  #helpModalSogoJoto strong.help-bullet,
+  #helpModalIchiji  strong.help-bullet {
+    font-weight: 700;
+    color: #192C4B;
+  }
+  /* (1) など：太字のみ（色はそのまま） */
+  #helpModalSogoJoto strong.help-num,
+  #helpModalIchiji  strong.help-num {
+    font-weight: 700;
+  }
+  /* __下線__ 記法 */
+  #helpModalSogoJoto u,
+  #helpModalIchiji  u { text-underline-offset: 2px; }
+</style>
+@endpush
+<script>
+  window.__PAGE_HELP_TEXTS_SOGOICHIJI__ = @json($HELP_TEXTS_SOGOICHIJI, JSON_UNESCAPED_UNICODE);
+</script>
+{{-- HELPモーダル（総合譲渡） --}}
+<div class="modal fade" id="helpModalSogoJoto" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitleSogoJoto">HELP</h15>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-start">
+        <div id="helpModalBodySogoJoto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{-- HELPモーダル（一時） --}}
+<div class="modal fade" id="helpModalIchiji" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitleIchiji">HELP</h15>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-start">
+        <div id="helpModalBodyIchiji"></div>
+      </div>
+    </div>
+  </div>
+</div>
+@push('scripts')
+<script>
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.js-help-btn-sogoichiji');
+    if (!btn) return;
+
+    const key = btn.getAttribute('data-help-key') || '';
+    const target = btn.getAttribute('data-bs-target') || '';
+    const dict = window.__PAGE_HELP_TEXTS_SOGOICHIJI__ || {};
+    const item = dict[key];
+
+    const title = item?.title ?? 'HELP';
+    const body  = item?.body  ?? '（この項目のHELPは未登録です）';
+
+    // targetにより、書き込み先の要素を変える
+    let titleEl = null;
+    let bodyEl  = null;
+    if (target === '#helpModalSogoJoto') {
+      titleEl = document.getElementById('helpModalTitleSogoJoto');
+      bodyEl  = document.getElementById('helpModalBodySogoJoto');
+    } else if (target === '#helpModalIchiji') {
+      titleEl = document.getElementById('helpModalTitleIchiji');
+      bodyEl  = document.getElementById('helpModalBodyIchiji');
+    } else {
+      return;
+    }
+
+    if (titleEl) titleEl.textContent = title;
+    if (!bodyEl) return;
+
+    const escapeHtml = (s) => String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+    const underline = (safeText) => safeText.replace(/__([^_]+)__/g, '<u>$1</u>');
+
+    const html = String(body)
+      .split('\n')
+      .map((line) => {
+        if (line === '') return '';
+
+        // (1) 等：太字のみ
+        const mNum = line.match(/^(\s*\(\d+\)\s*[^　 ]*)(.*)$/);
+        if (mNum) {
+          const head = underline(escapeHtml(mNum[1]));
+          const rest = underline(escapeHtml(mNum[2] ?? ''));
+          return `<strong class="help-num">${head}</strong>${rest}`;
+        }
+
+        // ○：太字＋色（CSSで色）
+        const m = line.match(/^(\s*○\s*[^・…：:　]+?)(\s*・・・\s*.*)?$/);
+        if (m) {
+          const head = underline(escapeHtml(m[1]));
+          const rest = underline(escapeHtml(m[2] ?? ''));
+          return `<strong class="help-bullet">${head}</strong>${rest}`;
+        }
+
+        return underline(escapeHtml(line));
+      })
+      .join('<br>');
+
+    bodyEl.innerHTML = html;
+  });
+</script>
+@endpush
 {{-- Enter移動（ふるさと全画面共通） --}}
 @include('tax.furusato.partials.enter_nav')

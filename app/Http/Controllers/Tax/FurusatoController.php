@@ -1909,8 +1909,6 @@ final class FurusatoController extends Controller
             if ($v !== null) $inputsForView[sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $p)] = (int)$v;
             $v = $mirrorFrom([sprintf('after_3jitsusan_joto_tanki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('tsusango_joto_tanki_%s', $p)] = (int)$v;
-            $v = $mirrorFrom([sprintf('shotoku_joto_tanki_sogo_%s', $p)]);
-            if ($v !== null) $inputsForView[sprintf('shotoku_joto_tanki_%s', $p)] = (int)$v;
 
             // 譲渡 長期
             $v = $mirrorFrom([sprintf('tsusango_joto_choki_sogo_%s', $p)]);
@@ -1921,8 +1919,6 @@ final class FurusatoController extends Controller
             if ($v !== null) $inputsForView[sprintf('after_joto_ichiji_tousan_joto_choki_%s', $p)] = (int)$v;
             $v = $mirrorFrom([sprintf('after_3jitsusan_joto_choki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('tsusango_joto_choki_%s', $p)] = (int)$v;
-            $v = $mirrorFrom([sprintf('shotoku_joto_choki_sogo_%s', $p)]);
-            if ($v !== null) $inputsForView[sprintf('shotoku_joto_choki_%s', $p)] = (int)$v;
 
             // 一時：損益通算後は 0 下限で確定（Calculator の tsusango_ichiji_* を採用）
             $v = $mirrorFrom([sprintf('tsusango_ichiji_%s', $p)]);
@@ -2712,9 +2708,37 @@ final class FurusatoController extends Controller
         // SoTはFurusatoInput/FurusatoResult（DB）、セッションは再描画用一時値で表示は「セッション→DB」だが保存の正は常にDB。
         $data = $this->resolveAuthorizedDataOrFail($req, 'update');
 
-        // ▼ Request 側で validate 済み（syunyu/keihi + sashihiki_joto_*_sogo_*）
+        // ▼ Request 側で validate 済み（syunyu/keihi + sashihiki_*）
         $validated = $req->validated();
         $payload = $this->sanitizeDetailPayload(Arr::except($validated, ['data_id']));
+
+        // ============================================================
+        // ▼ details POST 範囲（A案）：
+        //   - サーバが読む入力SoTのみを保存する（表示専用の派生キーは保存しない）
+        //   - 収入/経費は入力SoTとして保存OK
+        //   - 差引（サーバ計算入力SoT）は以下の3つに固定
+        //       sashihiki_joto_tanki_sogo_{prev,curr}
+        //       sashihiki_joto_choki_sogo_{prev,curr}
+        //       sashihiki_ichiji_{prev,curr}  ※仕様：min0
+        // ============================================================
+        $filtered = [];
+        foreach ($payload as $k => $v) {
+            if (!is_string($k) || $k === '') continue;
+            if (preg_match('/^(syunyu|keihi)_(joto_tanki|joto_choki|ichiji)_(prev|curr)$/', $k) === 1) {
+                $filtered[$k] = $v;
+                continue;
+            }
+            if (preg_match('/^sashihiki_joto_(tanki|choki)_sogo_(prev|curr)$/', $k) === 1) {
+                $filtered[$k] = $v;
+                continue;
+            }
+            if (preg_match('/^sashihiki_ichiji_(prev|curr)$/', $k) === 1) {
+                // 仕様：一時差引は min0
+                $filtered[$k] = max(0, (int)($v ?? 0));
+                continue;
+            }
+        }
+        $payload = $filtered;
 
         // 仕様：details 画面の「空欄」は未更新ではなく 0 として保存する（古い値の残留を防ぐ）
         //   - joto_ichiji_details は JS が空欄を '' のまま hidden へ入れて送る

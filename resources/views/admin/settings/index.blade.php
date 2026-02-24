@@ -52,28 +52,10 @@
             'roles' => ['owner', 'registrar', 'groupadmin', 'member'],
         ],
         [
-            'title' => 'カード設定',
-            'description' => 'カードに関する設定を行います',
-            'route' => route('billing.setup'),
-            'roles' => ['owner', 'registrar'],
-        ],
-        [
-            'title' => '領収書一覧',
-            'description' => '領収書を確認できます',
-            'route' => route('admin.billing.receipts.index'),
-            'roles' => ['owner', 'registrar', 'groupadmin', 'member'],
-        ],
-        [
             'title' => '代表者権限の譲渡',
-            'description' => '代表者権限の移譲手続きを行います',
+            'description' => '代表者権限の移譲手続きを<br>行います',
             'route' => route('admin.ownerTransfer.form'),
             'roles' => ['owner'],
-        ],
-        [
-            'title' => 'データダウンロード',
-            'description' => '各種データをダウンロードできます',
-            'route' => route('admin.data_download.index'),
-            'roles' => ['owner', 'registrar', 'groupadmin', 'member'],
         ],
         [
             'title' => '操作履歴',

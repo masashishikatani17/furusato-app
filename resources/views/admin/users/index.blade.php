@@ -138,14 +138,14 @@
                 <table class="table-input align-middle w-auto p-2">
                     <thead>
                         <tr style="height: 30px;">
-                            <th scope="col" class="text-center" style="width: 200px;">氏 名</th>
+                            <th scope="col" class="text-center" style="width: 150px;">氏 名</th>
                             <th scope="col" class="text-center" style="width: 220px;">メールアドレス</th>
                             <th scope="col" class="text-center" style="width: 100px;">部 署</th>
-                            <th scope="col" class="text-center" style="width: 60px;">役 割</th>
+                            <th scope="col" class="text-center" style="width: 100px;">役 割</th>
                             @if ($hasIsActive)
                                 <th scope="col" class="text-center" style="width: 40px;">状態</th>
                             @endif
-                            <th scope="col" class="text-center" style="width: 120px;">操 作</th>
+                            <th scope="col" class="text-center" style="width: 130px;">操 作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -163,7 +163,7 @@
                                     <div class="fw-semibold">{{ $user->name }}</div>
                                     <div class="text-muted small">ID: {{ $user->id }}</div>
                                 </td>
-                                <td>{{ $user->email }}</td>
+                                <td class="text-start ps-1">{{ $user->email }}</td>
                                 <td class="text-center">{{ $groupName }}</td>
                                 <td class="text-center text-uppercase">{{ $isOwnerRow ? 'owner' : $displayRole }}</td>
                                 @if ($hasIsActive)
@@ -171,10 +171,10 @@
                                         <span class="badge bg-{{ $isActive ? 'primary' : 'secondary' }}">{{ $isActive ? '有効' : '停止中' }}</span>
                                     </td>
                                 @endif
-                                <td class="text-center">
+                                <td>
                                     <div class="d-flex justify-content-center gap-2">
                                         @if ($canEdit)
-                                            <a href="{{ route($editRouteName, $user) }}" class="btn-base-blue">編集</a>
+                                            <a href="{{ route($editRouteName, $user) }}" class="btn-base-blue">編 集</a>
                                         @else
                                             <span class="text-muted small">権限なし</span>
                                         @endif
@@ -184,7 +184,7 @@
                                                 <form method="POST" action="{{ route($deactivateRouteName, $user) }}" onsubmit="return confirm('このユーザーを停止しますか？');">
                                                     @csrf
                                                     @method('PATCH')
-                                                    <button type="submit" class="btn-base-red">停止</button>
+                                                    <button type="submit" class="btn-base-red">停 止</button>
                                                 </form>
                                             @else
                                                 <form method="POST" action="{{ route($activateRouteName, $user) }}" onsubmit="return confirm('このユーザーを有効化しますか？');">

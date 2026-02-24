@@ -119,6 +119,7 @@
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
                                data-format="comma-int" data-name="{{ $name }}"
+                               maxlength="11"
                                class="form-control suji11 text-end"
                                value="{{ old($name, $inputs[$name] ?? null) }}">
                       @endif
@@ -132,6 +133,7 @@
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
                                data-format="comma-int" data-name="{{ $name }}"
+                               maxlength="11"
                                class="form-control suji11 text-end"
                                value="{{ old($name, $inputs[$name] ?? null) }}">
                       @endif
@@ -144,6 +146,7 @@
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
                                data-format="comma-int" data-name="{{ $name }}" data-display-only="1"
+                               maxlength="12"
                                class="form-control suji11 text-end bg-light"
                                value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       @endif
@@ -160,6 +163,7 @@
                         @endphp
                         <input type="text" inputmode="numeric" autocomplete="off"
                                data-format="comma-int" data-name="{{ $name }}" data-display-only="1"
+                               maxlength="12"
                                class="form-control suji11 text-end bg-light"
                                value="{{ $fmt($tsusangoVal) }}" readonly>
                       @endif
@@ -173,6 +177,7 @@
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
                                data-format="comma-int" data-name="{{ $name }}"
+                               maxlength="11"
                                class="form-control suji8 text-end"
                                value="{{ old($name, $inputs[$name] ?? null) }}">
                       @endif
@@ -185,6 +190,7 @@
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
                                data-format="comma-int" data-name="{{ $name }}" data-display-only="1"
+                               maxlength="12"
                                class="form-control suji11 text-end bg-light"
                                value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       @endif
@@ -198,6 +204,7 @@
                         @else
                           <input type="text" inputmode="numeric" autocomplete="off"
                                  data-format="comma-int" data-name="{{ $gokeiName }}" data-display-only="1"
+                                 maxlength="12"
                                  class="form-control suji11 text-end bg-light"
                                  value="{{ old($gokeiName, $inputs[$gokeiName] ?? null) }}" readonly>
                         @endif
@@ -414,21 +421,14 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   const inputs = document.querySelectorAll('[data-format="comma-int"]');
-  const displayOnlyNames = new Set();
 
   inputs.forEach((input) => {
     const name = input.dataset.name;
     if (!name) {
       return;
     }
-    if (input.dataset.displayOnly === '1') {
-      displayOnlyNames.add(name);
-    }
-
-    // 表示専用フィールド以外についてのみ hidden を作成し、POST 対象とする
-    if (!displayOnlyNames.has(name)) {
-      ensureHidden(input);
-    }
+    // ▼ 方針変更：display-only（readonly）でも hidden を作成し、派生値をPOSTして残留を防ぐ
+    ensureHidden(input);
 
     const applyFormat = () => {
       const hidden = getHidden(name);
@@ -439,8 +439,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     applyFormat();
 
-    // display-only / readOnly なフィールドはここで終了（入力イベントを張らない）
-    if (input.readOnly || displayOnlyNames.has(name)) {
+    // readOnly なフィールドは表示のみ（blur等で再計算は不要だが、hidden同期は submit で担保）
+    if (input.readOnly) {
       return;
     }
 
@@ -472,10 +472,6 @@ document.addEventListener('DOMContentLoaded', function () {
       inputs.forEach((input) => {
         const name = input.dataset.name;
         if (!name) {
-          return;
-        }
-        if (displayOnlyNames.has(name)) {
-          // 表示専用フィールドはサーバに送らない
           return;
         }
         const hidden = getHidden(name) || ensureHidden(input);

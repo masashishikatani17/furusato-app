@@ -44,7 +44,9 @@
         <input type="hidden" name="sashihiki_joto_tanki_sogo_curr" id="sashihiki_joto_tanki_sogo_curr">
         <input type="hidden" name="sashihiki_joto_choki_sogo_prev" id="sashihiki_joto_choki_sogo_prev">
         <input type="hidden" name="sashihiki_joto_choki_sogo_curr" id="sashihiki_joto_choki_sogo_curr">
-
+        {{-- ▼ Calculator入力用（サーバが読むキー）：一時の「差引金額」を必ずPOSTする（min0） --}}
+        <input type="hidden" name="sashihiki_ichiji_prev" id="sashihiki_ichiji_prev">
+        <input type="hidden" name="sashihiki_ichiji_curr" id="sashihiki_ichiji_curr">
         @php
             $tables = [
                 'prev' => $warekiPrevLabel,
@@ -78,12 +80,16 @@
                     <td>
                       <input type="text" inputmode="numeric"
                              data-format="comma-int" data-name="syunyu_joto_tanki_{{ $period }}"
+                             maxlength="10"
+                             pattern="[0-9,]*"
                              class="form-control suji10"
                              value="{{ old('syunyu_joto_tanki_' . $period, $inputs['syunyu_joto_tanki_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" 
                              data-format="comma-int" data-name="keihi_joto_tanki_{{ $period }}" 
+                             maxlength="10"
+                             pattern="[0-9,]*"
                              class="form-control suji10" 
                              value="{{ old('keihi_joto_tanki_' . $period, $inputs['keihi_joto_tanki_' . $period] ?? null) }}">
                     </td>
@@ -123,7 +129,7 @@
                     <td>
                       {{-- 最終 所得金額（サーバ確定） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
-                             data-format="comma-int" data-name="shotoku_joto_tanki_{{ $period }}"
+                             data-format="comma-int" data-name="shotoku_joto_tanki_sogo_{{ $period }}"
                              class="form-control suji10 text-end bg-light"
                              value="{{ $inputs['shotoku_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
@@ -133,12 +139,16 @@
                     <td>
                       <input type="text" inputmode="numeric" 
                              data-format="comma-int" data-name="syunyu_joto_choki_{{ $period }}" 
+                             maxlength="10"
+                             pattern="[0-9,]*"
                              class="form-control suji10"
                              value="{{ old('syunyu_joto_choki_' . $period, $inputs['syunyu_joto_choki_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" 
                              data-format="comma-int" data-name="keihi_joto_choki_{{ $period }}"
+                             maxlength="10"
+                             pattern="[0-9,]*"
                              class="form-control suji10"
                              value="{{ old('keihi_joto_choki_' . $period, $inputs['keihi_joto_choki_' . $period] ?? null) }}">
                     </td>
@@ -192,7 +202,7 @@
                     <td>
                       {{-- 最終 所得金額（サーバ確定） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
-                             data-format="comma-int" data-name="shotoku_joto_choki_{{ $period }}"
+                             data-format="comma-int" data-name="shotoku_joto_choki_sogo_{{ $period }}"
                              class="form-control suji10 text-end bg-light"
                              value="{{ $inputs['shotoku_joto_choki_sogo_' . $period] ?? '' }}" readonly>
                     </td>
@@ -202,12 +212,16 @@
                     <td>
                       <input type="text" inputmode="numeric"
                              data-format="comma-int" data-name="syunyu_ichiji_{{ $period }}"
+                             maxlength="10"
+                             pattern="[0-9,]*"
                              class="form-control suji10"
                              value="{{ old('syunyu_ichiji_' . $period, $inputs['syunyu_ichiji_' . $period] ?? null) }}">
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" 
                              data-format="comma-int" data-name="keihi_ichiji_{{ $period }}" 
+                             maxlength="10"
+                             pattern="[0-9,]*"
                              class="form-control suji10" 
                              value="{{ old('keihi_ichiji_' . $period, $inputs['keihi_ichiji_' . $period] ?? null) }}">
                     </td>
@@ -484,6 +498,10 @@
     const form = document.querySelector('form');
     if (form) {
       form.addEventListener('submit', () => {
+        // 念のため：一時の差引（min0）を最終確定して hidden に同期（blur 依存を排除）
+        ['prev','curr'].forEach((p) => {
+          calculateSashihikiIchiji(p);
+        });
         // 送信直前は readonly を含む全てを最終同期（hidden に raw を格納）
         allFmtInputs.forEach((input) => {
           const name = input.dataset.name;

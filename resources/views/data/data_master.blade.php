@@ -17,7 +17,7 @@
         border-right: 0 !important;
       }
 </style>
-<div class="container-blue" style="width:800px;">
+<div class="container-blue" style="width:930px;">
   <div class="card-header d-flex justify-content-between gap-2">
     <div class="d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
@@ -68,7 +68,7 @@
          x-init="init()" x-cloak class="border-0 rounded p-3">
   
       <!-- 上部：検索（お客様名） -->
-      <table align="center" class="table-beige mt-0 ms-3 mb-3" style="width: 230px;">
+      <table align="center" class="table-beige mt-0 ms-5 mb-3" style="width: 230px;">
         <tr>
            <td>
             <div class="d-flex align-items-center gap-2 ms-2 mt-1">
@@ -117,7 +117,7 @@
   
         <!-- 右：年度一覧 -->
         <div class="flex-shrink-0">
-          <table class="table table-base mb-2 align-middle">
+          <table class="table table-base mb-2 align-middle" style="width: 534px;">
             <thead class="table-light">
             <tr style="height:25px;">
               <th class="text-center" style="width: 80px;">
@@ -129,37 +129,37 @@
                   ⇅
                 </button>
               </th>
-              <th class="text-center" style="width: 220px;">データ名</th>
-              <th class="text-center" style="width: 60px;">選 択</th>
-              <th class="text-center" style="width: 60px;">編 集</th>
+              <th class="text-center" style="width: 330px;">データ名</th>
+              <th class="text-center" style="width: 62px;">選 択</th>
+              <th class="text-center" style="width: 62px;">編 集</th>
             </tr>
             </thead>
           </table>
-          <div class="mt-4" style="max-height: 300px; overflow-y: auto;">
-            <table class="table table-compact-p mb-0 align-middle">
+          <div class="mt-4" style="max-height: 420px; overflow-y: auto;">
+            <table class="table table-compact-p mb-0 align-middle" style="width: 534px;">
               <tbody>
               <template x-for="d in filteredDatas" :key="d.id">
                 <tr style="height: 25px; cursor:pointer;"
                     :class="selectedDataId===d.id ? 'table-active' : ''"
                     @click="selectedDataId=d.id">
                   <td class="text-end" style="width:80px;">
-                    <div class="d-inline-flex align-items-center justify-content-end pe-1" style="width:100%;">
+                    <div class="d-inline-flex align-items-center justify-content-end pe-1">
                       <template x-if="isPrivate(d)">
                         <span title="非共有（作成者のみ）">🔒</span>
                       </template>
                       <span x-text="formatYear(d.kihu_year)"></span>
                     </div>
                   </td>
-                  <td class="text-start" style="width:220px;">
+                  <td class="text-start" style="width:330px;">
                     <span x-text="d.data_name || 'default'"></span>
                   </td>
-                  <td class="text-center bg-cream b-none" style="width:60px;" nowrap="nowrap">
+                  <td class="text-center bg-cream b-none" style="width:62px;" nowrap="nowrap">
                     
-                      <button type="button" class="btn-base-blue" style="width:60px;"
+                      <button type="button" class="btn-base-blue"
                               @click.stop="selectedDataId=d.id; openYearModal(d)">選 択</button>
                   </td>
-                  <td class="text-center bg-cream b-none" style="width:60px;" nowrap="nowrap">
-                      <button type="button" class="btn-base-blue" style="width:60px;"
+                  <td class="text-center bg-cream b-none" style="width:62px;" nowrap="nowrap">
+                      <button type="button" class="btn-base-blue"
                               @click.stop="window.location.href = `/data/${d.id}/edit`">編 集</button>
                   </td>
                 </tr>
@@ -181,7 +181,7 @@
                       <a :href="selectedDataId ? `/data/copyForm?data_id=${selectedDataId}` : '#'"
                          class="btn-base-blue"
                          :class="{'btn-disabled-link': !selectedDataId}"
-                         :title="selectedDataId ? '' : 'コピーするデータを選択してください'">
+                         :title="selectedDataId ? '' : 'コピーするデータを選択して下さい'">
                         既存データのコピー
                       </a>
                     </div>
@@ -364,11 +364,11 @@ function masterPane(guestsInit, datasInit, guestIdInit) {
     proceedByYear(){
       const cur = Number(this.targetRow?.kihu_year)||0;
       const sel = Number(this.yearSelected)||0;
-      if(!this.targetRow?.id || !sel){ alert('年度を選択してください。'); return; }
+      if(!this.targetRow?.id || !sel){ alert('年度を選択して下さい。'); return; }
       const nm = (this.nameSelected || '').toString();
-      if(!nm){ alert('データ名を入力してください。'); return; }
+      if(!nm){ alert('データ名を入力して下さい。'); return; }
       if(sel < 2025 || sel > 2035){
-        alert('年度は 2025〜2035 の範囲で選択してください。');
+        alert('年度は 2025〜2035 の範囲で選択して下さい。');
         return;
       }
 

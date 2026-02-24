@@ -6,6 +6,9 @@
   $me = auth()->user();
   $isClient = strtolower((string)($me->role ?? '')) === 'client';
   $clientGuest = $clientGuest ?? null;
+  // Owner/Registrar が新規顧客へコピーする場合のみ「担当部署」を必須選択（A案）
+  $assignGroups = $assignGroups ?? collect();
+  $showAssignGroups = (! $isClient) && $assignGroups->isNotEmpty();
 @endphp
 
 <div class="container" style="width: 660px;">
@@ -98,12 +101,32 @@
                      class="form-control kana20"
                      style="height:32px; max-width: 420px;"
                      maxlength="25"
-                     placeholder="新規のお客様名を入力"
+                     placeholder="新規のお客様名を入力して下さい"
                      value="{{ $isClient && $clientGuest ? $clientGuest->name : old('target_guest_name') }}"
                      {{ $isClient ? 'readonly' : '' }}>
               {{-- ※ existing/same/new の表示状態は既存JSが制御（name/id維持） --}}
             </td>
           </tr>
+
+          {{-- 2-b) 担当部署（Owner/Registrar が新規顧客へコピーする場合は必須） --}}
+          @if($showAssignGroups)
+          <tr id="row-copy-assign-group" class="d-none">
+            <th class="text-start ps-1" style="height:33px; white-space:nowrap;">
+              担当部署（必須）
+            </th>
+            <td class="text-start">
+              <select name="group_id" id="copy_assign_group_id" class="form-select" style="height:32px; max-width:220px;">
+                <option value="">（選択して下さい）</option>
+                @foreach($assignGroups as $g)
+                  <option value="{{ (int)$g->id }}" @selected((string)old('group_id')===(string)$g->id)>{{ $g->name }}</option>
+                @endforeach
+              </select>
+              <div class="text-muted mt-1" style="font-size:12px;">
+                ※Owner/Registrar が「新規のお客様」の場合は、担当部署の選択が必須です。
+              </div>
+            </td>
+          </tr>
+          @endif
 
           {{-- 3) 生年月日（西暦） --}}
           <tr>
@@ -115,7 +138,7 @@
                 name="birth_date"
                 id="copy_birth_date"
                 :required="false"
-                :readonly="$isClient"
+                :readonly="false"
                 :value="$isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate)"
               />
             </td>
@@ -303,6 +326,8 @@
   const guestList  = document.getElementById('guestListBody');
   const selectedLbl= document.getElementById('selected-guest-label');
   const defaultBirthDate = @js($defaultBirthDate);
+  const rowAssign = document.getElementById('row-copy-assign-group');
+  const selAssign = document.getElementById('copy_assign_group_id');
 
   const setBirthDate = (value) => {
     if (window.WarekiDatePicker && typeof window.WarekiDatePicker.setIsoByName === 'function') {
@@ -325,7 +350,7 @@
   function setExisting() {
     if (targetName) targetName.readOnly = true;
     if (!guestList || guestList.querySelectorAll('tr.selectable-guest').length === 0) {
-      alert('登録済のお客様がいません。新規で登録してください。');
+      alert('登録済のお客様がいません。新規で登録して下さい。');
       if (modeNew) modeNew.checked = true;
       setNew();
       return;
@@ -353,10 +378,20 @@
     if (selectedLbl) selectedLbl.textContent = '';
     setBirthDate('');
   }
+ 
+  // A案：Owner/Registrar の new の時だけ担当部署を表示・必須化
+  function applyAssignGroup() {
+    if (!rowAssign || !selAssign) return;
+    const isNew = !!(modeNew && modeNew.checked);
+    rowAssign.classList.toggle('d-none', !isNew);
+    selAssign.required = isNew;
+    if (!isNew) selAssign.value = '';
+  }
 
   modeSame?.addEventListener('change', () => { if (modeSame.checked) setSame(true); });
-  modeExisting?.addEventListener('change', () => { if (modeExisting && modeExisting.checked) setExisting(); });
-  modeNew?.addEventListener('change', () => { if (modeNew && modeNew.checked) setNew(); });
+  modeExisting?.addEventListener('change', () => { if (modeExisting && modeExisting.checked) { setExisting(); applyAssignGroup(); } });
+  modeNew?.addEventListener('change', () => { if (modeNew && modeNew.checked) { setNew(); applyAssignGroup(); } });
+  modeSame?.addEventListener('change', () => { applyAssignGroup(); });
 
   guestList?.addEventListener('click', (e) => {
     const row = e.target.closest('tr.selectable-guest');
@@ -375,6 +410,7 @@
 
   // 初期状態
   setSame(false);
+  applyAssignGroup();
 
   // サーバ側：全件重複時はモーダルで通知
   @if (session('modal_error.duplicate_years'))

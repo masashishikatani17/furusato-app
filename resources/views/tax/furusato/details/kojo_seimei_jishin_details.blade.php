@@ -48,12 +48,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_shin_prev"
+                         maxlength="11"
                          class="form-control suji11 js-seimei text-end"
                          value="{{ old('kojo_seimei_shin_prev', $inputs['kojo_seimei_shin_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_shin_curr"
+                         maxlength="11"
                          class="form-control suji11 js-seimei text-end"
                          value="{{ old('kojo_seimei_shin_curr', $inputs['kojo_seimei_shin_curr'] ?? null) }}">
                 </td>
@@ -63,12 +65,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_kyu_prev"
+                         maxlength="11"
                          class="form-control suji11 js-seimei text-end"
                          value="{{ old('kojo_seimei_kyu_prev', $inputs['kojo_seimei_kyu_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_kyu_curr"
+                         maxlength="11"
                          class="form-control suji11 js-seimei text-end"
                          value="{{ old('kojo_seimei_kyu_curr', $inputs['kojo_seimei_kyu_curr'] ?? null) }}">
                 </td>
@@ -78,12 +82,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_nenkin_shin_prev"
+                         maxlength="11"
                          class="form-control suji11 js-seimei text-end"
                          value="{{ old('kojo_seimei_nenkin_shin_prev', $inputs['kojo_seimei_nenkin_shin_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_nenkin_shin_curr"
+                         maxlength="11"
                          class="form-control suji11 js-seimei text-end"
                          value="{{ old('kojo_seimei_nenkin_shin_curr', $inputs['kojo_seimei_nenkin_shin_curr'] ?? null) }}">
                 </td>
@@ -93,12 +99,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_nenkin_kyu_prev"
+                         maxlength="11"
                          class="form-control suji11 js-seimei text-end"
                          value="{{ old('kojo_seimei_nenkin_kyu_prev', $inputs['kojo_seimei_nenkin_kyu_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_nenkin_kyu_curr"
+                         maxlength="11"
                          class="form-control suji11 js-seimei text-end"
                          value="{{ old('kojo_seimei_nenkin_kyu_curr', $inputs['kojo_seimei_nenkin_kyu_curr'] ?? null) }}">
                 </td>
@@ -108,12 +116,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_kaigo_iryo_prev"
+                         maxlength="11"
                          class="form-control suji11 js-seimei text-end"
                          value="{{ old('kojo_seimei_kaigo_iryo_prev', $inputs['kojo_seimei_kaigo_iryo_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_kaigo_iryo_curr"
+                         maxlength="11"
                          class="form-control suji11 js-seimei text-end"
                          value="{{ old('kojo_seimei_kaigo_iryo_curr', $inputs['kojo_seimei_kaigo_iryo_curr'] ?? null) }}">
                 </td>
@@ -123,12 +133,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_gokei_prev"
+                         maxlength="11"
                          class="form-control suji11 text-end bg-light"
                          value="{{ old('kojo_seimei_gokei_prev', $inputs['kojo_seimei_gokei_prev'] ?? null) }}" readonly>
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_seimei_gokei_curr"
+                         maxlength="11"
                          class="form-control suji11 text-end bg-light"
                          value="{{ old('kojo_seimei_gokei_curr', $inputs['kojo_seimei_gokei_curr'] ?? null) }}" readonly>
                 </td>
@@ -149,12 +161,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_jishin_prev"
+                         maxlength="11"
                          class="form-control suji11 js-jishin text-end"
                          value="{{ old('kojo_jishin_prev', $inputs['kojo_jishin_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_jishin_curr"
+                         maxlength="11"
                          class="form-control suji11 js-jishin text-end"
                          value="{{ old('kojo_jishin_curr', $inputs['kojo_jishin_curr'] ?? null) }}">
                 </td>
@@ -164,12 +178,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_kyuchoki_songai_prev"
+                         maxlength="11"
                          class="form-control suji11 js-jishin text-end"
                          value="{{ old('kojo_kyuchoki_songai_prev', $inputs['kojo_kyuchoki_songai_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_kyuchoki_songai_curr"
+                         maxlength="11"
                          class="form-control suji11 js-jishin text-end"
                          value="{{ old('kojo_kyuchoki_songai_curr', $inputs['kojo_kyuchoki_songai_curr'] ?? null) }}">
                 </td>
@@ -179,12 +195,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_jishin_gokei_prev"
+                         maxlength="11"
                          class="form-control suji11 text-end bg-light"
                          value="{{ old('kojo_jishin_gokei_prev', $inputs['kojo_jishin_gokei_prev'] ?? null) }}" readonly>
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_jishin_gokei_curr"
+                         maxlength="11"
                          class="form-control suji11 text-end bg-light"
                          value="{{ old('kojo_jishin_gokei_curr', $inputs['kojo_jishin_gokei_curr'] ?? null) }}" readonly>
                 </td>

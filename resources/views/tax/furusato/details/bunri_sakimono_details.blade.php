@@ -69,6 +69,7 @@
                     @else
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
+                             maxlength="11"
                              class="form-control suji11 text-end"
                              value="{{ old($name, $inputs[$name] ?? null) }}">
                       <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
@@ -82,6 +83,7 @@
                     @else
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
+                             maxlength="11"
                              class="form-control suji11 text-end"
                              value="{{ old($name, $inputs[$name] ?? null) }}">
                       <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
@@ -95,6 +97,7 @@
                     @else
                      <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
+                             maxlength="12"
                              class="form-control suji11 text-end bg-light"
                              value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
@@ -108,6 +111,7 @@
                     @else
                      <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
+                             maxlength="11"
                              class="form-control suji11 text-end"
                              value="{{ old($name, $inputs[$name] ?? null) }}">
                       <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">
@@ -121,6 +125,7 @@
                     @else
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
+                             maxlength="12"
                              class="form-control suji11 text-end bg-light"
                              value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                       <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? null) }}">

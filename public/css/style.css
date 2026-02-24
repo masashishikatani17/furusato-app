@@ -141,6 +141,17 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 軽い影 */
         }
         
+        .container-tya {
+            width: 700px;
+            margin: 0px auto;
+            padding: 0px;
+            font-size: 13px;
+            background-color: #ffffff; /* 白背景 */
+            border: 2px solid #895827;    /* 太い青枠 */
+            border-radius: 8px;        /* 角丸 */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 軽い影 */
+        }
+        
         .wrapper {
           width: 95%;
           max-width: 1200px;
@@ -550,6 +561,71 @@
             transform: rotate(20deg);
           }
         
+      /* 申込み確認画面上のステップ矢印（固定サイズ版） */
+            .apply-steps{
+              display:flex;
+              justify-content:center; /* ←これで中央寄せ */
+              gap:10px;
+              margin:10px 0 18px;
+            }
+            
+            .apply-step{
+              position:relative;
+            
+              width:180px;     /* ←四角の幅を固定（ここだけ調整） */
+              height:50px;
+            
+              display:flex;
+              align-items:center;
+              justify-content:center;
+            
+              padding:0 6px 0 10px;
+              border:1px solid #999999;
+              background:#e9eff7;
+              color:#2f5597;
+              font-weight:700;
+              font-size:14px;
+              line-height:1.2;
+              text-align:center;
+            }
+            
+            /* 本体色の三角（高さ=50px → 上下25pxずつ） */
+            .apply-step::after{
+              content:"";
+              position:absolute;
+              top:-1px;
+              right:-28px;                /* ←矢印幅固定 */
+              width:0;height:0;
+              border-top:25px solid transparent;
+              border-bottom:25px solid transparent;
+              border-left:28px solid #e9eff7;
+              z-index:2;
+            }
+            
+            /* 枠線用の三角（1px大きく） */
+            .apply-step::before{
+              content:"";
+              position:absolute;
+              top:-1px;
+              right:-30px;                /* 28px + 枠線ぶん */
+              width:0;height:0;
+              border-top:25px solid transparent;
+              border-bottom:25px solid transparent;
+              border-left:30px solid #999999;
+              z-index:1;
+            }
+            
+            .apply-step:last-child::after,
+            .apply-step:last-child::before{ display:none; }
+            
+            .apply-step.is-active{
+              border-color:#999999;
+              background:#c0dec5;
+              color:#333333;
+            }
+            .apply-step.is-active::after{ border-left-color:#c0dec5; }
+            .apply-step.is-active::before{ border-left-color:#999999; }
+            	  
 /* --------------------------------------
   * テーブル
   * ------------------------------------ */         

@@ -82,7 +82,7 @@
         $returnUrl .= '#' . $originAnchor;
     }
 @endphp
-<div class="container-blue mt-2" style="width:980px;">
+<div class="container-blue mt-2" style="width:1150px;">
   <div class="card-header d-flex align-items-start">
     @include('components.kado_lefttop_img')
     <h0 class="mb-0 mt-2">寄付金控除の内訳</h0>
@@ -115,7 +115,7 @@
             <table class="table-input align-middle text-start ms-2">
                 <tr>
                   <th rowspan="4" class="align-middle th-ccc" style="width:120px;">寄付対象</th>
-                  <th colspan="4" class="th-ccc">{{ $warekiPrevLabel }}</th>
+                  <th colspan="4" class="th-ccc" style="height:25px;">{{ $warekiPrevLabel }}</th>
                   <th colspan="4" class="th-ccc">{{ $warekiCurrLabel }}</th>
                 </tr>
                 <tr>
@@ -152,7 +152,9 @@
                         <td>
                           <input type="text" inputmode="numeric" autocomplete="off"
                                  data-format="comma-int" data-name="{{ $field }}"
-                                 class="form-control suji8 text-end"
+                                 class="form-control suji10 text-end"
+                                 maxlength="11"
+                                 pattern="[0-9,]*"
                                  value="{{ old($field, $inputs[$field] ?? '') }}">
                         </td>
                       @endif
@@ -170,7 +172,7 @@
               <div class="small text-muted mb-4 ms-4">
                 ワンストップ特例を利用する場合、所得税の「寄付金控除（所得控除）」および「政党等寄附金等特別控除（税額控除）」は
                 確定申告が必要になるため、本画面では入力できないようになっています。<br>
-                所得税側の控除を適用したい場合は、処理メニューでワンストップ特例を「利用しない」に切り替えてください。
+                所得税側の控除を適用したい場合は、処理メニューでワンストップ特例を「利用しない」に切り替えて下さい。
               </div>
             </div>
           @endif
@@ -182,7 +184,7 @@
                   <table class="table-base table-bordered align-middle text-start ms-2">
                       <tr>
                         <th rowspan="4" class="align-middle th-ccc" style="width:120px;height:30px;">寄付対象</th>
-                        <th colspan="4" class="th-ccc">{{ $warekiPrevLabel }}</th>
+                        <th colspan="4" class="th-ccc" style="height:25px;">{{ $warekiPrevLabel }}</th>
                         <th colspan="4" class="th-ccc">{{ $warekiCurrLabel }}</th>
                       </tr>
                       <tr>
@@ -328,7 +330,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     input.addEventListener('blur', () => {
       const hidden = getHidden(name) || ensureHidden(input);
-      const raw2 = toRawInt(input.value ?? hidden?.value ?? '');
+      let raw2 = toRawInt(input.value ?? hidden?.value ?? '');
+
+      // この画面は全て min0：マイナスは 0 に矯正（UI制御）
+      if (raw2.startsWith('-')) {
+        raw2 = '0';
+      }
+      // 11桁超は画面側でも抑止（貼り付け等の保険）：空欄にしてサーバ側で確実に検知
+      if (raw2 !== '' && raw2.length > 11) {
+        raw2 = '';
+      }
+
       if (hidden) hidden.value = raw2;
       input.value = raw2 === '' ? '' : fmt(raw2);
     });

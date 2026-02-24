@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\DataDownloadController;
 use App\Http\Controllers\Billing\SetupController;
 use App\Http\Controllers\Admin\AuditLogsController;
 use App\Http\Controllers\Admin\InvitationsController;
+use App\Http\Controllers\SignupController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -51,6 +52,15 @@ Route::middleware([
     })->name('dashboard');
 });
 
+// ==========================
+// Public Signup (Company + Owner)
+// ==========================
+Route::middleware('guest')->group(function () {
+    Route::get('/signup', [SignupController::class, 'show'])->name('signup.show');
+    Route::post('/signup/submit', [SignupController::class, 'submit'])->name('signup.submit');
+});
+
+
 Route::middleware(['auth', 'reject.client'])->group(function () {
     Route::get('/admin/settings', [SettingsController::class, 'index'])->name('admin.settings');
     Route::prefix('admin/users')->name('admin.users.')->group(function () {
@@ -71,10 +81,8 @@ Route::middleware(['auth', 'reject.client'])->group(function () {
         Route::delete('/{group}', [GroupsController::class, 'destroy'])->whereNumber('group')->name('destroy');
         Route::post('/{group}/transfer', [GroupsController::class, 'transfer'])->whereNumber('group')->name('transfer');
     });
-    Route::get('/admin/billing/receipts', [BillingReceiptsController::class, 'index'])->name('admin.billing.receipts.index');
     Route::get('/admin/owner-transfer', [OwnerTransferController::class, 'form'])->name('admin.ownerTransfer.form');
-    Route::get('/admin/data-download', [DataDownloadController::class, 'index'])->name('admin.data_download.index');
-    Route::get('/billing/setup', [SetupController::class, 'index'])->name('billing.setup');
+    Route::post('/admin/owner-transfer', [OwnerTransferController::class, 'store'])->name('admin.ownerTransfer.store');
     // 監査ログ（Owner/Registrar のみ）
     Route::get('/admin/audit-logs', [AuditLogsController::class, 'index'])->name('admin.audit_logs.index');
     Route::get('/admin/audit-logs/{id}', [AuditLogsController::class, 'show'])->whereNumber('id')->name('admin.audit_logs.show');

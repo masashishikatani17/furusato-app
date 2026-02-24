@@ -26,15 +26,22 @@
         $canUpdate = false;
     }
 
+    // 役割の選択肢（要件）
+    // - Owner/Registrar：Registrar/GroupAdmin/Member/Client を自由に変更可
+    // - GroupAdmin：自部署の GroupAdmin/Member/Client を自由に変更可（Owner/Registrar へは不可）
+    // - Member：変更不可（閲覧のみ）
+    // - Client：ユーザー管理に入れない（reject.client）
     $roleOptions = [
         'member' => 'Member（一般）',
         'group_admin' => 'GroupAdmin（部署管理者）',
+        'client' => 'Client（顧客）',
         'registrar' => 'Registrar（事務担当）',
     ];
 
     if ($isOwnerUser) {
         $roleOptions = ['owner' => 'Owner（代表者）'];
     } elseif ($currentUser?->isGroupAdmin()) {
+        // GroupAdmin は registrar/owner へ昇格不可（選択肢から除外）
         unset($roleOptions['registrar']);
     }
 
@@ -104,11 +111,11 @@
                     @csrf
                     @method('PUT')
 
-                    <table class="table table-input align-middle mt-2" style="width: 600px;">
+                    <table class="table table-input align-middle mt-2" style="width: 650px;">
                         <tbody>
                             <tr>
-                                <th class="text-start ps-2" style="height:30px;width: 100px;">氏名</th>
-                                <td colspan="2" class="text-start" style="width: 500px;">
+                                <th class="text-start ps-2" style="height:30px;width: 90px;">氏名</th>
+                                <td colspan="2" class="text-start" style="width: 560px;">
                                     <input type="text"
                                            id="edit-name"
                                            name="name"
@@ -154,10 +161,13 @@
                                 </td>
                                 <td class="text-start b-l-no">
                                     <p-small class="ms-1">
-                                        GroupAdmin が設定できる役割は Member / GroupAdmin のみです。
+                                        ・GroupAdmin が設定できる役割は Member / GroupAdmin / Client <br>　のみです。
                                     </p-small>
                                     <p-small class="ms-1">
-                                        Registrar を付与する場合は部署を空欄にしてください。
+                                        ・Registrar を付与する場合は部署を空欄にして下さい。
+                                    </p-small>
+                                    <p-small class="ms-1">
+                                        ・Client を付与する場合は部署を指定して下さい（顧客Guestと紐付け <br>　ます）。
                                     </p-small>
                                 </td>
                             </tr>
@@ -178,8 +188,8 @@
                                     </select>
                                 </td>
                                 <td class="text-start b-l-no">
-                                    <p-small class="ms-1 mb-3">
-                                        Registrar を付与する場合は部署を空欄にしてください。
+                                    <p-small class="ms-1">
+                                         ・Registrar を付与する場合は部署を空欄にして下さい。
                                     </p-small>
                                 </td>
                             </tr>
@@ -197,7 +207,7 @@
                 @if ($hasIsActive && $canUpdate && ! $isOwnerUser)
                     <div class="mt-4 pt-3 border-top">
                         <hb>○アカウント状態</hb>
-                        <p class="text-muted small ms-5">アカウントの停止・有効化は Owner / Registrar のみ操作できます。</p>
+                        <h13 class="ps-3 pb-3">アカウントの停止・有効化は Owner / Registrar のみ操作できます。</h13>
                         <div class="d-flex gap-2">
                             @if ($isActive && $deactivateRoute)
                                 <form method="POST" action="{{ $deactivateRoute }}" onsubmit="return confirm('このユーザーを停止しますか？');">

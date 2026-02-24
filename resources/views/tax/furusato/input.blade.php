@@ -495,8 +495,8 @@
 
                         // ▼ 「総合譲渡・一時」行だけは内訳の所得値を合算してミラー（税目共通）し、常にreadonly
                         if ($base === 'shotoku_joto_ichiji') {
-                            $tankiKey  = sprintf('shotoku_joto_tanki_%s', $period);
-                            $chokiKey  = sprintf('shotoku_joto_choki_%s', $period);
+                            $tankiKey  = sprintf('shotoku_joto_tanki_sogo_%s', $period);
+                            $chokiKey  = sprintf('shotoku_joto_choki_sogo_%s', $period);
                             $ichijiKey = sprintf('shotoku_ichiji_%s', $period);
                             $sum = 0;
                             foreach ([$tankiKey, $chokiKey, $ichijiKey] as $k) {
@@ -651,7 +651,7 @@
                           name="redirect_to"
                           value="bunri_joto"
                           data-origin-subtab="bunri"
-                          data-return-anchor="bunri_income_shortlong_top">内訳</button>
+                          data-return-anchor="bunri_income_shortlong_top">内 訳</button>
                 </td>
                 {!! $renderInputs('bunri_syunyu_tanki_ippan') !!}
               </tr>
@@ -679,7 +679,7 @@
                           name="redirect_to"
                           value="bunri_kabuteki"
                           data-origin-subtab="bunri"
-                          data-return-anchor="bunri_income_kabuteki_top">内訳</button>
+                          data-return-anchor="bunri_income_kabuteki_top">内 訳</button>
                 </td>
                 {!! $renderInputs('bunri_syunyu_ippan_kabuteki_joto') !!}
               </tr>
@@ -699,7 +699,7 @@
                           name="redirect_to"
                           value="bunri_sakimono"
                           data-origin-subtab="bunri"
-                          data-return-anchor="bunri_income_sakimono">内訳</button>
+                          data-return-anchor="bunri_income_sakimono">内 訳</button>
                 </td>
                 {!! $renderInputs('bunri_syunyu_sakimono') !!}
               </tr>
@@ -711,7 +711,7 @@
                           name="redirect_to"
                           value="bunri_sanrin"
                           data-origin-subtab="bunri"
-                          data-return-anchor="bunri_income_sanrin">内訳</button>
+                          data-return-anchor="bunri_income_sanrin">内 訳</button>
                 </td>
                 {!! $renderInputs('bunri_syunyu_sanrin') !!}
               </tr>
@@ -741,7 +741,7 @@
                           name="redirect_to"
                           value="bunri_joto"
                           data-origin-subtab="bunri"
-                          data-return-anchor="bunri_shotoku_shortlong_top">内訳</button>
+                          data-return-anchor="bunri_shotoku_shortlong_top">内 訳</button>
                 </td>
                 {!! $renderInputs('bunri_shotoku_tanki_ippan') !!}
               </tr>
@@ -769,7 +769,7 @@
                           name="redirect_to"
                           value="bunri_kabuteki"
                           data-origin-subtab="bunri"
-                          data-return-anchor="bunri_shotoku_kabuteki_top">内訳</button>
+                          data-return-anchor="bunri_shotoku_kabuteki_top">内 訳</button>
                 </td>
                 {!! $renderInputs('bunri_shotoku_ippan_kabuteki_joto') !!}
               </tr>
@@ -789,7 +789,7 @@
                           name="redirect_to"
                           value="bunri_sakimono"
                           data-origin-subtab="bunri"
-                          data-return-anchor="bunri_shotoku_sakimono">内訳</button>
+                          data-return-anchor="bunri_shotoku_sakimono">内 訳</button>
                 </td>
                 {!! $renderInputs('bunri_shotoku_sakimono') !!}
               </tr>
@@ -801,7 +801,7 @@
                           name="redirect_to"
                           value="bunri_sanrin"
                           data-origin-subtab="bunri"
-                          data-return-anchor="bunri_shotoku_sanrin">内訳</button>
+                          data-return-anchor="bunri_shotoku_sanrin">内 訳</button>
                 </td>
                 {!! $renderInputs('bunri_shotoku_sanrin') !!}
               </tr>
@@ -822,8 +822,7 @@
                 $sumEtcCurr = $normalizeServerInt($inputs['sum_for_sogoshotoku_etc_curr'] ?? 0);
               @endphp
               <tr class="js-bold-row">
-                <th scope="row" colspan="3" class="align-middle text-center th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
-                <td></td>
+                <th scope="row" colspan="4" class="align-middle text-center th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                 <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcPrev) }}" readonly data-ui-only="1"></td>
                 <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcCurr) }}" readonly data-ui-only="1"></td>
                 <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcPrev) }}" readonly data-ui-only="1"></td>
@@ -1043,10 +1042,7 @@
                 @endphp
               </tr>
               <tr class="js-bold-row">
-                <th scope="row" colspan="3" class="align-middle text-center th-cream">合計(調整控除前所得割額)</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
-                  </td>
+                <th scope="row" colspan="4" class="align-middle text-center th-cream">合計(調整控除前所得割額)</th>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                       foreach ($periods as $period) {
@@ -1097,7 +1093,7 @@
                   <button type="button"
                           class="btn-base-low-green js-open-details"
                           data-redirect-to="kojo_tokubetsu_jutaku_loan"
-                          data-origin-anchor="tax_jutaku">内訳</button>
+                          data-origin-anchor="tax_jutaku">内 訳</button>
                 </td>
                 {!! $renderInputs('tax_jutaku') !!}
               </tr>
@@ -1196,10 +1192,7 @@
                 {!! $renderInputs('tax_fukkou') !!}
               </tr>
               <tr class="js-bold-row">
-                <th colspan="2" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
-                  </td>
+                <th colspan="3" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                 {!! $renderInputs('tax_gokei') !!}
               </tr>
             @endif
@@ -1238,7 +1231,7 @@
                             class="btn-base-low-green"
                             name="redirect_to"
                             value="jigyo"
-                            data-return-anchor="syunyu_row_jigyo_eigyo">内訳</button>
+                            data-return-anchor="syunyu_row_jigyo_eigyo">内 訳</button>
                   </td>
                   {!! $renderInputs('syunyu_jigyo_eigyo') !!}
                 </tr>
@@ -1260,7 +1253,7 @@
                             class="btn-base-low-green"
                             name="redirect_to"
                             value="fudosan"
-                            data-return-anchor="syunyu_row_fudosan">内訳</button>
+                            data-return-anchor="syunyu_row_fudosan">内 訳</button>
                   </td>
                   {!! $renderInputs('syunyu_fudosan') !!}
                 </tr>
@@ -1279,7 +1272,7 @@
                             style="height:67px;"
                             data-redirect-to="kyuyo_zatsu"
                             data-origin-subtab="sogo"
-                            data-origin-anchor="syunyu_row_kyuyo">内訳</button>
+                            data-origin-anchor="syunyu_row_kyuyo">内 訳</button>
                   </td>
                   {!! $renderInputs('syunyu_kyuyo') !!}
                 </tr>
@@ -1305,7 +1298,7 @@
                             style="height:49px;"
                             data-redirect-to="joto_ichiji"
                             data-origin-anchor="income_joto_ichiji"
-                            data-return-anchor="income_joto_ichiji">内訳</button>
+                            data-return-anchor="income_joto_ichiji">内 訳</button>
                   </td>
                   {!! $renderInputs('syunyu_joto_tanki') !!}
                 </tr>
@@ -1332,7 +1325,7 @@
                             class="btn-base-low-green"
                             name="redirect_to"
                             value="jigyo"
-                            data-return-anchor="shotoku_row_jigyo_eigyo">内訳</button>
+                            data-return-anchor="shotoku_row_jigyo_eigyo">内 訳</button>
                   </td>
                   {!! $renderInputs('shotoku_jigyo_eigyo') !!}
                 </tr>
@@ -1351,7 +1344,7 @@
                             nowrap="nowrap"
                             name="redirect_to"
                             value="fudosan"
-                            data-return-anchor="shotoku_row_fudosan">内訳</button>
+                            data-return-anchor="shotoku_row_fudosan">内 訳</button>
                   </td>
                   {!! $renderInputs('shotoku_fudosan') !!}
                 </tr>
@@ -1377,7 +1370,7 @@
                             style="height:68px;"
                             data-redirect-to="kyuyo_zatsu"
                             data-origin-subtab="sogo"
-                            data-origin-anchor="shotoku_row_kyuyo">内訳</button>
+                            data-origin-anchor="shotoku_row_kyuyo">内 訳</button>
                   </td>
                   {!! $renderInputs('shotoku_kyuyo') !!}
                 </tr>
@@ -1401,13 +1394,12 @@
                             class="btn-base-low-green js-open-details"
                             data-redirect-to="joto_ichiji"
                             data-origin-anchor="shotoku_joto_ichiji"
-                            data-return-anchor="shotoku_joto_ichiji">内訳</button>
+                            data-return-anchor="shotoku_joto_ichiji">内 訳</button>
                   </td>
                   {!! $renderInputs('shotoku_joto_ichiji') !!}
                 </tr>
                 <tr class="js-bold-row">
-                  <th colspan="2" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
-                  <td class="text-center align-middle"></td>
+                  <th colspan="3" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                   @php
                    // 合計行だけ見た目を変える（計算やJSには影響しない）
                     // 太字: fw-bold
@@ -1449,7 +1441,7 @@
                             style="height:32px;"
                             data-redirect-to="kojo_seimei_jishin"
                             data-origin-anchor="kojo_seimei_jishin"
-                            data-return-anchor="kojo_seimei_jishin">内訳</button>
+                            data-return-anchor="kojo_seimei_jishin">内 訳</button>
                   </td>
                   {!! $renderInputs('kojo_seimei') !!}
                 </tr>
@@ -1465,7 +1457,7 @@
                             style="height:143px;"
                             data-redirect-to="kojo_jinteki"
                             data-origin-anchor="kojo_jinteki"
-                            data-return-anchor="kojo_jinteki">内訳</button>
+                            data-return-anchor="kojo_jinteki">内 訳</button>
                   </td>
                   {!! $renderInputs('kojo_kafu') !!}
                 </tr>
@@ -1505,8 +1497,7 @@
                   {!! $renderInputs('kojo_kiso') !!}
                 </tr>
                 <tr>
-                  <th colspan="3" class="align-middle">小  計</th>
-                  <td class="text-center align-middle"></td>
+                  <th colspan="4" class="align-middle">小  計</th>
                   {!! $renderInputs('kojo_shokei') !!}
                 </tr>
                 <tr>
@@ -1523,7 +1514,7 @@
                             class="btn-base-low-green js-open-details"
                             data-redirect-to="kojo_iryo"
                             data-origin-anchor="kojo_iryo"
-                            data-return-anchor="kojo_iryo">内訳</button>
+                            data-return-anchor="kojo_iryo">内 訳</button>
                   </td>
                   {!! $renderInputs('kojo_iryo') !!}
                 </tr>
@@ -1534,13 +1525,12 @@
                             class="btn-base-low-green"
                             name="redirect_to"
                             value="kifukin_details"
-                            data-return-anchor="kojo_row_kifukin">内訳</button>
+                            data-return-anchor="kojo_row_kifukin">内 訳</button>
                   </td>
                   {!! $renderInputs('kojo_kifukin') !!}
                 </tr>
                 <tr class="js-bold-row">
-                  <th colspan="3" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
-                  <td class="text-center align-middle"></td>
+                  <th colspan="4" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
                   {!! $renderInputs('kojo_gokei') !!}
                 </tr>
                 {!! $bunriTaxRows !!}

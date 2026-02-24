@@ -7,6 +7,7 @@
 <div class="container-blue" style="max-width: 480px; margin: 0 auto;">
   <div class="card-header d-flex align-items-start">
       <img src="{{ asset('storage/images/kado_lefttop.jpg') }}" alt="…">
+      <a class="btn-base-blue" href="{{ route('signup.show') }}">お申し込み</a>
       <h0 class="mb-0 ms-3 mt-2"> ログイン</h0>
   </div>
 

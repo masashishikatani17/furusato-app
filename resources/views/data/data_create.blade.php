@@ -24,6 +24,9 @@
       $me = auth()->user();
       $isClient = strtolower((string)($me->role ?? '')) === 'client';
       $clientGuest = $clientGuest ?? null;
+      // Owner/Registrar の新規顧客作成時のみ「担当部署」を必須選択（A案）
+      $assignGroups = $assignGroups ?? collect();
+      $showAssignGroups = (! $isClient) && $assignGroups->isNotEmpty();
     @endphp
 
     @if ($isClient && $clientGuest)
@@ -70,13 +73,31 @@
                  style="height:32px;"
                  value="{{ $isClient && $clientGuest ? $clientGuest->name : old('guest_name') }}"
                  maxlength="25"
-                 placeholder="（新規登録時は入力）"
+                 placeholder="（新規登録時は入力して下さい）"
                  {{ $isClient ? 'readonly' : '' }}>
           {{-- JSが参照するので、clientでも #guest_id は常に置く（値は固定） --}}
           <input type="hidden" name="guest_id" id="guest_id"
                  value="{{ $isClient && $clientGuest ? (int)$clientGuest->id : old('guest_id') }}">
         </td>
       </tr>
+
+      {{-- 2-b) 担当部署（Owner/Registrar が新規顧客を作る場合は必須） --}}
+      @if($showAssignGroups)
+      <tr id="row-assign-group" class="d-none">
+        <th class="text-start ps-2" style="height:33px;">担当部署（必須）</th>
+        <td class="text-start">
+          <select name="group_id" id="assign_group_id" class="form-select" style="height:32px; max-width:220px;">
+            <option value="">選択して下さい</option>
+            @foreach($assignGroups as $g)
+              <option value="{{ (int)$g->id }}" @selected((string)old('group_id')===(string)$g->id)>{{ $g->name }}</option>
+            @endforeach
+          </select>
+          <div class="text-muted mt-1 ms-1 mb-1" style="font-size:12px;">
+            ※Owner/Registrar が「新規で登録」の場合は、担当部署の選択が必須です。
+          </div>
+        </td>
+      </tr>
+      @endif
 
       {{-- 生年月日 --}}
       <tr>
@@ -86,7 +107,7 @@
             name="birth_date"
             id="birth_date"
             :required="false"
-            :readonly="$isClient"
+            :readonly="false"
             :value="$isClient && $clientGuest ? optional($clientGuest->birth_date)->format('Y-m-d') : old('birth_date', $defaultBirthDate)"
           />
         </td>
@@ -153,7 +174,7 @@
       {{-- データ作成日（編集不可） --}}
       <tr>
         <th class="text-start ps-2" style="height:33px;">データ作成日</th>
-        <td class="text-start">
+        <td class="text-start ps-2">
           <x-furusato.wareki-date
             :name="null"
             id="data_created_on_view"
@@ -208,7 +229,7 @@
                   <td class="py-1 px-2">{{ $g->name }}</td>
                 </tr>
               @empty
-                <tr><td class="text-muted py-3 px-2">（登録済のお客様がありません）</td></tr>
+                <tr><td class="text-muted py-3 px-2">登録済のお客様がありません</td></tr>
               @endforelse
               </tbody>
           </table>
@@ -230,7 +251,7 @@
         <p class="mb-0">同じお客様について <strong>同一の年度</strong> のデータは登録できません。</p>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+        <button type="button" class="btn btn-base-blue" data-bs-dismiss="modal">O K</button>
       </div>
     </div>
   </div>
@@ -259,6 +280,8 @@
   const gmExist   = document.getElementById('gm_existing');
   const gName     = document.getElementById('guest_name');
   const gId       = document.getElementById('guest_id');
+  const rowAssign = document.getElementById('row-assign-group');
+  const selAssign = document.getElementById('assign_group_id');
   const btnOpen   = document.getElementById('btn-open-guest-modal');
   const guestList = document.getElementById('guestListBody');
   const setBirthDate = (value) => {
@@ -270,13 +293,22 @@
   // client などで「登録済選択UI」が無い場合は、以降のモーダル処理を無効化（null参照回避）
   const hasGuestSelectorUi = !!(gmNew || gmExist || guestList);
 
+  // A案：Owner/Registrar の新規顧客時のみ担当部署を表示・必須化
+  const applyAssignGroup = () => {
+    if (!rowAssign || !selAssign) return;
+    const isNew = !!(gmNew && gmNew.checked);
+    rowAssign.classList.toggle('d-none', !isNew);
+    selAssign.required = isNew;
+    if (!isNew) selAssign.value = '';
+  };
+
   // birth_date の反映は共通コンポーネントへ
 
   const openGuestModal = () => {
     const hasAny = guestList && guestList.querySelectorAll('tr.selectable-guest').length > 0;
     if (!hasAny) {
       // A) トースト → 今は alert で代替（共通トースト未実装のため）
-      alert('登録済のお客様がいません。新規で登録してください。');
+      alert('登録済のお客様がいません。新規で登録して下さい。');
       // B) モードを new に戻す
       if (gmNew) gmNew.checked = true;
       if (gmExist) gmExist.checked = false;
@@ -294,6 +326,7 @@
     // ラジオ切替
     gmNew?.addEventListener('change', () => {
       if (gmNew.checked) {
+        applyAssignGroup();
         if (gId) gId.value = '';
         if (gName) {
           gName.readOnly = false;
@@ -341,6 +374,9 @@
   @if (session('modal_error.duplicate_year'))
     bootstrap.Modal.getOrCreateInstance(document.getElementById('duplicateYearModal')).show();
   @endif
+
+  // 初期反映
+  applyAssignGroup();
 })();
 </script>
 @endpush

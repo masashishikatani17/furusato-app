@@ -46,7 +46,7 @@
           <tbody>
             <tr>
               <th class="text-start ps-2" style="height:33px; width:150px;">データ作成日</th>
-              <td class="text-start" style="width:420px;">
+              <td class="text-start ps-2" style="width:420px;">
                 <x-furusato.wareki-date
                   :name="null"
                   id="edit_data_created_on_view"

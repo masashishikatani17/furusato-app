@@ -49,12 +49,14 @@
                   <td>
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="jigyo_eigyo_uriage_prev"
+                           maxlength="11"
                            class="form-control suji11 text-end"
                            value="{{ old('jigyo_eigyo_uriage_prev', $inputs['jigyo_eigyo_uriage_prev'] ?? null) }}">
                   </td>
                   <td>
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="jigyo_eigyo_uriage_curr"
+                           maxlength="11"
                            class="form-control suji11 text-end"
                            value="{{ old('jigyo_eigyo_uriage_curr', $inputs['jigyo_eigyo_uriage_curr'] ?? null) }}">
                   </td>
@@ -64,12 +66,14 @@
                   <td>
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="jigyo_eigyo_urigenka_prev"
+                           maxlength="11"
                            class="form-control suji11 text-end"
                            value="{{ old('jigyo_eigyo_urigenka_prev', $inputs['jigyo_eigyo_urigenka_prev'] ?? null) }}">
                   </td>
                   <td>
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="jigyo_eigyo_urigenka_curr"
+                           maxlength="11"
                            class="form-control suji11 text-end"
                            value="{{ old('jigyo_eigyo_urigenka_curr', $inputs['jigyo_eigyo_urigenka_curr'] ?? null) }}">
                   </td>
@@ -80,6 +84,7 @@
                     @php($name = 'jigyo_eigyo_sashihiki_1_prev')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="12"
                            class="form-control suji11 text-end bg-light"
                            value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
@@ -87,6 +92,7 @@
                     @php($name = 'jigyo_eigyo_sashihiki_1_curr')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="12"
                            class="form-control suji11 text-end bg-light"
                            value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
@@ -113,7 +119,7 @@
                       <input type="text"
                              name="{{ $labelName }}"
                              value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
-                             maxlength="64"
+                             maxlength="10"
                              class="form-control kana10"
                              aria-label="経費項目名{{ $field['labelIndex'] ?? '' }}"
                              @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
@@ -126,6 +132,7 @@
                     @php($readonly = $field['readonly'] ?? false)
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="{{ $readonly ? 12 : 11 }}"
                            class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
                            value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                   </td>
@@ -133,6 +140,7 @@
                     @php($name = $field['name'] . '_curr')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="{{ $readonly ? 12 : 11 }}"
                            class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
                            value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                   </td>
@@ -146,7 +154,7 @@
                         <input type="text"
                                name="{{ $labelName }}"
                                value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
-                               maxlength="64"
+                               maxlength="10"
                                class="form-control kana10"
                                aria-label="経費項目名{{ $field['labelIndex'] ?? '' }}"
                                @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
@@ -159,6 +167,7 @@
                       @php($readonly = $field['readonly'] ?? false)
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
+                             maxlength="{{ $readonly ? 12 : 11 }}"
                              class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
                              value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                     </td>
@@ -166,6 +175,7 @@
                       @php($name = $field['name'] . '_curr')
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="{{ $name }}"
+                             maxlength="{{ $readonly ? 12 : 11 }}"
                              class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
                              value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                     </td>
@@ -177,6 +187,7 @@
                     @php($name = 'jigyo_eigyo_sashihiki_2_prev')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="12"
                            class="form-control suji11 text-end bg-light"
                            value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
@@ -184,6 +195,7 @@
                     @php($name = 'jigyo_eigyo_sashihiki_2_curr')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="12"
                            class="form-control suji11 text-end bg-light"
                            value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
@@ -193,12 +205,14 @@
                   <td>
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="jigyo_eigyo_senjuusha_kyuyo_prev"
+                           maxlength="11"
                            class="form-control suji11 text-end"
                            value="{{ old('jigyo_eigyo_senjuusha_kyuyo_prev', $inputs['jigyo_eigyo_senjuusha_kyuyo_prev'] ?? null) }}">
                   </td>
                   <td>
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="jigyo_eigyo_senjuusha_kyuyo_curr"
+                           maxlength="11"
                            class="form-control suji11 text-end"
                            value="{{ old('jigyo_eigyo_senjuusha_kyuyo_curr', $inputs['jigyo_eigyo_senjuusha_kyuyo_curr'] ?? null) }}">
                   </td>
@@ -209,6 +223,7 @@
                     @php($name = 'jigyo_eigyo_aoi_tokubetsu_kojo_mae_prev')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="12"
                            class="form-control suji11 text-end bg-light"
                            value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
@@ -216,6 +231,7 @@
                     @php($name = 'jigyo_eigyo_aoi_tokubetsu_kojo_mae_curr')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="12"
                            class="form-control suji11 text-end bg-light"
                            value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
@@ -225,12 +241,14 @@
                   <td>
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev"
+                           maxlength="11"
                            class="form-control suji11 text-end"
                            value="{{ old('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev', $inputs['jigyo_eigyo_aoi_tokubetsu_kojo_gaku_prev'] ?? null) }}">
                   </td>
                   <td>
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr"
+                           maxlength="11"
                            class="form-control suji11 text-end"
                            value="{{ old('jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr', $inputs['jigyo_eigyo_aoi_tokubetsu_kojo_gaku_curr'] ?? null) }}">
                   </td>
@@ -241,6 +259,7 @@
                     @php($name = 'jigyo_eigyo_shotoku_prev')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="12"
                            class="form-control suji11 text-end bg-light"
                            value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>
@@ -248,6 +267,7 @@
                     @php($name = 'jigyo_eigyo_shotoku_curr')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="12"
                            class="form-control suji11 text-end bg-light"
                            value="{{ old($name, $inputs[$name] ?? null) }}" readonly>
                   </td>

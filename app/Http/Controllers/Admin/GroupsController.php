@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Group;
 use App\Services\Admin\GroupTransferService;
+use App\Support\AuditLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -30,8 +31,8 @@ class GroupsController extends Controller
             ->orderBy('name')
             ->orderBy('id');
 
-        // group_admin は自部署のみ閲覧
-        if ($actor->isGroupAdmin()) {
+        // group_admin / member は自部署のみ閲覧
+        if ($actor->isGroupAdmin() || ((string)($actor->getDisplayRoleAttribute() ?? '') === 'member')) {
             $q->where('id', (int)($actor->group_id ?? 0));
         }
 
@@ -154,6 +155,12 @@ class GroupsController extends Controller
         $g->is_active = true;
         $g->save();
 
+        AuditLogger::log('group.created', [
+            'company_id' => (int)$g->company_id,
+            'group_id' => (int)$g->id,
+            'name' => (string)$g->name,
+        ], $g);
+
         return redirect()->route('admin.groups.index')->with('success', '部署を作成しました。');
     }
 
@@ -181,8 +188,16 @@ class GroupsController extends Controller
             'name.unique' => '同じ部署名が既に存在します。',
         ]);
 
+        $oldName = (string)$group->name;
         $group->name = trim((string)$validated['name']);
         $group->save();
+
+        AuditLogger::log('group.renamed', [
+            'company_id' => (int)$group->company_id,
+            'group_id' => (int)$group->id,
+            'from' => $oldName,
+            'to' => (string)$group->name,
+        ], $group);
 
         return redirect()->route('admin.groups.index')->with('success', '部署名を更新しました。');
     }
@@ -197,6 +212,12 @@ class GroupsController extends Controller
 
         $group->is_active = true;
         $group->save();
+
+        AuditLogger::log('group.activated', [
+            'company_id' => (int)$group->company_id,
+            'group_id' => (int)$group->id,
+            'name' => (string)$group->name,
+        ], $group);
 
         return redirect()->route('admin.groups.index')->with('success', '部署を復活しました。');
     }
@@ -245,15 +266,41 @@ class GroupsController extends Controller
                 ->withErrors(['to_group_id' => '移動先となる稼働中の部署がありません。先に部署を作成してください。']);
         }
 
+        $toGroupId = (int)$validated['to_group_id'];
+        $action = (string)$validated['action'];
+
         try {
-            $svc->transferAndAction($actor, $group, (int)$validated['to_group_id'], (string)$validated['action']);
+            $moved = $svc->transferAndAction($actor, $group, $toGroupId, $action);
         } catch (ValidationException $e) {
             return redirect()->route('admin.groups.index')
                 ->withErrors($e->errors())
                 ->withInput();
         }
 
-        $msg = ((string)$validated['action'] === 'deactivate')
+        // 監査ログ（異動＋停止/削除）
+        AuditLogger::log('group.transferred', [
+            'company_id' => (int)$group->company_id,
+            'from_group_id' => (int)$group->id,
+            'to_group_id' => $toGroupId,
+            'action' => $action,
+            'moved' => $moved,
+        ], $group);
+
+        if ($action === 'deactivate') {
+            AuditLogger::log('group.deactivated', [
+                'company_id' => (int)$group->company_id,
+                'group_id' => (int)$group->id,
+                'name' => (string)$group->name,
+            ], $group);
+        } else {
+            AuditLogger::log('group.deleted', [
+                'company_id' => (int)$group->company_id,
+                'group_id' => (int)$group->id,
+                'name' => (string)$group->name,
+            ], $group);
+        }
+
+        $msg = ($action === 'deactivate')
             ? '異動後に部署を停止しました。'
             : '異動後に部署を削除しました。';
 

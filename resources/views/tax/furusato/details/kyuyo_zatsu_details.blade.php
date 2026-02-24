@@ -135,12 +135,14 @@
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="kyuyo_syunyu_prev"
+                         maxlength="11"
                          value="{{ $value('kyuyo_syunyu_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="kyuyo_syunyu_curr"
+                         maxlength="11"
                          value="{{ $value('kyuyo_syunyu_curr','') }}">
                 </td>
               </tr>
@@ -169,7 +171,7 @@
         <table class="g-table--none mb-4 ms-12 me-10">
           <tr>
             <td><h12>
-          給与収入金額（支払金額）が850万円を超え、次のいずれかの要件に該当する場合（給与所得の源泉徴収票の所得金額調整控除額欄に記載がある場合）、「適用」にチェックをつけてください。<br>
+          給与収入金額（支払金額）が850万円を超え、次のいずれかの要件に該当する場合（給与所得の源泉徴収票の所得金額調整控除額欄に記載がある場合）、「適用」にチェックをつけて下さい。<br>
           <div class="indent-1">・本人が特別障害者に該当する</div>
           <div class="indent-1">・年齢23歳未満の扶養親族がいる</div>
           <div class="indent-1">・特別障害者である同一生計配偶者または扶養親族がいる</div>
@@ -193,12 +195,14 @@
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_nenkin_syunyu_prev"
+                         maxlength="11"
                          value="{{ $value('zatsu_nenkin_syunyu_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_nenkin_syunyu_curr"
+                         maxlength="11"
                          value="{{ $value('zatsu_nenkin_syunyu_curr','') }}">
                 </td>
               </tr>
@@ -209,12 +213,14 @@
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_gyomu_syunyu_prev"
+                         maxlength="11"
                          value="{{ $value('zatsu_gyomu_syunyu_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_gyomu_syunyu_curr"
+                         maxlength="11"
                          value="{{ $value('zatsu_gyomu_syunyu_curr','') }}">
                 </td>
               </tr>
@@ -224,12 +230,14 @@
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_gyomu_shiharai_prev"
+                         maxlength="11"
                          value="{{ $value('zatsu_gyomu_shiharai_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_gyomu_shiharai_curr"
+                         maxlength="11"
                          value="{{ $value('zatsu_gyomu_shiharai_curr','') }}">
                 </td>
               </tr>
@@ -240,12 +248,14 @@
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_sonota_syunyu_prev"
+                         maxlength="11"
                          value="{{ $value('zatsu_sonota_syunyu_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_sonota_syunyu_curr"
+                         maxlength="11"
                          value="{{ $value('zatsu_sonota_syunyu_curr','') }}">
                 </td>
               </tr>
@@ -255,12 +265,14 @@
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_sonota_shiharai_prev"
+                         maxlength="11"
                          value="{{ $value('zatsu_sonota_shiharai_prev','') }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          class="form-control suji11 text-end"
                          data-format="comma-int" data-name="zatsu_sonota_shiharai_curr"
+                         maxlength="11"
                          value="{{ $value('zatsu_sonota_shiharai_curr','') }}">
                 </td>
               </tr>

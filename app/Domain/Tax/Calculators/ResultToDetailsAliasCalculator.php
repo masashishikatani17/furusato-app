@@ -154,48 +154,17 @@ final class ResultToDetailsAliasCalculator implements ProvidesKeys
         $tsusangoShortKey = sprintf('tsusango_joto_tanki_sogo_%s', $period);
         $tsusangoLongKey = sprintf('tsusango_joto_choki_sogo_%s', $period);
 
-        $afterNaibutsuShortRaw = $this->normalizeNullable($payload[sprintf('after_naibutsusan_joto_tanki_sogo_%s', $period)] ?? null);
-        $afterNaibutsuLongRaw = $this->normalizeNullable($payload[sprintf('after_naibutsusan_joto_choki_sogo_%s', $period)] ?? null);
-        $afterNaibutsuOne = $this->toInt($payload[sprintf('after_naibutsusan_ichiji_%s', $period)] ?? null);
+        // 方針：ResultToDetailsAlias は “互換キーの単純ミラーのみ”
+        // - 無いキーを別キーから推測補完しない（段階の混線を防止）
+        // - after_naibutsusan_* は SoT ではないため、ここでは内部通算後の表示用として
+        //   tsusango_*_sogo（SogoShotokuNettingCalculator が内部通算後として出力）をコピーする。
+        $tsusangoShort = $this->toInt($payload[$tsusangoShortKey] ?? null);
+        $tsusangoLong  = $this->toInt($payload[$tsusangoLongKey] ?? null);
+        $tsusangoOne   = $this->toInt($payload[sprintf('tsusango_ichiji_%s', $period)] ?? null);
 
-        $tsusangoShortRaw = $this->normalizeNullable($payload[$tsusangoShortKey] ?? null);
-        $tsusangoLongRaw = $this->normalizeNullable($payload[$tsusangoLongKey] ?? null);
-
-        if ($tsusangoShortRaw === null) {
-            foreach ([
-                'after_3jitsusan_joto_tanki_sogo_%s',
-                'after_3jitsusan_tanki_sogo_%s',
-            ] as $format) {
-                $candidate = $this->normalizeNullable($payload[sprintf($format, $period)] ?? null);
-                if ($candidate !== null) {
-                    $tsusangoShortRaw = $candidate;
-                    break;
-                }
-            }
-        }
-
-        if ($tsusangoLongRaw === null) {
-            foreach ([
-                'after_3jitsusan_joto_choki_sogo_%s',
-                'after_3jitsusan_choki_sogo_%s',
-            ] as $format) {
-                $candidate = $this->normalizeNullable($payload[sprintf($format, $period)] ?? null);
-                if ($candidate !== null) {
-                    $tsusangoLongRaw = $candidate;
-                    break;
-                }
-            }
-        }
-
-        if (($afterNaibutsuShortRaw === null || $afterNaibutsuShortRaw === 0) && $tsusangoShortRaw !== null) {
-            $afterNaibutsuShortRaw = $tsusangoShortRaw;
-        }
-
-        if (($afterNaibutsuLongRaw === null || $afterNaibutsuLongRaw === 0) && $tsusangoLongRaw !== null) {
-            $afterNaibutsuLongRaw = $tsusangoLongRaw;
-        }
-
-        $afterNaibutsuShort = $afterNaibutsuShortRaw ?? 0;
+        $afterNaibutsuShort = $tsusangoShort;
+        $afterNaibutsuLong  = $tsusangoLong;
+        $afterNaibutsuOne   = $tsusangoOne;
         $afterNaibutsuLong = $afterNaibutsuLongRaw ?? 0;
 
         $tokubetsuShort = $this->toInt($payload[sprintf('tokubetsukojo_joto_tanki_sogo_%s', $period)] ?? null);
@@ -205,10 +174,6 @@ final class ResultToDetailsAliasCalculator implements ProvidesKeys
         $afterTousanShort = $this->toInt($payload[sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $period)] ?? null);
         $afterTousanLong = $this->toInt($payload[sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period)] ?? null);
         $afterTousanOne = $this->toInt($payload[sprintf('after_joto_ichiji_tousan_ichiji_%s', $period)] ?? null);
-
-        $tsusangoShort = $tsusangoShortRaw ?? 0;
-        $tsusangoLong = $tsusangoLongRaw ?? 0;
-        $tsusangoOne = $this->toInt($payload[sprintf('after_3jitsusan_ichiji_%s', $period)] ?? null);
 
         $shotokuShort = $this->toInt($payload[sprintf('shotoku_joto_tanki_sogo_%s', $period)] ?? null);
         $shotokuLong = $this->toInt($payload[sprintf('shotoku_joto_choki_sogo_%s', $period)] ?? null);

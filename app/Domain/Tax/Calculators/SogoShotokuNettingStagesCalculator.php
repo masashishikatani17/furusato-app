@@ -51,7 +51,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             $keys[] = sprintf('after_3jitsusan_taishoku_%s', $period);
 
             $keys[] = sprintf('shotoku_keijo_%s', $period);
-            $keys[] = sprintf('shotoku_joto_tanki_%s', $period);
+            $keys[] = sprintf('shotoku_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('shotoku_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('shotoku_ichiji_%s', $period);
             $keys[] = sprintf('shotoku_sanrin_%s', $period);
@@ -211,7 +211,7 @@ class SogoShotokuNettingStagesCalculator implements ProvidesKeys
             sprintf('after_3jitsusan_sanrin_%s', $period) => $after3Forest,
             sprintf('after_3jitsusan_taishoku_%s', $period) => $after3Retire,
             sprintf('shotoku_keijo_%s', $period) => $shotokuKeijo,
-            sprintf('shotoku_joto_tanki_%s', $period) => $shotokuJotoTanki,
+            sprintf('shotoku_joto_tanki_sogo_%s', $period) => $shotokuJotoTanki,
             sprintf('shotoku_joto_choki_sogo_%s', $period) => $shotokuJotoChoki,
             sprintf('shotoku_ichiji_%s', $period) => $shotokuIchiji,
             sprintf('shotoku_sanrin_%s', $period) => $shotokuSanrin,

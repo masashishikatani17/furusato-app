@@ -50,6 +50,7 @@
                   @php($name = 'fudosan_syunyu_prev')
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="{{ $name }}"
+                         maxlength="11"
                          class="form-control suji11 text-end"
                          value="{{ old($name, $inputs[$name] ?? null) }}">
                 </td>
@@ -57,6 +58,7 @@
                   @php($name = 'fudosan_syunyu_curr')
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="{{ $name }}"
+                         maxlength="11"
                          class="form-control suji11 text-end"
                          value="{{ old($name, $inputs[$name] ?? null) }}">
                 </td>
@@ -83,7 +85,7 @@
                     <input type="text"
                            name="{{ $labelName }}"
                            value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
-                           maxlength="64"
+                           maxlength="10"
                            class="form-control kana10"
                            aria-label="必要経費項目名{{ $field['labelIndex'] ?? '' }}"
                            @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
@@ -96,6 +98,7 @@
                   @php($readonly = $field['readonly'] ?? false)
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="{{ $name }}"
+                         maxlength="{{ $readonly ? 12 : 11 }}"
                          class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
                          value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                 </td>
@@ -103,6 +106,7 @@
                   @php($name = $field['name'] . '_curr')
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="{{ $name }}"
+                         maxlength="{{ $readonly ? 12 : 11 }}"
                          class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
                          value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                 </td>
@@ -117,7 +121,7 @@
                       <input type="text"
                              name="{{ $labelName }}"
                              value="{{ old($labelName, $storedLabels[$labelName] ?? '') }}"
-                             maxlength="64"
+                             maxlength="10"
                              class="form-control kana10"
                              aria-label="必要経費項目名{{ $field['labelIndex'] ?? '' }}"
                              @if($placeholder !== '') placeholder="{{ $placeholder }}" @endif>
@@ -130,6 +134,7 @@
                     @php($readonly = $field['readonly'] ?? false)
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="{{ $readonly ? 12 : 11 }}"
                            class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
                            value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                   </td>
@@ -137,6 +142,7 @@
                     @php($name = $field['name'] . '_curr')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="{{ $readonly ? 12 : 11 }}"
                            class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
                            value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                   </td>
@@ -158,6 +164,7 @@
                     @php($readonly = $field['readonly'] ?? false)
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="{{ $readonly ? 12 : 11 }}"
                            class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
                            value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                   </td>
@@ -165,6 +172,7 @@
                     @php($name = $field['name'] . '_curr')
                     <input type="text" inputmode="numeric" autocomplete="off"
                            data-format="comma-int" data-name="{{ $name }}"
+                           maxlength="{{ $readonly ? 12 : 11 }}"
                            class="form-control suji11 text-end{{ $readonly ? ' bg-light' : '' }}"
                            value="{{ old($name, $inputs[$name] ?? null) }}" @if($readonly) readonly @endif>
                   </td>

@@ -79,6 +79,7 @@
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
                                data-format="comma-int" data-name="{{ $name }}"
+                               maxlength="11"
                                class="form-control suji11 text-end"
                                value="{{ old($name, $inputs[$name] ?? null) }}">
                       @endif
@@ -91,6 +92,7 @@
                       @else
                         <input type="text" inputmode="numeric" autocomplete="off"
                                data-format="comma-int" data-name="{{ $name }}"
+                               maxlength="11"
                                class="form-control suji11 text-end"
                                value="{{ old($name, $inputs[$name] ?? null) }}">
                       @endif
@@ -107,7 +109,10 @@
                                    ? number_format((int) $inputs[$name])
                                    : '' }}"
                                data-display-key="{{ $name }}"
+                               maxlength="12"
                                readonly>
+                        {{-- ▼ derived（readonly）もPOSTして残留を防ぐ --}}
+                        <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? 0) }}">
                       @endif
                     </td>
                     @php($name = 'tsusango_' . $base)
@@ -121,7 +126,10 @@
                                value="{{ (isset($inputs[$name]) && $inputs[$name] !== '' && $inputs[$name] !== null)
                                    ? number_format((int) $inputs[$name])
                                    : '' }}"
+                                   maxlength="12"
                                readonly>
+                        {{-- ▼ derived（readonly）もPOSTして残留を防ぐ --}}
+                        <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? 0) }}">
                       @endif
                     </td>
                     <td>
@@ -133,6 +141,7 @@
                         @else
                           <input type="text" inputmode="numeric" autocomplete="off"
                                  data-format="comma-int" data-name="{{ $name }}"
+                                 maxlength="11"
                                  class="form-control suji11 text-end"
                                  value="{{ old($name, $inputs[$name] ?? null) }}">
                         @endif
@@ -151,7 +160,10 @@
                                value="{{ (isset($inputs[$name]) && $inputs[$name] !== '' && $inputs[$name] !== null)
                                    ? number_format((int) $inputs[$name])
                                    : '' }}"
+                                   maxlength="12"
                                readonly>
+                        {{-- ▼ derived（readonly）もPOSTして残留を防ぐ --}}
+                        <input type="hidden" name="{{ $name }}" value="{{ old($name, $inputs[$name] ?? 0) }}">
                       @endif
                     </td>
                   </tr>

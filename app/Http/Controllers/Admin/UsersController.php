@@ -304,39 +304,94 @@ class UsersController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($target->id)],
             'role' => ['required', Rule::in($roleKeys)],
             'group_id' => ['nullable', Rule::in($groupIds)],
+        ],[
+            'email.email' => __('メールアドレスの形式が正しくありません。'),
+            'role.in' => __('役割の指定が不正です。'),
+            'group_id.in' => __('部署の指定が不正です。'),
         ]);
 
-        $role = $data['role'];
-        $groupId = $data['group_id'] ?? null;
+        $oldRole = strtolower((string)($target->role ?? 'member'));
 
-        if ($target->isOwner()) {
-            $role = $target->role ?? 'owner';
-            $groupId = $target->group_id;
-        } elseif ($role === 'registrar') {
-            $groupId = null;
-        } elseif ($groupId === null) {
-            throw ValidationException::withMessages([
-                'group_id' => __('部署を選択してください。'),
-            ]);
+        $role = strtolower((string)($data['role'] ?? 'member'));
+        $groupId = $data['group_id'] ?? null;
+        $groupId = ($groupId === '' || $groupId === null) ? null : (int)$groupId;
+
+        // Ownerは固定（companies.owner_user_id がSoT）
+        if (method_exists($target, 'isOwner') && $target->isOwner()) {
+            $role = strtolower((string)($target->role ?? 'owner'));
+            $groupId = $target->group_id ? (int)$target->group_id : null;
         }
 
-        if ($groupId !== null) {
-            $groupId = (int) $groupId;
+        // GroupAdmin は registrar/owner への昇格をサーバ側でも禁止
+        if (method_exists($actor, 'isGroupAdmin') && $actor->isGroupAdmin()) {
+            if (in_array($role, ['owner','registrar'], true)) {
+                throw ValidationException::withMessages([
+                    'role' => __('GroupAdmin は Owner / Registrar への昇格はできません。'),
+                ]);
+            }
+            // GroupAdmin は自部署固定（formOptionsで絞っているが、改ざん対策で再検証）
+            if ((int)($actor->group_id ?? 0) <= 0 || (int)($target->group_id ?? 0) !== (int)($actor->group_id ?? 0)) {
+                abort(403);
+            }
+            if ($groupId !== null && (int)$groupId !== (int)($actor->group_id ?? 0)) {
+                throw ValidationException::withMessages([
+                    'group_id' => __('GroupAdmin は自部署以外へ変更できません。'),
+                ]);
+            }
+        }
+
+        // Registrar は部署なし
+        if ($role === 'registrar') {
+            $groupId = null;
+        }
+
+        // GroupAdmin/Member/Client は部署必須
+        if (in_array($role, ['group_admin','member','client'], true)) {
+            if ($groupId === null || (int)$groupId <= 0) {
+                throw ValidationException::withMessages([
+                    'group_id' => __('部署を選択してください。'),
+                ]);
+            }
         }
 
         if (array_key_exists('name', $data)) {
             $target->name = $data['name'] ?? $target->name;
         }
-
         $target->email = $data['email'];
         $target->role = $role;
         $target->group_id = $groupId;
-        $target->save();
+
+        DB::transaction(function () use ($actor, $target, $oldRole, $role, $groupId) {
+            $target->save();
+
+            // client にしたら guest を必ず作成/更新（SoT: guests.client_user_id）
+            if ($role === 'client') {
+                Guest::updateOrCreate(
+                    ['company_id' => (int)$actor->company_id, 'client_user_id' => (int)$target->id],
+                    [
+                        'name' => (string)$target->name,
+                        'group_id' => (int)$groupId,
+                        'user_id' => (int)$actor->id,
+                    ]
+                );
+            }
+
+            // client → 非client は紐付け解除
+            if ($oldRole === 'client' && $role !== 'client') {
+                Guest::query()
+                    ->where('company_id', (int)$actor->company_id)
+                    ->where('client_user_id', (int)$target->id)
+                    ->update(['client_user_id' => null]);
+            }
+        });
 
         if (class_exists(AuditLogger::class)) {
             AuditLogger::log('user.updated', [
                 'actor_id' => $actor->id,
                 'user_id' => $target->id,
+                'from_role' => $oldRole,
+                'to_role' => $role,
+                'to_group_id' => $groupId,
             ]);
         }
 

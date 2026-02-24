@@ -17,7 +17,10 @@ class GroupTransferService
      * @param  int    $toGroupId 移動先部署ID（同一company、is_active=1、deleted_at null）
      * @param  string $action  'deactivate'|'destroy'
      */
-    public function transferAndAction(User $actor, Group $from, int $toGroupId, string $action): void
+    /**
+     * @return array{users_moved:int, guests_moved:int, datas_moved:int, invitations_moved:int}
+     */
+    public function transferAndAction(User $actor, Group $from, int $toGroupId, string $action): array
     {
         $action = strtolower((string)$action);
         if (!in_array($action, ['deactivate', 'destroy'], true)) {
@@ -56,7 +59,8 @@ class GroupTransferService
         // 異動対象ロール（users）
         $targetRoles = ['group_admin', 'member', 'client', 'groupadmin', 'group-admin'];
 
-        DB::transaction(function () use ($companyId, $from, $to, $action, $excludeOwnerId, $excludeRoles, $targetRoles) {
+        /** @var array{users_moved:int, guests_moved:int, datas_moved:int, invitations_moved:int} $result */
+        $result = DB::transaction(function () use ($companyId, $from, $to, $action, $excludeOwnerId, $excludeRoles, $targetRoles) {
             $fromId = (int)$from->id;
             $toId   = (int)$to->id;
 
@@ -74,7 +78,7 @@ class GroupTransferService
             if ($excludeOwnerId !== null) {
                 $u->where('id', '!=', $excludeOwnerId);
             }
-            $u->update(['group_id' => $toId]);
+            $usersMoved = (int)$u->update(['group_id' => $toId]);
 
             // 2) guests 異動
             $guestIds = DB::table('guests')
@@ -83,25 +87,26 @@ class GroupTransferService
                 ->pluck('id')
                 ->all();
 
-            DB::table('guests')
+            $guestsMoved = (int)DB::table('guests')
                 ->where('company_id', $companyId)
                 ->where('group_id', $fromId)
                 ->update(['group_id' => $toId]);
 
             // 3) datas 異動（guest追随 + 保険でgroup_id=fromも寄せる）
+            $datasMoved = 0;
             if (!empty($guestIds)) {
-                DB::table('datas')
+                $datasMoved += (int)DB::table('datas')
                     ->where('company_id', $companyId)
                     ->whereIn('guest_id', $guestIds)
                     ->update(['group_id' => $toId]);
             }
-            DB::table('datas')
+            $datasMoved += (int)DB::table('datas')
                 ->where('company_id', $companyId)
                 ->where('group_id', $fromId)
                 ->update(['group_id' => $toId]);
 
             // 4) invitations（未完了のみ）異動
-            DB::table('invitations')
+            $invitationsMoved = (int)DB::table('invitations')
                 ->where('company_id', $companyId)
                 ->where('group_id', $fromId)
                 ->whereNull('accepted_at')
@@ -156,6 +161,15 @@ class GroupTransferService
                     'conflict' => '処理中に所属状況が更新されました。ページを更新して再度お試しください。',
                 ]);
             }
+
+            return [
+                'users_moved' => $usersMoved,
+                'guests_moved' => $guestsMoved,
+                'datas_moved' => $datasMoved,
+                'invitations_moved' => $invitationsMoved,
+            ];
         });
+
+        return $result;
     }
 }

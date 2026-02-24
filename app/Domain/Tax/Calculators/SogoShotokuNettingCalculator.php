@@ -13,7 +13,6 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
     public const AFTER = [];
 
     private const PERIODS = ['prev', 'curr'];
-    private const TOKUBETSU_KOJO_LIMIT = 500_000;
 
     /**
      * @return array<int, string>
@@ -57,7 +56,8 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
 
         $short = $this->n($payload[$shortKey] ?? null);
         $long = $this->n($payload[$longKey] ?? null);
-        $ichiji = $this->n($payload[$ichijiSourceKey] ?? null);
+        // 仕様：一時は min0（入力SoT側でも min0 だが保険としてここでも矯正）
+        $ichiji = max(0, $this->n($payload[$ichijiSourceKey] ?? null));
 
         $jotoIchiji = JotoIchijiNetting::compute($short, $long, $ichiji);
 
@@ -70,33 +70,17 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
         $outputs = [
             $shortKey => $jotoIchiji['sashihiki_joto_tanki_sogo'],
             $longKey => $jotoIchiji['sashihiki_joto_choki_sogo'],
-            $tsusangoShortKey => $jotoIchiji['tsusango_joto_tanki'],
+            // 互換：内部通算後（表示列が参照していても事故らないように）
+            $tsusangoShortKey => $jotoIchiji['tsusango_joto_tanki_sogo'],
             $tsusangoLongKey => $jotoIchiji['tsusango_joto_choki_sogo'],
             sprintf('tsusango_ichiji_%s', $period) => $jotoIchiji['tsusango_ichiji'],
-            $tokubetsuShortKey => $jotoIchiji['tokubetsukojo_joto_tanki'],
-            $tokubetsuLongKey => $jotoIchiji['tokubetsukojo_joto_choki'],
+            $tokubetsuShortKey => $jotoIchiji['tokubetsukojo_joto_tanki_sogo'],
+            $tokubetsuLongKey => $jotoIchiji['tokubetsukojo_joto_choki_sogo'],
             sprintf('tokubetsukojo_ichiji_%s', $period) => $jotoIchiji['tokubetsukojo_ichiji'],
-            $afterShortKey => $jotoIchiji['after_joto_ichiji_tousan_joto_tanki'],
+            $afterShortKey => $jotoIchiji['after_joto_ichiji_tousan_joto_tanki_sogo'],
             sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $period) => $jotoIchiji['after_joto_ichiji_tousan_joto_choki_sogo'],
             sprintf('after_joto_ichiji_tousan_ichiji_%s', $period) => $jotoIchiji['after_joto_ichiji_tousan_ichiji'],
         ];
-
-        $tsusangoShort = (int) ($outputs[$tsusangoShortKey] ?? 0);
-        $tsusangoLong = (int) ($outputs[$tsusangoLongKey] ?? 0);
-        $pool = self::TOKUBETSU_KOJO_LIMIT;
-        $tokubetsuShort = min($pool, max(0, $tsusangoShort));
-        $pool -= $tokubetsuShort;
-        $tokubetsuLong = min($pool, max(0, $tsusangoLong));
-
-        $outputs[$tokubetsuShortKey] = $tokubetsuShort;
-        $outputs[$tokubetsuLongKey] = $tokubetsuLong;
-
-        $tsusangoIchijiKey = sprintf('tsusango_ichiji_%s', $period);
-        if (array_key_exists($tsusangoIchijiKey, $outputs)) {
-            $outputs[$tsusangoIchijiKey] = max(0, (int) $outputs[$tsusangoIchijiKey]);
-        }
-
-        $outputs[$afterShortKey] = (int) $outputs[$afterShortKey];
 
         return $outputs;
     }

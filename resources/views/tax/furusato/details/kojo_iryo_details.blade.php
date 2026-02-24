@@ -55,12 +55,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_iryo_shiharai_prev"
+                         maxlength="11"
                          class="form-control suji11 js-iryo text-end"
                          value="{{ old('kojo_iryo_shiharai_prev', $inputs['kojo_iryo_shiharai_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_iryo_shiharai_curr"
+                         maxlength="11"
                          class="form-control suji11 js-iryo text-end"
                          value="{{ old('kojo_iryo_shiharai_curr', $inputs['kojo_iryo_shiharai_curr'] ?? null) }}">
                 </td>
@@ -71,12 +73,14 @@
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_iryo_hotengaku_prev"
+                         maxlength="11"
                          class="form-control suji11 js-iryo text-end"
                          value="{{ old('kojo_iryo_hotengaku_prev', $inputs['kojo_iryo_hotengaku_prev'] ?? null) }}">
                 </td>
                 <td>
                   <input type="text" inputmode="numeric" autocomplete="off"
                          data-format="comma-int" data-name="kojo_iryo_hotengaku_curr"
+                         maxlength="11"
                          class="form-control suji11 js-iryo text-end"
                          value="{{ old('kojo_iryo_hotengaku_curr', $inputs['kojo_iryo_hotengaku_curr'] ?? null) }}">
                 </td>

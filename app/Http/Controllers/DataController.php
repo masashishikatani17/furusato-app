@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Data;
 use App\Models\Guest;
 use App\Models\User;
+use App\Models\Group;
 use DateTimeInterface;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use App\Support\AuditLogger;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Rule;
 
 class DataController extends Controller
 {
@@ -850,6 +852,18 @@ class DataController extends Controller
             ]);
         }
 
+        // Owner/Registrar が新規顧客を作る場合は「担当部署」を必須選択させる（A案）
+        $assignGroups = collect();
+        if ($this->isOwnerOrRegistrar()) {
+            $assignGroups = Group::query()
+                ->where('company_id', $companyId)
+                ->whereNull('deleted_at')
+                ->where('is_active', 1)
+                ->orderBy('name')
+                ->orderBy('id')
+                ->get(['id','name']);
+        }
+
         $q = Guest::query()
             ->select('id','name','company_id','group_id','user_id','birth_date')
             ->where('company_id', $companyId);
@@ -859,7 +873,11 @@ class DataController extends Controller
         $guests = $q->orderBy('created_at','asc')->get();
         $defaultBirthDate = null;
 
-        return view('data.data_create', compact('guests', 'defaultBirthDate'));
+        return view('data.data_create', [
+            'guests' => $guests,
+            'defaultBirthDate' => $defaultBirthDate,
+            'assignGroups' => $assignGroups,
+        ]);
     }
 
     /* ===== 新規作成：POST /data（保存） ===== */
@@ -879,6 +897,7 @@ class DataController extends Controller
             'guest_mode' => ['required','in:new,existing'],
             'guest_id'   => ['required_if:guest_mode,existing','nullable','integer','exists:guests,id'],
             'guest_name' => ['required_if:guest_mode,new','nullable','string','max:25'],
+            // owner/registrar が guest_mode=new の場合のみ「担当部署」を必須にする
             'kihu_year'  => ['required','integer','between:2025,2035'],
             'data_name'  => ['required','string','max:25'],
             'birth_date' => ['nullable','date_format:Y-m-d'],
@@ -887,6 +906,23 @@ class DataController extends Controller
         if (config('feature.data_privacy')) {
             $rules['visibility'] = ['nullable','in:shared,private'];
         }
+
+        // ★A案：Owner/Registrar の新規顧客は部署必須（is_active=1 & 未削除 & 同一company）
+        $me = auth()->user();
+        $companyId = (int)$me->company_id;
+        if (!$this->isClient() && $this->isOwnerOrRegistrar()) {
+            $rules['group_id'] = [
+                'required_if:guest_mode,new',
+                'nullable',
+                'integer',
+                Rule::exists('groups', 'id')->where(function ($q) use ($companyId) {
+                    $q->where('company_id', $companyId)
+                      ->whereNull('deleted_at')
+                      ->where('is_active', 1);
+                }),
+            ];
+        }
+
         $messages = [
             'guest_mode.required' => 'お客様の指定を選択してください。',
             'guest_mode.in'       => 'お客様の指定が不正です。',
@@ -894,6 +930,8 @@ class DataController extends Controller
             'guest_id.exists'     => '選択したお客様が見つかりません。',
             'guest_name.required_if' => 'お客様名を入力してください。',
             'guest_name.max'         => 'お客様名は25文字以内で入力してください。',
+            'group_id.required_if'   => '担当部署を選択してください。',
+            'group_id.exists'        => '担当部署の指定が不正です。',
             'kihu_year.required'  => '年度を選択してください。',
             'kihu_year.between'   => '年度の指定が不正です（2025〜2035）。',
             'data_name.required'  => 'データ名を入力してください。',
@@ -905,8 +943,6 @@ class DataController extends Controller
         $validated = $request->validate($rules, $messages);
         $this->assertValidDataNameOrFail((string)$validated['data_name']);
 
-        $me = auth()->user();
-        $companyId = (int)$me->company_id;
         $groupIdOfUser = (int)($me->group_id ?? 0);
 
         // 2) お客様の決定（スコープ整合）
@@ -921,7 +957,13 @@ class DataController extends Controller
             $guest = new Guest();
             $guest->name       = (string)$validated['guest_name'];
             $guest->company_id = $companyId;
-            $guest->group_id   = $this->isOwnerOrRegistrar() ? $groupIdOfUser : $groupIdOfUser;
+            if ($this->isOwnerOrRegistrar()) {
+                // ★Owner/Registrar は担当部署の選択が必須（A案）
+                $guest->group_id = (int)$validated['group_id'];
+            } else {
+                // member/group_admin は自部署固定
+                $guest->group_id = $groupIdOfUser;
+            }
             $guest->user_id    = $me->id;
             $guest->save();
         } else {
@@ -1022,12 +1064,25 @@ class DataController extends Controller
         $baseName = (string)($source->data_name ?? 'default');
         $suggestedCopyName = $this->suggestNextCopyNameForForm((int)$source->guest_id, $defaultYear, $baseName);
 
+        // Owner/Registrar が copy_mode=new（新規顧客）を選ぶ場合は担当部署必須
+        $assignGroups = collect();
+        if (!$this->isClient() && $this->isOwnerOrRegistrar()) {
+            $assignGroups = Group::query()
+                ->where('company_id', (int)$me->company_id)
+                ->whereNull('deleted_at')
+                ->where('is_active', 1)
+                ->orderBy('name')
+                ->orderBy('id')
+                ->get(['id','name']);
+        }
+
         return view('data.data_copy', [
             'source' => $source,
             'guests' => $guests,
             'defaultBirthDate' => $defaultBirthDate,
             'clientGuest' => $this->isClient() ? ($this->resolveClientGuestOrFail()) : null,
             'suggestedCopyName' => $suggestedCopyName,
+            'assignGroups' => $assignGroups,
         ]);
     }
 
@@ -1049,6 +1104,7 @@ class DataController extends Controller
             'copy_mode'        => ['required','in:same,existing,new'],
             'target_guest_id'  => ['nullable','integer','required_if:copy_mode,existing','exists:guests,id'],
             'target_guest_name'=> ['nullable','string','max:25','required_if:copy_mode,new'],
+            // owner/registrar が copy_mode=new の場合のみ「担当部署」を必須にする
             'kihu_year'        => ['required','integer','between:2025,2035'],
             'data_name'        => ['required','string','max:25'],
             'birth_date'       => ['nullable','date_format:Y-m-d'],
@@ -1057,6 +1113,23 @@ class DataController extends Controller
         if (config('feature.data_privacy')) {
             $rules['visibility'] = ['nullable','in:shared,private'];
         }
+
+        $me = auth()->user();
+        $companyId = (int)$me->company_id;
+        $userGroupId = (int)($me->group_id ?? 0);
+        if (!$this->isClient() && $this->isOwnerOrRegistrar()) {
+            $rules['group_id'] = [
+                'required_if:copy_mode,new',
+                'nullable',
+                'integer',
+                Rule::exists('groups', 'id')->where(function ($q) use ($companyId) {
+                    $q->where('company_id', $companyId)
+                      ->whereNull('deleted_at')
+                      ->where('is_active', 1);
+                }),
+            ];
+        }
+
         $messages = [
             'selected_data_id.required' => 'コピー元データが指定されていません。',
             'copy_mode.required'        => 'コピー先の指定を選択してください。',
@@ -1064,6 +1137,8 @@ class DataController extends Controller
             'target_guest_id.exists'        => '選択したお客様が見つかりません。',
             'target_guest_name.required_if' => '新規のお客様の場合は、お客様名を入力してください。',
             'target_guest_name.max'         => 'お客様名は25文字以内で入力してください。',
+            'group_id.required_if' => '担当部署を選択してください。',
+            'group_id.exists'      => '担当部署の指定が不正です。',
             'kihu_year.required' => '年度を選択してください。',
             'kihu_year.between'  => '年度の指定が不正です（2025〜2035）。',
             'data_name.required' => 'データ名を入力してください。',
@@ -1074,9 +1149,6 @@ class DataController extends Controller
         $validated = $request->validate($rules, $messages);
         $this->assertValidDataNameOrFail((string)$validated['data_name']);
 
-        $me = auth()->user();
-        $companyId = (int)$me->company_id;
-        $userGroupId = (int)($me->group_id ?? 0);
         $birthDate = $validated['birth_date'] ?? null;
         $proposalIn = $validated['proposal_date'] ?? null;
 
@@ -1104,7 +1176,12 @@ class DataController extends Controller
             $targetGuest = new Guest();
             $targetGuest->name       = (string)$validated['target_guest_name'];
             $targetGuest->company_id = $companyId;
-            $targetGuest->group_id   = $userGroupId;
+            if ($this->isOwnerOrRegistrar()) {
+                // ★Owner/Registrar は担当部署の選択が必須（A案）
+                $targetGuest->group_id = (int)$validated['group_id'];
+            } else {
+                $targetGuest->group_id = $userGroupId;
+            }
             $targetGuest->user_id    = $me->id;
             $targetGuest->save();
         }

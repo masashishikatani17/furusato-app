@@ -15,6 +15,9 @@ class GroupPolicy
         if ($actor->isGroupAdmin()) {
             return true; // index 側で自部署に絞る
         }
+        if ($actor->getDisplayRoleAttribute() === 'member') {
+            return true; // index 側で自部署に絞る
+        }
         return false;
     }
 
@@ -27,6 +30,9 @@ class GroupPolicy
             return true;
         }
         if ($actor->isGroupAdmin()) {
+            return (int)$actor->group_id === (int)$group->id;
+        }
+        if ($actor->getDisplayRoleAttribute() === 'member') {
             return (int)$actor->group_id === (int)$group->id;
         }
         return false;

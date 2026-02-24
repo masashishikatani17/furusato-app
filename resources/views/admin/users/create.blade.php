@@ -45,7 +45,7 @@
             <ul class="hs mb-0 ms-3">
                 <li>Owner / Registrar / GroupAdmin が招待できます。</li>
                 <li>GroupAdmin が付与できる役割は <strong>Member</strong> と <strong>GroupAdmin</strong> のみです。</li>
-                <li>Registrar を付与する場合は部署を空欄にします。<br>（部署は固定されません。空欄で保存してください）</li>
+                <li>Registrar を付与する場合は部署を空欄にします。<br>（部署は固定されません。空欄で保存して下さい）</li>
                 <li>未承諾・未失効の重複招待はできません。</li>
                 @if ($hasIsActive)
                     <li>停止中ユーザーは「有効化」を行うことで再カウントされます。</li>
@@ -143,7 +143,7 @@
                         <td>
                           {{-- 注意文（td内：部署の「前」相当＝selectの上） --}}
                           <p-small class="mb-2" style="display:block;">
-                            Owner の招待はできません。必要な場合は代表者権限の譲渡をご利用ください。
+                            Owner の招待はできません。必要な場合は代表者権限の譲渡をご利用下さい。
                           </p-small>
 
                           <select id="invite-group"
@@ -160,7 +160,7 @@
                           </select>
                           {{-- 注意文（td内：部署の直後） --}}
                           <p-small class="mt-1 mb-0" style="display:block;">
-                            Registrar を付与する場合は部署を空欄にしてください。
+                            Registrar を付与する場合は部署を空欄にして下さい。
                           </p-small>
                         </td>
                       </tr>
@@ -194,7 +194,7 @@
                           class="form-select"
                           style="width: 360px;"
                           {{ $canSubmit ? '' : 'disabled' }}>
-                    <option value="">（選択してください）</option>
+                    <option value="">（選択して下さい）</option>
                     @foreach (($guestsForClient ?? collect()) as $g)
                       <option value="{{ $g->id }}" @selected((string)old('guest_id')===(string)$g->id)>
                         {{ $g->name }}（部署ID:{{ (int)($g->group_id ?? 0) }}）

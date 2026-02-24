@@ -14,7 +14,7 @@
   $A = function (string $p) use ($P,$N): int {
     return
       max(0, $N($P["shotoku_keijo_{$p}"]           ?? null)) +
-      max(0, $N($P["shotoku_joto_tanki_{$p}"]      ?? null)) +
+      max(0, $N($P["shotoku_joto_tanki_sogo_{$p}"] ?? null)) +
       max(0, $N($P["shotoku_joto_choki_sogo_{$p}"] ?? null)) +
       max(0, $N($P["shotoku_ichiji_{$p}"]          ?? null));
   };

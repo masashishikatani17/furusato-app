@@ -15,6 +15,26 @@
   // 総合譲渡＋一時（同一ページ内で2モーダル）辞書
   $sogoIchijiHelpPath = resource_path('views/tax/furusato/helps/help_sogojotoichiji_modal.php');
   $HELP_TEXTS_SOGOICHIJI = file_exists($sogoIchijiHelpPath) ? require $sogoIchijiHelpPath : [];
+
+    /**
+     * 表示専用：3桁カンマ整形（空は空のまま）
+     * - POST/SoTには影響しない（このページの派生表示は data-no-mirror=1 で送信されない）
+     */
+    $fmtInt = function ($v): string {
+        if ($v === null) return '';
+        if (is_string($v)) {
+            $s = trim($v);
+            if ($s === '') return '';
+            $s = str_replace([',', ' ', '　'], '', $s);
+            if (!preg_match('/^-?\d+$/', $s)) return $v; // 数字でない表示はそのまま
+            $n = (int)$s;
+            return number_format($n);
+        }
+        if (is_int($v) || is_float($v) || is_numeric($v)) {
+            return number_format((int)$v);
+        }
+        return '';
+    };
 @endphp
 <div class="container-blue mt-2" style="width: 1200px;">
   <div class="card-header d-flex align-items-start">
@@ -96,42 +116,48 @@
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="sashihiki_joto_tanki_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['sashihiki_joto_tanki_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt((int)($inputs['syunyu_joto_tanki_' . $period] ?? 0) - (int)($inputs['keihi_joto_tanki_' . $period] ?? 0)) }}" readonly>
                     </td>
                     <td>
-                      {{-- 内部通算後（仕様上、tsusango_*_sogo を表示） --}}
+                      {{-- 内部通算後（サーバ確定値のみ表示：fallbackで別段階に落ちない） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_naibutsusan_joto_tanki_sogo_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['tsusango_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['after_naibutsusan_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tokubetsukojo_joto_tanki_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ $inputs['tokubetsukojo_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['tokubetsukojo_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_joto_ichiji_tousan_joto_tanki_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['after_joto_ichiji_tousan_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['after_joto_ichiji_tousan_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       {{-- 損益通算後（最終通算） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tsusango_joto_tanki_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['after_3jitsusan_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['after_3jitsusan_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td class="text-center align-middle">－</td>
                     <td>
                       {{-- 最終 所得金額（サーバ確定） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="shotoku_joto_tanki_sogo_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['shotoku_joto_tanki_sogo_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['shotoku_joto_tanki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                   </tr>
                   <tr>
@@ -155,34 +181,39 @@
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="sashihiki_joto_choki_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['sashihiki_joto_choki_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt((int)($inputs['syunyu_joto_choki_' . $period] ?? 0) - (int)($inputs['keihi_joto_choki_' . $period] ?? 0)) }}" readonly>
                     </td>
                     <td>
-                      {{-- 内部通算後（仕様上、tsusango_*_sogo を表示） --}}
+                      {{-- 内部通算後（サーバ確定値のみ表示：fallbackで別段階に落ちない） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_naibutsusan_joto_choki_sogo_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['tsusango_joto_choki_sogo_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['after_naibutsusan_joto_choki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tokubetsukojo_joto_choki_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ $inputs['tokubetsukojo_joto_choki_sogo_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['tokubetsukojo_joto_choki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_joto_ichiji_tousan_joto_choki_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['after_joto_ichiji_tousan_joto_choki_sogo_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['after_joto_ichiji_tousan_joto_choki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       {{-- 損益通算後（最終通算） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tsusango_joto_choki_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['after_3jitsusan_joto_choki_sogo_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['after_3jitsusan_joto_choki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       @php
@@ -196,15 +227,17 @@
                       @endphp
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="half_joto_choki_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ $halfJotoChoki }}" readonly>
+                             value="{{ $fmtInt($halfJotoChoki) }}" readonly>
                     </td>
                     <td>
                       {{-- 最終 所得金額（サーバ確定） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="shotoku_joto_choki_sogo_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['shotoku_joto_choki_sogo_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['shotoku_joto_choki_sogo_' . $period] ?? null) }}" readonly>
                     </td>
                   </tr>
                   <tr>
@@ -228,40 +261,45 @@
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="sashihiki_ichiji_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ max(0, (int)($inputs['syunyu_ichiji_' . $period] ?? 0) - (int)($inputs['keihi_ichiji_' . $period] ?? 0)) }}"
+                             value="{{ $fmtInt(max(0, (int)($inputs['syunyu_ichiji_' . $period] ?? 0) - (int)($inputs['keihi_ichiji_' . $period] ?? 0))) }}"
                              readonly
                              onblur="calculateSashihikiIchiji('{{ $period }}')">
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_naibutsusan_ichiji_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ max(
+                             value="{{ $fmtInt($inputs['after_naibutsusan_ichiji_' . $period] ?? max(
                                  0,
                                  (int)($inputs['syunyu_ichiji_' . $period] ?? 0)
                                    - (int)($inputs['keihi_ichiji_' . $period] ?? 0)
-                             ) }}"
+                             )) }}"
                              readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tokubetsukojo_ichiji_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ $inputs['tokubetsukojo_ichiji_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['tokubetsukojo_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="after_joto_ichiji_tousan_ichiji_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['after_joto_ichiji_tousan_ichiji_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['after_joto_ichiji_tousan_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       {{-- 損益通算後（最終通算） --}}
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="tsusango_ichiji_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['after_3jitsusan_ichiji_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['after_3jitsusan_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                     <td>
                       @php
@@ -275,14 +313,16 @@
                       @endphp
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="half_ichiji_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji8 text-end bg-light"
-                             value="{{ $halfIchiji }}" readonly>
+                             value="{{ $fmtInt($halfIchiji) }}" readonly>
                     </td>
                     <td>
                       <input type="text" inputmode="numeric" autocomplete="off"
                              data-format="comma-int" data-name="shotoku_ichiji_{{ $period }}"
+                             data-no-mirror="1"
                              class="form-control suji10 text-end bg-light"
-                             value="{{ $inputs['shotoku_ichiji_' . $period] ?? '' }}" readonly>
+                             value="{{ $fmtInt($inputs['shotoku_ichiji_' . $period] ?? null) }}" readonly>
                     </td>
                   </tr>
                 </tbody>
@@ -444,11 +484,13 @@
       return hidden;
     };
 
-    // 1) 全ての data-format="comma-int" に対して、readonly であっても必ず hidden(name=...) を用意する
+    // 1) data-format="comma-int" のうち、POSTしたいものだけ hidden(name=...) を用意する
+    //    - data-no-mirror="1" は「表示専用」：hidden を作らず、混入を防ぐ
     const allFmtInputs = Array.from(document.querySelectorAll('[data-format="comma-int"]'));
     allFmtInputs.forEach((input) => {
       const name = input.dataset.name;
       if (!name) return;
+      if (input.dataset.noMirror === '1') return; // ★ 派生キー混入を防止
       ensureProbablyCreateHidden(input);
     });
 
@@ -502,10 +544,11 @@
         ['prev','curr'].forEach((p) => {
           calculateSashihikiIchiji(p);
         });
-        // 送信直前は readonly を含む全てを最終同期（hidden に raw を格納）
+        // 送信直前は「POST対象のみ」を最終同期（hidden に raw を格納）
         allFmtInputs.forEach((input) => {
           const name = input.dataset.name;
           if (!name) return;
+          if (input.dataset.noMirror === '1') return; // ★ 派生キー混入を防止
           const hidden = getHidden(name) || ensureProbablyCreateHidden(input);
           if (!hidden) return;
           const raw = toRawInt(input.value ?? hidden.value ?? '');

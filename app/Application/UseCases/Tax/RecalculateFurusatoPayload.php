@@ -102,6 +102,18 @@ class RecalculateFurusatoPayload
                 continue;
             }
 
+            // ============================================================
+            // ▼ 総合譲渡・一時：旧キー（非_sogo）を完全廃止
+            //   - SoTは *_sogo_* のみ
+            //   - 旧キーがPOST/混入しても、ここで必ず捨てて汚染を防ぐ
+            // ============================================================
+            if (is_string($key) && (
+                preg_match('/^sashihiki_joto_(tanki|choki)_(prev|curr)$/', $key) === 1 ||
+                preg_match('/^tsusango_joto_(tanki|choki)_(prev|curr)$/', $key) === 1
+            )) {
+                continue;
+            }
+
             // ▼ 表示専用（サーバ算出）キーは入力diffから除外して混入を防止
             //    - result_details.blade.php が hidden で持つ human_diff_* 等が payload に残ると、
             //      内訳表示と SoT がズレる原因になるため、必ずサーバ側で再生成する。
@@ -134,6 +146,31 @@ class RecalculateFurusatoPayload
                 str_starts_with($key, 'kojo_iryo_kojogaku_') ||
                 str_starts_with($key, 'kojo_iryo_shotoku_') ||
                 str_starts_with($key, 'kojo_iryo_jumin_')
+            )) {
+                continue;
+            }
+
+            // ▼ 計算結果詳細（result_details.tab）等の「表示専用」派生キーは入力diffから除外
+            //    - input.blade.php は 1つの<form>内に結果タブがあり、name付きreadonlyがPOSTされ得る
+            //    - これらは SoT ではなく、サーバが毎回再生成すべき値
+            //    - details 画面の入力SoT（syunyu/keihi/sashihiki_* 等）は除外しない
+            if (is_string($key) && (
+                // 総合課税の段階通算（表示専用）
+                str_starts_with($key, 'tsusanmae_') ||
+                str_starts_with($key, 'after_1jitsusan_') ||
+                str_starts_with($key, 'after_2jitsusan_') ||
+                str_starts_with($key, 'after_3jitsusan_') ||
+                // 総合譲渡・一時（表示専用の派生）
+                str_starts_with($key, 'after_naibutsusan_') ||
+                str_starts_with($key, 'tokubetsukojo_') ||
+                str_starts_with($key, 'after_joto_ichiji_tousan_') ||
+                // 「通算後」互換/表示用（分離・株式等でも広く使われるため、入力からは受けない）
+                str_starts_with($key, 'tsusango_') ||
+                // 上場株式等の損益通算スナップショット（表示専用）
+                str_starts_with($key, 'before_tsusan_') ||
+                str_starts_with($key, 'after_tsusan_') ||
+                // 特例控除率（結果表示用：サーバが再生成）
+                str_starts_with($key, 'tokurei_rate_')
             )) {
                 continue;
             }

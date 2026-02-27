@@ -1899,23 +1899,35 @@ final class FurusatoController extends Controller
             }
             return null;
         };
+
+        // ★ joto_ichiji_details の内部通算系は「最新の差引SoT」に追従させる必要があるため、
+        //   previewPayload（その場で計算した最新）を最優先にする。
+        //   resultsPayload/upper はセッション/DB由来で古い可能性があるため、このブロックでは参照しない。
+        $mirrorFromPreviewOnly = static function (array $sources) use ($previewPayload) {
+            foreach ($sources as $key) {
+                if (array_key_exists($key, $previewPayload) && $previewPayload[$key] !== null) {
+                    return $previewPayload[$key];
+                }
+            }
+            return null;
+        };
         foreach (['prev','curr'] as $p) {
             // 譲渡 短期
-            $v = $mirrorFrom([sprintf('tsusango_joto_tanki_sogo_%s', $p)]);
+            $v = $mirrorFromPreviewOnly([sprintf('after_naibutsusan_joto_tanki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('after_naibutsusan_joto_tanki_sogo_%s', $p)] = (int)$v;
-            $v = $mirrorFrom([sprintf('tokubetsukojo_joto_tanki_sogo_%s', $p)]);
+            $v = $mirrorFromPreviewOnly([sprintf('tokubetsukojo_joto_tanki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('tokubetsukojo_joto_tanki_%s', $p)] = (int)$v;
-            $v = $mirrorFrom([sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $p)]);
+            $v = $mirrorFromPreviewOnly([sprintf('after_joto_ichiji_tousan_joto_tanki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('after_joto_ichiji_tousan_joto_tanki_%s', $p)] = (int)$v;
             $v = $mirrorFrom([sprintf('after_3jitsusan_joto_tanki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('tsusango_joto_tanki_%s', $p)] = (int)$v;
 
             // 譲渡 長期
-            $v = $mirrorFrom([sprintf('tsusango_joto_choki_sogo_%s', $p)]);
+            $v = $mirrorFromPreviewOnly([sprintf('after_naibutsusan_joto_choki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('after_naibutsusan_joto_choki_sogo_%s', $p)] = (int)$v;
-            $v = $mirrorFrom([sprintf('tokubetsukojo_joto_choki_sogo_%s', $p)]);
+            $v = $mirrorFromPreviewOnly([sprintf('tokubetsukojo_joto_choki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('tokubetsukojo_joto_choki_%s', $p)] = (int)$v;
-            $v = $mirrorFrom([sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $p)]);
+            $v = $mirrorFromPreviewOnly([sprintf('after_joto_ichiji_tousan_joto_choki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('after_joto_ichiji_tousan_joto_choki_%s', $p)] = (int)$v;
             $v = $mirrorFrom([sprintf('after_3jitsusan_joto_choki_sogo_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('tsusango_joto_choki_%s', $p)] = (int)$v;
@@ -1923,9 +1935,9 @@ final class FurusatoController extends Controller
             // 一時：損益通算後は 0 下限で確定（Calculator の tsusango_ichiji_* を採用）
             $v = $mirrorFrom([sprintf('tsusango_ichiji_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('tsusango_ichiji_%s', $p)] = max(0, (int)$v);
-            $v = $mirrorFrom([sprintf('after_joto_ichiji_tousan_ichiji_%s', $p)]);
+            $v = $mirrorFromPreviewOnly([sprintf('after_joto_ichiji_tousan_ichiji_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('after_joto_ichiji_tousan_ichiji_%s', $p)] = (int)$v;
-            $v = $mirrorFrom([sprintf('tokubetsukojo_ichiji_%s', $p)]);
+            $v = $mirrorFromPreviewOnly([sprintf('tokubetsukojo_ichiji_%s', $p)]);
             if ($v !== null) $inputsForView[sprintf('tokubetsukojo_ichiji_%s', $p)] = (int)$v;
             // 所得金額（サーバ確定）
             $v = $mirrorFrom([sprintf('shotoku_ichiji_%s', $p)]);
@@ -2756,6 +2768,27 @@ final class FurusatoController extends Controller
         }
 
         $updatesForRecalc = $payload;
+
+        // ============================================================
+        // DBG: joto_ichiji_details のPOSTが「validated→filter→recalc」まで届いているか確認
+        //  - ここは調査用ログ。原因確定後に削除してください。
+        // ============================================================
+        Log::info('[DBG details:joto_ichiji payload for recalc]', [
+            'data_id' => (int) $data->id,
+            // validated() から取れているか（Request層で落ちていないか）
+            'has_validated_sashihiki_joto_choki_sogo_curr' => array_key_exists('sashihiki_joto_choki_sogo_curr', $validated),
+            'validated_sashihiki_joto_choki_sogo_curr' => $validated['sashihiki_joto_choki_sogo_curr'] ?? null,
+            'has_validated_sashihiki_ichiji_curr' => array_key_exists('sashihiki_ichiji_curr', $validated),
+            'validated_sashihiki_ichiji_curr' => $validated['sashihiki_ichiji_curr'] ?? null,
+            // filter 後（recalcに渡す最終payload）
+            'payload_sashihiki_joto_choki_sogo_curr' => $payload['sashihiki_joto_choki_sogo_curr'] ?? null,
+            'payload_sashihiki_joto_tanki_sogo_curr' => $payload['sashihiki_joto_tanki_sogo_curr'] ?? null,
+            'payload_sashihiki_ichiji_curr' => $payload['sashihiki_ichiji_curr'] ?? null,
+            // ★紛れ込み確認（これが混ざると “別キー” を参照してズレる）
+            'payload_has_sashihiki_joto_choki_sogo_curr' => array_key_exists('sashihiki_joto_choki_sogo_curr', $payload),
+            'payload_sashihiki_joto_choki_sogo_curr' => $payload['sashihiki_joto_choki_sogo_curr'] ?? null,
+            'payload_keys' => array_slice(array_keys($payload), 0, 50),
+        ]);
 
         if ((int) $req->input('recalc_all') === 1) {
             Log::info('[details:joto_ichiji] recompute & redirect');
@@ -4646,8 +4679,28 @@ final class FurusatoController extends Controller
         $role = strtolower((string) ($me->role ?? ''));
         $isOwnerOrRegistrar = (method_exists($me, 'isOwner') && $me->isOwner()) || in_array($role, ['owner', 'registrar'], true);
 
+        // client：自分に紐付く guest の data のみ
+        if ($role === 'client') {
+            $data->loadMissing('guest');
+            $guest = $data->guest;
+            if (! $guest || (int)($guest->client_user_id ?? 0) !== (int)$me->id) {
+                abort(403);
+            }
+        }
+
         if (! $isOwnerOrRegistrar && (int) $data->group_id !== (int) ($me->group_id ?? 0)) {
             abort(403);
+        }
+
+        // private：作成者のみ（owner/registrar でも例外なし）
+        if (config('feature.data_privacy')) {
+            $vis = (string)($data->visibility ?? 'shared');
+            if ($vis === 'private') {
+                $creatorId = (int)($data->owner_user_id ?? 0) ?: (int)($data->user_id ?? 0);
+                if ((int)$me->id !== $creatorId) {
+                    abort(403);
+                }
+            }
         }
 
         return $data;
@@ -4655,22 +4708,9 @@ final class FurusatoController extends Controller
 
     private function resolveCompanyScopedDataOrFail(Request $request): Data
     {
-        $id = (int) ($request->input('data_id') ?? $request->query('data_id'));
-        abort_unless($id > 0, 422, 'data_id が指定されていません。');
-
-        $data = Data::with('guest')->findOrFail($id);
-        $me = $request->user();
-
-        if (! $me) {
-            throw new AuthenticationException();
-        }
-
-
-        if ((int) $data->company_id !== (int) ($me->company_id ?? 0)) {
-            abort(403);
-        }
-
-        return $data;
+        // ★危険：company だけのチェックは private/client を素通しするため廃止し、
+        //   常に resolveAuthorizedDataOrFail(view) を経由する。
+        return $this->resolveAuthorizedDataOrFail($request, 'view');
     }
 
     /**

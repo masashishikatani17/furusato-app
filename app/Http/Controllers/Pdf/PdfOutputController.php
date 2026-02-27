@@ -1185,11 +1185,36 @@ class PdfOutputController extends Controller
         $id = (int) $request->query('data_id');
         abort_unless($id > 0, 422, 'data_id が指定されていません。');
         $data = Data::with('guest')->findOrFail($id);
-        $me = Auth::user();
+        $me = $request->user() ?? Auth::user();
+        if (! $me) {
+            throw new AuthenticationException();
+        }
         if ((int)$data->company_id !== (int)$me->company_id) abort(403);
         $role = strtolower((string)($me->role ?? ''));
         $isOwnerOrRegistrar = (method_exists($me, 'isOwner') && $me->isOwner()) || in_array($role, ['owner','registrar'], true);
+
+        // client：自分に紐付く guest の data のみ
+        if ($role === 'client') {
+            $data->loadMissing('guest');
+            $guest = $data->guest;
+            if (! $guest || (int)($guest->client_user_id ?? 0) !== (int)$me->id) {
+                abort(403);
+            }
+        }
+
         if (!$isOwnerOrRegistrar && (int)$data->group_id !== (int)($me->group_id ?? 0)) abort(403);
+
+        // private：作成者のみ（owner/registrar でも例外なし）
+        if (config('feature.data_privacy')) {
+            $vis = (string)($data->visibility ?? 'shared');
+            if ($vis === 'private') {
+                $creatorId = (int)($data->owner_user_id ?? 0) ?: (int)($data->user_id ?? 0);
+                if ((int)$me->id !== $creatorId) {
+                    abort(403);
+                }
+            }
+        }
+        
         return $data;
     }
 }

@@ -19,6 +19,14 @@ use Illuminate\Validation\Rule;
 
 class DataController extends Controller
 {
+    /** visibility=private の作成者判定（owner_user_id優先、なければuser_id） */
+    private function isCreatorOfData(Data $data, $me): bool
+    {
+        if (! $me) return false;
+        $creatorId = (int)($data->owner_user_id ?? 0) ?: (int)($data->user_id ?? 0);
+        return $creatorId > 0 && (int)$me->id === $creatorId;
+    }
+
     /** data_name 禁止文字（仕様） */
     private function assertValidDataNameOrFail(?string $name): void
     {
@@ -309,6 +317,30 @@ class DataController extends Controller
             if ($ctxGroupId !== null) {
                 $guestQuery->where('group_id', $ctxGroupId);
             }
+
+            // ▼ 要件：共有データが無く「他人privateのみ」の guest は他人に見せない
+            // ただし data が 0件の guest は従来どおり表示する（右ペインは「データがありません」）
+            if (config('feature.data_privacy')) {
+                $me = $user;
+                $guestQuery->where(function ($q) use ($me) {
+                    // data 0件は表示する
+                    $q->whereDoesntHave('datas')
+                      // 自分から見える data が1件以上ある guest は表示する
+                      ->orWhereHas('datas', function ($dq) use ($me) {
+                          $dq->where(function ($dqq) use ($me) {
+                              $dqq->whereNull('visibility')
+                                  ->orWhere('visibility', '!=', 'private')
+                                  ->orWhere(function ($p) use ($me) {
+                                      $p->where('visibility', 'private')
+                                        ->where(function ($pp) use ($me) {
+                                            $pp->where('owner_user_id', (int)$me->id)
+                                               ->orWhere('user_id', (int)$me->id);
+                                        });
+                                  });
+                          });
+                      });
+                });
+            }
         }
         $guests = $guestQuery->orderBy('created_at')->get();
 
@@ -551,12 +583,15 @@ class DataController extends Controller
         for ($y = $maxY; $y >= $minY; $y--) $years[] = $y;
 
         $canDelete = $this->canDeleteData($data);
+        $me = auth()->user();
+        $canEditVisibility = config('feature.data_privacy') ? $this->isCreatorOfData($data, $me) : false;
 
         return view('data.data_edit', [
             'data' => $data,
             'guest' => $data->guest,
             'years' => $years,
             'canDelete' => $canDelete,
+            'canEditVisibility' => $canEditVisibility,
         ]);
     }
 
@@ -571,12 +606,16 @@ class DataController extends Controller
         $this->assertCanAccessData($data);
         $data->loadMissing('guest');
 
+        $me = auth()->user();
+        $canEditVisibility = config('feature.data_privacy') ? $this->isCreatorOfData($data, $me) : false;
+
         $rules = [
             'proposal_date' => ['required','date_format:Y-m-d'],
             'kihu_year'     => ['required','integer','between:2025,2035'],
             'data_name'     => ['required','string','max:25'],
         ];
-        if (config('feature.data_privacy')) {
+        // 共有設定（visibility）は「作成者のみ」変更可
+        if (config('feature.data_privacy') && $canEditVisibility) {
             $rules['visibility'] = ['required','in:shared,private'];
         }
         $messages = [
@@ -593,7 +632,10 @@ class DataController extends Controller
 
         $newYear = (int)$validated['kihu_year'];
         $oldYear = (int)($data->kihu_year ?? 0);
-        $newVis  = config('feature.data_privacy') ? (string)$validated['visibility'] : (string)($data->visibility ?? 'shared');
+        // 作成者以外は visibility を変更できない（常に既存値を維持）
+        $newVis  = config('feature.data_privacy')
+            ? ($canEditVisibility ? (string)($validated['visibility'] ?? ($data->visibility ?? 'shared')) : (string)($data->visibility ?? 'shared'))
+            : (string)($data->visibility ?? 'shared');
         $newProposal = (string)$validated['proposal_date'];
         $newName = (string)$validated['data_name'];
         $this->assertValidDataNameOrFail($newName);
@@ -790,10 +832,28 @@ class DataController extends Controller
         if (!$this->isOwnerOrRegistrar() && (int)$guest->group_id !== (int)$me->group_id) abort(403);
 
         DB::transaction(function () use ($guest) {
-            $guest->datas()->delete();
+            // 対象 data_id 一覧（削除前に確定）
+            $dataIds = Data::query()
+                ->where('guest_id', (int)$guest->id)
+                ->pluck('id')
+                ->map(fn($v) => (int)$v)
+                ->all();
+
+            if (!empty($dataIds)) {
+                // ▼ 子テーブルを物理削除（孤児を残さない）
+                DB::table('furusato_inputs')->whereIn('data_id', $dataIds)->delete();
+                DB::table('furusato_syori_settings')->whereIn('data_id', $dataIds)->delete();
+                DB::table('furusato_results')->whereIn('data_id', $dataIds)->delete();
+
+                // ▼ datas をソフトデリート（復元余地は残す）
+                Data::query()->whereIn('id', $dataIds)->delete();
+            }
+
+            // ▼ guest もソフトデリート
             $guest->delete();
         });
-        return response()->json(['message'=>'deleted'], 200);
+
+        return response()->json(['message' => 'deleted'], 200);
     }
 
     /** データ削除：DELETE /api/data/{data}（残0件なら親Guestも削除） */

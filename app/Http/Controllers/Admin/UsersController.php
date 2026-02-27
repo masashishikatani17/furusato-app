@@ -216,8 +216,16 @@ class UsersController extends Controller
             try {
                 $seatService->assertCanInvite((int) $actor->company_id, $seatLimit, 1);
             } catch (\Throwable $e) {
+                // ここで「次に必要なプラン」を案内（自動アップグレードしない）
+                $usage = $seatService->getSeatUsage((int) $actor->company_id);
+                $need = (int)$usage['active_users'] + (int)$usage['pending_invites'] + 1;
+                $suggest = $seatService->suggestPlanForHeadcount($need);
+                $msg = "現在のプランではユーザー数の上限に達しています。"
+                    . "（在籍{$usage['active_users']}名＋招待中{$usage['pending_invites']}名＋今回1名＝合計{$need}名）\n"
+                    . "ユーザーを追加する前に、プラン変更を行ってください。\n"
+                    . "次に必要なプラン目安：{$suggest['label']}";
                 throw ValidationException::withMessages([
-                    'email' => __('招待可能な席数の上限に達しています。'),
+                    'email' => $msg,
                 ]);
             }
         }

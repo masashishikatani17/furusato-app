@@ -2761,6 +2761,7 @@
       'kojo_haigusha',
       'kojo_haigusha_tokubetsu',
       'kojo_fuyo',
+      'kojo_tokutei_shinzoku',
       'kojo_kiso',
     ];
     const kojoGokeiExtras = ['kojo_zasson', 'kojo_iryo', 'kojo_kifukin'];

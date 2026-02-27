@@ -24,6 +24,9 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
         foreach (self::PERIODS as $period) {
             $keys[] = sprintf('sashihiki_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('sashihiki_joto_choki_sogo_%s', $period);
+            $keys[] = sprintf('after_naibutsusan_joto_tanki_sogo_%s', $period);
+            $keys[] = sprintf('after_naibutsusan_joto_choki_sogo_%s', $period);
+            $keys[] = sprintf('after_naibutsusan_ichiji_%s', $period);
             $keys[] = sprintf('tsusango_joto_tanki_sogo_%s', $period);
             $keys[] = sprintf('tsusango_joto_choki_sogo_%s', $period);
             $keys[] = sprintf('tsusango_ichiji_%s', $period);
@@ -50,15 +53,21 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
         }
 
         $shortKey = sprintf('sashihiki_joto_tanki_sogo_%s', $period);
-        $longKey = sprintf('sashihiki_joto_choki_sogo_%s', $period);
-
+        $longKey  = sprintf('sashihiki_joto_choki_sogo_%s', $period);
         $ichijiSourceKey = sprintf('sashihiki_ichiji_%s', $period);
 
         $short = $this->n($payload[$shortKey] ?? null);
-        $long = $this->n($payload[$longKey] ?? null);
-        // 仕様：一時は min0（入力SoT側でも min0 だが保険としてここでも矯正）
-        $ichiji = max(0, $this->n($payload[$ichijiSourceKey] ?? null));
+        $long  = $this->n($payload[$longKey] ?? null);
+        $ichiji = $this->n($payload[$ichijiSourceKey] ?? null);
 
+        // ============================================================
+        // ▼ 内部通算（短期⇔長期）を「after_naibutsusan_*」として SoT 確定
+        //   - 一時は仕様どおり min0
+        // ============================================================
+        [$naibuShort, $naibuLong] = $this->netBetweenShortAndLong($short, $long);
+        $naibuIchiji = max(0, (int) $ichiji);
+
+        // 以降（特別控除・譲渡⇔一時通算）は Support へ委譲
         $jotoIchiji = JotoIchijiNetting::compute($short, $long, $ichiji);
 
         $tsusangoShortKey = sprintf('tsusango_joto_tanki_sogo_%s', $period);
@@ -70,6 +79,9 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
         $outputs = [
             $shortKey => $jotoIchiji['sashihiki_joto_tanki_sogo'],
             $longKey => $jotoIchiji['sashihiki_joto_choki_sogo'],
+            sprintf('after_naibutsusan_joto_tanki_sogo_%s', $period) => (int) $naibuShort,
+            sprintf('after_naibutsusan_joto_choki_sogo_%s', $period) => (int) $naibuLong,
+            sprintf('after_naibutsusan_ichiji_%s',          $period) => (int) $naibuIchiji,
             // 互換：内部通算後（表示列が参照していても事故らないように）
             $tsusangoShortKey => $jotoIchiji['tsusango_joto_tanki_sogo'],
             $tsusangoLongKey => $jotoIchiji['tsusango_joto_choki_sogo'],
@@ -83,6 +95,28 @@ class SogoShotokuNettingCalculator implements ProvidesKeys
         ];
 
         return $outputs;
+    }
+
+
+    /**
+     * 短期⇔長期の内部通算（符号が反対なら相殺して片方が0になるまで）
+     * @return array{0:int,1:int} [short, long]
+     */
+    private function netBetweenShortAndLong(int $short, int $long): array
+    {
+        $s = $short;
+        $l = $long;
+        if ($s * $l < 0) {
+            $m = min(abs($s), abs($l));
+            if ($s < 0) {
+                $s += $m;
+                $l -= $m;
+            } else {
+                $s -= $m;
+                $l += $m;
+            }
+        }
+        return [(int)$s, (int)$l];
     }
 
     private function n(mixed $value): int

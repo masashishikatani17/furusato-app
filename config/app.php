@@ -57,17 +57,13 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
 
     /*
-    |--------------------------------------------------------------------------
-    | Application Timezone
-    |--------------------------------------------------------------------------
-    |
-    | Here you may specify the default timezone for your application, which
-    | will be used by the PHP date and date-time functions. The timezone
-    | is set to "UTC" by default as it is suitable for most use cases.
-    |
-    */
-
-    'timezone' => 'UTC',
+     |----------------------------------------------------------------------
+     | Application Timezone
+     |----------------------------------------------------------------------
+     | 本番運用は日本時間（JST）を前提とする。
+     | .env の APP_TIMEZONE があればそれを優先し、無ければ Asia/Tokyo を既定にする。
+     */
+    'timezone' => env('APP_TIMEZONE', 'Asia/Tokyo'),
 
     /*
     |--------------------------------------------------------------------------

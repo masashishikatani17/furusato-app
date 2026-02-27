@@ -119,7 +119,7 @@ class KyuyoNenkinCalculator implements ProvidesKeys
                 $this->n($payload[sprintf('sashihiki_joto_choki_sogo_%s', $period)] ?? 0),
                 $this->n($payload[sprintf('sashihiki_ichiji_%s',         $period)] ?? 0),
             );
-            $short1  = (int)($ji['after_joto_ichiji_tousan_joto_tanki'] ?? 0);
+            $short1  = (int)($ji['after_joto_ichiji_tousan_joto_tanki_sogo'] ?? 0);
             $long1   = (int)($ji['after_joto_ichiji_tousan_joto_choki_sogo'] ?? 0);
             $ichiji1 = (int)($ji['after_joto_ichiji_tousan_ichiji'] ?? 0);
 

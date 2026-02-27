@@ -224,6 +224,14 @@
   $showCurr = $suffix === null || $suffix === 'curr';
 @endphp
 
+{{-- ======================================================================
+    重要：このタブは「計算結果の表示専用」。
+    input.blade.php では 1つの <form> の中に本タブが含まれるため、
+    name付きの readonly input が存在すると POST に混入し、payload(SoT)を汚染し得る。
+    → fieldset disabled でフォーム送信対象から除外する（見た目はCSSで維持）。
+   ====================================================================== --}}
+<fieldset disabled class="result-details-fieldset">
+  
 @php
   /**
    * ▼ 表示ガードと値計算（prev/curr 共通）
@@ -454,8 +462,18 @@
           overflow-y: auto;
           padding-right: 6px; /* スクロールバーで横ズレしにくくする保険 */
         }
+        /* disabled による“薄くなる/色が変わる”のを抑止（表示専用のため見た目維持） */
+        .result-details-fieldset[disabled] {
+          opacity: 1;
+        }
+        .result-details-fieldset[disabled] input,
+        .result-details-fieldset[disabled] select,
+        .result-details-fieldset[disabled] textarea {
+          opacity: 1;
+          pointer-events: none; /* 念のため */
+        }
       </style>
- <div class="wrapper pt-2 pb-3 result-details-scroll">
+<div class="wrapper pt-2 pb-3 result-details-scroll">
   <div class="table-responsive">
     <table class="table table-input align-middle" style="width:350px">
             <colgroup>
@@ -2050,3 +2068,4 @@
       </table>
     </div>
 </div>
+</fieldset>

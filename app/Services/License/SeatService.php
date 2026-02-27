@@ -3,6 +3,7 @@
 namespace App\Services\License;
 
 use App\Models\User;
+use App\Models\Subscription;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -74,10 +75,22 @@ class SeatService
 
     public function getActiveSeats(int $companyId): int
     {
-        return (int) DB::table('subscriptions')
+        // 1社=1subscription 前提：seat_limit を SoT とする
+        $sub = Subscription::query()
             ->where('company_id', $companyId)
-            ->where('status', 'active')
-            ->sum('seats_per_subscription');
+            ->first();
+        if (!$sub) {
+            return 0;
+        }
+        if ((string)$sub->status !== 'active') {
+            return 0;
+        }
+        $limit = (int)($sub->seat_limit ?? 0);
+        // 互換：旧カラムしかない場合の保険
+        if ($limit <= 0) {
+            $limit = (int)($sub->seats_per_subscription ?? 0);
+        }
+        return max(0, $limit);
     }
 
     /**
@@ -118,9 +131,39 @@ class SeatService
 
         $usage = $this->getSeatUsage($companyId);
 
-        if ($usage['active_users'] + $usage['pending_invites'] + $additional > $seatLimit) {
-            throw new RuntimeException('Seat limit exceeded.');
+        $need = $usage['active_users'] + $usage['pending_invites'] + $additional;
+        if ($need > $seatLimit) {
+            $suggest = $this->suggestPlanForHeadcount($need);
+            $msg = 'Seat limit exceeded.'
+                . ' need=' . $need
+                . ' current_limit=' . $seatLimit
+                . ' suggest_plan=' . ($suggest['label'] ?? 'n/a');
+            throw new RuntimeException($msg);
         }
+    }
+
+    /**
+     * 必要人数から、次に必要なプランを返す（表示用）
+     * - label はUI表示に使う
+     *
+     * @return array{code:string,label:string,seat_limit:int,price_yen:int}
+     */
+    public function suggestPlanForHeadcount(int $headcount): array
+    {
+        // 4プラン固定
+        $plans = [
+            ['code' => 'p5',  'label' => '5人以下（年額3万円）',    'seat_limit' => 5,  'price_yen' => 30000],
+            ['code' => 'p10', 'label' => '6〜10人（年額6万円）',  'seat_limit' => 10, 'price_yen' => 60000],
+            ['code' => 'p20', 'label' => '11〜20人（年額9万円）', 'seat_limit' => 20, 'price_yen' => 90000],
+            // 21人以上：上限は実務上「十分大きい値」
+            ['code' => 'p21', 'label' => '21人以上（年額12万円）', 'seat_limit' => 9999, 'price_yen' => 120000],
+        ];
+        foreach ($plans as $p) {
+            if ($headcount <= (int)$p['seat_limit']) {
+                return $p;
+            }
+        }
+        return $plans[count($plans) - 1];
     }
 
     /**

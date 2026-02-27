@@ -25,8 +25,13 @@ class DetailsSourceAliasCalculator implements ProvidesKeys
         'bunri_shotoku_choki_ippan_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_choki_ippan_%s'],
         'bunri_shotoku_choki_tokutei_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_choki_tokutei_%s'],
         'bunri_shotoku_choki_keika_shotoku_%s' => ['group' => 'bunri_joto_details', 'source' => 'sashihiki_choki_keika_%s'],
-        'sashihiki_joto_tanki_sogo_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_joto_tanki_%s', 'preserveNull' => true],
-        'sashihiki_joto_choki_sogo_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_joto_choki_%s', 'preserveNull' => true],
+        // ============================================================
+        // 総合譲渡（短期/長期）の差引SoTは *_sogo_* に一本化する。
+        // 旧キー（sashihiki_joto_{tanki|choki}_{prev|curr}）は廃止し、
+        // 以後このCalculatorは旧キーを参照しない（混入してもSoTを汚染しない）。
+        // ============================================================
+        'sashihiki_joto_tanki_sogo_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_joto_tanki_sogo_%s', 'preserveNull' => true],
+        'sashihiki_joto_choki_sogo_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_joto_choki_sogo_%s', 'preserveNull' => true],
         // Mirror the raw first-lump sum amounts so that downstream calculators can
         // clamp tsusango_ichiji to max(0, sashihiki_ichiji).
         'sashihiki_ichiji_%s' => ['group' => 'joto_ichiji_details', 'source' => 'sashihiki_ichiji_%s', 'preserveNull' => true],

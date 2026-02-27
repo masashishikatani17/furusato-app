@@ -8,6 +8,15 @@
   $minY = 2025;
   $maxY = 2035;
   $today = now()->format('Y-m-d');
+  // wareki-date へは必ず Y-m-d を渡す（Carbon→文字列化で「—」にならないため）
+  $createdOnIso =
+      old('data_created_on')
+      ?: (optional($data->data_created_on)->format('Y-m-d')
+          ?: optional($data->created_at)->timezone(config('app.timezone'))->format('Y-m-d')
+          ?: $today);
+  $proposalIso =
+      old('proposal_date')
+      ?: (optional($data->proposal_date)->format('Y-m-d') ?: $today);
 @endphp
 
 <div class="container" style="max-width:650px;">
@@ -51,24 +60,24 @@
                   :name="null"
                   id="edit_data_created_on_view"
                   :readonly="true"
-                  :value="old('data_created_on', (string)($data->data_created_on ?? $today))"
+                  :value="$createdOnIso"
                 />
               </td>
             </tr>
             <tr>
-              <th class="text-start ps-2" style="height:33px;">提案書日（必須）</th>
+              <th class="text-start ps-2" style="height:33px;">提案書日</th>
               <td class="text-start">
                 <x-furusato.wareki-date
                   name="proposal_date"
                   id="edit_proposal_date"
                   :required="true"
                   :readonly="false"
-                  :value="old('proposal_date', (string)($data->proposal_date ?? $today))"
+                  :value="$proposalIso"
                 />
               </td>
             </tr>
     
-            @if (config('feature.data_privacy'))
+            @if (config('feature.data_privacy') && ($canEditVisibility ?? false))
             <tr>
               <th class="text-start ps-2" style="height:33px;">共有設定</th>
               <td class="bg-cream" style="height:35px;">
@@ -86,7 +95,7 @@
             @endif
     
             <tr>
-              <th class="text-start ps-2" style="height:33px;">年度（2025〜2035）</th>
+              <th class="text-start ps-2" style="height:33px;">年度</th>
               <td class="text-start">
                 @php $yy = (int)old('kihu_year', (int)($data->kihu_year ?? 0)); @endphp
                 <select class="form-select text-start" style="height:32px;width:150px;" name="kihu_year" required>
@@ -123,7 +132,7 @@
              
           </div>
           <div class="d-flex">    
-              <a href="{{ route('data.index', ['guest_id' => $guest?->id]) }}" class="btn btn-base-blue">戻 る</a>
+              <a href="{{ route('data.index', ['guest_id' => $guest?->id]) }}" class="btn btn-base-blue">キャンセル</a>
           </div>
         </div>
     </div>

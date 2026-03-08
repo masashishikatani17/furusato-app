@@ -22,7 +22,7 @@
       </div>
     @endif
 
-    <form id="signup-form" method="POST" action="{{ route('signup.submit') }}">
+    <form id="signup-form" method="POST" action="{{ route('signup.submit') }}" novalidate>
       @csrf
 
       {{-- ===== Step 1 ===== --}}
@@ -42,13 +42,20 @@
               </td>
             </tr>
             <tr>
-              <th class="text-start ps-2 bg-ccc">代表者名（Owner名）</th>
+              <th class="text-start ps-2 bg-ccc">支店名</th>
+              <td class="text-start">
+                <input type="text" name="branch_name" class="form-control kana25 text-start"
+                       value="{{ old('branch_name') }}" required maxlength="255">
+              </td>
+            </tr>
+            <tr>
+              <th class="text-start ps-2 bg-ccc">代表者名</th>
               <td class="text-start">
                 <input type="text" name="owner_name" class="form-control kana25 text-start"
                        value="{{ old('owner_name') }}" required maxlength="255">
               </td>
             </tr>
-            <t>
+            <tr>
               <th class="text-start ps-2 bg-ccc">メールアドレス</th>
               <td class="text-start">
                 <input type="email" name="email" class="form-control kana25 text-start"
@@ -80,19 +87,21 @@
           <div class="apply-step is-active">STEP2・お申込み内容</div>         
           <div class="apply-step">STEP3・内容確認</div>
         </div>
-        <table class="table table-base mt-5 mb-5 align-middle" style="width: 320px;">
+        <table class="table table-base mt-5 mb-5 align-middle" style="width: 420px;">
           <tbody>
             <tr>
               <th class="bg-ccc" style="width: 100px;">お申込内容</th>
               <td class="text-start">
-                <select name="plan" class="form-select" required style="width: 200px;">
-                  <option value="">（選択してください）</option>
-                  {{-- たたき台：文言は後でUI担当が調整 --}}
-                  <option value="プランA" @selected(old('plan')==='プランA')>プランA</option>
-                  <option value="プランB" @selected(old('plan')==='プランB')>プランB</option>
-                  <option value="プランC" @selected(old('plan')==='プランC')>プランC</option>
-                  <option value="プランD" @selected(old('plan')==='プランD')>プランD</option>
-                </select>
+                <div class="fw-bold">5人プラン（年額30,000円）</div>
+                <div class="text-muted small">※ 1口 = 5ユーザー（例：13人利用 → 3口（15席））</div>
+              </td>
+            </tr>
+            <tr>
+              <th class="bg-ccc">口数</th>
+              <td class="text-start">
+                <input type="number" name="quantity" class="form-control text-start"
+                       value="{{ old('quantity', 1) }}" min="1" max="999" required style="width: 200px;">
+                <div class="text-muted small mt-1">席数：<span id="preview-seats">5</span> ／ 年額：<span id="preview-price">30,000</span>円</div>
               </td>
             </tr>
             <tr>
@@ -101,6 +110,7 @@
                 <select name="payment_method" class="form-select" required style="width: 200px;">
                   <option value="">（選択してください）</option>
                   <option value="クレジットカード" @selected(old('payment_method')==='クレジットカード')>クレジットカード</option>
+                  <option value="キャッシュカード" @selected(old('payment_method')==='キャッシュカード')>キャッシュカード</option>
                   <option value="銀行振込" @selected(old('payment_method')==='銀行振込')>銀行振込</option>
                 </select>
               </td>
@@ -116,17 +126,16 @@
           <div class="apply-step">STEP2・お申込み内容</div>          
           <div class="apply-step is-active">STEP3・内容確認</div>
         </div>
-
-        <div class="alert alert-secondary">
-          入力内容を確認してください（この画面はたたき台です。UI担当が整えます）。
-        </div>
-
         <table class="table table-base mb-3 align-middle" style="width: 480px;">
           <tbody>
             <tr><th class="text-start ps-2 bg-ccc" style="width:100px;">会社名</th><td id="confirm-company" class="text-start ps-2"></td></tr>
+            <tr><th class="text-start ps-2 bg-ccc">支店名</th><td id="confirm-branch" class="text-start ps-2"></td></tr>
             <tr><th class="text-start ps-2 bg-ccc">代表者名</th><td id="confirm-owner" class="text-start ps-2"></td></tr>
             <tr><th class="text-start ps-2 bg-ccc">メールアドレス</th><td id="confirm-email" class="text-start ps-2"></td></tr>
             <tr><th class="text-start ps-2 bg-ccc">申込内容</th><td id="confirm-plan" class="text-start ps-2"></td></tr>
+            <tr><th class="text-start ps-2 bg-ccc">口数</th><td id="confirm-quantity" class="text-start ps-2"></td></tr>
+            <tr><th class="text-start ps-2 bg-ccc">利用人数（席数）</th><td id="confirm-seats" class="text-start ps-2"></td></tr>
+            <tr><th class="text-start ps-2 bg-ccc">年額合計</th><td id="confirm-price" class="text-start ps-2"></td></tr>
             <tr><th class="text-start ps-2 bg-ccc">支払方法</th><td id="confirm-payment" class="text-start ps-2"></td></tr>
           </tbody>
         </table>
@@ -172,6 +181,105 @@
 
     const form = document.getElementById('signup-form');
 
+    // 指定step内の「最初に invalid な要素」を返す（なければnull）
+    const firstInvalidInStep = (stepNo) => {
+      const root = document.getElementById(`step-${stepNo}`);
+      if (!root) return null;
+
+      // input/select/textarea を広めに見る（hiddenは除外）
+      const fields = root.querySelectorAll('input, select, textarea');
+      for (const el of fields) {
+        if (!el) continue;
+        if (el.type === 'hidden') continue;
+        // disabled は対象外
+        if (el.disabled) continue;
+        // required/minlength/type=email など HTML属性の妥当性チェックを利用
+        if (typeof el.checkValidity === 'function' && !el.checkValidity()) {
+          return el;
+        }
+      }
+      return null;
+    };
+
+    // Step1の追加検証（パスワード一致・長さ）
+    const validateStep1OrFocus = () => {
+      const inv = firstInvalidInStep(1);
+      if (inv) {
+        show(1);
+        // reportValidity でブラウザのメッセージを表示
+        if (typeof inv.reportValidity === 'function') inv.reportValidity();
+        inv.focus();
+        return false;
+      }
+
+      const pw = form.querySelector('[name="password"]');
+      const pwc = form.querySelector('[name="password_confirmation"]');
+      const pwVal = pw ? String(pw.value || '') : '';
+      const pwcVal = pwc ? String(pwc.value || '') : '';
+
+      if (pwVal.length < 8) {
+        show(1);
+        if (pw) {
+          pw.setCustomValidity('パスワードは8文字以上で入力してください。');
+          pw.reportValidity?.();
+          pw.focus();
+          pw.setCustomValidity('');
+        }
+        return false;
+      }
+      if (pwVal !== pwcVal) {
+        show(1);
+        if (pwc) {
+          pwc.setCustomValidity('パスワード（確認）が一致しません。');
+          pwc.reportValidity?.();
+          pwc.focus();
+          pwc.setCustomValidity('');
+        }
+        return false;
+      }
+      return true;
+    };
+
+    // Step2の追加検証（quantity範囲）
+    const validateStep2OrFocus = () => {
+      const inv = firstInvalidInStep(2);
+      if (inv) {
+        show(2);
+        inv.reportValidity?.();
+        inv.focus();
+        return false;
+      }
+      const qEl = form.querySelector('[name="quantity"]');
+      const q = qEl ? Number(qEl.value || 0) : 0;
+      if (!Number.isFinite(q) || q < 1 || q > 999) {
+        show(2);
+        if (qEl) {
+          qEl.setCustomValidity('口数は1〜999の範囲で入力してください。');
+          qEl.reportValidity?.();
+          qEl.focus();
+          qEl.setCustomValidity('');
+        }
+        return false;
+      }
+      return true;
+    };
+
+    const yen = (n) => {
+      try { return Number(n).toLocaleString('ja-JP'); } catch (e) { return String(n); }
+    };
+
+    const updatePreview = () => {
+      const qEl = form.querySelector('[name="quantity"]');
+      const q = qEl ? Number(qEl.value || 0) : 0;
+      const quantity = (!Number.isFinite(q) || q < 1) ? 1 : Math.min(999, Math.floor(q));
+      const seats = quantity * 5;
+      const price = quantity * 30000;
+      const sEl = document.getElementById('preview-seats');
+      const pEl = document.getElementById('preview-price');
+      if (sEl) sEl.textContent = yen(seats);
+      if (pEl) pEl.textContent = yen(price);
+    };
+
     const show = (n) => {
       current = n;
       steps.forEach(s => {
@@ -188,15 +296,21 @@
           return el ? (el.value || '') : '';
         };
         document.getElementById('confirm-company').textContent = get('company_name');
+        document.getElementById('confirm-branch').textContent = get('branch_name');
         document.getElementById('confirm-owner').textContent = get('owner_name');
         document.getElementById('confirm-email').textContent = get('email');
-        document.getElementById('confirm-plan').textContent = get('plan');
+        document.getElementById('confirm-plan').textContent = '5人プラン（年額30,000円）';
+        const q = Number(get('quantity') || 0);
+        const quantity = (!Number.isFinite(q) || q < 1) ? 1 : Math.min(999, Math.floor(q));
+        document.getElementById('confirm-quantity').textContent = String(quantity);
+        document.getElementById('confirm-seats').textContent = yen(quantity * 5);
+        document.getElementById('confirm-price').textContent = yen(quantity * 30000) + '円';
         document.getElementById('confirm-payment').textContent = get('payment_method');
       }
     };
 
     const validateStep1 = () => {
-      const required = ['company_name','owner_name','email','password','password_confirmation'];
+      const required = ['company_name','branch_name','owner_name','email','password','password_confirmation'];
       for (const k of required) {
         const el = form.querySelector(`[name="${k}"]`);
         if (!el || !el.value) return false;
@@ -208,11 +322,14 @@
     };
 
     const validateStep2 = () => {
-      const required = ['plan','payment_method'];
+      const required = ['quantity','payment_method'];
       for (const k of required) {
         const el = form.querySelector(`[name="${k}"]`);
         if (!el || !el.value) return false;
       }
+      const qEl = form.querySelector('[name="quantity"]');
+      const q = qEl ? Number(qEl.value || 0) : 0;
+      if (!Number.isFinite(q) || q < 1 || q > 999) return false;
       return true;
     };
 
@@ -225,6 +342,27 @@
 
     // 初期表示
     show(1);
+    // 口数プレビュー
+    const qEl = form.querySelector('[name="quantity"]');
+    if (qEl) {
+      qEl.addEventListener('input', updatePreview);
+      updatePreview();
+    }
+
+    // submit時：ブラウザ標準バリデーション（focus不可エラー）を避けるために
+    // ここで必ず Step1/2 を検証し、NGなら該当stepへ戻してフォーカスする
+    form.addEventListener('submit', (e) => {
+      // 送信直前に自前検証
+      if (!validateStep1OrFocus()) {
+        e.preventDefault();
+        return;
+      }
+      if (!validateStep2OrFocus()) {
+        e.preventDefault();
+        return;
+      }
+      // ここまで来たらOK（novalidateなので form.submit() は通常通り進む）
+    });
   })();
 </script>
 @endpush

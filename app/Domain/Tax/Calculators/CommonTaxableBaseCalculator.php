@@ -47,6 +47,13 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
                 $out[] = "tb_sanrin_{$tax}_{$p}";
                 $out[] = "tb_taishoku_{$tax}_{$p}";
             }
+            // ▼ B案：住民税（分離譲渡）の区分別課税標準SoT（控除配賦後）
+            //   - 税額計算（JuminTaxCalculator）はこれらを参照する
+            $out[] = "tb_joto_tanki_ippan_jumin_{$p}";
+            $out[] = "tb_joto_tanki_keigen_jumin_{$p}";
+            $out[] = "tb_joto_choki_ippan_jumin_{$p}";
+            $out[] = "tb_joto_choki_tokutei_jumin_{$p}";
+            $out[] = "tb_joto_choki_keika_jumin_{$p}";
         }
         return $out;
     }
@@ -66,8 +73,16 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             $kojoJ  = $this->n($payload["kojo_gokei_jumin_{$p}"]       ?? null); // 住民税側の所得控除合計
 
             // 分離カテゴリの“自己側基礎”（※個人控除配賦前の数値を採用）
-            $baseST = $this->pos($payload["joto_shotoku_tanki_gokei_{$p}"] ?? null);
-            $baseLT = $this->pos($payload["joto_shotoku_choki_gokei_{$p}"] ?? null);
+            // ▼ B案：短期/長期は区分別の基礎も持つ（joto_shotoku_* は BunriNetting が確定）
+            $baseSTI = $this->pos($payload["joto_shotoku_tanki_ippan_{$p}"]  ?? null);
+            $baseSTK = $this->pos($payload["joto_shotoku_tanki_keigen_{$p}"] ?? null);
+            $baseST  = $baseSTI + $baseSTK;
+
+            $baseLTI = $this->pos($payload["joto_shotoku_choki_ippan_{$p}"]   ?? null);
+            $baseLTT = $this->pos($payload["joto_shotoku_choki_tokutei_{$p}"] ?? null);
+            $baseLTK = $this->pos($payload["joto_shotoku_choki_keika_{$p}"]   ?? null);
+            $baseLT  = $baseLTI + $baseLTT + $baseLTK;
+
             $baseJG = $this->pos($payload["shotoku_after_kurikoshi_ippan_joto_{$p}"] ?? null);
             $baseJL = $this->pos($payload["shotoku_after_kurikoshi_jojo_joto_{$p}"]  ?? null);
             $baseH  = $this->pos($payload["shotoku_after_kurikoshi_jojo_haito_{$p}"] ?? null);
@@ -123,8 +138,17 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             // ▼ 分離課税のON/OFFによる分岐は撤去（SoT安定化）
             //   - 分離所得が無い場合は base が 0 なので自動的に 0 になる
             //   - これにより「bunri_flag が 0 だと第三表が強制 0 化される」事故を防ぐ
-            $tb_joto_tanki_jumin      = $alloc($baseST);
-            $tb_joto_choki_jumin      = $alloc($baseLT);
+            // ▼ B案：短期/長期を区分別に控除配賦して課税標準(tb_*)を確定
+            $tb_joto_tanki_ippan_jumin  = $alloc($baseSTI);
+            $tb_joto_tanki_keigen_jumin = $alloc($baseSTK);
+            $tb_joto_choki_ippan_jumin  = $alloc($baseLTI);
+            $tb_joto_choki_tokutei_jumin= $alloc($baseLTT);
+            $tb_joto_choki_keika_jumin  = $alloc($baseLTK);
+
+            // 互換：短期/長期 合算 tb（表示・既存参照用）
+            $tb_joto_tanki_jumin      = $this->floorToThousands($tb_joto_tanki_ippan_jumin + $tb_joto_tanki_keigen_jumin);
+            $tb_joto_choki_jumin      = $this->floorToThousands($tb_joto_choki_ippan_jumin + $tb_joto_choki_tokutei_jumin + $tb_joto_choki_keika_jumin);
+
             $tb_jojo_kabuteki_haito_j = $alloc($baseH);
             $tb_ippan_kabuteki_joto_j = $alloc($baseJG);
             $tb_jojo_kabuteki_joto_j  = $alloc($baseJL);
@@ -153,6 +177,13 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             $payload["tb_sakimono_jumin_{$p}"]           = $tb_sakimono_jumin;
             $payload["tb_sanrin_jumin_{$p}"]             = $tb_sanrin_jumin;
             $payload["tb_taishoku_jumin_{$p}"]           = $tb_taishoku_jumin;
+
+            // ▼ B案：区分別 tb（住民税・短期/長期）を保存SoTとして確定
+            $payload["tb_joto_tanki_ippan_jumin_{$p}"]   = $tb_joto_tanki_ippan_jumin;
+            $payload["tb_joto_tanki_keigen_jumin_{$p}"]  = $tb_joto_tanki_keigen_jumin;
+            $payload["tb_joto_choki_ippan_jumin_{$p}"]   = $tb_joto_choki_ippan_jumin;
+            $payload["tb_joto_choki_tokutei_jumin_{$p}"] = $tb_joto_choki_tokutei_jumin;
+            $payload["tb_joto_choki_keika_jumin_{$p}"]   = $tb_joto_choki_keika_jumin;
 
             // Δログ（移行監視）
             if (config('app.debug')) {

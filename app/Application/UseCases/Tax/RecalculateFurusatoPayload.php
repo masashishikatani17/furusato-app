@@ -174,6 +174,20 @@ class RecalculateFurusatoPayload
             )) {
                 continue;
             }
+
+            // ============================================================
+            // ▼ B案：tb_*（課税標準SoT）はサーバで毎回確定するため、入力diffから除外
+            //   - input.blade.php は readonly でも name 付きでPOSTされ得るため、汚染防止が必須
+            // ============================================================
+            if (is_string($key) && str_starts_with($key, 'tb_')) {
+                continue;
+            }
+
+            // ▼ 第三表の税額（bunri_zeigaku_*）もサーバ計算SoTなので入力diffから除外（汚染防止）
+            if (is_string($key) && str_starts_with($key, 'bunri_zeigaku_')) {
+                continue;
+            }
+
             $payload[$key] = $value;
         }
 

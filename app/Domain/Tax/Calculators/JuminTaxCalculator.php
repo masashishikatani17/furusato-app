@@ -151,15 +151,16 @@ class JuminTaxCalculator implements ProvidesKeys
              };
 
              // 短期（一般/軽減）は bunri_shotoku_* を使用（率区分があるため）
-             $tIppan  = $this->n($payload[sprintf('bunri_shotoku_tanki_ippan_jumin_%s',  $period)] ?? null);
-             $tKeigen = $this->n($payload[sprintf('bunri_shotoku_tanki_keigen_jumin_%s', $period)] ?? null);
+             // ▼ B案：税額計算は SoT=tb_*（控除配賦後の課税標準）を参照する
+             $tIppan  = $this->n($payload[sprintf('tb_joto_tanki_ippan_jumin_%s',  $period)] ?? null);
+             $tKeigen = $this->n($payload[sprintf('tb_joto_tanki_keigen_jumin_%s', $period)] ?? null);
              [$p,$m] = $taxByMaster($tIppan,  '短期譲渡', '一般'); $beforePref += $p; $beforeMuni += $m;
              [$p,$m] = $taxByMaster($tKeigen, '短期譲渡', '軽減'); $beforePref += $p; $beforeMuni += $m;
 
              // 長期（一般/特定/軽課：以下/超）
-             $cIppan   = $this->n($payload[sprintf('bunri_shotoku_choki_ippan_jumin_%s',   $period)] ?? null);
-             $cTokutei = $this->n($payload[sprintf('bunri_shotoku_choki_tokutei_jumin_%s', $period)] ?? null);
-             $cKeika   = $this->n($payload[sprintf('bunri_shotoku_choki_keika_jumin_%s',   $period)] ?? null);
+             $cIppan   = $this->n($payload[sprintf('tb_joto_choki_ippan_jumin_%s',   $period)] ?? null);
+             $cTokutei = $this->n($payload[sprintf('tb_joto_choki_tokutei_jumin_%s', $period)] ?? null);
+             $cKeika   = $this->n($payload[sprintf('tb_joto_choki_keika_jumin_%s',   $period)] ?? null);
              [$p,$m] = $taxByMaster($cIppan, '長期譲渡', '一般'); $beforePref += $p; $beforeMuni += $m;
              $tokLow  = min(20_000_000, max(0, $cTokutei));
              $tokHigh = max(0, $cTokutei - 20_000_000);
@@ -315,15 +316,15 @@ class JuminTaxCalculator implements ProvidesKeys
             };
 
             // 短期譲渡：一般 / 軽減（区分別に master の率を使う）
-            $tIppan  = $this->n($payload[sprintf('bunri_shotoku_tanki_ippan_jumin_%s',  $period)] ?? null);
-            $tKeigen = $this->n($payload[sprintf('bunri_shotoku_tanki_keigen_jumin_%s', $period)] ?? null);
+            $tIppan  = $this->n($payload[sprintf('tb_joto_tanki_ippan_jumin_%s',  $period)] ?? null);
+            $tKeigen = $this->n($payload[sprintf('tb_joto_tanki_keigen_jumin_%s', $period)] ?? null);
             $zeigakuTanki = $taxByMaster($tIppan, '短期譲渡', '一般') + $taxByMaster($tKeigen, '短期譲渡', '軽減');
             $updates[sprintf('bunri_zeigaku_tanki_jumin_%s', $period)] = $zeigakuTanki;
 
             // 長期譲渡：一般 + 特定(2,000万円以下/超) + 軽課(6,000万円以下/超)
-            $cIppan   = $this->n($payload[sprintf('bunri_shotoku_choki_ippan_jumin_%s',   $period)] ?? null);
-            $cTokutei = $this->n($payload[sprintf('bunri_shotoku_choki_tokutei_jumin_%s', $period)] ?? null);
-            $cKeika   = $this->n($payload[sprintf('bunri_shotoku_choki_keika_jumin_%s',   $period)] ?? null);
+            $cIppan   = $this->n($payload[sprintf('tb_joto_choki_ippan_jumin_%s',   $period)] ?? null);
+            $cTokutei = $this->n($payload[sprintf('tb_joto_choki_tokutei_jumin_%s', $period)] ?? null);
+            $cKeika   = $this->n($payload[sprintf('tb_joto_choki_keika_jumin_%s',   $period)] ?? null);
 
             $zeigakuChoki = $taxByMaster($cIppan, '長期譲渡', '一般');
             // 特定：2,000万円以下 / 超（remarkで「以下」「超」を拾う）

@@ -40,6 +40,12 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withSchedule(function (Schedule $schedule) {
         // 期限切れ招待の確定（最大遅延を抑えるなら everyMinute）
         $schedule->command('invitations:expire-scan')->everyMinute();
+
+        // 請求管理ロボ：入金同期（10分ごと）
+        // - pending/issued/failed の invoice を対象に同期ジョブを dispatch
+        $schedule->command('billing:sync-outstanding-invoices')
+            ->everyTenMinutes()
+            ->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

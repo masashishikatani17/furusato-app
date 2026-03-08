@@ -17,9 +17,9 @@ class MasterProvider implements MasterProviderContract
         return $this->delegate(__FUNCTION__, $year, $companyId);
     }
 
-    public function getJuminRates(int $year, ?int $companyId = null): Collection
+    public function getJuminRates(int $year, ?int $companyId = null, ?int $dataId = null): Collection
     {
-        return $this->delegate(__FUNCTION__, $year, $companyId);
+        return $this->delegate(__FUNCTION__, $year, $companyId, $dataId);
     }
 
     public function getTokureiRates(int $year, ?int $companyId = null): Collection
@@ -32,9 +32,14 @@ class MasterProvider implements MasterProviderContract
         return $this->delegate(__FUNCTION__, $year, $companyId);
     }
 
-    private function delegate(string $method, int $year, ?int $companyId): Collection
+    private function delegate(string $method, int $year, ?int $companyId, ?int $dataId = null): Collection
     {
-        $rates = $this->masterService->{$method}($year, $companyId);
+        // getJuminRates だけは data_id ごとの jumin_master を参照するため第3引数を渡す
+        if ($method === 'getJuminRates') {
+            $rates = $this->masterService->getJuminRates($year, $companyId, $dataId);
+        } else {
+            $rates = $this->masterService->{$method}($year, $companyId);
+        }
 
         if ($companyId !== null && $rates->isEmpty() && config('app.debug')) {
             logger()->debug(sprintf(

@@ -18,6 +18,7 @@ class Company extends Model
      */
     protected $fillable = [
         'name',
+        'branch_name',
         'owner_user_id',
         'signup_plan',
         'signup_payment_method',

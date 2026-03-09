@@ -540,42 +540,7 @@ final class FurusatoJuminKeigengakuTemplateWriter
             );
         }
 
-        // ------------------------------------------------------------
-        // ▼ 下段まとめ（4行）：jumin_summary があれば印字
-        //   - other / furusato_only / unable / final
-        //   - 合計列は「furusato_only」「final」を太字（通常版と揃える）
-        // ------------------------------------------------------------
-        $sum = is_array($vars['jumin_summary'] ?? null) ? $vars['jumin_summary'] : [];
-        if ($sum !== [] && isset($L['summary'])) {
-            $s = $L['summary'];
-            $sx = (float)$s['x'];
-            $sy = (float)$s['y'];
-            $scols = $s['cols'];
-            $scolX = $this->colLefts($sx, $scols);
-            $sRowH = (float)$s['row_h'];
-            $sFs = (float)$s['font'];
-            $sFsSmall = max(1.0, $sFs - 0.5);
-            $sPr = (float)$s['pad_r'];
-            $sStretch = array_key_exists('stretch', $s) ? (float)$s['stretch'] : null;
-
-            // 数値列 index: muni=1, pref=2, total=3
-            $sM = 1; $sP = 2; $sT = 3;
-            $sumSeq = ['other','furusato_only','unable','final'];
-            foreach ($sumSeq as $i => $k) {
-                $y = $sy + ($sRowH * (float)$i);
-                $row = is_array($sum[$k] ?? null) ? $sum[$k] : ['muni'=>0,'pref'=>0,'total'=>0];
-                $this->textBox($pdf, $font, (float)$scolX[$sM], $y, (float)$scols[$sM], $sRowH, $this->fmtYen($this->n($row['muni'] ?? 0)), 'R', $sFsSmall, $sPr, 0.0, '', $sStretch);
-                $this->textBox($pdf, $font, (float)$scolX[$sP], $y, (float)$scols[$sP], $sRowH, $this->fmtYen($this->n($row['pref'] ?? 0)), 'R', $sFsSmall, $sPr, 0.0, '', $sStretch);
-                // 太字：furusato_only と final の合計列
-                $style = (((int)$i === 1) || ((int)$i === 3)) ? 'B' : '';
-                $this->textBox($pdf, $font, (float)$scolX[$sT], $y, (float)$scols[$sT], $sRowH, $this->fmtYen($this->n($row['total'] ?? 0)), 'R', $sFsSmall, $sPr, 0.0, $style, $sStretch);
-                if ($debug) {
-                    $this->debugRect($pdf, (float)$scolX[$sM], $y, (float)$scols[$sM], $sRowH);
-                    $this->debugRect($pdf, (float)$scolX[$sP], $y, (float)$scols[$sP], $sRowH);
-                    $this->debugRect($pdf, (float)$scolX[$sT], $y, (float)$scols[$sT], $sRowH);
-                }
-            }
-        }
+        // ワンストップ特例版は背景仕様上、下段summary（other/furusato_only/unable/final）を描画しない。
     }
 
     // ============================================================

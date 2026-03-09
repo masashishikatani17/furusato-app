@@ -9,6 +9,7 @@ use App\Domain\Tax\Factory\SyoriSettingsFactory;
 use App\Domain\Tax\Support\PayloadNormalizer;
 use App\Domain\Tax\Services\FurusatoDryRunCalculatorRunner;
 use App\Domain\Tax\Services\FurusatoPracticalUpperLimitService;
+use App\Domain\Tax\Services\FurusatoScenarioTaxSummaryService;
 use App\Domain\Tax\Contracts\MasterProviderContract;
 use App\Reports\Contracts\ReportInterface;
 
@@ -71,20 +72,26 @@ class JuminKeigengakuOnestopReport implements ReportInterface
             'taxpayer_sex'     => data_get($data, 'guest.sex')
                 ?? data_get($data, 'guest.gender')
                 ?? data_get($data, 'guest.sex_code'),
+            'is_onestop'       => true,
+            'report_key'       => (string)($context['report_key'] ?? ''),
         ];
 
         /** @var FurusatoDryRunCalculatorRunner $runner */
         $runner = app(FurusatoDryRunCalculatorRunner::class);
 
-        $yMax = 0;
+        $yMaxUpper = 0;
         try {
             /** @var FurusatoPracticalUpperLimitService $upperSvc */
             $upperSvc = app(FurusatoPracticalUpperLimitService::class);
             $upper = $upperSvc->compute($payload, $ctx);
-            $yMax = (int)($upper['y_max_total'] ?? 0);
+            $yMaxUpper = (int)($upper['y_max_total'] ?? 0);
         } catch (\Throwable $e) {
-            $yMax = 0;
+            $yMaxUpper = 0;
         }
+
+        /** @var FurusatoScenarioTaxSummaryService $scenarioSummary */
+        $scenarioSummary = app(FurusatoScenarioTaxSummaryService::class);
+        $scenario = $scenarioSummary->build($payload, $ctx, $yMaxUpper);
 
         // --------------------------------------------
         // ★出力モード判定（*_curr なら current）
@@ -95,25 +102,26 @@ class JuminKeigengakuOnestopReport implements ReportInterface
         // branch 参照事故防止
         $payloadAt = null; $payloadAtMax = null;
 
-        $payloadNoFuru = $this->withFurusatoMax($payload, 0);
-
         if ($mode === 'current') {
-            $payloadAt = $this->withFurusatoCurrent($payload);
-            $y = $this->resolveCurrentFurusatoDonationCurr($payloadAt);
+            // current寄附額は scenario service と同じ定義（所得税/住民税pref/住民税muni の最大値）を使う。
+            $y = $this->n($scenario['y_current'] ?? 0);
+            $payloadAt = $this->withFurusatoForOnestop($payload, $y);
             $payloadAtMax = $payloadAt;
             $yMax = $y;
+            $taxSavedTotal = $this->n($scenario['compare_total_saved_2_3'] ?? 0);
         } else {
-            $payloadAtMax = $this->withFurusatoMax($payload, $yMax);
+            $payloadAtMax = $this->withFurusatoForOnestop($payload, $yMaxUpper);
+            $yMax = $yMaxUpper;
+            $taxSavedTotal = $this->n($scenario['compare_total_saved_2_4'] ?? 0);
         }
 
-        $outNoFuru = $runner->run($payloadNoFuru, $ctx);
-        $outAtMax  = $runner->run($payloadAtMax,  $ctx);
+        // 仕様: ①〜⑰は説明用、上部比較表は結果用。
+        // 比較表の減税額は scenario service の compare 専用値（所得税+住民税）を使う。
+        // ワンストップでは所得税減税額が 0 となるため、結果として住民税のみが表示される。
+        $taxSavedTotal = max(0, $taxSavedTotal);
+        $burden = max(0, $yMax - $taxSavedTotal);
 
-        // 比較（寄附金額と減税額）
-        $payNo = $this->n($outNoFuru['tax_gokei_shotoku_curr'] ?? 0) + $this->n($outNoFuru['tax_gokei_jumin_curr'] ?? 0);
-        $payMx = $this->n($outAtMax['tax_gokei_shotoku_curr'] ?? 0) + $this->n($outAtMax['tax_gokei_jumin_curr'] ?? 0);
-        $savedTotal = max(0, $payNo - $payMx);
-        $burden = max(0, $yMax - $savedTotal);
+        $outAtMax  = $runner->run($payloadAtMax,  $ctx);
 
         $p = 'curr';
 
@@ -185,7 +193,8 @@ class JuminKeigengakuOnestopReport implements ReportInterface
         $kifukinPostMuni  = $this->n($outAtMax["kifukin_zeigaku_kojo_muni_{$p}"] ?? 0);
         $kifukinPostGokei = $this->n($outAtMax["kifukin_zeigaku_kojo_gokei_{$p}"] ?? ($kifukinPostPref + $kifukinPostMuni));
 
-        // 天井前（表示用）：基本 + 上限後特例 + 申告特例
+        // 天井前（表示用）⑰ = ⑧(基本控除額) + ⑬(特例控除額) + ⑯(申告特例控除額)
+        // ※⑭は⑬の再表示。⑰は「表示済み整数値」の単純合計で組み立てる。
         $kifukinPrePref  = max(0, $kihonPref) + max(0, $tokureiJogenPref) + max(0, $shinkokuPref);
         $kifukinPreMuni  = max(0, $kihonMuni) + max(0, $tokureiJogenMuni) + max(0, $shinkokuMuni);
         $kifukinPreGokei = $kifukinPrePref + $kifukinPreMuni;
@@ -230,12 +239,6 @@ class JuminKeigengakuOnestopReport implements ReportInterface
         $unablePref  = (int) floor($unableGokei * $sharePref);
         $unableMuni  = max(0, $unableGokei - $unablePref);
 
-        // ▼ 右上「減税額」：帳票定義に固定（住民税=天井後ふるさと分）
-        // - 所得税は「payNo-payMx」に含まれているが、住民税だけ帳票定義に合わせて差し替える
-        $juminSavedForCompare = (int)$furuPostGokei;
-        $savedTotalForCompare = (int) ($this->n($outNoFuru['tax_gokei_shotoku_curr'] ?? 0) - $this->n($outAtMax['tax_gokei_shotoku_curr'] ?? 0)) + $juminSavedForCompare;
-        $burden = max(0, $yMax - $savedTotalForCompare);
-
         return [
             'title'      => '住民税の軽減額（ワンストップ特例）',
             'year'       => $year,
@@ -244,7 +247,7 @@ class JuminKeigengakuOnestopReport implements ReportInterface
             'data_id'    => (int)$data->id,
 
             'donation_amount' => (int)$yMax,
-            'tax_saved_total' => (int)$savedTotalForCompare,
+            'tax_saved_total' => (int)$taxSavedTotal,
             'burden_amount'   => (int)$burden,
 
             'jumin_rows' => [
@@ -309,35 +312,18 @@ class JuminKeigengakuOnestopReport implements ReportInterface
         ];
     }
 
-    private function withFurusatoMax(array $payload, int $y): array
+    /**
+     * ワンストップ特例版の説明表（①〜⑰）用に、ふるさと寄附入力を整形する。
+     * - 所得税側は常に 0
+     * - 住民税 pref/muni は同額 y を注入
+     */
+    private function withFurusatoForOnestop(array $payload, int $y): array
     {
         $y = max(0, $y);
-        $payload['shotokuzei_shotokukojo_furusato_curr'] = $y;
+        $payload['shotokuzei_shotokukojo_furusato_curr'] = 0;
         $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $y;
         $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $y;
         return $payload;
-    }
-
-    private function withFurusatoCurrent(array $payload): array
-    {
-        $itax = $this->n($payload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
-        $pref = $this->n($payload['juminzei_zeigakukojo_pref_furusato_curr'] ?? 0);
-        $muni = $this->n($payload['juminzei_zeigakukojo_muni_furusato_curr'] ?? 0);
-        $j = max(0, max($pref, $muni));
-        if ($j > 0) {
-            $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $j;
-            $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $j;
-        }
-        $payload['shotokuzei_shotokukojo_furusato_curr'] = max(0, $itax);
-        return $payload;
-    }
-
-    private function resolveCurrentFurusatoDonationCurr(array $payload): int
-    {
-        $itax = $this->n($payload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
-        $pref = $this->n($payload['juminzei_zeigakukojo_pref_furusato_curr'] ?? 0);
-        $muni = $this->n($payload['juminzei_zeigakukojo_muni_furusato_curr'] ?? 0);
-        return max(0, max($itax, $pref, $muni));
     }
 
     private function sumJuminDonationSide(array $payload, string $side, string $period): int

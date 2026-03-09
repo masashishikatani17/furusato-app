@@ -30,25 +30,25 @@ final class FurusatoScenarioTaxSummaryService
      */
     public function build(array $basePayload, array $ctx, int $yMaxTotal): array
     {
-        $yCurrent = $this->n($basePayload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
+        $yCurrent = $this->resolveFurusatoDonationCurrent($basePayload);
 
         // ①：ふるさと=0、その他=0
-        $p1 = $this->withDonations($basePayload, 0, true);
+        $p1 = $this->withDonations($basePayload, 0, true, $ctx);
         $o1 = $this->runner->run($p1, $ctx);
         $t1 = $this->extract($o1, $p1, $ctx);
 
         // ②：ふるさと=0、その他=現状
-        $p2 = $this->withDonations($basePayload, 0, false);
+        $p2 = $this->withDonations($basePayload, 0, false, $ctx);
         $o2 = $this->runner->run($p2, $ctx);
         $t2 = $this->extract($o2, $p2, $ctx);
 
         // ③：ふるさと=現状、その他=現状
-        $p3 = $this->withDonations($basePayload, $yCurrent, false);
+        $p3 = $this->withDonations($basePayload, $yCurrent, false, $ctx);
         $o3 = $this->runner->run($p3, $ctx);
         $t3 = $this->extract($o3, $p3, $ctx);
 
         // ④：ふるさと=上限、その他=現状
-        $p4 = $this->withDonations($basePayload, max(0, $yMaxTotal), false);
+        $p4 = $this->withDonations($basePayload, max(0, $yMaxTotal), false, $ctx);
         $o4 = $this->runner->run($p4, $ctx);
         $t4 = $this->extract($o4, $p4, $ctx);
 
@@ -62,6 +62,12 @@ final class FurusatoScenarioTaxSummaryService
         $s24 = $this->diffSaved($t2, $t4);
         $s34 = $this->diffSaved($t3, $t4);
 
+        // 比較表専用（B案）：ケース差分を「所得税 + 住民税(total)」で固定
+        $compareItaxSaved23 = max(0, ($t2['itax'] ?? 0) - ($t3['itax'] ?? 0));
+        $compareItaxSaved24 = max(0, ($t2['itax'] ?? 0) - ($t4['itax'] ?? 0));
+        $compareJuminSaved23 = max(0, ($t2['j_total'] ?? 0) - ($t3['j_total'] ?? 0));
+        $compareJuminSaved24 = max(0, ($t2['j_total'] ?? 0) - ($t4['j_total'] ?? 0));
+
         return [
             'case1' => $t1,
             'case2' => $t2,
@@ -73,6 +79,12 @@ final class FurusatoScenarioTaxSummaryService
             'saved_2_3' => $s23,
             'saved_2_4' => $s24,
             'saved_3_4' => $s34,
+            'compare_itax_saved_2_3' => $compareItaxSaved23,
+            'compare_itax_saved_2_4' => $compareItaxSaved24,
+            'compare_jumin_saved_2_3' => $compareJuminSaved23,
+            'compare_jumin_saved_2_4' => $compareJuminSaved24,
+            'compare_total_saved_2_3' => $compareItaxSaved23 + $compareJuminSaved23,
+            'compare_total_saved_2_4' => $compareItaxSaved24 + $compareJuminSaved24,
             'y_current' => $yCurrent,
             'y_max_total' => max(0, $yMaxTotal),
         ];
@@ -123,14 +135,17 @@ final class FurusatoScenarioTaxSummaryService
      *
      * @param bool $zeroOther  trueなら「ふるさと以外の寄付」も全て0にする（①）
      */
-    private function withDonations(array $payload, int $furusatoY, bool $zeroOther): array
+    private function withDonations(array $payload, int $furusatoY, bool $zeroOther, array $ctx): array
     {
         $furusatoY = max(0, $furusatoY);
 
-        // ふるさと（所得税SoT + 住民税pref/muni同額コピー）
-        $payload['shotokuzei_shotokukojo_furusato_curr'] = $furusatoY;
+        // ふるさと（住民税pref/muni同額コピー）
         $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $furusatoY;
         $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $furusatoY;
+
+        // ワンストップ特例では所得税側のふるさと控除を使わない（比較itax差額を0に揃える）
+        $isOnestop = $this->isOnestopContext($ctx);
+        $payload['shotokuzei_shotokukojo_furusato_curr'] = $isOnestop ? 0 : $furusatoY;
 
         if (! $zeroOther) {
             return $payload;
@@ -216,6 +231,40 @@ final class FurusatoScenarioTaxSummaryService
         $otherBasicTotal = max(0, $otherBasicPref + $otherBasicMuni);
 
         return max(0, $kifukinPost - $otherBasicTotal);
+    }
+
+
+    /**
+     * current寄附額は所得税/住民税pref/住民税muniの最大値で解決する。
+     */
+    private function resolveFurusatoDonationCurrent(array $payload): int
+    {
+        $itax = $this->n($payload['shotokuzei_shotokukojo_furusato_curr'] ?? 0);
+        $pref = $this->n($payload['juminzei_zeigakukojo_pref_furusato_curr'] ?? 0);
+        $muni = $this->n($payload['juminzei_zeigakukojo_muni_furusato_curr'] ?? 0);
+
+        return max(0, max($itax, $pref, $muni));
+    }
+
+    private function isOnestopContext(array $ctx): bool
+    {
+        $settings = is_array($ctx['syori_settings'] ?? null) ? $ctx['syori_settings'] : [];
+        $oneStopCurr = $this->n($settings['one_stop_flag_curr'] ?? null);
+        if ($oneStopCurr === 1) {
+            return true;
+        }
+
+        $oneStop = $this->n($settings['one_stop_flag'] ?? null);
+        if ($oneStop === 1) {
+            return true;
+        }
+
+        if (($ctx['is_onestop'] ?? false) === true) {
+            return true;
+        }
+
+        $reportKey = strtolower((string) ($ctx['report_key'] ?? ''));
+        return str_contains($reportKey, 'onestop');
     }
 
     private function n(mixed $v): int

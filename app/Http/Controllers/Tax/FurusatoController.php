@@ -2534,6 +2534,7 @@ final class FurusatoController extends Controller
         //   ※UI(JS)でも readonly+0 にするが、POST改ざん対策としてサーバでも上書きする
         $syoriSettings = $this->getSyoriSettings($data->id);
         $categories = ['furusato', 'kyodobokin_nisseki', 'seito', 'npo', 'koueki', 'kuni', 'sonota'];
+        $oneStopZeroFixedCategories = ['kyodobokin_nisseki', 'seito', 'npo', 'koueki', 'kuni', 'sonota'];
         foreach (['prev', 'curr'] as $period) {
             $oneStop = (int) ($syoriSettings["one_stop_flag_{$period}"] ?? $syoriSettings['one_stop_flag'] ?? 0) === 1;
             if (! $oneStop) {
@@ -2542,6 +2543,11 @@ final class FurusatoController extends Controller
             foreach ($categories as $cat) {
                 $updatesForRecalc["shotokuzei_shotokukojo_{$cat}_{$period}"] = 0;
                 $updatesForRecalc["shotokuzei_zeigakukojo_{$cat}_{$period}"] = 0;
+            }
+
+            foreach ($oneStopZeroFixedCategories as $cat) {
+                $updatesForRecalc["juminzei_zeigakukojo_pref_{$cat}_{$period}"] = 0;
+                $updatesForRecalc["juminzei_zeigakukojo_muni_{$cat}_{$period}"] = 0;
             }
         }
 

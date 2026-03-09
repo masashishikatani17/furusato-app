@@ -170,9 +170,9 @@
             <div class="ms-2 me-2 mb-3">
               <div class="fw-bold">ワンストップ特例をご利用の場合</div>
               <div class="small text-muted mb-4 ms-4">
-                ワンストップ特例を利用する場合、所得税の「寄付金控除（所得控除）」および「政党等寄附金等特別控除（税額控除）」は
+                ワンストップ特例を利用する場合、「寄付金控除（所得控除）」および「政党等寄附金等特別控除（税額控除）」、「寄附金税額控除（住民税）」は
                 確定申告が必要になるため、本画面では入力できないようになっています。<br>
-                所得税側の控除を適用したい場合は、処理メニューでワンストップ特例を「利用しない」に切り替えて下さい。
+                それらを適用したい場合は、処理メニューでワンストップ特例を「利用しない」に切り替えて下さい。
               </div>
             </div>
           @endif
@@ -346,9 +346,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // ===== ワンストップ特例：所得税側の寄付入力（所得控除/税額控除）を readonly + 0 固定 =====
-  // 方針：one_stop_flag_{period}=1 の期間は、所得税列の寄付入力を計算に使わない。
-  //       UI上も入力不能にし、値は 0 として hidden/表示を揃える。
+  // ===== ワンストップ特例：対象寄附入力を readonly + 0 固定 =====
+  // 方針：one_stop_flag_{period}=1 の期間は、
+  //   - 所得税列（furusato含む全カテゴリ）を 0 固定
+  //   - 住民税列（furusato以外の6カテゴリ）を 0 固定
+  //       ※furusato は後段の専用ロジックで住民税(県)入力を許可
   (function applyOneStopLocks() {
     const oneStop = {
       prev: Boolean(@json($oneStopPrev)),
@@ -369,19 +371,24 @@ document.addEventListener('DOMContentLoaded', function () {
     const lockField = (name) => {
       const disp = getDisplayByName(name);
       if (!disp) return;
-      // 0固定
       setFieldRaw(name, '0');
-      // readonly化
       disp.readOnly = true;
       disp.classList.add('bg-light');
     };
 
-    const categories = ['furusato','kyodobokin_nisseki','seito','npo','koueki','kuni','sonota'];
+    const incomeCategories = ['furusato','kyodobokin_nisseki','seito','npo','koueki','kuni','sonota'];
+    const oneStopZeroFixedCategories = ['kyodobokin_nisseki','seito','npo','koueki','kuni','sonota'];
     periods.forEach((p) => {
       if (!oneStop[p]) return;
-      categories.forEach((cat) => {
+
+      incomeCategories.forEach((cat) => {
         lockField(`shotokuzei_shotokukojo_${cat}_${p}`);
         lockField(`shotokuzei_zeigakukojo_${cat}_${p}`);
+      });
+
+      oneStopZeroFixedCategories.forEach((cat) => {
+        lockField(`juminzei_zeigakukojo_pref_${cat}_${p}`);
+        lockField(`juminzei_zeigakukojo_muni_${cat}_${p}`);
       });
     });
   })();

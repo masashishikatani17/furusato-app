@@ -63,8 +63,10 @@ final class FurusatoPracticalUpperLimitService
         // - pref/muni は同額コピー運用が前提なので max() で二重計上にならない。
         $yCurrent = $this->resolveFurusatoDonationCurrent($basePayload);
 
+        $isOnestop = $this->isOnestopContext($ctx);
+
         // (A) NG判定の基準：現在yでの政党/NPO/公益の所得税税額控除
-        $payloadAtCurrent = $this->withFurusato($basePayload, $yCurrent);
+        $payloadAtCurrent = $this->withFurusato($basePayload, $yCurrent, $ctx);
         $stageCounts['base']++;
         $outCurrent = $this->runner->run($payloadAtCurrent, $ctxDry);
         $creditBase = [
@@ -74,7 +76,7 @@ final class FurusatoPracticalUpperLimitService
         ];
 
         // (B) 自己負担の基準：ふるさと=0 の支払額（復興税込み）
-        $payloadZero = $this->withFurusato($basePayload, 0);
+        $payloadZero = $this->withFurusato($basePayload, 0, $ctx);
         $stageCounts['base']++;
         $outZero = $this->runner->run($payloadZero, $ctxDry);
         // ★上限探索の定義は「税額総額差」：所得税 + 住民税（総額）
@@ -99,6 +101,8 @@ final class FurusatoPracticalUpperLimitService
         $isOk = function (int $y) use (
             $basePayload,
             $ctxDry,
+            $ctx,
+            $isOnestop,
             $payBase,
             $creditBase,
             $enablePerf,
@@ -113,7 +117,7 @@ final class FurusatoPracticalUpperLimitService
                 $stageKey = $currentStage ?: 'unknown';
                 $stageCounts[$stageKey] = ($stageCounts[$stageKey] ?? 0) + 1;
             }
-            $ok = $this->isOk($basePayload, $ctxDry, $y, $payBase, $creditBase);
+            $ok = $this->isOk($basePayload, $ctxDry, $ctx, $y, $payBase, $creditBase, $isOnestop);
             if ($enablePerf) {
                 if ($ok) $okCount++; else $ngCount++;
             }
@@ -164,11 +168,11 @@ final class FurusatoPracticalUpperLimitService
         $yMaxFloor = $yMaxTotalRaw > 0 ? (int)(intdiv($yMaxTotalRaw, 1000) * 1000) : 0;
         // 保険：切捨て後がOKでないケースを潰す（通常は起きない想定）
         $yMaxTotal = $yMaxFloor;
-        if ($yMaxTotal > 0 && !$this->isOk($basePayload, $ctxDry, $yMaxTotal, $payBase, $creditBase)) {
+        if ($yMaxTotal > 0 && !$this->isOk($basePayload, $ctxDry, $ctx, $yMaxTotal, $payBase, $creditBase, $isOnestop)) {
             // 最大でも数回で落ちる想定（念のため上限を置く）
             for ($guard = 0; $guard < 10 && $yMaxTotal > 0; $guard++) {
                 $yMaxTotal = max(0, $yMaxTotal - 1000);
-                if ($this->isOk($basePayload, $ctxDry, $yMaxTotal, $payBase, $creditBase)) {
+                if ($this->isOk($basePayload, $ctxDry, $ctx, $yMaxTotal, $payBase, $creditBase, $isOnestop)) {
                     break;
                 }
             }
@@ -176,7 +180,7 @@ final class FurusatoPracticalUpperLimitService
 
         // 仕上げ：yMaxでの支払額/自己負担（参考）
         $stageCounts['base']++;
-        $outMax = $this->runner->run($this->withFurusato($basePayload, $yMaxTotal), $ctxDry);
+        $outMax = $this->runner->run($this->withFurusato($basePayload, $yMaxTotal, $ctx), $ctxDry);
         $payMax = $this->payTotalCurr($outMax);
         $taxSaved = max(0, $payBase - $payMax);
         $burden = max(0, $yMaxTotal - $taxSaved);
@@ -245,16 +249,18 @@ final class FurusatoPracticalUpperLimitService
      *
      * @param array{seito:int,npo:int,koueki:int} $creditBase
      */
-    private function isOk(array $basePayload, array $ctx, int $y, int $payBase, array $creditBase): bool
+    private function isOk(array $basePayload, array $ctxDry, array $ctx, int $y, int $payBase, array $creditBase, bool $isOnestop): bool
     {
-        $out = $this->runner->run($this->withFurusato($basePayload, $y), $ctx);
+        $out = $this->runner->run($this->withFurusato($basePayload, $y, $ctx), $ctxDry);
 
-        // NG条件：政党/NPO/公益の所得税税額控除が減らない
-        $cSeito  = $this->n($out['tax_credit_shotoku_seito_curr']  ?? 0);
-        $cNpo    = $this->n($out['tax_credit_shotoku_npo_curr']    ?? 0);
-        $cKoueki = $this->n($out['tax_credit_shotoku_koueki_curr'] ?? 0);
-        if ($cSeito < $creditBase['seito'] || $cNpo < $creditBase['npo'] || $cKoueki < $creditBase['koueki']) {
-            return false;
+        if (! $isOnestop) {
+            // NG条件：政党/NPO/公益の所得税税額控除が減らない
+            $cSeito  = $this->n($out['tax_credit_shotoku_seito_curr']  ?? 0);
+            $cNpo    = $this->n($out['tax_credit_shotoku_npo_curr']    ?? 0);
+            $cKoueki = $this->n($out['tax_credit_shotoku_koueki_curr'] ?? 0);
+            if ($cSeito < $creditBase['seito'] || $cNpo < $creditBase['npo'] || $cKoueki < $creditBase['koueki']) {
+                return false;
+            }
         }
 
         // 自己負担判定：burden = y - (pay(0) - pay(y))
@@ -270,11 +276,11 @@ final class FurusatoPracticalUpperLimitService
      * - 所得税側：shotokuzei_shotokukojo_furusato_curr = y
      * - 住民税側：pref/muni のふるさとも同額にする（readonlyコピー運用）
      */
-    private function withFurusato(array $payload, int $y): array
+    private function withFurusato(array $payload, int $y, array $ctx): array
     {
         $y = max(0, $y);
 
-        $payload['shotokuzei_shotokukojo_furusato_curr'] = $y;
+        $payload['shotokuzei_shotokukojo_furusato_curr'] = $this->isOnestopContext($ctx) ? 0 : $y;
         $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $y;
         $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $y;
 
@@ -305,6 +311,29 @@ final class FurusatoPracticalUpperLimitService
     {
         $ctx['dry_run'] = true;
         return $ctx;
+    }
+
+    private function isOnestopContext(array $ctx): bool
+    {
+        $settings = is_array($ctx['syori_settings'] ?? null) ? $ctx['syori_settings'] : [];
+
+        $curr = $this->n($settings['one_stop_flag_curr'] ?? null);
+        if ($curr === 1) {
+            return true;
+        }
+
+        $base = $this->n($settings['one_stop_flag'] ?? null);
+        if ($base === 1) {
+            return true;
+        }
+
+        $isOnestop = $ctx['is_onestop'] ?? null;
+        if ($isOnestop === true || $this->n($isOnestop) === 1) {
+            return true;
+        }
+
+        $reportKey = strtolower((string) ($ctx['report_key'] ?? ''));
+        return str_contains($reportKey, 'onestop');
     }
 
     /**

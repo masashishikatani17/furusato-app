@@ -81,6 +81,7 @@ final class FurusatoPracticalUpperLimitService
         $outZero = $this->runner->run($payloadZero, $ctxDry);
         // ★上限探索の定義は「税額総額差」：所得税 + 住民税（総額）
         $payBase = $this->payTotalCurr($outZero);
+        $baseFuruOnly = $isOnestop ? $this->furusatoOnlyJuminFinal($outZero, $payloadZero, $ctx, 'curr') : 0;
 
         // 探索上界：0.4*S40（S40 = sum_for_sogoshotoku_etc_curr）
         $S40 = $this->n(
@@ -105,6 +106,7 @@ final class FurusatoPracticalUpperLimitService
             $isOnestop,
             $payBase,
             $creditBase,
+            $baseFuruOnly,
             $enablePerf,
             &$isOkCalls,
             &$okCount,
@@ -117,7 +119,7 @@ final class FurusatoPracticalUpperLimitService
                 $stageKey = $currentStage ?: 'unknown';
                 $stageCounts[$stageKey] = ($stageCounts[$stageKey] ?? 0) + 1;
             }
-            $ok = $this->isOk($basePayload, $ctxDry, $ctx, $y, $payBase, $creditBase, $isOnestop);
+            $ok = $this->isOk($basePayload, $ctxDry, $ctx, $y, $payBase, $creditBase, $isOnestop, $baseFuruOnly);
             if ($enablePerf) {
                 if ($ok) $okCount++; else $ngCount++;
             }
@@ -168,22 +170,29 @@ final class FurusatoPracticalUpperLimitService
         $yMaxFloor = $yMaxTotalRaw > 0 ? (int)(intdiv($yMaxTotalRaw, 1000) * 1000) : 0;
         // 保険：切捨て後がOKでないケースを潰す（通常は起きない想定）
         $yMaxTotal = $yMaxFloor;
-        if ($yMaxTotal > 0 && !$this->isOk($basePayload, $ctxDry, $ctx, $yMaxTotal, $payBase, $creditBase, $isOnestop)) {
+        if ($yMaxTotal > 0 && !$this->isOk($basePayload, $ctxDry, $ctx, $yMaxTotal, $payBase, $creditBase, $isOnestop, $baseFuruOnly)) {
             // 最大でも数回で落ちる想定（念のため上限を置く）
             for ($guard = 0; $guard < 10 && $yMaxTotal > 0; $guard++) {
                 $yMaxTotal = max(0, $yMaxTotal - 1000);
-                if ($this->isOk($basePayload, $ctxDry, $ctx, $yMaxTotal, $payBase, $creditBase, $isOnestop)) {
+                if ($this->isOk($basePayload, $ctxDry, $ctx, $yMaxTotal, $payBase, $creditBase, $isOnestop, $baseFuruOnly)) {
                     break;
                 }
             }
         }
 
         // 仕上げ：yMaxでの支払額/自己負担（参考）
+        $payloadMax = $this->withFurusato($basePayload, $yMaxTotal, $ctx);
         $stageCounts['base']++;
-        $outMax = $this->runner->run($this->withFurusato($basePayload, $yMaxTotal, $ctx), $ctxDry);
+        $outMax = $this->runner->run($payloadMax, $ctxDry);
         $payMax = $this->payTotalCurr($outMax);
-        $taxSaved = max(0, $payBase - $payMax);
-        $burden = max(0, $yMaxTotal - $taxSaved);
+        if ($isOnestop) {
+            $maxFuruOnly = $this->furusatoOnlyJuminFinal($outMax, $payloadMax, $ctx, 'curr');
+            $taxSaved = max(0, $maxFuruOnly - $baseFuruOnly);
+            $burden = max(0, $yMaxTotal - $taxSaved);
+        } else {
+            $taxSaved = max(0, $payBase - $payMax);
+            $burden = max(0, $yMaxTotal - $taxSaved);
+        }
   
         // perf log（必要時のみ：FURUSATO_PERF_LOG=1）
         if ($enablePerf && is_object($dryRunMetrics)) {
@@ -249,9 +258,10 @@ final class FurusatoPracticalUpperLimitService
      *
      * @param array{seito:int,npo:int,koueki:int} $creditBase
      */
-    private function isOk(array $basePayload, array $ctxDry, array $ctx, int $y, int $payBase, array $creditBase, bool $isOnestop): bool
+    private function isOk(array $basePayload, array $ctxDry, array $ctx, int $y, int $payBase, array $creditBase, bool $isOnestop, int $baseFuruOnly = 0): bool
     {
-        $out = $this->runner->run($this->withFurusato($basePayload, $y, $ctx), $ctxDry);
+        $payloadY = $this->withFurusato($basePayload, $y, $ctx);
+        $out = $this->runner->run($payloadY, $ctxDry);
 
         if (! $isOnestop) {
             // NG条件：政党/NPO/公益の所得税税額控除が減らない
@@ -263,9 +273,14 @@ final class FurusatoPracticalUpperLimitService
             }
         }
 
-        // 自己負担判定：burden = y - (pay(0) - pay(y))
-        $payY = $this->payTotalCurr($out);
-        $taxSaved = max(0, $payBase - $payY);
+        if ($isOnestop) {
+            $yFuruOnly = $this->furusatoOnlyJuminFinal($out, $payloadY, $ctx, 'curr');
+            $taxSaved = max(0, $yFuruOnly - $baseFuruOnly);
+        } else {
+            // 自己負担判定：burden = y - (pay(0) - pay(y))
+            $payY = $this->payTotalCurr($out);
+            $taxSaved = max(0, $payBase - $payY);
+        }
         $burden = max(0, $y - $taxSaved);
 
         return $burden <= 2000;

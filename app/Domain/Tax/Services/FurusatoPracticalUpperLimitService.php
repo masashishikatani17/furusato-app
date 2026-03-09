@@ -279,10 +279,33 @@ final class FurusatoPracticalUpperLimitService
     private function withFurusato(array $payload, int $y, array $ctx): array
     {
         $y = max(0, $y);
+        $isOnestop = $this->isOnestopContext($ctx);
 
-        $payload['shotokuzei_shotokukojo_furusato_curr'] = $this->isOnestopContext($ctx) ? 0 : $y;
+        $payload['shotokuzei_shotokukojo_furusato_curr'] = $isOnestop ? 0 : $y;
         $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $y;
         $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $y;
+
+        if ($isOnestop) {
+            $payload = $this->normalizeOtherDonationsForOnestopCurr($payload);
+        }
+
+        return $payload;
+    }
+
+    /**
+     * ワンストップ特例ONの上限探索では、ふるさと以外の寄附（curr）は常に0扱いに揃える。
+     * UI/保存の制御漏れや過去値残留があっても探索前提を一致させるための最終防衛。
+     */
+    private function normalizeOtherDonationsForOnestopCurr(array $payload): array
+    {
+        $categories = ['kyodobokin_nisseki', 'seito', 'npo', 'koueki', 'kuni', 'sonota'];
+
+        foreach ($categories as $category) {
+            $payload["shotokuzei_shotokukojo_{$category}_curr"] = 0;
+            $payload["shotokuzei_zeigakukojo_{$category}_curr"] = 0;
+            $payload["juminzei_zeigakukojo_pref_{$category}_curr"] = 0;
+            $payload["juminzei_zeigakukojo_muni_{$category}_curr"] = 0;
+        }
 
         return $payload;
     }

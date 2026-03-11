@@ -147,24 +147,30 @@ final class FurusatoScenarioTaxSummaryService
         $isOnestop = $this->isOnestopContext($ctx);
         $payload['shotokuzei_shotokukojo_furusato_curr'] = $isOnestop ? 0 : $furusatoY;
 
+        if ($isOnestop) {
+            $payload = $this->normalizeOtherDonationsForOnestopCurr($payload);
+        }
+
         if (! $zeroOther) {
             return $payload;
         }
 
-        // ▼ 所得税：所得控除側（ふるさと以外）
-        foreach (['kyodobokin_nisseki','seito','npo','koueki','kuni','sonota'] as $cat) {
-            $payload["shotokuzei_shotokukojo_{$cat}_curr"] = 0;
-        }
-        // ▼ 所得税：税額控除側（政党/NPO/公益）
-        foreach (['seito','npo','koueki'] as $cat) {
-            $payload["shotokuzei_zeigakukojo_{$cat}_curr"] = 0;
-        }
+        return $this->normalizeOtherDonationsForOnestopCurr($payload);
+    }
 
-        // ▼ 住民税：寄附金入力（pref/muni：ふるさと以外）
-        foreach (['pref','muni'] as $area) {
-            foreach (['kyodobokin_nisseki','npo','koueki','sonota'] as $cat) {
-                $payload["juminzei_zeigakukojo_{$area}_{$cat}_curr"] = 0;
-            }
+    /**
+     * ワンストップ特例ON/OFFの比較前提を揃えるため、
+     * ふるさと以外6カテゴリのcurr寄附入力を0に正規化する。
+     */
+    private function normalizeOtherDonationsForOnestopCurr(array $payload): array
+    {
+        $categories = ['kyodobokin_nisseki', 'seito', 'npo', 'koueki', 'kuni', 'sonota'];
+
+        foreach ($categories as $category) {
+            $payload["shotokuzei_shotokukojo_{$category}_curr"] = 0;
+            $payload["shotokuzei_zeigakukojo_{$category}_curr"] = 0;
+            $payload["juminzei_zeigakukojo_pref_{$category}_curr"] = 0;
+            $payload["juminzei_zeigakukojo_muni_{$category}_curr"] = 0;
         }
 
         return $payload;
@@ -177,6 +183,11 @@ final class FurusatoScenarioTaxSummaryService
     private function furusatoOnlyJuminFinal(array $outDryRun, array $payloadUsed, array $ctx, string $period): int
     {
         $p = $period;
+
+        if ($this->isOnestopContext($ctx) && $p === 'curr') {
+            return $this->n($outDryRun["kifukin_zeigaku_kojo_pref_{$p}"] ?? 0)
+                + $this->n($outDryRun["kifukin_zeigaku_kojo_muni_{$p}"] ?? 0);
+        }
 
         $kifukinPost = $this->n($outDryRun["kifukin_zeigaku_kojo_gokei_{$p}"] ?? 0);
         if ($kifukinPost <= 0) return 0;

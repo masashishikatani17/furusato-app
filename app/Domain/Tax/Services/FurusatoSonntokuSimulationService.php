@@ -80,9 +80,9 @@ final class FurusatoSonntokuSimulationService
         ]);
  
         // 3) ベース（ふるさと=0）の税額SoT
-        $outBase = $this->runner->run($this->withFurusato($basePayload, 0), $ctx);
+        $outBase = $this->runner->run($this->withFurusato($basePayload, 0, $ctx), $ctx);
         $baseTax = $this->extractTax($outBase);
-        $baseFuruOnly = $this->furusatoOnlyJuminFinal($outBase, $this->withFurusato($basePayload, 0), $ctx, 'curr');
+        $baseFuruOnly = $this->furusatoOnlyJuminFinal($outBase, $this->withFurusato($basePayload, 0, $ctx), $ctx, 'curr');
 
         $this->dbg('[sonntoku] base tax (y=0)', [
             'itax' => $baseTax['itax'],
@@ -176,7 +176,7 @@ final class FurusatoSonntokuSimulationService
             $offset = (15 - $k) * $step;
             $y = max(0, $yCenter + $offset);
 
-            $payloadUsed = $this->withFurusato($basePayload, $y);
+            $payloadUsed = $this->withFurusato($basePayload, $y, $ctx);
             $out = $this->runner->run($payloadUsed, $ctx);
             $tax = $this->extractTax($out);
             $furuOnly = $this->furusatoOnlyJuminFinal($out, $payloadUsed, $ctx, 'curr');
@@ -246,12 +246,36 @@ final class FurusatoSonntokuSimulationService
     /**
      * ふるさと寄付額の注入（同額コピー運用）
      */
-    private function withFurusato(array $payload, int $y): array
+    private function withFurusato(array $payload, int $y, array $ctx): array
     {
         $y = max(0, $y);
-        $payload['shotokuzei_shotokukojo_furusato_curr'] = $y;
+        $isOnestop = $this->isOnestopContext($ctx);
+        $payload['shotokuzei_shotokukojo_furusato_curr'] = $isOnestop ? 0 : $y;
         $payload['juminzei_zeigakukojo_pref_furusato_curr'] = $y;
         $payload['juminzei_zeigakukojo_muni_furusato_curr'] = $y;
+
+        if ($isOnestop) {
+            $payload = $this->normalizeOtherDonationsForOnestopCurr($payload);
+        }
+
+        return $payload;
+    }
+
+    /**
+     * ワンストップ特例ONの損得シミュレーションでは、ふるさと以外の寄附（curr）は常に0扱いに揃える。
+     * 上限探索と同じ入力前提で算出するための正規化。
+     */
+    private function normalizeOtherDonationsForOnestopCurr(array $payload): array
+    {
+        $categories = ['kyodobokin_nisseki', 'seito', 'npo', 'koueki', 'kuni', 'sonota'];
+
+        foreach ($categories as $category) {
+            $payload["shotokuzei_shotokukojo_{$category}_curr"] = 0;
+            $payload["shotokuzei_zeigakukojo_{$category}_curr"] = 0;
+            $payload["juminzei_zeigakukojo_pref_{$category}_curr"] = 0;
+            $payload["juminzei_zeigakukojo_muni_{$category}_curr"] = 0;
+        }
+
         return $payload;
     }
 
@@ -283,6 +307,12 @@ final class FurusatoSonntokuSimulationService
     private function furusatoOnlyJuminFinal(array $outDryRun, array $payloadUsed, array $ctx, string $period): int
     {
         $p = $period;
+
+        if ($this->isOnestopContext($ctx) && $p === 'curr') {
+            return $this->n($outDryRun["kifukin_zeigaku_kojo_pref_{$p}"] ?? 0)
+                + $this->n($outDryRun["kifukin_zeigaku_kojo_muni_{$p}"] ?? 0);
+        }
+
         $kifukinPost = $this->n($outDryRun["kifukin_zeigaku_kojo_gokei_{$p}"] ?? 0);
         if ($kifukinPost <= 0) return 0;
 
@@ -332,6 +362,29 @@ final class FurusatoSonntokuSimulationService
         $otherBasicTotal = max(0, $otherBasicPref + $otherBasicMuni);
 
         return max(0, $kifukinPost - $otherBasicTotal);
+    }
+
+    private function isOnestopContext(array $ctx): bool
+    {
+        $settings = is_array($ctx['syori_settings'] ?? null) ? $ctx['syori_settings'] : [];
+
+        $curr = $this->n($settings['one_stop_flag_curr'] ?? null);
+        if ($curr === 1) {
+            return true;
+        }
+
+        $base = $this->n($settings['one_stop_flag'] ?? null);
+        if ($base === 1) {
+            return true;
+        }
+
+        $isOnestop = $ctx['is_onestop'] ?? null;
+        if ($isOnestop === true || $this->n($isOnestop) === 1) {
+            return true;
+        }
+
+        $reportKey = strtolower((string) ($ctx['report_key'] ?? ''));
+        return str_contains($reportKey, 'onestop');
     }
 
     private function n(mixed $v): int

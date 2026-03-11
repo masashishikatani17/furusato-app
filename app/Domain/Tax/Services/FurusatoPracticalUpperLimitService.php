@@ -381,6 +381,11 @@ final class FurusatoPracticalUpperLimitService
     private function furusatoOnlyJuminFinal(array $outDryRun, array $payloadUsed, array $ctx, string $period): int
     {
         $p = $period;
+        if ($this->isOnestopContext($ctx) && $p === 'curr') {
+            return $this->n($outDryRun["kifukin_zeigaku_kojo_pref_{$p}"] ?? 0)
+                + $this->n($outDryRun["kifukin_zeigaku_kojo_muni_{$p}"] ?? 0);
+        }
+
         $kifukinPost = $this->n($outDryRun["kifukin_zeigaku_kojo_gokei_{$p}"] ?? 0);
         if ($kifukinPost <= 0) return 0;
 

@@ -75,7 +75,7 @@ class SeatService
 
     public function getActiveSeats(int $companyId): int
     {
-        // 1社=1subscription 前提：seat_limit を SoT とする
+        // 1社=1subscription 前提：quantity（契約本数）を SoT とする
         $sub = Subscription::query()
             ->where('company_id', $companyId)
             ->first();
@@ -85,8 +85,12 @@ class SeatService
         if ((string)$sub->status !== 'active') {
             return 0;
         }
-        $limit = (int)($sub->seat_limit ?? 0);
-        // 互換：旧カラムしかない場合の保険
+        // 契約本数(quantity)を正本とし、5席/契約で算出
+        $limit = max(0, (int)($sub->quantity ?? 0) * 5);
+        // 互換：旧データ保険
+        if ($limit <= 0) {
+            $limit = (int)($sub->seat_limit ?? 0);
+        }
         if ($limit <= 0) {
             $limit = (int)($sub->seats_per_subscription ?? 0);
         }

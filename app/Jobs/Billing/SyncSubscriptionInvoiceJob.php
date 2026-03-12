@@ -97,6 +97,16 @@ class SyncSubscriptionInvoiceJob implements ShouldQueue
                     $sub->quantity = max(1, (int)$sub->quantity + max(0, (int)$inv->quantity));
                 }
 
+                // 更新（kind=renewal）は入金確認後に次期へ更新
+                if ((string)$inv->kind === 'renewal') {
+                    if (!empty($inv->period_start)) {
+                        $sub->term_start = $inv->period_start;
+                    }
+                    if (!empty($inv->period_end)) {
+                        $sub->term_end = $inv->period_end;
+                    }
+                }
+
                 // 初回/追加/更新いずれでも「入金確認が取れたら active」
                 $sub->status = 'active';
 

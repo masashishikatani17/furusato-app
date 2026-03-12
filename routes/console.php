@@ -7,6 +7,7 @@ use Spatie\Health\Commands\DispatchQueueCheckJobsCommand;
 use App\Console\Commands\Billing\SyncOutstandingInvoicesCommand;
 use App\Console\Commands\Billing\IssueRenewalInvoicesCommand;
 use App\Console\Commands\Billing\NotifyBankTransferOverdueCommand;
+use App\Console\Commands\Billing\RescueLegacySubscriptionsCommand;
 
 // 請求管理ロボ：未入金（pending/issued/failed）請求書の同期ジョブを dispatch
 // ※ オプション(--limit)を保持するため、signature もここで定義する
@@ -30,6 +31,25 @@ Artisan::command('billing:notify-bank-transfer-overdue {--date=} {--limit=500}',
         '--limit' => (int)$this->option('limit'),
     ]);
 })->purpose('Notify admin when bank-transfer renewal invoices remain unpaid at term_end-2 days.');
+
+Artisan::command('billing:rescue-legacy-subscriptions
+    {--dry-run}
+    {--force}
+    {--company_id=*}
+    {--term-start=2026-03-01}
+    {--term-end=2027-02-28}
+    {--payment-method=credit}
+    {--limit=500}', function () {
+    $this->call(RescueLegacySubscriptionsCommand::class, [
+        '--dry-run' => (bool) $this->option('dry-run'),
+        '--force' => (bool) $this->option('force'),
+        '--company_id' => (array) $this->option('company_id'),
+        '--term-start' => (string) $this->option('term-start'),
+        '--term-end' => (string) $this->option('term-end'),
+        '--payment-method' => (string) $this->option('payment-method'),
+        '--limit' => (int) $this->option('limit'),
+    ]);
+})->purpose('Backfill legacy subscriptions for robo billing rollout.');
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());

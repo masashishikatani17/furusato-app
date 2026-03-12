@@ -25,6 +25,18 @@ class BillingRoboClient
             // 設定が無い環境でもアプリ全体を落とさないため、呼び出し時に例外にする
         }
     }
+    
+    /**
+     * billing/bulk_upsert
+     * @param array<int,array<string,mixed>> $billings
+     * @return array<string,mixed>
+     */
+    public function billingBulkUpsert(array $billings): array
+    {
+        return $this->postJson('/api/v1.0/billing/bulk_upsert', [
+            'billing' => $billings,
+        ]);
+    }
 
     /**
      * demand/bulk_upsert

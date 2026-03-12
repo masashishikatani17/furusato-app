@@ -2,11 +2,24 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
+        // この migration は MariaDB/MySQL 向け JSON 関数・CAST 構文を使うため、
+        // SQLite を含む他ドライバでは実行しない。
+        $driver = DB::connection()->getDriverName();
+        if (!in_array($driver, ['mysql', 'mariadb'], true)) {
+            return;
+        }
+
+        // テスト/開発環境で対象テーブルが未作成の場合も安全にスキップする。
+        if (!Schema::hasTable('furusato_inputs') || !Schema::hasTable('furusato_results')) {
+            return;
+        }
+
         // payload は longtext だが、JSON文字列として JSON_* 関数で更新している前提。
         // 安全のため JSON_VALID(payload)=1 の行だけを対象にする。
 

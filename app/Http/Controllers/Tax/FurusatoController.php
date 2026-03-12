@@ -27,6 +27,7 @@ use App\Models\FurusatoResult;
 use App\Models\FurusatoSyoriSetting;
 use App\Services\Tax\FurusatoMasterService;
 use App\Services\Tax\FurusatoMasterDefaults;
+use App\Services\Tax\FurusatoOneStopEligibilityService;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
@@ -167,6 +168,8 @@ final class FurusatoController extends Controller
             $context['kmax'] = null;
         }
 
+        $context = $this->attachOneStopPdfGuardContext($context);
+
         return view('tax.furusato.input', $context);
     }
 
@@ -200,9 +203,57 @@ final class FurusatoController extends Controller
             $context['kmax'] = null;
         }
 
+        $context = $this->attachOneStopPdfGuardContext($context);
+
         return view('tax.furusato.input', $context);
     }
 
+    /**
+     * input画面のPDF導線用に、ワンストップ特例ON時のPDFブロック判定結果を載せる。
+     * 保存・再計算・details編集は止めない（PDF出力導線のみガード）。
+     *
+     * @param array<string,mixed> $context
+     * @return array<string,mixed>
+     */
+    private function attachOneStopPdfGuardContext(array $context): array
+    {
+        $payload = $context['results']['payload'] ?? null;
+        $syoriSettings = is_array($context['syoriSettings'] ?? null) ? $context['syoriSettings'] : null;
+
+        /** @var FurusatoOneStopEligibilityService $eligibilityService */
+        $eligibilityService = app(FurusatoOneStopEligibilityService::class);
+        $oneStopFlag = is_array($syoriSettings)
+            ? (int) ($syoriSettings['one_stop_flag_curr'] ?? $syoriSettings['one_stop_flag'] ?? 0)
+            : 0;
+        $oneStopEnabled = $oneStopFlag === 1;
+
+        if (!is_array($payload) || !is_array($syoriSettings) || !$eligibilityService->hasRequiredKeys($payload)) {
+            $context['oneStopPdfGuard'] = [
+                'is_blocked' => $oneStopEnabled,
+                'reasons' => [
+                    'salary_over_20m' => false,
+                    'other_income_over_200k' => false,
+                    'resident_taxable_minus_human_diff_over_18m' => false,
+                ],
+                'values' => [
+                    'salary_income_curr' => 0,
+                    'other_income_curr' => 0,
+                    'human_adjusted_taxable_curr' => 0,
+                ],
+                'one_stop_enabled' => $oneStopEnabled,
+                'data_missing' => true,
+            ];
+            $context['oneStopPdfGuardMessage'] = FurusatoOneStopEligibilityService::DATA_MISSING_MESSAGE;
+            return $context;
+        }
+
+        $guard = $eligibilityService->evaluate($payload, $syoriSettings);
+
+        $context['oneStopPdfGuard'] = $guard;
+        $context['oneStopPdfGuardMessage'] = FurusatoOneStopEligibilityService::BLOCK_MESSAGE;
+
+        return $context;
+    }
 
     /**
      * 本番計算結果（results）から Kmax 用の SoT を取り出して buildKmaxContext に渡す。

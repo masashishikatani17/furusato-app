@@ -221,6 +221,13 @@
           {{-- ▼ 新規：PDF出力（現時点では「常時表示の再計算トリガ」） --}}
           @php
             $oneStopCurr = (string)($syoriSettings['one_stop_flag_curr'] ?? $syoriSettings['one_stop_flag'] ?? '1');
+            $oneStopPdfGuard = is_array($oneStopPdfGuard ?? null) ? $oneStopPdfGuard : [];
+            $isOneStopPdfBlocked = (bool) ($oneStopPdfGuard['is_blocked'] ?? false);
+            $oneStopPdfGuardMessage = (string) ($oneStopPdfGuardMessage ?? "給与所得者であっても、次のいずれかに当てはまるなど一定の条件を満たす人は、確定申告が必要です。\n"
+              . "1．給与の年間収入金額が2,000万円を超える人\n"
+              . "2．給与所得、退職所得を除く、その他の所得金額の合計額が20万円を超える人\n"
+              . "現在の入力内容ではワンストップtクレイの対象外となる可能性があるため、上限額の再計算及び帳票出力はできません。処理メニューに戻り、ワンストップ特例を「利用しない」に変更してください。");
+            $syoriBackUrl = route('furusato.syori', ['data_id' => (int)($dataId ?? 0)]);
             // ▼ いったん「表紙＋寄附金上限額（1ページ目）」を2ページで出す（report=furusato_bundle）
             $bundleUrl = route('pdf.download', ['report' => 'furusato_bundle'])
               . '?data_id=' . urlencode((string)($dataId ?? ''))
@@ -238,7 +245,10 @@
              class="btn-base-green"
              href="#"
              data-download-url="{{ $bundleUrl }}"
-             data-status-url="{{ $bundleStatusUrl }}">PDF出力</a>
+             data-status-url="{{ $bundleStatusUrl }}"
+             data-one-stop-pdf-blocked="{{ $isOneStopPdfBlocked ? '1' : '0' }}"
+             data-one-stop-pdf-message="{{ $oneStopPdfGuardMessage }}"
+             data-syori-url="{{ $syoriBackUrl }}">PDF出力</a>
 
           {{-- ▼ 新規：帳票プレビュー（サムネ一覧→拡大） --}}
 {{--
@@ -2220,6 +2230,23 @@
 </div>
 
 {{-- 帳票プレビュー モーダル群（Blade分割） --}}
+<div class="modal fade" id="furusato-one-stop-pdf-block-modal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">確定申告が必要です。</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-0" id="furusato-one-stop-pdf-block-message" style="white-space: pre-line;">{{ $oneStopPdfGuardMessage ?? '' }}</p>
+      </div>
+      <div class="modal-footer">
+        <a class="btn btn-base-blue" id="furusato-one-stop-pdf-block-back" href="{{ $syoriBackUrl ?? '#' }}">処理メニューへ戻る</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 @include('tax.furusato.partials.report_preview_modal')
 
 {{-- ============================
@@ -4009,9 +4036,33 @@
         }
       };
 
+      const blockModalEl = document.getElementById('furusato-one-stop-pdf-block-modal');
+      const blockModal = (blockModalEl && typeof bootstrap !== 'undefined' && bootstrap.Modal)
+        ? bootstrap.Modal.getOrCreateInstance(blockModalEl)
+        : null;
+
       btn.addEventListener('click', async (e) => {
         e.preventDefault();
         e.stopPropagation();
+
+        const blocked = btn.getAttribute('data-one-stop-pdf-blocked') === '1';
+        if (blocked) {
+          const msg = btn.getAttribute('data-one-stop-pdf-message') || '';
+          const syoriUrl = btn.getAttribute('data-syori-url') || '';
+          const msgEl = document.getElementById('furusato-one-stop-pdf-block-message');
+          const backEl = document.getElementById('furusato-one-stop-pdf-block-back');
+          if (msgEl && msg) msgEl.textContent = msg;
+          if (backEl && syoriUrl) backEl.setAttribute('href', syoriUrl);
+          if (blockModal) {
+            blockModal.show();
+            return;
+          }
+          if (msg) alert(msg);
+          if (syoriUrl) {
+            window.location.href = syoriUrl;
+          }
+          return;
+        }
 
         // モーダルが使えるなら3択を出す。使えない環境は従来互換（max）
         if (modal) {

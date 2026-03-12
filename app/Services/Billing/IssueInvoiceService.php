@@ -55,6 +55,9 @@ class IssueInvoiceService
             $termEnd = Carbon::parse($termStart, 'Asia/Tokyo')->addYear()->subDay()->toDateString(); // 期末＝翌年同日前日（うるう年含め自然）
 
             $sub->status = 'pending';
+            if (empty($sub->applied_at)) {
+                $sub->applied_at = Carbon::now('Asia/Tokyo');
+            }
             $sub->quantity = $quantity;
             $sub->term_start = $termStart;
             $sub->term_end = $termEnd;
@@ -68,10 +71,147 @@ class IssueInvoiceService
             $issueDate = Carbon::now('Asia/Tokyo')->startOfDay();
             $dueDate = $issueDate->copy()->addDays(7);
 
-            $inv = new SubscriptionInvoice();
-            $inv->company_id = (int)$company->id;
-            $inv->subscription_id = (int)$sub->id;
-            $inv->kind = 'initial';
+            return $this->createAndIssueInvoice(
+                companyId: (int)$company->id,
+                subscriptionId: (int)$sub->id,
+                kind: 'initial',
+                billingCode: $billingCode,
+                paymentMethod: $paymentMethod,
+                quantity: $quantity,
+                unitPriceYen: 30000,
+                monthsCharged: 12,
+                amountYen: 30000 * $quantity,
+                periodStart: $termStart,
+                periodEnd: $termEnd,
+                issueDate: $issueDate,
+                dueDate: $dueDate,
+            );
+        });
+    }
+
+    /**
+     * 更新請求（renewal）を作成・発行する。
+     * 同一 subscription_id + 同一期間 に未取消の renewal がある場合は作成しない。
+     */
+    public function issueRenewal(Subscription $sub, Carbon $issueDate): ?SubscriptionInvoice
+    {
+        $issueDate = $issueDate->copy()->tz('Asia/Tokyo')->startOfDay();
+
+        return DB::transaction(function () use ($sub, $issueDate) {
+            $sub = Subscription::query()->lockForUpdate()->find((int)$sub->id);
+            if (!$sub || empty($sub->term_end) || empty($sub->billing_code) || empty($sub->payment_method)) {
+                return null;
+            }
+
+            $nextStart = Carbon::parse((string)$sub->term_end, 'Asia/Tokyo')->addDay()->startOfDay();
+            $nextEnd = $nextStart->copy()->addYear()->subDay()->startOfDay();
+
+            // renewal の再発行方針:
+            // - 同一期間に pending/issued/paid/failed があれば再発行しない（重複防止）
+            // - failed は billing:sync-outstanding-invoices による再同期対象として扱う
+            // - 人手で再発行する場合のみ既存を canceled にしてから再作成する
+            $exists = SubscriptionInvoice::query()
+                ->where('subscription_id', (int)$sub->id)
+                ->where('kind', 'renewal')
+                ->whereDate('period_start', $nextStart->toDateString())
+                ->whereDate('period_end', $nextEnd->toDateString())
+                ->where('status', '!=', 'canceled')
+                ->exists();
+            if ($exists) {
+                return null;
+            }
+
+            $quantity = max(1, (int)$sub->quantity);
+            $paymentMethod = (string)$sub->payment_method;
+            $dueDate = $paymentMethod === 'bank_transfer'
+                ? Carbon::parse((string)$sub->term_end, 'Asia/Tokyo')->subDays(2)->startOfDay()
+                : Carbon::parse((string)$sub->term_end, 'Asia/Tokyo')->startOfDay();
+
+            return $this->createAndIssueInvoice(
+                companyId: (int)$sub->company_id,
+                subscriptionId: (int)$sub->id,
+                kind: 'renewal',
+                billingCode: (string)$sub->billing_code,
+                paymentMethod: $paymentMethod,
+                quantity: $quantity,
+                unitPriceYen: 30000,
+                monthsCharged: 12,
+                amountYen: 30000 * $quantity,
+                periodStart: $nextStart->toDateString(),
+                periodEnd: $nextEnd->toDateString(),
+                issueDate: $issueDate,
+                dueDate: $dueDate,
+            );
+        });
+    }
+
+    /**
+     * 追加請求（add_quantity）を作成・発行する。
+     * subscriptions.quantity は入金確認後にのみ反映するため、ここでは変更しない。
+     */
+    public function issueAddQuantity(Subscription $sub, int $addQuantity, Carbon $requestedAt): ?SubscriptionInvoice
+    {
+        $addQuantity = max(1, $addQuantity);
+        $requestedAt = $requestedAt->copy()->tz('Asia/Tokyo')->startOfDay();
+
+        return DB::transaction(function () use ($sub, $addQuantity, $requestedAt) {
+            $sub = Subscription::query()->lockForUpdate()->find((int)$sub->id);
+            if (!$sub || empty($sub->term_end) || empty($sub->billing_code) || empty($sub->payment_method)) {
+                return null;
+            }
+
+            $termEnd = Carbon::parse((string)$sub->term_end, 'Asia/Tokyo')->startOfDay();
+            $periodStart = $requestedAt->copy()->startOfMonth();
+            if ($periodStart->gt($termEnd)) {
+                return null;
+            }
+
+            // 月初起算 / 月割 / 日割なし
+            $monthsCharged = (($termEnd->year - $periodStart->year) * 12) + ($termEnd->month - $periodStart->month) + 1;
+            $monthsCharged = max(1, min(12, $monthsCharged));
+
+            $unitPerMonth = intdiv(30000, 12); // 2,500
+            $amountYen = $unitPerMonth * $monthsCharged * $addQuantity;
+
+            $dueDate = $requestedAt->copy()->addDays(7);
+
+            return $this->createAndIssueInvoice(
+                companyId: (int)$sub->company_id,
+                subscriptionId: (int)$sub->id,
+                kind: 'add_quantity',
+                billingCode: (string)$sub->billing_code,
+                paymentMethod: (string)$sub->payment_method,
+                quantity: $addQuantity,
+                unitPriceYen: 30000,
+                monthsCharged: $monthsCharged,
+                amountYen: $amountYen,
+                periodStart: $periodStart->toDateString(),
+                periodEnd: $termEnd->toDateString(),
+                issueDate: $requestedAt,
+                dueDate: $dueDate,
+            );
+        });
+    }
+
+    private function createAndIssueInvoice(
+        int $companyId,
+        int $subscriptionId,
+        string $kind,
+        string $billingCode,
+        string $paymentMethod,
+        int $quantity,
+        int $unitPriceYen,
+        int $monthsCharged,
+        int $amountYen,
+        string $periodStart,
+        string $periodEnd,
+        Carbon $issueDate,
+        Carbon $dueDate,
+    ): SubscriptionInvoice {
+        $inv = new SubscriptionInvoice();
+            $inv->company_id = $companyId;
+            $inv->subscription_id = $subscriptionId;
+            $inv->kind = $kind;
             $inv->status = 'pending';
 
             // demand_code は最大20桁（半角英数+記号）なので20以内で生成する
@@ -82,13 +222,13 @@ class IssueInvoiceService
             $inv->item_code = (string) config('billing_robo.item_code_5seats');
             $inv->payment_method = $paymentMethod;
 
-            $inv->quantity = $quantity; // 初回は総口数
-            $inv->unit_price_yen = 30000;
-            $inv->months_charged = 12;
-            $inv->amount_yen = 30000 * $quantity; // 初回は満額
+            $inv->quantity = $quantity;
+            $inv->unit_price_yen = $unitPriceYen;
+            $inv->months_charged = $monthsCharged;
+            $inv->amount_yen = $amountYen;
 
-            $inv->period_start = $termStart;
-            $inv->period_end = $termEnd;
+            $inv->period_start = $periodStart;
+            $inv->period_end = $periodEnd;
             $inv->issue_date = $issueDate->toDateString();
             $inv->due_date = $dueDate->toDateString();
             $inv->save();
@@ -114,7 +254,7 @@ class IssueInvoiceService
                 'tax' => (int) config('billing_robo.tax'),
 
                 // サービス提供開始日（yyyy/mm/dd）
-                'start_date' => Carbon::parse($termStart, 'Asia/Tokyo')->format('Y/m/d'),
+                'start_date' => Carbon::parse($periodStart, 'Asia/Tokyo')->format('Y/m/d'),
 
                 // 発行日（月オフセット/日）
                 'issue_month' => 0,
@@ -139,7 +279,6 @@ class IssueInvoiceService
             $inv->save();
 
             return $inv;
-        });
     }
 
     /**

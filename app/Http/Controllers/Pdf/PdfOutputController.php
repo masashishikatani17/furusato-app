@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\Data;
+use App\Models\FurusatoInput;
 use App\Models\FurusatoResult;
 use Illuminate\Support\Facades\Auth;
 use App\Services\Pdf\ReportRegistry;
@@ -24,9 +25,9 @@ use App\Services\Pdf\Templates\FurusatoJintekiKojoSaTyoseiTemplateWriter;
 use App\Services\Pdf\Templates\FurusatoTokureiKojowariaiTemplateWriter;
 use App\Domain\Tax\Services\FurusatoSonntokuSimulationService;
 use App\Domain\Tax\Factory\SyoriSettingsFactory;
-use App\Models\FurusatoInput;
 use App\Jobs\Pdf\BuildFurusatoBundlePdfCacheJob;
 use App\Reports\Contracts\BundleReportInterface;
+use App\Services\Tax\FurusatoOneStopEligibilityService;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Symfony\Component\HttpFoundation\Cookie;
@@ -43,6 +44,7 @@ class PdfOutputController extends Controller
         private FastBundlePdfBuilder $fastBuilder,
         private PdfPageLabelStamper $pageStamper,
         private RecalculateFurusatoPayload $recalculateUseCase,
+        private FurusatoOneStopEligibilityService $oneStopEligibilityService,
     ) {}
 
     /**
@@ -104,6 +106,151 @@ class PdfOutputController extends Controller
         $this->forceRecalculateFurusatoResults($data, $request, false);
     }
 
+
+    /**
+     * ふるさと系帳票に対するワンストップ特例ON時のPDF出力ガード。
+     * - 判定入力ソースは一本化し、フォールバックしない（fail-closed）。
+     * - payload は FurusatoResult.payload["payload"] のみを使用する。
+     * - syoriSettings は SyoriSettingsFactory::buildInitial($data) のみを使用する。
+     */
+    private function assertOneStopPdfAllowed(Request $request, Data $data, string $report): void
+    {
+        if (! $this->isFurusatoReport($report)) {
+            return;
+        }
+
+        $syoriSettings = $this->resolveOneStopGuardSyoriSettingsOrFail($request, $data, $report);
+        $oneStopEnabled = (int) ($syoriSettings['one_stop_flag_curr'] ?? $syoriSettings['one_stop_flag'] ?? 0) === 1;
+        if (! $oneStopEnabled) {
+            return;
+        }
+
+        $payload = $this->resolveOneStopGuardPayloadOrFail($request, $data, $report);
+
+        if (! $this->oneStopEligibilityService->hasRequiredKeys($payload)) {
+            $this->failOneStopPdfGuard(
+                $request,
+                $data,
+                $report,
+                'required_keys_missing',
+                FurusatoOneStopEligibilityService::DATA_MISSING_MESSAGE,
+            );
+        }
+
+        $guard = $this->oneStopEligibilityService->evaluate($payload, $syoriSettings);
+        if (!($guard['is_blocked'] ?? false)) {
+            return;
+        }
+
+        $this->failOneStopPdfGuard(
+            $request,
+            $data,
+            $report,
+            'one_stop_ineligible',
+            FurusatoOneStopEligibilityService::BLOCK_MESSAGE,
+            [
+                'reasons' => $guard['reasons'] ?? [],
+                'values' => $guard['values'] ?? [],
+            ],
+        );
+    }
+
+    /**
+     * 判定用SoTは FurusatoResult.payload["payload"]（フラットSoT）だけを正とする。
+     * 取得できない場合は fail-closed で停止する。
+     *
+     * @return array<string,mixed>
+     */
+    private function resolveOneStopGuardPayloadOrFail(Request $request, Data $data, string $report): array
+    {
+        $result = FurusatoResult::query()->where('data_id', (int) $data->id)->first();
+        if (! $result) {
+            $this->failOneStopPdfGuard($request, $data, $report, 'furusato_result_not_found', FurusatoOneStopEligibilityService::DATA_MISSING_MESSAGE);
+        }
+
+        $container = $result->payload;
+        if (! is_array($container)) {
+            $this->failOneStopPdfGuard($request, $data, $report, 'furusato_result_payload_not_array', FurusatoOneStopEligibilityService::DATA_MISSING_MESSAGE);
+        }
+
+        $payload = $container['payload'] ?? null;
+        if (! is_array($payload)) {
+            $this->failOneStopPdfGuard($request, $data, $report, 'furusato_result_payload_key_missing_or_invalid', FurusatoOneStopEligibilityService::DATA_MISSING_MESSAGE);
+        }
+
+        return $payload;
+    }
+
+    /**
+     * 判定用syoriSettingsは SyoriSettingsFactory::buildInitial($data) のみを正とする。
+     *
+     * @return array<string,mixed>
+     */
+    private function resolveOneStopGuardSyoriSettingsOrFail(Request $request, Data $data, string $report): array
+    {
+        $syoriSettings = app(SyoriSettingsFactory::class)->buildInitial($data);
+        if (! is_array($syoriSettings)) {
+            $this->failOneStopPdfGuard($request, $data, $report, 'syori_settings_not_array', FurusatoOneStopEligibilityService::DATA_MISSING_MESSAGE);
+        }
+
+        // クエリ明示時のみ一時上書きを許可
+        if ($request->query->has('one_stop_flag_curr')) {
+            $syoriSettings['one_stop_flag_curr'] = (int) $request->query('one_stop_flag_curr');
+        }
+
+        return $syoriSettings;
+    }
+
+    /**
+     * fail-closed: 判定不能/判定NGのどちらでもPDF導線を停止する。
+     *
+     * @param array<string,mixed> $extra
+     */
+    private function failOneStopPdfGuard(Request $request, Data $data, string $report, string $reason, string $message, array $extra = []): never
+    {
+        Log::warning('[pdf] one-stop guard blocked', array_merge([
+            'data_id' => (int) $data->id,
+            'report' => (string) $report,
+            'reason' => $reason,
+        ], $extra));
+
+        if ($request->expectsJson() || $request->is('pdf/*/status')) {
+            throw new \Illuminate\Http\Exceptions\HttpResponseException(response()->json([
+                'message' => $message,
+                'code' => $reason === 'one_stop_ineligible' ? 'furusato_one_stop_ineligible' : 'furusato_one_stop_guard_data_missing',
+                'reasons' => $extra['reasons'] ?? [],
+            ], 422));
+        }
+
+        redirect()->route('furusato.syori', ['data_id' => (int) $data->id])
+            ->with('error', $message)
+            ->throwResponse();
+    }
+
+    private function isFurusatoReport(string $report): bool
+    {
+        $key = strtolower($report);
+        if ($key === 'furusato_bundle') {
+            return true;
+        }
+
+        return in_array($key, [
+            'hyoshi',
+            'kifukingendogaku',
+            'syotokukinkojyosoku',
+            'kazeigakuzeigakuyosoku',
+            'juminkeigengaku',
+            'juminkeigengaku_onestop',
+            'syotokukinkojyosoku_curr',
+            'kazeigakuzeigakuyosoku_curr',
+            'juminkeigengaku_curr',
+            'juminkeigengaku_onestop_curr',
+            'sonntokusimulation',
+            'jintekikojosatyosei',
+            'tokureikojowariai',
+        ], true);
+    }
+
     /**
      * ステータス（JSON）
      * GET /pdf/{report}/status?data_id=...&one_stop_flag_curr=...&mode=fast&engine=dompdf
@@ -113,6 +260,7 @@ class PdfOutputController extends Controller
         $data = $this->resolveAuthorizedDataOrFail($request);
         // ★PDF生成状況チェックでも「最新SoT」を担保しておく（stale results のまま ready を返さない）
         $this->ensureLatestFurusatoResults($data, $request);
+        $this->assertOneStopPdfAllowed($request, $data, $report);
 
         // 標準：fast + dompdf（必要ならクエリで切替）
         $variant = strtolower((string)$request->query('pdf_variant', 'max'));
@@ -185,6 +333,7 @@ class PdfOutputController extends Controller
         // ★要件：帳票プレビューも「必ず最新」で、上限探索まで含めて最新化する
         //   - 入力が変わっていなくても外部マスタ更新等を吸収する
         $this->forceRecalculateFurusatoResults($data, $request, true);
+        $this->assertOneStopPdfAllowed($request, $data, $report);
         $reportObj = $this->reports->resolve($report);
 
         // Bundle の場合：骨組みHTML（即返却）＋JSONでページHTMLを一括取得して埋め込む
@@ -296,6 +445,7 @@ class PdfOutputController extends Controller
         // （外部マスタ更新等で inputs の updated_at が動かないケースでも必ず最新化）
         // download は“成果物”なので常に最新（上限探索含む）
         $this->forceRecalculateFurusatoResults($data, $request, true);
+        $this->assertOneStopPdfAllowed($request, $data, $report);
         $reportObj = $this->reports->resolve($report);
  
         // 標準：fast + dompdf（必要ならクエリで切替）

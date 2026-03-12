@@ -60,6 +60,12 @@ Route::middleware('guest')->group(function () {
     Route::post('/signup/submit', [SignupController::class, 'submit'])->name('signup.submit');
 });
 
+// ご利用停止中（subscription.active 保護外）
+Route::middleware('auth')->get('/subscription/suspended', function () {
+    return view('subscription.suspended');
+})->name('subscription.suspended');
+
+Route::middleware('auth')->get('/billing/setup', [SetupController::class, 'index'])->name('billing.setup');
 
 Route::middleware(['auth', 'reject.client'])->group(function () {
     Route::get('/admin/settings', [SettingsController::class, 'index'])->name('admin.settings');
@@ -218,11 +224,10 @@ Route::get('/diag/csp/ping', function () {
     return Response::make('<!doctype html><title>CSP ping</title><h1>pong</h1>', 200, ['Content-Type' => 'text/html; charset=UTF-8']);
 });
 
-Route::post('/furusato/calc', [FurusatoController::class, 'calc'])->name('furusato.calc');
-
-Route::middleware(['auth'])->prefix('furusato')->group(function () {
+Route::middleware(['auth', 'subscription.active'])->prefix('furusato')->group(function () {
     Route::get('/', [FurusatoController::class, 'index'])->name('furusato.index');
     Route::get('/input', [FurusatoController::class, 'index'])->name('furusato.input');
+    Route::post('/calc', [FurusatoController::class, 'calc'])->name('furusato.calc');
     Route::get('/master', [FurusatoController::class, 'master'])->name('furusato.master');
     Route::get('/master/shotoku_master', [FurusatoController::class, 'shotokuMaster'])->name('furusato.master.shotoku');
     Route::get('/master/jumin_master', [FurusatoController::class, 'juminMaster'])->name('furusato.master.jumin');

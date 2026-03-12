@@ -11,6 +11,7 @@ class Subscription extends Model
     protected $fillable = [
         'company_id',
         'status',
+        'applied_at',
         // legacy
         'seats_per_subscription',
         // new SoT fields
@@ -30,6 +31,7 @@ class Subscription extends Model
         'term_start' => 'date',
         'term_end' => 'date',
         'paid_through' => 'date',
+        'applied_at' => 'datetime',
         'last_synced_at' => 'datetime',
         'requested_at' => 'datetime',
         'cancel_at_term_end' => 'boolean',

@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission'  => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
             'permissions' => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
             'reject.client' => \App\Http\Middleware\RejectClientForAdmin::class,
+            'subscription.active' => \App\Http\Middleware\EnsureSubscriptionActive::class,
         ]);
         // Cloud9/ALB の X-Forwarded-* を信頼（https 判定に使う）
         // すべてのプロキシを信頼し、AWS ELB ヘッダを採用
@@ -46,8 +47,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('billing:sync-outstanding-invoices')
             ->everyTenMinutes()
             ->withoutOverlapping();
+
+        // 請求管理ロボ：更新請求作成
+        $schedule->command('billing:issue-renewal-invoices')
+            ->dailyAt('01:00')
+            ->withoutOverlapping();
+
+        // 銀行振込：満了2日前時点の未入金通知
+        $schedule->command('billing:notify-bank-transfer-overdue')
+            ->dailyAt('09:00')
+            ->withoutOverlapping();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
-

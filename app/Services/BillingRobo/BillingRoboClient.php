@@ -33,9 +33,45 @@ class BillingRoboClient
      */
     public function billingBulkUpsert(array $billings): array
     {
-        return $this->postJson('/api/v1.0/billing/bulk_upsert', [
+        $res = $this->postJson('/api/v1.0/billing/bulk_upsert', [
             'billing' => $billings,
         ]);
+
+        $billingRows = $res['billing'] ?? null;
+        if (!is_array($billingRows)) {
+            throw new RuntimeException('BillingRobo billingBulkUpsert response does not contain billing array.');
+        }
+
+        foreach ($billingRows as $idx => $row) {
+            if (!is_array($row)) {
+                throw new RuntimeException("BillingRobo billingBulkUpsert response billing[{$idx}] is invalid.");
+            }
+
+            $errorCode = $row['error_code'] ?? null;
+            if ($errorCode !== null && (string)$errorCode !== '' && (int)$errorCode !== 0) {
+                $message = (string)($row['error_message'] ?? 'unknown billing error');
+                $code = (string)($row['code'] ?? '');
+                throw new RuntimeException("BillingRobo billingBulkUpsert failed: billing.code={$code} error_code={$errorCode} message={$message}");
+            }
+
+            $individuals = $row['individual'] ?? null;
+            if (is_array($individuals)) {
+                foreach ($individuals as $j => $individual) {
+                    if (!is_array($individual)) {
+                        throw new RuntimeException("BillingRobo billingBulkUpsert response billing[{$idx}].individual[{$j}] is invalid.");
+                    }
+
+                    $individualErrorCode = $individual['error_code'] ?? null;
+                    if ($individualErrorCode !== null && (string)$individualErrorCode !== '' && (int)$individualErrorCode !== 0) {
+                        $message = (string)($individual['error_message'] ?? 'unknown individual error');
+                        $code = (string)($individual['code'] ?? '');
+                        throw new RuntimeException("BillingRobo billingBulkUpsert failed: billing.individual.code={$code} error_code={$individualErrorCode} message={$message}");
+                    }
+                }
+            }
+        }
+
+        return $res;
     }
 
     /**

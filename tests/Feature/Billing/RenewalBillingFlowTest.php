@@ -44,8 +44,8 @@ class RenewalBillingFlowTest extends TestCase
         $this->assertDatabaseHas('subscription_invoices', [
             'subscription_id' => (int)$sub->id,
             'kind' => 'renewal',
-            'period_start' => '2026-03-01',
-            'period_end' => '2027-02-28',
+            'period_start' => '2026-03-01 00:00:00',
+            'period_end' => '2027-02-28 00:00:00',
             'status' => 'issued',
             'quantity' => 3,
         ]);

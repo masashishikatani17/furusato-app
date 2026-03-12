@@ -155,11 +155,24 @@ class RescueLegacySubscriptionsCommand extends Command
     private function createRemoteBilling(BillingRoboClient $client, int $companyId, string $billingCode, string $companyName): void
     {
         $name = trim($companyName) !== '' ? $companyName : ('Company-' . $companyId);
+        $individualCode = $billingCode . '-01';
+        $email = 'billing+company' . $companyId . '@example.com';
 
         $client->billingBulkUpsert([
             [
                 'code' => $billingCode,
-                'name' => Str::limit($name, 100, ''),
+                'name' => mb_substr($name, 0, 100),
+                'individual' => [
+                    [
+                        'code' => $individualCode,
+                        'name' => '本社',
+                        'address1' => mb_substr($name, 0, 90) . ' 御中',
+                        'zip_code' => '1000001',
+                        'pref' => '東京都',
+                        'city_address' => '千代田区千代田1-1',
+                        'email' => $email,
+                    ],
+                ],
             ],
         ]);
     }

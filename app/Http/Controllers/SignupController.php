@@ -8,7 +8,9 @@ use App\Services\Billing\IssueInvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class SignupController extends Controller
 {
@@ -35,7 +37,7 @@ class SignupController extends Controller
             'company_name' => ['required', 'string', 'max:255'],
             'branch_name'  => ['required', 'string', 'max:255'],
             'owner_name'   => ['required', 'string', 'max:255'],
-            'email'        => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'email'        => ['required', 'string', 'email:rfc,filter', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/', 'max:255', 'unique:users,email'],
             'password'     => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
             // 支払方法（UI文字列）→内部コードへ変換して確定
             'payment_method' => ['required', 'string', 'max:255'],
@@ -46,6 +48,7 @@ class SignupController extends Controller
             'owner_name.required'   => '代表者名を入力してください。',
             'email.required'        => 'メールアドレスを入力してください。',
             'email.email'           => 'メールアドレスの形式が不正です。',
+            'email.regex'           => 'メールアドレスの形式が不正です。',
             'email.unique'          => 'このメールアドレスは既に登録されています。',
             'password.required'     => 'パスワードを入力してください。',
             'password.confirmed'    => 'パスワード（確認）が一致しません。',
@@ -83,55 +86,72 @@ class SignupController extends Controller
         // 申込は「5人プラン（年額3万円）×口数」
         $initialQuantity = max(1, min(999, (int)$quantity));
 
-        DB::transaction(function () use (
-            $companyName,
-            $branchName,
-            $ownerName,
-            $email,
-            $validated,
-            $paymentMethod,
-            $initialQuantity,
-            $issuer
-        ) {
-            // 1) Company 作成（owner_user_id は後で埋める）
-            $company = Company::create([
-                'name' => $companyName,
+        try {
+            DB::transaction(function () use (
+                $companyName,
+                $branchName,
+                $ownerName,
+                $email,
+                $validated,
+                $paymentMethod,
+                $initialQuantity,
+                $issuer
+            ) {
+                // 1) Company 作成（owner_user_id は後で埋める）
+                $company = Company::create([
+                    'name' => $companyName,
+                    'branch_name' => $branchName,
+                    // 監査用に残す（UIには出さない想定）
+                    'signup_plan' => 'p5',
+                    'signup_payment_method' => $paymentMethod,
+                ]);
+
+                // 2) Owner User 作成（role=owner固定、group_id=null）
+                $user = User::create([
+                    'company_id' => (int) $company->id,
+                    'group_id'   => null,
+                    'name'       => $ownerName,
+                    'email'      => $email,
+                    'password'   => Hash::make((string) $validated['password']),
+                    'role'       => 'owner',
+                    'is_active'  => true,
+                ]);
+
+                // 3) company.owner_user_id を紐付け
+                $company->owner_user_id = (int) $user->id;
+                $company->save();
+
+                // 4) billing_code を固定生成（初回に確定、以後は変更しない運用）
+                $billingCode = $this->makeBillingCode(
+                    (string) $company->name,
+                    (string) $company->branch_name,
+                    (int) $company->id
+                );
+
+                // 5) 発行フロー
+                // subscription作成
+                // invoice(pending)作成
+                // demand/bulk_upsert
+                // bulk_issue_bill_select（bill_number取得）
+                // invoiceをissuedへ
+                $issuer->issueInitial($company, $billingCode, $paymentMethod, $initialQuantity);
+            });
+        } catch (Throwable $e) {
+            Log::error('Signup submit failed during initial billing flow.', [
+                'email' => $email,
+                'company_name' => $companyName,
                 'branch_name' => $branchName,
-                // 監査用に残す（UIには出さない想定）
-                'signup_plan' => 'p5',
-                'signup_payment_method' => $paymentMethod,
+                'payment_method' => $paymentMethod,
+                'quantity' => $initialQuantity,
+                'exception' => $e,
             ]);
 
-            // 2) Owner User 作成（role=owner固定、group_id=null）
-            $user = User::create([
-                'company_id' => (int) $company->id,
-                'group_id'   => null,
-                'name'       => $ownerName,
-                'email'      => $email,
-                'password'   => Hash::make((string) $validated['password']),
-                'role'       => 'owner',
-                'is_active'  => true,
-            ]);
-
-            // 3) company.owner_user_id を紐付け
-            $company->owner_user_id = (int) $user->id;
-            $company->save();
-
-            // 4) billing_code を固定生成（初回に確定、以後は変更しない運用）
-            $billingCode = $this->makeBillingCode(
-                (string) $company->name,
-                (string) $company->branch_name,
-                (int) $company->id
-            );
-
-            // 5) 発行フロー
-            // subscription作成
-            // invoice(pending)作成
-            // demand/bulk_upsert
-            // bulk_issue_bill_select（bill_number取得）
-            // invoiceをissuedへ
-            $issuer->issueInitial($company, $billingCode, $paymentMethod, $initialQuantity);
-        });
+            return back()
+                ->withInput($request->except(['password', 'password_confirmation']))
+                ->withErrors([
+                    'signup' => 'お申し込み処理中にエラーが発生しました。入力内容をご確認のうえ、再度お試しください。',
+                ]);
+        }
 
         // 申込完了後：ロボ支払い手続きURLへ誘導
         // ※ payment_url が未設定なら従来通り login へ戻す

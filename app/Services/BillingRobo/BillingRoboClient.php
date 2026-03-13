@@ -48,7 +48,7 @@ class BillingRoboClient
             }
 
             $errorCode = $row['error_code'] ?? null;
-            if ($errorCode !== null && (string)$errorCode !== '' && (int)$errorCode !== 0) {
+            if ($this->hasApiError($errorCode)) {
                 $message = (string)($row['error_message'] ?? 'unknown billing error');
                 $code = (string)($row['code'] ?? '');
                 throw new RuntimeException("BillingRobo billingBulkUpsert failed: billing.code={$code} error_code={$errorCode} message={$message}");
@@ -62,10 +62,26 @@ class BillingRoboClient
                     }
 
                     $individualErrorCode = $individual['error_code'] ?? null;
-                    if ($individualErrorCode !== null && (string)$individualErrorCode !== '' && (int)$individualErrorCode !== 0) {
+                    if ($this->hasApiError($individualErrorCode)) {
                         $message = (string)($individual['error_message'] ?? 'unknown individual error');
                         $code = (string)($individual['code'] ?? '');
                         throw new RuntimeException("BillingRobo billingBulkUpsert failed: billing.individual.code={$code} error_code={$individualErrorCode} message={$message}");
+                    }
+                }
+            }
+
+            $payments = $row['payment'] ?? null;
+            if (is_array($payments)) {
+                foreach ($payments as $k => $payment) {
+                    if (!is_array($payment)) {
+                        throw new RuntimeException("BillingRobo billingBulkUpsert response billing[{$idx}].payment[{$k}] is invalid.");
+                    }
+
+                    $paymentErrorCode = $payment['error_code'] ?? null;
+                    if ($this->hasApiError($paymentErrorCode)) {
+                        $message = (string)($payment['error_message'] ?? 'unknown payment error');
+                        $code = (string)($payment['code'] ?? '');
+                        throw new RuntimeException("BillingRobo billingBulkUpsert failed: billing.payment.code={$code} error_code={$paymentErrorCode} message={$message}");
                     }
                 }
             }
@@ -96,7 +112,7 @@ class BillingRoboClient
             }
 
             $errorCode = $row['error_code'] ?? null;
-            if ($errorCode !== null && (string)$errorCode !== '' && (int)$errorCode !== 0) {
+            if ($this->hasApiError($errorCode)) {
                 $message = (string)($row['error_message'] ?? 'unknown demand error');
                 $code = (string)($row['code'] ?? '');
                 throw new RuntimeException("BillingRobo demandBulkUpsert failed: demand.code={$code} error_code={$errorCode} message={$message}");
@@ -190,5 +206,15 @@ class BillingRoboClient
         }
 
         return $json;
+    }
+
+    private function hasApiError(mixed $errorCode): bool
+    {
+        if ($errorCode === null) {
+            return false;
+        }
+
+        $value = trim((string) $errorCode);
+        return $value !== '' && $value !== '0';
     }
 }

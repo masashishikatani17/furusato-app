@@ -3,20 +3,24 @@
 namespace App\Http\Controllers;
 
 use App\Models\Company;
+use App\Models\CompanyBillingSetting;
 use App\Models\User;
 use App\Services\Billing\IssueInvoiceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class SignupController extends Controller
 {
+    private const PAYMENT_METHOD_DEBIT_LABEL = 'キャッシュカード';
+    private const YUCHO_BANK_CODE = '9900';
+
     public function show(Request $request)
     {
-        // 支払URLは現時点では「表示するだけ」（請求管理ロボ導入時に差し替え想定）
         $paymentUrl = (string) config('billing_robo.payment_url', '');
 
         return view('signup.index', [
@@ -24,13 +28,6 @@ class SignupController extends Controller
         ]);
     }
 
-    /**
-     * 最終確定：Company + Owner を作成する
-     * - Owner は role=owner 固定
-     * - Owner の group_id は null（方針通り）
-     * - プランは 5人プランのみ（固定）
-     * - 支払方法はふるさと側で確定し、ロボの請求書発行にも反映する
-     */
     public function submit(Request $request, IssueInvoiceService $issuer)
     {
         $validated = $request->validate([
@@ -39,9 +36,52 @@ class SignupController extends Controller
             'owner_name'   => ['required', 'string', 'max:255'],
             'email'        => ['required', 'string', 'email:rfc,filter', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/', 'max:255', 'unique:users,email'],
             'password'     => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
-            // 支払方法（UI文字列）→内部コードへ変換して確定
-            'payment_method' => ['required', 'string', 'max:255'],
+            'payment_method' => ['required', 'string', Rule::in(['クレジットカード', self::PAYMENT_METHOD_DEBIT_LABEL, '銀行振込'])],
             'quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            'bank_account_type' => ['required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL, Rule::in(['1', '2'])],
+            'bank_code' => ['required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL, 'digits:4'],
+            'branch_code' => [
+                'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL,
+                'regex:/^\d+$/',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if ((string)$request->input('payment_method') !== self::PAYMENT_METHOD_DEBIT_LABEL) {
+                        return;
+                    }
+
+                    $branch = (string)$value;
+                    $bankCode = (string)$request->input('bank_code');
+                    $expected = $bankCode === self::YUCHO_BANK_CODE ? 5 : 3;
+                    if (strlen($branch) !== $expected) {
+                        $fail($bankCode === self::YUCHO_BANK_CODE
+                            ? 'ゆうちょ銀行の支店コードは5桁で入力してください。'
+                            : '支店コードは3桁で入力してください。');
+                    }
+                },
+            ],
+            'bank_account_number' => [
+                'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL,
+                'regex:/^\d+$/',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if ((string)$request->input('payment_method') !== self::PAYMENT_METHOD_DEBIT_LABEL) {
+                        return;
+                    }
+
+                    $number = (string)$value;
+                    $bankCode = (string)$request->input('bank_code');
+                    $expected = $bankCode === self::YUCHO_BANK_CODE ? 8 : 7;
+                    if (strlen($number) !== $expected) {
+                        $fail($bankCode === self::YUCHO_BANK_CODE
+                            ? 'ゆうちょ銀行の口座番号は8桁で入力してください。'
+                            : '口座番号は7桁で入力してください。');
+                    }
+                },
+            ],
+            'bank_account_name' => [
+                'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL,
+                'string',
+                'max:30',
+                'regex:/^[A-Z0-9\x{FF66}-\x{FF9F}\s\-\.\/\(\)&]+$/u',
+            ],
         ], [
             'company_name.required' => '会社名を入力してください。',
             'branch_name.required'  => '支店名を入力してください。',
@@ -53,13 +93,24 @@ class SignupController extends Controller
             'password.required'     => 'パスワードを入力してください。',
             'password.confirmed'    => 'パスワード（確認）が一致しません。',
             'payment_method.required' => '支払方法を選択してください。',
+            'payment_method.in' => '支払方法の指定が不正です。',
             'quantity.required' => '口数を入力してください。',
             'quantity.integer' => '口数は整数で入力してください。',
             'quantity.min' => '口数は1以上で入力してください。',
             'quantity.max' => '口数は999以下で入力してください。',
+            'bank_account_type.required_if' => '口座種別を選択してください。',
+            'bank_account_type.in' => '口座種別の指定が不正です。',
+            'bank_code.required_if' => '銀行コードを入力してください。',
+            'bank_code.digits' => '銀行コードは4桁の数字で入力してください。',
+            'branch_code.required_if' => '支店コードを入力してください。',
+            'branch_code.regex' => '支店コードは数字のみで入力してください。',
+            'bank_account_number.required_if' => '口座番号を入力してください。',
+            'bank_account_number.regex' => '口座番号は数字のみで入力してください。',
+            'bank_account_name.required_if' => '口座名義を入力してください。',
+            'bank_account_name.max' => '口座名義は30文字以内で入力してください。',
+            'bank_account_name.regex' => '口座名義は半角英大文字・半角カナ（ｰ含む）・数字・空白・記号（- . / ( ) &）のみ入力できます。',
         ]);
 
-        // 念のため空白トリム
         $companyName = trim((string) $validated['company_name']);
         $branchName  = trim((string) $validated['branch_name']);
         $ownerName   = trim((string) $validated['owner_name']);
@@ -73,17 +124,12 @@ class SignupController extends Controller
             ]);
         }
 
-        // UI文字列 → 内部コード（確定）
         $paymentMethod = match ($paymentUi) {
             'クレジットカード' => 'credit',
-            'キャッシュカード' => 'debit',
+            self::PAYMENT_METHOD_DEBIT_LABEL => 'debit',
             '銀行振込' => 'bank_transfer',
-            default => throw ValidationException::withMessages([
-                'payment_method' => '支払方法の指定が不正です。',
-            ]),
         };
 
-        // 申込は「5人プラン（年額3万円）×口数」
         $initialQuantity = max(1, min(999, (int)$quantity));
 
         try {
@@ -97,16 +143,13 @@ class SignupController extends Controller
                 $initialQuantity,
                 $issuer
             ) {
-                // 1) Company 作成（owner_user_id は後で埋める）
                 $company = Company::create([
                     'name' => $companyName,
                     'branch_name' => $branchName,
-                    // 監査用に残す（UIには出さない想定）
                     'signup_plan' => 'p5',
                     'signup_payment_method' => $paymentMethod,
                 ]);
 
-                // 2) Owner User 作成（role=owner固定、group_id=null）
                 $user = User::create([
                     'company_id' => (int) $company->id,
                     'group_id'   => null,
@@ -117,23 +160,28 @@ class SignupController extends Controller
                     'is_active'  => true,
                 ]);
 
-                // 3) company.owner_user_id を紐付け
                 $company->owner_user_id = (int) $user->id;
                 $company->save();
 
-                // 4) billing_code を固定生成（初回に確定、以後は変更しない運用）
                 $billingCode = $this->makeBillingCode(
                     (string) $company->name,
                     (string) $company->branch_name,
                     (int) $company->id
                 );
 
-                // 5) 発行フロー
-                // subscription作成
-                // invoice(pending)作成
-                // demand/bulk_upsert
-                // bulk_issue_bill_select（bill_number取得）
-                // invoiceをissuedへ
+                CompanyBillingSetting::updateOrCreate(
+                    ['company_id' => (int)$company->id],
+                    [
+                        'payment_method' => $paymentMethod,
+                        'billing_code' => $billingCode,
+                        'bank_account_type' => $paymentMethod === 'debit' ? (int)$validated['bank_account_type'] : null,
+                        'bank_code' => $paymentMethod === 'debit' ? (string)$validated['bank_code'] : null,
+                        'branch_code' => $paymentMethod === 'debit' ? (string)$validated['branch_code'] : null,
+                        'bank_account_number' => $paymentMethod === 'debit' ? (string)$validated['bank_account_number'] : null,
+                        'bank_account_name' => $paymentMethod === 'debit' ? $this->normalizeBankAccountName((string)$validated['bank_account_name']) : null,
+                    ]
+                );
+
                 $issuer->issueInitial($company, $billingCode, $paymentMethod, $initialQuantity);
             });
         } catch (Throwable $e) {
@@ -153,8 +201,6 @@ class SignupController extends Controller
                 ]);
         }
 
-        // 申込完了後：ロボ支払い手続きURLへ誘導
-        // ※ payment_url が未設定なら従来通り login へ戻す
         $paymentUrl = (string) config('billing_robo.payment_url', '');
         if ($paymentUrl !== '') {
             return redirect()->away($paymentUrl);
@@ -166,10 +212,15 @@ class SignupController extends Controller
     }
 
     /**
-     * 会社＋支店＋company_id から固定の請求先コードを生成する
-     * - 初回作成時に確定し、以後は変更しない運用
-     * - ロボ側の制約が不明なため英数+ハイフンに寄せる
+     * 口座名義の保存前処理。
+     * - trim は必ず実施する
+     * - 文字種の正規化（全角→半角 等）は行わない（入力値をそのまま保持）
      */
+    private function normalizeBankAccountName(string $value): string
+    {
+        return trim($value);
+    }
+
     private function makeBillingCode(string $companyName, string $branchName, int $companyId): string
     {
         $base = trim($companyName) . '|' . trim($branchName) . '|' . $companyId;

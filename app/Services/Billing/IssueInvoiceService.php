@@ -3,6 +3,7 @@
 namespace App\Services\Billing;
 
 use App\Models\Company;
+use App\Models\CompanyBillingSetting;
 use App\Models\Subscription;
 use App\Models\SubscriptionInvoice;
 use App\Models\User;
@@ -23,6 +24,8 @@ use Throwable;
  */
 class IssueInvoiceService
 {
+    private const RP_PAYMENT_METHOD = 3;
+
     public function __construct(private BillingRoboClient $client)
     {
     }
@@ -213,6 +216,7 @@ class IssueInvoiceService
         bool $attachBillingIndividual = false,
     ): SubscriptionInvoice {
         $billingIndividualCode = $billingCode . '-01';
+        $paymentMethodCode = null;
 
         $inv = new SubscriptionInvoice();
             $inv->company_id = $companyId;
@@ -239,27 +243,83 @@ class IssueInvoiceService
             $inv->due_date = $dueDate->toDateString();
             $inv->save();
 
-            if ($attachBillingIndividual) {
-                // 3) 請求先（billing + individual）を先に upsert
+        if ($attachBillingIndividual) {
+            $billingPayload = $this->buildInitialBillingPayload($companyId, $billingCode, $billingIndividualCode);
+
+            // 3) 請求先（billing + individual）作成
+            try {
+                $this->client->billingBulkUpsert([[
+                    'code' => $billingCode,
+                    'name' => $billingPayload['billing_name'],
+                    'individual' => [[
+                        'code' => $billingIndividualCode,
+                        'name' => $billingPayload['individual_name'],
+                        'address1' => $billingPayload['individual_address1'],
+                        'zip_code' => '1000001',
+                        'pref' => '東京都',
+                        'city_address' => '千代田区千代田1-1',
+                        'email' => $billingPayload['individual_email'],
+                    ]],
+                ]]);
+            } catch (Throwable $e) {
+                throw new RuntimeException('ロボ請求先作成失敗', previous: $e);
+            }
+
+            $billingSetting = CompanyBillingSetting::query()->where('company_id', $companyId)->first();
+            if ($billingSetting) {
+                $billingSetting->billing_code = $billingCode;
+                $billingSetting->billing_individual_code = $billingIndividualCode;
+                $billingSetting->save();
+            }
+
+            if ($paymentMethod === 'debit') {
+                $billingSetting = $this->requireDebitBillingSetting($companyId);
+                $deterministicPaymentCode = $this->makeDeterministicPaymentCode($billingCode);
+
+                // 4) payment 作成（RP口座振替）
                 try {
-                    $billingPayload = $this->buildInitialBillingPayload($companyId, $billingCode, $billingIndividualCode);
+                    $paymentRes = $this->client->billingBulkUpsert([[
+                        'code' => $billingCode,
+                        'name' => $billingPayload['billing_name'],
+                        'payment' => [[
+                            'code' => $deterministicPaymentCode,
+                            'name' => 'RP口座振替',
+                            'payment_method' => self::RP_PAYMENT_METHOD,
+                            'bank_account_type' => (int)$billingSetting->bank_account_type,
+                            'bank_code' => (string)$billingSetting->bank_code,
+                            'branch_code' => (string)$billingSetting->branch_code,
+                            'bank_account_number' => (string)$billingSetting->bank_account_number,
+                            'bank_account_name' => (string)$billingSetting->bank_account_name,
+                        ]],
+                    ]]);
+                    $paymentMethodCode = $this->extractPaymentMethodCode($paymentRes, $deterministicPaymentCode);
+                } catch (Throwable $e) {
+                    throw new RuntimeException('payment作成失敗', previous: $e);
+                }
+
+                if ($paymentMethodCode === '') {
+                    throw new RuntimeException('payment作成失敗: payment_method_code が取得できませんでした。');
+                }
+
+                // 5) individual へ既定決済を紐付け
+                try {
                     $this->client->billingBulkUpsert([[
                         'code' => $billingCode,
                         'name' => $billingPayload['billing_name'],
                         'individual' => [[
                             'code' => $billingIndividualCode,
                             'name' => $billingPayload['individual_name'],
-                            'address1' => $billingPayload['individual_address1'],
-                            'zip_code' => '1000001',
-                            'pref' => '東京都',
-                            'city_address' => '千代田区千代田1-1',
-                            'email' => $billingPayload['individual_email'],
+                            'payment_method_code' => $paymentMethodCode,
                         ]],
                     ]]);
                 } catch (Throwable $e) {
-                    throw new RuntimeException('ロボ請求先作成失敗', previous: $e);
+                    throw new RuntimeException('individualへのpayment_method_code関連付け失敗', previous: $e);
                 }
+
+                $billingSetting->payment_method_code = $paymentMethodCode;
+                $billingSetting->save();
             }
+        }
 
             // 4) demand/bulk_upsert
             // - issue_month/day と deadline_month/day は月跨ぎがあり得るので、invoiceで確定した日付から算出
@@ -292,10 +352,17 @@ class IssueInvoiceService
                 'deadline_day' => (int)$dueDate->format('j'),
             ];
 
-            if ($attachBillingIndividual) {
-                // 公開仕様項目: billing_individual_code
-                $demand['billing_individual_code'] = $billingIndividualCode;
+        if ($attachBillingIndividual) {
+            // 公開仕様項目: billing_individual_code
+            $demand['billing_individual_code'] = $billingIndividualCode;
+        }
+
+        if ($attachBillingIndividual && $paymentMethod === 'debit') {
+            if (!is_string($paymentMethodCode) || $paymentMethodCode === '') {
+                throw new RuntimeException('demand作成失敗: payment_method_code が未確定です。');
             }
+            $demand['payment_method_code'] = $paymentMethodCode;
+        }
 
             try {
                 $this->client->demandBulkUpsert([$demand]);
@@ -319,7 +386,65 @@ class IssueInvoiceService
             $inv->status = 'issued';
             $inv->save();
 
-            return $inv;
+        return $inv;
+    }
+
+    private function requireDebitBillingSetting(int $companyId): CompanyBillingSetting
+    {
+        $setting = CompanyBillingSetting::query()->where('company_id', $companyId)->first();
+        if (!$setting) {
+            throw new RuntimeException("Company billing setting is missing. company_id={$companyId}");
+        }
+
+        if (
+            empty($setting->bank_account_type)
+            || empty($setting->bank_code)
+            || empty($setting->branch_code)
+            || empty($setting->bank_account_number)
+            || empty($setting->bank_account_name)
+        ) {
+            throw new RuntimeException("Debit account information is incomplete. company_id={$companyId}");
+        }
+
+        return $setting;
+    }
+
+    /**
+     * @param array<string,mixed> $response
+     */
+    private function extractPaymentMethodCode(array $response, string $fallbackCode = ''): string
+    {
+        $billings = $response['billing'] ?? null;
+        if (!is_array($billings)) {
+            return '';
+        }
+
+        foreach ($billings as $billing) {
+            if (!is_array($billing)) {
+                continue;
+            }
+            $payments = $billing['payment'] ?? null;
+            if (!is_array($payments)) {
+                continue;
+            }
+
+            foreach ($payments as $payment) {
+                if (!is_array($payment)) {
+                    continue;
+                }
+                $code = $payment['code'] ?? $payment['payment_method_code'] ?? null;
+                if (is_scalar($code) && (string)$code !== '') {
+                    return (string)$code;
+                }
+            }
+        }
+
+        return $fallbackCode;
+    }
+
+    private function makeDeterministicPaymentCode(string $billingCode): string
+    {
+        return $billingCode . '-PM01';
     }
 
     /**

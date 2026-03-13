@@ -107,12 +107,49 @@
             <tr>
               <th class="bg-ccc">お支払方法</th>
               <td class="text-start">
-                <select name="payment_method" class="form-select" required style="width: 200px;">
+                <select id="payment-method" name="payment_method" class="form-select" required style="width: 200px;">
                   <option value="">（選択してください）</option>
                   <option value="クレジットカード" @selected(old('payment_method')==='クレジットカード')>クレジットカード</option>
                   <option value="キャッシュカード" @selected(old('payment_method')==='キャッシュカード')>キャッシュカード</option>
                   <option value="銀行振込" @selected(old('payment_method')==='銀行振込')>銀行振込</option>
                 </select>
+              </td>
+            </tr>
+            <tr class="debit-field d-none">
+              <th class="bg-ccc">口座種別</th>
+              <td class="text-start">
+                <select name="bank_account_type" class="form-select" style="width: 200px;">
+                  <option value="">（選択してください）</option>
+                  <option value="1" @selected(old('bank_account_type')==='1')>普通</option>
+                  <option value="2" @selected(old('bank_account_type')==='2')>当座</option>
+                </select>
+              </td>
+            </tr>
+            <tr class="debit-field d-none">
+              <th class="bg-ccc">銀行コード</th>
+              <td class="text-start">
+                <input type="text" name="bank_code" class="form-control text-start" value="{{ old('bank_code') }}" inputmode="numeric" maxlength="4" style="width: 200px;">
+              </td>
+            </tr>
+            <tr class="debit-field d-none">
+              <th class="bg-ccc">支店コード</th>
+              <td class="text-start">
+                <input type="text" name="branch_code" class="form-control text-start" value="{{ old('branch_code') }}" inputmode="numeric" maxlength="5" style="width: 200px;">
+                <div class="text-muted small">通常銀行:3桁 / ゆうちょ銀行(9900):5桁</div>
+              </td>
+            </tr>
+            <tr class="debit-field d-none">
+              <th class="bg-ccc">口座番号</th>
+              <td class="text-start">
+                <input type="text" name="bank_account_number" class="form-control text-start" value="{{ old('bank_account_number') }}" inputmode="numeric" maxlength="8" style="width: 200px;">
+                <div class="text-muted small">通常銀行:7桁 / ゆうちょ銀行(9900):8桁</div>
+              </td>
+            </tr>
+            <tr class="debit-field d-none">
+              <th class="bg-ccc">口座名義</th>
+              <td class="text-start">
+                <input type="text" name="bank_account_name" class="form-control text-start" value="{{ old('bank_account_name') }}" maxlength="30" style="width: 300px;">
+                <div class="text-muted small">半角英大文字 / 半角カナ / 数字 / 空白 / 記号(- . / ( ) &)</div>
               </td>
             </tr>
           </tbody>
@@ -180,6 +217,22 @@
     const btnSubmit = document.getElementById('btn-submit');
 
     const form = document.getElementById('signup-form');
+    const paymentMethodEl = document.getElementById('payment-method');
+
+    const isDebit = () => (paymentMethodEl?.value || '') === 'キャッシュカード';
+
+    const syncDebitFieldVisibility = () => {
+      const debitRows = form.querySelectorAll('.debit-field');
+      const show = isDebit();
+      debitRows.forEach((row) => row.classList.toggle('d-none', !show));
+
+      const requiredNames = ['bank_account_type', 'bank_code', 'branch_code', 'bank_account_number', 'bank_account_name'];
+      requiredNames.forEach((name) => {
+        const el = form.querySelector(`[name="${name}"]`);
+        if (!el) return;
+        el.toggleAttribute('required', show);
+      });
+    };
 
     // 指定step内の「最初に invalid な要素」を返す（なければnull）
     const firstInvalidInStep = (stepNo) => {
@@ -242,6 +295,7 @@
 
     // Step2の追加検証（quantity範囲）
     const validateStep2OrFocus = () => {
+      syncDebitFieldVisibility();
       const inv = firstInvalidInStep(2);
       if (inv) {
         show(2);
@@ -261,6 +315,33 @@
         }
         return false;
       }
+
+      if (isDebit()) {
+        const bankCode = String((form.querySelector('[name="bank_code"]')?.value || '')).trim();
+        const branchCode = String((form.querySelector('[name="branch_code"]')?.value || '')).trim();
+        const accountNumber = String((form.querySelector('[name="bank_account_number"]')?.value || '')).trim();
+        const expectedBranch = bankCode === '9900' ? 5 : 3;
+        const expectedAccount = bankCode === '9900' ? 8 : 7;
+
+        if (branchCode.length !== expectedBranch) {
+          const el = form.querySelector('[name="branch_code"]');
+          el?.setCustomValidity(bankCode === '9900' ? 'ゆうちょ銀行の支店コードは5桁で入力してください。' : '支店コードは3桁で入力してください。');
+          el?.reportValidity?.();
+          el?.focus?.();
+          el?.setCustomValidity('');
+          return false;
+        }
+
+        if (accountNumber.length !== expectedAccount) {
+          const el = form.querySelector('[name="bank_account_number"]');
+          el?.setCustomValidity(bankCode === '9900' ? 'ゆうちょ銀行の口座番号は8桁で入力してください。' : '口座番号は7桁で入力してください。');
+          el?.reportValidity?.();
+          el?.focus?.();
+          el?.setCustomValidity('');
+          return false;
+        }
+      }
+
       return true;
     };
 
@@ -330,6 +411,15 @@
       const qEl = form.querySelector('[name="quantity"]');
       const q = qEl ? Number(qEl.value || 0) : 0;
       if (!Number.isFinite(q) || q < 1 || q > 999) return false;
+
+      if (isDebit()) {
+        const debitRequired = ['bank_account_type', 'bank_code', 'branch_code', 'bank_account_number', 'bank_account_name'];
+        for (const key of debitRequired) {
+          const el = form.querySelector(`[name="${key}"]`);
+          if (!el || !el.value) return false;
+        }
+      }
+
       return true;
     };
 
@@ -341,6 +431,7 @@
     });
 
     // 初期表示
+    syncDebitFieldVisibility();
     show(1);
     // 口数プレビュー
     const qEl = form.querySelector('[name="quantity"]');
@@ -348,6 +439,8 @@
       qEl.addEventListener('input', updatePreview);
       updatePreview();
     }
+
+    paymentMethodEl?.addEventListener('change', syncDebitFieldVisibility);
 
     // submit時：ブラウザ標準バリデーション（focus不可エラー）を避けるために
     // ここで必ず Step1/2 を検証し、NGなら該当stepへ戻してフォーカスする

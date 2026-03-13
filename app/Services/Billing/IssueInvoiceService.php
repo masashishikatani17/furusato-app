@@ -5,11 +5,13 @@ namespace App\Services\Billing;
 use App\Models\Company;
 use App\Models\Subscription;
 use App\Models\SubscriptionInvoice;
+use App\Models\User;
 use App\Services\BillingRobo\BillingRoboClient;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Throwable;
 
 /**
  * 発行フロー（初回契約）
@@ -85,6 +87,7 @@ class IssueInvoiceService
                 periodEnd: $termEnd,
                 issueDate: $issueDate,
                 dueDate: $dueDate,
+                attachBillingIndividual: true,
             );
         });
     }
@@ -207,7 +210,10 @@ class IssueInvoiceService
         string $periodEnd,
         Carbon $issueDate,
         Carbon $dueDate,
+        bool $attachBillingIndividual = false,
     ): SubscriptionInvoice {
+        $billingIndividualCode = $billingCode . '-01';
+
         $inv = new SubscriptionInvoice();
             $inv->company_id = $companyId;
             $inv->subscription_id = $subscriptionId;
@@ -233,7 +239,29 @@ class IssueInvoiceService
             $inv->due_date = $dueDate->toDateString();
             $inv->save();
 
-            // 3) demand/bulk_upsert
+            if ($attachBillingIndividual) {
+                // 3) 請求先（billing + individual）を先に upsert
+                try {
+                    $billingPayload = $this->buildInitialBillingPayload($companyId, $billingCode, $billingIndividualCode);
+                    $this->client->billingBulkUpsert([[
+                        'code' => $billingCode,
+                        'name' => $billingPayload['billing_name'],
+                        'individual' => [[
+                            'code' => $billingIndividualCode,
+                            'name' => $billingPayload['individual_name'],
+                            'address1' => $billingPayload['individual_address1'],
+                            'zip_code' => '1000001',
+                            'pref' => '東京都',
+                            'city_address' => '千代田区千代田1-1',
+                            'email' => $billingPayload['individual_email'],
+                        ]],
+                    ]]);
+                } catch (Throwable $e) {
+                    throw new RuntimeException('ロボ請求先作成失敗', previous: $e);
+                }
+            }
+
+            // 4) demand/bulk_upsert
             // - issue_month/day と deadline_month/day は月跨ぎがあり得るので、invoiceで確定した日付から算出
             // month offset（0=当月, 1=翌月, -1=前月）
             $deadlineMonthOffset = ((int)$dueDate->format('Y') - (int)$issueDate->format('Y')) * 12
@@ -264,21 +292,73 @@ class IssueInvoiceService
                 'deadline_day' => (int)$dueDate->format('j'),
             ];
 
-            $this->client->demandBulkUpsert([$demand]);
+            if ($attachBillingIndividual) {
+                // 公開仕様項目: billing_individual_code
+                $demand['billing_individual_code'] = $billingIndividualCode;
+            }
 
-            // 4) bulk_issue_bill_select（請求書発行 → bill.number を取得）
-            $issueRes = $this->client->demandBulkIssueBillSelect([$inv->demand_code]);
+            try {
+                $this->client->demandBulkUpsert([$demand]);
+            } catch (Throwable $e) {
+                throw new RuntimeException('demand作成失敗', previous: $e);
+            }
+
+            // 5) bulk_issue_bill_select（請求書発行 → bill.number を取得）
+            try {
+                $issueRes = $this->client->demandBulkIssueBillSelect([$inv->demand_code]);
+            } catch (Throwable $e) {
+                throw new RuntimeException('請求書発行失敗', previous: $e);
+            }
             $billNumber = $this->extractBillNumberFromIssueResponse($issueRes);
             if ($billNumber === '') {
                 throw new RuntimeException('bulk_issue_bill_select did not return bill.number.');
             }
 
-            // 5) invoice を issued へ
+            // 6) invoice を issued へ
             $inv->bill_number = $billNumber;
             $inv->status = 'issued';
             $inv->save();
 
             return $inv;
+    }
+
+    /**
+     * @return array{billing_name:string,individual_name:string,individual_address1:string,individual_email:string}
+     */
+    private function buildInitialBillingPayload(int $companyId, string $billingCode, string $billingIndividualCode): array
+    {
+        // 前提: SignupController の新規申込トランザクション内で owner_user_id 保存後に
+        // issueInitial() が呼ばれるため、ここでは owner_user_id が設定済みであることを期待する。
+        $company = Company::query()->find($companyId);
+        if (!$company) {
+            throw new RuntimeException("Company not found for initial billing. company_id={$companyId} billing_code={$billingCode}");
+        }
+
+        $companyName = trim((string)$company->name);
+        $branchName = trim((string)($company->branch_name ?? ''));
+        if ($companyName === '') {
+            throw new RuntimeException("Company name is empty for initial billing. company_id={$companyId} billing_code={$billingCode}");
+        }
+
+        $ownerUserId = (int)($company->owner_user_id ?? 0);
+        if ($ownerUserId <= 0) {
+            throw new RuntimeException("Owner user is missing for initial billing. company_id={$companyId} billing_code={$billingCode} billing_individual_code={$billingIndividualCode}");
+        }
+
+        $owner = User::query()->find($ownerUserId);
+        $ownerName = trim((string)($owner?->name ?? ''));
+        $ownerEmail = trim((string)($owner?->email ?? ''));
+
+        if ($ownerName === '' || $ownerEmail === '') {
+            throw new RuntimeException("Owner profile is incomplete for initial billing. company_id={$companyId} owner_user_id={$ownerUserId} billing_code={$billingCode}");
+        }
+
+        return [
+            'billing_name' => mb_substr($companyName, 0, 100),
+            'individual_name' => mb_substr($branchName !== '' ? $branchName : '本社', 0, 100),
+            'individual_address1' => mb_substr($companyName . ' ' . $ownerName . ' 御中', 0, 100),
+            'individual_email' => mb_substr($ownerEmail, 0, 100),
+        ];
     }
 
     /**

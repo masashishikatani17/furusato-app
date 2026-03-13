@@ -81,9 +81,29 @@ class BillingRoboClient
      */
     public function demandBulkUpsert(array $demands): array
     {
-        return $this->postJson('/api/v1.0/demand/bulk_upsert', [
+        $res = $this->postJson('/api/v1.0/demand/bulk_upsert', [
             'demand' => $demands,
         ]);
+
+        $demandRows = $res['demand'] ?? null;
+        if (!is_array($demandRows)) {
+            throw new RuntimeException('BillingRobo demandBulkUpsert response does not contain demand array.');
+        }
+
+        foreach ($demandRows as $idx => $row) {
+            if (!is_array($row)) {
+                throw new RuntimeException("BillingRobo demandBulkUpsert response demand[{$idx}] is invalid.");
+            }
+
+            $errorCode = $row['error_code'] ?? null;
+            if ($errorCode !== null && (string)$errorCode !== '' && (int)$errorCode !== 0) {
+                $message = (string)($row['error_message'] ?? 'unknown demand error');
+                $code = (string)($row['code'] ?? '');
+                throw new RuntimeException("BillingRobo demandBulkUpsert failed: demand.code={$code} error_code={$errorCode} message={$message}");
+            }
+        }
+
+        return $res;
     }
 
     /**

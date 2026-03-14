@@ -34,7 +34,7 @@ class SignupInitialBillingFlowTest extends TestCase
         $response->assertSessionHasErrors('email');
     }
 
-    public function test_signup_requires_debit_bank_fields_when_payment_method_is_debit(): void
+    public function test_signup_rejects_debit_payment_method(): void
     {
         $response = $this->from(route('signup.show'))
             ->post(route('signup.submit'), [
@@ -49,36 +49,7 @@ class SignupInitialBillingFlowTest extends TestCase
             ]);
 
         $response->assertRedirect(route('signup.show'));
-        $response->assertSessionHasErrors([
-            'bank_account_type',
-            'bank_code',
-            'branch_code',
-            'bank_account_number',
-            'bank_account_name',
-        ]);
-    }
-
-    public function test_signup_validates_yucho_branch_and_account_length_for_debit(): void
-    {
-        $response = $this->from(route('signup.show'))
-            ->post(route('signup.submit'), [
-                'company_name' => '株式会社テスト',
-                'branch_name' => '東京支店',
-                'owner_name' => '山田 太郎',
-                'email' => 'owner@example.com',
-                'password' => 'password123',
-                'password_confirmation' => 'password123',
-                'payment_method' => 'キャッシュカード',
-                'quantity' => 1,
-                'bank_account_type' => '1',
-                'bank_code' => '9900',
-                'branch_code' => '123',
-                'bank_account_number' => '1234567',
-                'bank_account_name' => 'ﾔﾏﾀﾞｰ TARO',
-            ]);
-
-        $response->assertRedirect(route('signup.show'));
-        $response->assertSessionHasErrors(['branch_code', 'bank_account_number']);
+        $response->assertSessionHasErrors('payment_method');
     }
 
     public function test_signup_external_api_failure_returns_to_signup_without_500_and_rolls_back(): void
@@ -110,7 +81,7 @@ class SignupInitialBillingFlowTest extends TestCase
         $this->assertDatabaseCount('company_billing_settings', 0);
     }
 
-    public function test_signup_saves_company_billing_settings_for_debit(): void
+    public function test_signup_saves_company_billing_settings_for_credit(): void
     {
         $mock = \Mockery::mock(IssueInvoiceService::class);
         $mock->shouldReceive('issueInitial')->once()->andReturn(new SubscriptionInvoice());
@@ -123,13 +94,8 @@ class SignupInitialBillingFlowTest extends TestCase
             'email' => 'owner@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
-            'payment_method' => 'キャッシュカード',
+            'payment_method' => 'クレジットカード',
             'quantity' => 1,
-            'bank_account_type' => '1',
-            'bank_code' => '9900',
-            'branch_code' => '12345',
-            'bank_account_number' => '12345678',
-            'bank_account_name' => 'ﾔﾏﾀﾞｰ TARO',
         ]);
 
         $response->assertRedirect(route('login'));
@@ -138,11 +104,37 @@ class SignupInitialBillingFlowTest extends TestCase
         $setting = CompanyBillingSetting::query()->where('company_id', (int)$company->id)->first();
 
         $this->assertNotNull($setting);
-        $this->assertSame('debit', $setting->payment_method);
-        $this->assertSame('9900', $setting->bank_code);
-        $this->assertSame('12345', $setting->branch_code);
-        $this->assertSame('12345678', $setting->bank_account_number);
-        $this->assertSame('ﾔﾏﾀﾞｰ TARO', $setting->bank_account_name);
+        $this->assertSame('credit', $setting->payment_method);
+        $this->assertNull($setting->bank_code);
+        $this->assertNull($setting->branch_code);
+        $this->assertNull($setting->bank_account_number);
+        $this->assertNull($setting->bank_account_name);
+    }
+
+    public function test_signup_saves_company_billing_settings_for_bank_transfer(): void
+    {
+        $mock = \Mockery::mock(IssueInvoiceService::class);
+        $mock->shouldReceive('issueInitial')->once()->andReturn(new SubscriptionInvoice());
+        $this->app->instance(IssueInvoiceService::class, $mock);
+
+        $response = $this->post(route('signup.submit'), [
+            'company_name' => '株式会社テスト',
+            'branch_name' => '東京支店',
+            'owner_name' => '山田 太郎',
+            'email' => 'owner-bank@example.com',
+            'password' => 'password123',
+            'password_confirmation' => 'password123',
+            'payment_method' => '銀行振込',
+            'quantity' => 1,
+        ]);
+
+        $response->assertRedirect(route('login'));
+
+        $company = Company::query()->where('name', '株式会社テスト')->firstOrFail();
+        $setting = CompanyBillingSetting::query()->where('company_id', (int)$company->id)->first();
+
+        $this->assertNotNull($setting);
+        $this->assertSame('bank_transfer', $setting->payment_method);
     }
 
     public function test_issue_initial_sets_billing_individual_code_on_demand(): void

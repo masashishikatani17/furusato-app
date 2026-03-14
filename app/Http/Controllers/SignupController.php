@@ -36,11 +36,12 @@ class SignupController extends Controller
             'owner_name'   => ['required', 'string', 'max:255'],
             'email'        => ['required', 'string', 'email:rfc,filter', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/', 'max:255', 'unique:users,email'],
             'password'     => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
-            'payment_method' => ['required', 'string', Rule::in(['クレジットカード', self::PAYMENT_METHOD_DEBIT_LABEL, '銀行振込'])],
+            'payment_method' => ['required', 'string', Rule::in(['クレジットカード', '銀行振込'])],
             'quantity' => ['required', 'integer', 'min:1', 'max:999'],
-            'bank_account_type' => ['required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL, Rule::in(['1', '2'])],
-            'bank_code' => ['required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL, 'digits:4'],
+            'bank_account_type' => ['nullable', 'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL, Rule::in(['1', '2'])],
+            'bank_code' => ['nullable', 'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL, 'digits:4'],
             'branch_code' => [
+                'nullable',
                 'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL,
                 'regex:/^\d+$/',
                 function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
@@ -59,6 +60,7 @@ class SignupController extends Controller
                 },
             ],
             'bank_account_number' => [
+                'nullable',
                 'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL,
                 'regex:/^\d+$/',
                 function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
@@ -77,6 +79,7 @@ class SignupController extends Controller
                 },
             ],
             'bank_account_name' => [
+                'nullable',
                 'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL,
                 'string',
                 'max:30',

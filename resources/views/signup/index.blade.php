@@ -110,7 +110,6 @@
                 <select id="payment-method" name="payment_method" class="form-select" required style="width: 200px;">
                   <option value="">（選択してください）</option>
                   <option value="クレジットカード" @selected(old('payment_method')==='クレジットカード')>クレジットカード</option>
-                  <option value="キャッシュカード" @selected(old('payment_method')==='キャッシュカード')>キャッシュカード</option>
                   <option value="銀行振込" @selected(old('payment_method')==='銀行振込')>銀行振込</option>
                 </select>
               </td>

@@ -185,7 +185,9 @@ class JuminTaxCalculator implements ProvidesKeys
 
              // 山林・退職（あなたの希望どおりマスターの8%等を掛けられる）
              [$p,$m] = $taxByMaster($sanrin,   '山林'); $beforePref += $p; $beforeMuni += $m;
-             [$p,$m] = $taxByMaster($taishoku, '退職'); $beforePref += $p; $beforeMuni += $m;
+             [$taishokuPrefTax, $taishokuMuniTax] = $taxByMaster($taishoku, '退職');
+             $beforePref += $taishokuPrefTax;
+             $beforeMuni += $taishokuMuniTax;
 
             $updates[sprintf('chosei_mae_shotokuwari_pref_%s', $period)] = $beforePref;
             $updates[sprintf('chosei_mae_shotokuwari_muni_%s', $period)] = $beforeMuni;
@@ -277,11 +279,12 @@ class JuminTaxCalculator implements ProvidesKeys
 
             $updates[sprintf('choseigo_shotokuwari_pref_%s', $period)] = $afterPref;
             $updates[sprintf('choseigo_shotokuwari_muni_%s', $period)] = $afterMuni;
-            // 現時点では退職分は JuminTax では扱っていないため、
-            // cap 用母数（退職除外後）は「調整控除後所得割額」と同一とする。
-            // 将来 tb_taishoku_jumin_* を含めるようになったら、ここで退職分を控除する。
-            $updates[sprintf('choseigo_shotokuwari_capbase_pref_%s', $period)] = $afterPref;
-            $updates[sprintf('choseigo_shotokuwari_capbase_muni_%s', $period)] = $afterMuni;
+            // 20%cap 用母数は「調整控除後所得割額」から
+            // 「退職所得に係る所得割額（県/市別）」を除外した値を使う。
+            $capbasePref = max($afterPref - max(0, $taishokuPrefTax), 0);
+            $capbaseMuni = max($afterMuni - max(0, $taishokuMuniTax), 0);
+            $updates[sprintf('choseigo_shotokuwari_capbase_pref_%s', $period)] = $capbasePref;
+            $updates[sprintf('choseigo_shotokuwari_capbase_muni_%s', $period)] = $capbaseMuni;
             // ===== 7) 住民税（所得割）の算出税額（prefmuni 合計）=====
             // ▼ 調整控除「後」（実際に住民税(所得割)として確定する合計）
             $baseSogoZeigakuAfter  = (int) ($afterPref + $afterMuni);

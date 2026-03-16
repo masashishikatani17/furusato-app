@@ -940,9 +940,13 @@ final class FurusatoController extends Controller
 
             $kShot = sprintf('bunri_shotoku_taishoku_shotoku_%s', $period);
             $kJmn = sprintf('bunri_shotoku_taishoku_jumin_%s', $period);
+            $kIncomeShot = sprintf('bunri_syunyu_taishoku_shotoku_%s', $period);
+            $kIncomeJmn = sprintf('bunri_syunyu_taishoku_jumin_%s', $period);
 
             $srcServerShot = $lookup([$kShot]);
             $srcServerJmn = $lookup([$kJmn]);
+            $srcIncomeShot = $lookup([$kIncomeShot]);
+            $srcIncomeJmn = $lookup([$kIncomeJmn]);
 
             $srcTaishoku = $lookup([sprintf('shotoku_taishoku_%s', $period)])
                 ?? $lookup([sprintf('after_2jitsusan_taishoku_%s', $period)])
@@ -959,6 +963,18 @@ final class FurusatoController extends Controller
                 $inputsForView[$kJmn] = $srcServerJmn !== null
                     ? $this->valueOrZero($srcServerJmn)
                     : $srcTaishoku;
+            }
+
+            if (! array_key_exists($kIncomeShot, $inputsForView)) {
+                $inputsForView[$kIncomeShot] = $srcIncomeShot !== null
+                    ? $this->valueOrZero($srcIncomeShot)
+                    : 0;
+            }
+
+            if (! array_key_exists($kIncomeJmn, $inputsForView)) {
+                $inputsForView[$kIncomeJmn] = $srcIncomeJmn !== null
+                    ? $this->valueOrZero($srcIncomeJmn)
+                    : $this->valueOrZero($srcIncomeShot);
             }
 
             $mirrorMany(

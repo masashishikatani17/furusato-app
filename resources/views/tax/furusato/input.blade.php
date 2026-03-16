@@ -827,18 +827,37 @@
               @php
                 // ▼「所得金額等」ブロックの合計（UI表示専用）
                 // 方針：行の寄せ集め合計ではなく、サーバ確定SoT（CommonSumsCalculator）を表示する。
-                //   SoT: sum_for_sogoshotoku_etc_{prev|curr}
+                //   SoT: sum_for_sogoshotoku_etc_{tax}_{prev|curr}
                 //   - 総所得金額 + 退職/山林 + 分離（繰越控除“後”）の正値合計
+                //   - 退職は税目別入力（所得税/住民税）を反映した税目別SoTを使う
                 //   - max(0, ...) で負は潰されるため、UI上の -300,000 などが出なくなる
-                $sumEtcPrev = $normalizeServerInt($inputs['sum_for_sogoshotoku_etc_prev'] ?? 0);
-                $sumEtcCurr = $normalizeServerInt($inputs['sum_for_sogoshotoku_etc_curr'] ?? 0);
+                $sumEtcShotokuPrev = $normalizeServerInt(
+                  $inputs['sum_for_sogoshotoku_etc_shotoku_prev']
+                  ?? $inputs['sum_for_sogoshotoku_etc_prev']
+                  ?? 0
+                );
+                $sumEtcShotokuCurr = $normalizeServerInt(
+                  $inputs['sum_for_sogoshotoku_etc_shotoku_curr']
+                  ?? $inputs['sum_for_sogoshotoku_etc_curr']
+                  ?? 0
+                );
+                $sumEtcJuminPrev = $normalizeServerInt(
+                  $inputs['sum_for_sogoshotoku_etc_jumin_prev']
+                  ?? $inputs['sum_for_sogoshotoku_etc_prev']
+                  ?? 0
+                );
+                $sumEtcJuminCurr = $normalizeServerInt(
+                  $inputs['sum_for_sogoshotoku_etc_jumin_curr']
+                  ?? $inputs['sum_for_sogoshotoku_etc_curr']
+                  ?? 0
+                );
               @endphp
               <tr class="js-bold-row">
                 <th scope="row" colspan="4" class="align-middle text-center th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
-                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcPrev) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcCurr) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcPrev) }}" readonly data-ui-only="1"></td>
-                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcCurr) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcShotokuPrev) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcShotokuCurr) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcJuminPrev) }}" readonly data-ui-only="1"></td>
+                <td><input type="text" class="form-control suji11s text-end js-comma bg-light" value="{{ number_format($sumEtcJuminCurr) }}" readonly data-ui-only="1"></td>
               </tr>
             @endif
           @php $bunriShotokuRows = ob_get_clean(); @endphp

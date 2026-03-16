@@ -473,7 +473,7 @@
                         $format = $kojoFieldOverrides[$base][$tax] ?? null;
                         $name = $format ? sprintf($format, $period) : sprintf('%s_%s_%s', $base, $tax, $period);
                         // ▼ 退職（bunri_*_taishoku_*）だけは第三表でもユーザー任意入力を許可する
-                        $allowRetirementManual = in_array($base, ['bunri_syunyu_taishoku', 'bunri_shotoku_taishoku'], true);
+                        $allowRetirementManual = false;
                         $isBunriThird =
                             ! $allowRetirementManual && (
                                 str_starts_with($base, 'bunri_syunyu_') ||
@@ -539,8 +539,6 @@
                                 'tax_haito',
                                 'tax_jutaku',
                                 'tax_saigai_genmen',
-                                'bunri_syunyu_taishoku',
-                                'bunri_shotoku_taishoku',
                             ];
                             // server-only は住民税側も常時 readonly
                             if (isset($serverOnlyBases[$base])) $isReadonly = true;

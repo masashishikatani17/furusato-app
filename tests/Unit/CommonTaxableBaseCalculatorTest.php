@@ -11,7 +11,7 @@ use Tests\TestCase;
 
 final class CommonTaxableBaseCalculatorTest extends TestCase
 {
-    public function test_taishoku_source_of_truth_is_separated_by_tax_type(): void
+    public function test_jumin_taishoku_is_fixed_to_zero_without_fallback_from_shotoku(): void
     {
         $calculator = new CommonTaxableBaseCalculator();
 
@@ -21,13 +21,14 @@ final class CommonTaxableBaseCalculatorTest extends TestCase
             'kojo_gokei_jumin_prev' => 0,
             'shotoku_taishoku_prev' => 1_234_567,
             'bunri_shotoku_taishoku_jumin_prev' => 2_345_678,
+            'shotoku_taishoku_jumin_prev' => 9_999_999,
         ], []);
 
         $this->assertSame(1_234_000, $result['tb_taishoku_shotoku_prev']);
-        $this->assertSame(2_345_000, $result['tb_taishoku_jumin_prev']);
+        $this->assertSame(0, $result['tb_taishoku_jumin_prev']);
     }
 
-    public function test_jumin_tax_and_capbase_follow_jumin_taishoku_input(): void
+    public function test_jumin_tax_and_capbase_are_not_affected_by_jumin_taishoku_input(): void
     {
         $provider = $this->provider();
         $baseCalculator = new CommonTaxableBaseCalculator();
@@ -60,11 +61,14 @@ final class CommonTaxableBaseCalculatorTest extends TestCase
         $lowResult = $juminCalculator->compute($low, $ctx);
         $highResult = $juminCalculator->compute($high, $ctx);
 
-        $this->assertGreaterThan(
-            $highResult['choseigo_shotokuwari_capbase_pref_prev'],
-            $lowResult['choseigo_shotokuwari_capbase_pref_prev']
+        $this->assertSame(0, $low['tb_taishoku_jumin_prev']);
+        $this->assertSame(0, $high['tb_taishoku_jumin_prev']);
+
+        $this->assertSame(
+            $lowResult['choseigo_shotokuwari_capbase_pref_prev'],
+            $highResult['choseigo_shotokuwari_capbase_pref_prev']
         );
-        $this->assertGreaterThan(
+        $this->assertSame(
             $lowResult['bunri_zeigaku_taishoku_jumin_prev'],
             $highResult['bunri_zeigaku_taishoku_jumin_prev']
         );

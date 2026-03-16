@@ -539,6 +539,8 @@
                                 'tax_haito',
                                 'tax_jutaku',
                                 'tax_saigai_genmen',
+                                'bunri_syunyu_taishoku',
+                                'bunri_shotoku_taishoku',
                             ];
                             // server-only は住民税側も常時 readonly
                             if (isset($serverOnlyBases[$base])) $isReadonly = true;

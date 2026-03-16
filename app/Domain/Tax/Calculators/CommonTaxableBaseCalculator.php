@@ -87,9 +87,18 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             $baseJL = $this->pos($payload["shotoku_after_kurikoshi_jojo_joto_{$p}"]  ?? null);
             $baseH  = $this->pos($payload["shotoku_after_kurikoshi_jojo_haito_{$p}"] ?? null);
             $baseSX = $this->pos($payload["shotoku_sakimono_after_kurikoshi_{$p}"]   ?? null);
-            // 山林・退職は shotoku_* を使用（after_3 は使わない）
+            // 山林は共通 SoT を使用（after_3 は使わない）
             $baseSan= $this->pos($payload["shotoku_sanrin_{$p}"]   ?? null);
-            $baseTai= $this->pos($payload["shotoku_taishoku_{$p}"] ?? null);
+            // ▼退職は税目別 SoT を分離
+            //   - 所得税側: shotoku_taishoku_*
+            //   - 住民税側: bunri_shotoku_taishoku_jumin_*（互換で shotoku_taishoku_jumin_* も許容）
+            $baseTaiShotoku = $this->pos($payload["shotoku_taishoku_{$p}"] ?? null);
+            $baseTaiJumin   = $this->pos(
+                $payload["bunri_shotoku_taishoku_jumin_{$p}"]
+                ?? $payload["shotoku_taishoku_jumin_{$p}"]
+                ?? $payload["shotoku_taishoku_{$p}"]
+                ?? null
+            );
 
             // ===== 所得税（総合→山林→退職）控除配賦 =====
             $aS   = max(0, $sumA);
@@ -102,8 +111,8 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             $tb_sanrin_shotoku = $this->floorToThousands($baseSan - $useSan);
             $remS -= $useSan;
             // 退職へ
-            $useTai = min($remS, $baseTai);
-            $tb_taishoku_shotoku = $this->floorToThousands($baseTai - $useTai);
+            $useTai = min($remS, $baseTaiShotoku);
+            $tb_taishoku_shotoku = $this->floorToThousands($baseTaiShotoku - $useTai);
             $remS -= $useTai; // ここで 0 のはず
 
             // 分離（個人控除は配賦しない）— 既存自己基礎をそのまま丸め
@@ -154,7 +163,7 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             $tb_jojo_kabuteki_joto_j  = $alloc($baseJL);
             $tb_sakimono_jumin        = $alloc($baseSX);
             $tb_sanrin_jumin          = $alloc($baseSan);
-            $tb_taishoku_jumin        = $alloc($baseTai);
+            $tb_taishoku_jumin        = $alloc($baseTaiJumin);
 
             // ===== 書き戻し =====
             $payload["tb_sogo_shotoku_{$p}"] = $tb_sogo_shotoku;

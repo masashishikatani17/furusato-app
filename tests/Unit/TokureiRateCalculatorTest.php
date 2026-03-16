@@ -17,12 +17,13 @@ final class TokureiRateCalculatorTest extends TestCase
             'sum_for_sogoshotoku_prev' => 2_000_000,
             'kojo_gokei_jumin_prev' => 0,
             'human_diff_sum_prev' => 0,
+            'tokurei_table_base_jumin_prev' => 1_000_000,
         ], [
             'master_kihu_year' => 2025,
         ]);
 
-        $this->assertSame(80.0, $result['tokurei_rate_standard_prev']);
-        $this->assertSame(80.0, $result['tokurei_rate_final_prev']);
+        $this->assertSame(0.8, $result['tokurei_rate_standard_prev']);
+        $this->assertSame(0.8, $result['tokurei_rate_final_prev']);
     }
 
     public function test_uses_90_percent_when_draw_is_negative_and_no_separated_income(): void
@@ -40,7 +41,7 @@ final class TokureiRateCalculatorTest extends TestCase
         ]);
 
         $this->assertSame(90.0, $result['tokurei_rate_90_prev']);
-        $this->assertSame(90.0, $result['tokurei_rate_final_prev']);
+        $this->assertSame(0.9, $result['tokurei_rate_final_prev']);
     }
 
     public function test_taishoku_judgement_uses_shotoku_side_even_if_jumin_side_is_zero(): void
@@ -57,8 +58,8 @@ final class TokureiRateCalculatorTest extends TestCase
             'master_kihu_year' => 2025,
         ]);
 
-        $this->assertSame(80.0, $result['tokurei_rate_taishoku_prev']);
-        $this->assertSame(80.0, $result['tokurei_rate_final_prev']);
+        $this->assertSame(0.8, $result['tokurei_rate_taishoku_prev']);
+        $this->assertSame(0.8, $result['tokurei_rate_final_prev']);
     }
 
     private function provider(): MasterProviderContract

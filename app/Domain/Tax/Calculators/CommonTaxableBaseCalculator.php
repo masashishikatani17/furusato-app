@@ -91,14 +91,10 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             $baseSan= $this->pos($payload["shotoku_sanrin_{$p}"]   ?? null);
             // ▼退職は税目別 SoT を分離
             //   - 所得税側: shotoku_taishoku_*
-            //   - 住民税側: bunri_shotoku_taishoku_jumin_*（互換で shotoku_taishoku_jumin_* も許容）
+            //   - 住民税側: 今回仕様では分離退職を通常入力対象外にするため常に 0
+            //     （所得税側退職へのフォールバックはしない）
             $baseTaiShotoku = $this->pos($payload["shotoku_taishoku_{$p}"] ?? null);
-            $baseTaiJumin   = $this->pos(
-                $payload["bunri_shotoku_taishoku_jumin_{$p}"]
-                ?? $payload["shotoku_taishoku_jumin_{$p}"]
-                ?? $payload["shotoku_taishoku_{$p}"]
-                ?? null
-            );
+            $baseTaiJumin   = 0;
 
             // ===== 所得税（総合→山林→退職）控除配賦 =====
             $aS   = max(0, $sumA);

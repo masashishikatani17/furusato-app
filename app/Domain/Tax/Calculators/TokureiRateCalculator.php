@@ -132,20 +132,20 @@ class TokureiRateCalculator implements ProvidesKeys
             $bunriMinRate = $this->computeBunriMinRate($payload, $period);
             $updates[sprintf('tokurei_rate_bunri_min_%s', $period)] = $bunriMinRate;
 
-            // 条文の判定は「課税総所得金額（総合）を有するか」「課税山林/退職を有するか」が基準。
+            // K 判定（Draw）のみ住民税側 SoT を使い、分離区分の有無判定は所得税側 SoT を使う。
             $hasSogo     = $sogoJumin > 0;
-            $hasSanrin   = $this->n($payload[sprintf('tb_sanrin_jumin_%s',   $period)] ?? null) > 0;
-            $hasTaishoku = $this->n($payload[sprintf('tb_taishoku_jumin_%s', $period)] ?? null) > 0;
+            $hasSanrin   = $this->n($payload[sprintf('tb_sanrin_shotoku_%s',   $period)] ?? null) > 0;
+            $hasTaishoku = $this->n($payload[sprintf('tb_taishoku_shotoku_%s', $period)] ?? null) > 0;
 
             // 分離課税（実務上の追加扱い：自治体説明に合わせるため候補率に残す）
-            $hasBunriShort = $this->n($payload[sprintf('tb_joto_tanki_jumin_%s', $period)] ?? null) > 0;
+            $hasBunriShort = $this->n($payload[sprintf('tb_joto_tanki_shotoku_%s', $period)] ?? null) > 0;
             $hasBunriOther =
                 (
-                    $this->n($payload[sprintf('tb_joto_choki_jumin_%s',            $period)] ?? null)
-                  + $this->n($payload[sprintf('tb_ippan_kabuteki_joto_jumin_%s',   $period)] ?? null)
-                  + $this->n($payload[sprintf('tb_jojo_kabuteki_joto_jumin_%s',    $period)] ?? null)
-                  + $this->n($payload[sprintf('tb_jojo_kabuteki_haito_jumin_%s',   $period)] ?? null)
-                  + $this->n($payload[sprintf('tb_sakimono_jumin_%s',             $period)] ?? null)
+                    $this->n($payload[sprintf('tb_joto_choki_shotoku_%s',            $period)] ?? null)
+                  + $this->n($payload[sprintf('tb_ippan_kabuteki_joto_shotoku_%s',   $period)] ?? null)
+                  + $this->n($payload[sprintf('tb_jojo_kabuteki_joto_shotoku_%s',    $period)] ?? null)
+                  + $this->n($payload[sprintf('tb_jojo_kabuteki_haito_shotoku_%s',   $period)] ?? null)
+                  + $this->n($payload[sprintf('tb_sakimono_shotoku_%s',             $period)] ?? null)
                 ) > 0;
             $hasBunri = $hasBunriShort || $hasBunriOther;
             // ── 7) 最終採用率の決定：（1）～（4）を候補率→最小採用で実装 ──
@@ -301,8 +301,8 @@ class TokureiRateCalculator implements ProvidesKeys
 
     private function computeSanrinRate(array $rows, array $payload, string $period): ?float
     {
-        // 条文の表ロ：課税山林所得金額（住民税側）を基準に 1/5 を表イに当てる
-        $amount = $this->n($payload[sprintf('tb_sanrin_jumin_%s', $period)] ?? null);
+        // 本ソフト仕様：山林所得金額は所得税側 SoT を用いて特例控除率判定を行う
+        $amount = $this->n($payload[sprintf('tb_sanrin_shotoku_%s', $period)] ?? null);
         if ($amount <= 0) {
             return null;
         }
@@ -317,8 +317,8 @@ class TokureiRateCalculator implements ProvidesKeys
 
     private function computeTaishokuRate(array $rows, array $payload, string $period): ?float
     {
-        // 条文の表ロ：課税退職所得金額（住民税側）を表イに当てる
-        $amount = $this->n($payload[sprintf('tb_taishoku_jumin_%s', $period)] ?? null);
+        // 本ソフト仕様：退職所得金額は所得税側 SoT を用いて特例控除率判定を行う
+        $amount = $this->n($payload[sprintf('tb_taishoku_shotoku_%s', $period)] ?? null);
         if ($amount <= 0) {
             return null;
         }
@@ -342,13 +342,13 @@ class TokureiRateCalculator implements ProvidesKeys
      */
     private function computeBunriMinRate(array $payload, string $period): ?float
     {
-        $short = $this->n($payload[sprintf('tb_joto_tanki_jumin_%s', $period)] ?? null);
+        $short = $this->n($payload[sprintf('tb_joto_tanki_shotoku_%s', $period)] ?? null);
         $otherSum =
-              $this->n($payload[sprintf('tb_joto_choki_jumin_%s', $period)] ?? null)
-            + $this->n($payload[sprintf('tb_ippan_kabuteki_joto_jumin_%s', $period)] ?? null)
-            + $this->n($payload[sprintf('tb_jojo_kabuteki_joto_jumin_%s',  $period)] ?? null)
-            + $this->n($payload[sprintf('tb_jojo_kabuteki_haito_jumin_%s', $period)] ?? null)
-            + $this->n($payload[sprintf('tb_sakimono_jumin_%s',            $period)] ?? null);
+              $this->n($payload[sprintf('tb_joto_choki_shotoku_%s', $period)] ?? null)
+            + $this->n($payload[sprintf('tb_ippan_kabuteki_joto_shotoku_%s', $period)] ?? null)
+            + $this->n($payload[sprintf('tb_jojo_kabuteki_joto_shotoku_%s',  $period)] ?? null)
+            + $this->n($payload[sprintf('tb_jojo_kabuteki_haito_shotoku_%s', $period)] ?? null)
+            + $this->n($payload[sprintf('tb_sakimono_shotoku_%s',            $period)] ?? null);
 
         if ($short > 0) {
             return $this->roundPercent(59.37);

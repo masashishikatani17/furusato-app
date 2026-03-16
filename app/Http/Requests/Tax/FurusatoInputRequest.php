@@ -29,8 +29,6 @@ final class FurusatoInputRequest extends FormRequest
         'kojo_zasson_jumin_%s',
         'tax_haito_jumin_%s',
         'tax_saigai_genmen_jumin_%s',
-        'bunri_syunyu_taishoku_jumin_%s',
-        'bunri_shotoku_taishoku_jumin_%s',
     ];
 
     private const INPUT_EDITABLE_SHOTOKU_BASES = [

@@ -3086,19 +3086,6 @@
       });
     };
 
-    function mirrorRetirementToJumin() {
-      ['prev', 'curr'].forEach((period) => {
-        const srcIncome = `bunri_syunyu_taishoku_shotoku_${period}`;
-        const dstIncome = `bunri_syunyu_taishoku_jumin_${period}`;
-        writeInt(dstIncome, readInt(srcIncome));
-        makeReadonlyNumber(dstIncome);
-
-        const srcShotoku = `bunri_shotoku_taishoku_shotoku_${period}`;
-        const dstShotoku = `bunri_shotoku_taishoku_jumin_${period}`;
-        writeInt(dstShotoku, readInt(srcShotoku));
-        makeReadonlyNumber(dstShotoku);
-      });
-    }
     // 山林の「所得金額（表示）」は“損益通算後の最終値（result_details の shotoku_sanrin_*）”をミラーする
     function mirrorSanrinShotokuDisplay() {
       ['prev', 'curr'].forEach((period) => {
@@ -3598,7 +3585,6 @@
       recalcKojo();
       recalcTaxableSogo();
       recalcBunriSogoMirror();
-      mirrorRetirementToJumin();
       mirrorSanrinShotokuDisplay();
       recalcBunriSashihikiGokei();
       recalcBunriKazeishotokuSogo();
@@ -3722,26 +3708,11 @@
       });
     });
 
-    ['prev', 'curr'].forEach((period) => {
-      const incomeInput = getInput(`bunri_syunyu_taishoku_shotoku_${period}`);
-      const shotokuInput = getInput(`bunri_shotoku_taishoku_shotoku_${period}`);
-      const hook = () => { mirrorRetirementToJumin(); runFullRecalcChain(); };
-      if (incomeInput) {
-        incomeInput.addEventListener('input', hook);
-        incomeInput.addEventListener('blur', hook);
-      }
-      if (shotokuInput) {
-        shotokuInput.addEventListener('input', hook);
-        shotokuInput.addEventListener('blur', hook);
-      }
-    });
-
     runFullRecalcChain();
     // ▼ bunri_zeigaku_* はサーバSoTに統一済みのため、JSで再計算しない（混入源を潰す）
     // recalcBunriZeigakuJuminAll();
     // recalcZeigakuGokeiAll();
     recalcTaxPipeline();
-    mirrorRetirementToJumin();
     dashBunriColumnsForDisabledPeriods();
     // ============================
     // 再計算時・初期表示時にも

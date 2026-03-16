@@ -34,6 +34,8 @@ class CommonSumsCalculator implements ProvidesKeys
             $out[] = sprintf('sum_for_gokeishotoku_%s', $p);
             $out[] = sprintf('sum_for_sogoshotoku_%s', $p);
             $out[] = sprintf('sum_for_sogoshotoku_etc_%s', $p);
+            $out[] = sprintf('sum_for_sogoshotoku_etc_shotoku_%s', $p);
+            $out[] = sprintf('sum_for_sogoshotoku_etc_jumin_%s', $p);
             // UI第一表の合計(A+B)もSoTとして保持
             $out[] = sprintf('sum_for_ab_total_%s', $p);
         }
@@ -62,12 +64,24 @@ class CommonSumsCalculator implements ProvidesKeys
                 + max(0, $this->n($payload[sprintf('shotoku_ichiji_%s',          $period)] ?? null));
 
             // B_p（退職・山林：正値のみ）
-            $Bp =
-                  max(0, $this->n($payload[sprintf('shotoku_taishoku_%s', $period)] ?? null))
-                + max(0, $this->n($payload[sprintf('shotoku_sanrin_%s',   $period)] ?? null));
+            // - 退職は税目別入力があるため SoT も税目別に保持する。
+            $taishokuShotoku = max(0, $this->n(
+                $payload[sprintf('bunri_shotoku_taishoku_shotoku_%s', $period)]
+                ?? $payload[sprintf('shotoku_taishoku_%s', $period)]
+                ?? null
+            ));
+            $taishokuJumin = max(0, $this->n(
+                $payload[sprintf('bunri_shotoku_taishoku_jumin_%s', $period)]
+                ?? $payload[sprintf('shotoku_taishoku_jumin_%s', $period)]
+                ?? null
+            ));
+            $sanrin = max(0, $this->n($payload[sprintf('shotoku_sanrin_%s', $period)] ?? null));
+
+            $BpShotoku = $taishokuShotoku + $sanrin;
+            $BpJumin   = $taishokuJumin + $sanrin;
 
             // UI用：第一表の合計(A+B)
-            $payload[sprintf('sum_for_ab_total_%s', $period)] = $Ap + $Bp;
+            $payload[sprintf('sum_for_ab_total_%s', $period)] = $Ap + $BpShotoku;
 
             // C_p（分離課税：繰越控除“前”の正値のみ、時点を tsusango_* に統一）
             $Cp =
@@ -81,7 +95,7 @@ class CommonSumsCalculator implements ProvidesKeys
                 + max(0, $this->n($payload[sprintf('tsusango_jojo_haito_%s',    $period)] ?? null))
                 + max(0, $this->n($payload[sprintf('shotoku_sakimono_%s',       $period)] ?? null));
 
-            $gokei = $Ap + $Bp + $Cp;
+            $gokei = $Ap + $BpShotoku + $Cp;
             // v2 SoT（合計所得金額）
             $payload[sprintf('sum_for_gokeishotoku_%s', $period)] = $gokei;
             // 互換ミラー（従来テスト・表示が参照）：shotoku_gokei_{prev/curr}
@@ -104,8 +118,12 @@ class CommonSumsCalculator implements ProvidesKeys
                 + max(0, $this->n($payload[sprintf('shotoku_after_kurikoshi_jojo_joto_%s',  $period)] ?? null))
                 + max(0, $this->n($payload[sprintf('shotoku_after_kurikoshi_jojo_haito_%s', $period)] ?? null))
                 + max(0, $this->n($payload[sprintf('shotoku_sakimono_after_kurikoshi_%s',   $period)] ?? null));
-            $sogoshotokuEtc = $sumSogo + $Bp + $Cafter;
-            $payload[sprintf('sum_for_sogoshotoku_etc_%s', $period)] = $sogoshotokuEtc;
+            $sogoshotokuEtcShotoku = $sumSogo + $BpShotoku + $Cafter;
+            $sogoshotokuEtcJumin   = $sumSogo + $BpJumin + $Cafter;
+
+            $payload[sprintf('sum_for_sogoshotoku_etc_%s', $period)] = $sogoshotokuEtcShotoku;
+            $payload[sprintf('sum_for_sogoshotoku_etc_shotoku_%s', $period)] = $sogoshotokuEtcShotoku;
+            $payload[sprintf('sum_for_sogoshotoku_etc_jumin_%s', $period)] = $sogoshotokuEtcJumin;
         }
 
         return $payload;

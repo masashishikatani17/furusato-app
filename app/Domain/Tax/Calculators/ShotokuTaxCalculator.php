@@ -97,15 +97,15 @@ class ShotokuTaxCalculator implements ProvidesKeys
             $updates[sprintf('bunri_zeigaku_taishoku_shotoku_%s', $period)] = $tai;
 
             // 短期譲渡：一般30% ＋ 軽減15%
-            $tIppan  = $this->n($payload[sprintf('bunri_shotoku_tanki_ippan_shotoku_%s',  $period)] ?? null);
-            $tKeigen = $this->n($payload[sprintf('bunri_shotoku_tanki_keigen_shotoku_%s', $period)] ?? null);
+            $tIppan  = $this->n($payload[sprintf('tb_joto_tanki_ippan_shotoku_%s',  $period)] ?? null);
+            $tKeigen = $this->n($payload[sprintf('tb_joto_tanki_keigen_shotoku_%s', $period)] ?? null);
             $zeigakuTanki = (int) floor($tIppan * 0.30 + $tKeigen * 0.15);
             $updates[sprintf('bunri_zeigaku_tanki_shotoku_%s', $period)] = $zeigakuTanki;
 
             // 長期譲渡：一般15% ＋ 特定/軽課は段階税率（10%/15%）
-            $cIppan   = $this->n($payload[sprintf('bunri_shotoku_choki_ippan_shotoku_%s',   $period)] ?? null);
-            $cTokutei = $this->n($payload[sprintf('bunri_shotoku_choki_tokutei_shotoku_%s', $period)] ?? null);
-            $cKeika   = $this->n($payload[sprintf('bunri_shotoku_choki_keika_shotoku_%s',   $period)] ?? null);
+            $cIppan   = $this->n($payload[sprintf('tb_joto_choki_ippan_shotoku_%s',   $period)] ?? null);
+            $cTokutei = $this->n($payload[sprintf('tb_joto_choki_tokutei_shotoku_%s', $period)] ?? null);
+            $cKeika   = $this->n($payload[sprintf('tb_joto_choki_keika_shotoku_%s',   $period)] ?? null);
 
             // 特定分：2,000万円以下10%、超過分15%
             if ($cTokutei <= 0) {

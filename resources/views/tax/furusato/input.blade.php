@@ -473,20 +473,34 @@
                         $format = $kojoFieldOverrides[$base][$tax] ?? null;
                         $name = $format ? sprintf($format, $period) : sprintf('%s_%s_%s', $base, $tax, $period);
                         // ▼ 分離・第三表（bunri_*/tb_*）は server 計算値を表示する運用。
-                        //    退職（bunri_*_taishoku_*）も手入力は許可せず、住民税側は 0・readonly 前提。
-                        $allowRetirementManual = false;
+                        //    ただし退職（bunri_*_taishoku_*）は
+                        //      - 所得税側：手入力を許可
+                        //      - 住民税側：0固定・readonly
+                        //    とする。
+                        $isRetirementBase =
+                            $base === 'bunri_syunyu_taishoku' ||
+                            $base === 'bunri_shotoku_taishoku';
+                        $allowRetirementManual = $isRetirementBase && $tax === 'shotoku';
                         $isBunriThird =
                             ! $allowRetirementManual && (
                                 str_starts_with($base, 'bunri_syunyu_') ||
                                 str_starts_with($base, 'bunri_shotoku_') ||
                                 str_starts_with($base, 'tb_')
                             );
+                            
                         // 分離・第三表 または server-only base は server 計算値のみ表示（old()は採用しない）
                         if ($isBunriThird || isset($serverOnlyBases[$base])) {
                             $value = $inputs[$name] ?? null;
                         } else {
                             $value = old($name, $inputs[$name] ?? null);
                         }
+
+                        // ▼ 退職（所得税側）は手入力欄なので、サーバ値優先ではなく old() 優先に統一
+                        //    （Validationエラー後や再表示時にもユーザー入力を保持する）
+                        if ($isRetirementBase && $tax === 'shotoku') {
+                            $value = old($name, $inputs[$name] ?? null);
+                        }
+
                         // data-server-raw 用にカンマ除去した整数文字列を用意
                         $valueRaw = null;
                         if ($isBunriThird || isset($serverOnlyBases[$base])) {
@@ -568,8 +582,11 @@
                                 $class .= ' bg-light';
                             }
                             // 分離・第三表／server-only は data-server-lock＋（可能なら）data-server-raw を付与
-                            // 退職（bunri_*_taishoku_*）も分離・第三表としてロック対象
+                            // ただし退職（所得税側）は手入力可のためロック対象から除外する
                             $isLocked = $isBunriThird || isset($serverOnlyBases[$base]);
+                            if ($isRetirementBase && $tax === 'shotoku') {
+                                $isLocked = false;
+                            }
                             $lockAttr = $isLocked ? ' data-server-lock="1"' : '';
                             $rawAttr  = ($isLocked && $valueRaw !== null) ? ' data-server-raw="' . e($valueRaw) . '"' : '';
                             $html .= '<td><input type="text" inputmode="numeric" pattern="[0-9,\\-]*" class="' . e($class) . '" name="' . e($name) . '" value="' . e($value) . '"' . $readonlyAttr . $lockAttr . $rawAttr . '></td>';
@@ -3230,141 +3247,6 @@
       });
     };
 
-    const recalcBunriZeigakuShotokuAll = () => {
-      ['prev', 'curr'].forEach((period) => {
-      
-        if (!bunriFlags[period]) return;
-        const sanTaxable = readInt(`tb_sanrin_shotoku_${period}`);
-        const san = sanTaxable <= 0 ? 0 : calcShotokuTaxByBand(sanTaxable / 5) * 5;
-        writeInt(`bunri_zeigaku_sanrin_shotoku_${period}`, san);
-        makeReadonlyNumber(`bunri_zeigaku_sanrin_shotoku_${period}`);
-
-        const taTaxable = readInt(`tb_taishoku_shotoku_${period}`);
-        const ta = taTaxable <= 0 ? 0 : calcShotokuTaxByBand(taTaxable);
-        writeInt(`bunri_zeigaku_taishoku_shotoku_${period}`, ta);
-        makeReadonlyNumber(`bunri_zeigaku_taishoku_shotoku_${period}`);
-
-        const tIppan = readInt(`bunri_shotoku_tanki_ippan_shotoku_${period}`);
-        const tKeigen = readInt(`bunri_shotoku_tanki_keigen_shotoku_${period}`);
-        writeInt(`bunri_zeigaku_tanki_shotoku_${period}`, Math.trunc(tIppan * 0.30 + tKeigen * 0.15));
-        makeReadonlyNumber(`bunri_zeigaku_tanki_shotoku_${period}`);
-
-        const cIppan = readInt(`bunri_shotoku_choki_ippan_shotoku_${period}`);
-        const cTokutei = readInt(`bunri_shotoku_choki_tokutei_shotoku_${period}`);
-        const cKeika = readInt(`bunri_shotoku_choki_keika_shotoku_${period}`);
-        const tokuteiTax = cTokutei <= 20_000_000
-          ? Math.trunc(cTokutei * 0.10)
-          : Math.trunc((cTokutei - 20_000_000) * 0.15 + 2_000_000);
-        const keikaTax = cKeika <= 60_000_000
-          ? Math.trunc(cKeika * 0.10)
-          : Math.trunc((cKeika - 60_000_000) * 0.15 + 6_000_000);
-        writeInt(
-          `bunri_zeigaku_choki_shotoku_${period}`,
-          Math.trunc(cIppan * 0.15 + tokuteiTax + keikaTax),
-        );
-        makeReadonlyNumber(`bunri_zeigaku_choki_shotoku_${period}`);
-
-        const jotoTaxable =
-          readInt(`tb_ippan_kabuteki_joto_shotoku_${period}`) +
-          readInt(`tb_jojo_kabuteki_joto_shotoku_${period}`);
-        writeInt(`bunri_zeigaku_joto_shotoku_${period}`, Math.trunc(jotoTaxable * 0.15));
-        makeReadonlyNumber(`bunri_zeigaku_joto_shotoku_${period}`);
-
-        const haitoTaxable = readInt(`tb_jojo_kabuteki_haito_shotoku_${period}`);
-        writeInt(`bunri_zeigaku_haito_shotoku_${period}`, Math.trunc(haitoTaxable * 0.15));
-        makeReadonlyNumber(`bunri_zeigaku_haito_shotoku_${period}`);
-
-        const sakiTaxable = readInt(`tb_sakimono_shotoku_${period}`);
-        writeInt(`bunri_zeigaku_sakimono_shotoku_${period}`, Math.trunc(sakiTaxable * 0.15));
-        makeReadonlyNumber(`bunri_zeigaku_sakimono_shotoku_${period}`);
-      });
-    };
-
-    const recalcBunriZeigakuJuminAll = () => {
-      ['prev', 'curr'].forEach((period) => {
-        if (!bunriFlags[period]) return;
-        writeInt(
-          `bunri_zeigaku_sogo_jumin_${period}`,
-          Math.trunc(readInt(`tb_sogo_jumin_${period}`) * 0.10),
-        );
-        makeReadonlyNumber(`bunri_zeigaku_sogo_jumin_${period}`);
-
-        const tIppan = readInt(`bunri_shotoku_tanki_ippan_jumin_${period}`);
-        const tKeigen = readInt(`bunri_shotoku_tanki_keigen_jumin_${period}`);
-        writeInt(
-          `bunri_zeigaku_tanki_jumin_${period}`,
-          Math.trunc(tIppan * 0.09 + tKeigen * 0.05),
-        );
-        makeReadonlyNumber(`bunri_zeigaku_tanki_jumin_${period}`);
-
-        const cIppan = readInt(`bunri_shotoku_choki_ippan_jumin_${period}`);
-        const cTokutei = readInt(`bunri_shotoku_choki_tokutei_jumin_${period}`);
-        const cKeika = readInt(`bunri_shotoku_choki_keika_jumin_${period}`);
-        const tokuteiTax = Math.trunc(
-          Math.min(20_000_000, cTokutei) * 0.04 + Math.max(0, cTokutei - 20_000_000) * 0.05,
-        );
-        const keikaTax = Math.trunc(
-          Math.min(60_000_000, cKeika) * 0.04 + Math.max(0, cKeika - 60_000_000) * 0.05,
-        );
-        writeInt(
-          `bunri_zeigaku_choki_jumin_${period}`,
-          Math.trunc(cIppan * 0.05 + tokuteiTax + keikaTax),
-        );
-        makeReadonlyNumber(`bunri_zeigaku_choki_jumin_${period}`);
-
-        writeInt(
-          `bunri_zeigaku_joto_jumin_${period}`,
-          Math.trunc((readInt(`tb_ippan_kabuteki_joto_jumin_${period}`) + readInt(`tb_jojo_kabuteki_joto_jumin_${period}`)) * 0.05),
-        );
-        makeReadonlyNumber(`bunri_zeigaku_joto_jumin_${period}`);
-
-        writeInt(
-          `bunri_zeigaku_haito_jumin_${period}`,
-          Math.trunc(readInt(`tb_jojo_kabuteki_haito_jumin_${period}`) * 0.05),
-        );
-        makeReadonlyNumber(`bunri_zeigaku_haito_jumin_${period}`);
-
-        writeInt(
-          `bunri_zeigaku_sakimono_jumin_${period}`,
-          Math.trunc(readInt(`tb_sakimono_jumin_${period}`) * 0.05),
-        );
-        makeReadonlyNumber(`bunri_zeigaku_sakimono_jumin_${period}`);
-
-        writeInt(
-          `bunri_zeigaku_sanrin_jumin_${period}`,
-          Math.trunc(readInt(`tb_sanrin_jumin_${period}`) * 0.10),
-        );
-        makeReadonlyNumber(`bunri_zeigaku_sanrin_jumin_${period}`);
-
-        writeInt(
-          `bunri_zeigaku_taishoku_jumin_${period}`,
-          Math.trunc(readInt(`tb_taishoku_jumin_${period}`) * 0.10),
-        );
-        makeReadonlyNumber(`bunri_zeigaku_taishoku_jumin_${period}`);
-      });
-    };
-
-    const recalcZeigakuGokeiAll = () => {
-      ['prev', 'curr'].forEach((period) => {
-        ['shotoku', 'jumin'].forEach((tax) => {
-          const names = [
-            `bunri_zeigaku_sogo_${tax}_${period}`,
-            `bunri_zeigaku_tanki_${tax}_${period}`,
-            `bunri_zeigaku_choki_${tax}_${period}`,
-            `bunri_zeigaku_joto_${tax}_${period}`,
-            `bunri_zeigaku_haito_${tax}_${period}`,
-            `bunri_zeigaku_sakimono_${tax}_${period}`,
-            `bunri_zeigaku_sanrin_${tax}_${period}`,
-            `bunri_zeigaku_taishoku_${tax}_${period}`,
-          ];
-          const sum = names.reduce((acc, name) => acc + readInt(name), 0);
-          const field = `bunri_zeigaku_gokei_${tax}_${period}`;
-          writeInt(field, sum);
-          makeReadonlyNumber(field);
-        });
-      });
-    };
-
     const recalcKojo = () => {
       taxTypes.forEach((tax) => {
         periods.forEach((period) => {
@@ -3463,68 +3345,6 @@
       });
     };
 
-    const recalcBunriKazeishotokuGroup = () => {
-      periods.forEach((period) => {
-        if (!bunriFlags[period]) return;
-        const calcForTax = (tax) => {
-          const read = (base) => readInt(`${base}_${tax}_${period}`);
-          const write = (base, value) => {
-            const name = `${base}_${tax}_${period}`;
-            writeInt(name, value);
-            addReadonlyBg(name);
-          };
-
-          // ① 分離・カテゴリ別 原始額を読込
-          const tanki = read('bunri_shotoku_tanki_ippan') + read('bunri_shotoku_tanki_keigen');
-          const choki = read('bunri_shotoku_choki_ippan') + read('bunri_shotoku_choki_tokutei') + read('bunri_shotoku_choki_keika');
-          const kabuIppan = read('bunri_shotoku_ippan_kabuteki_joto');
-          const kabuJojo  = read('bunri_shotoku_jojo_kabuteki_joto');
-          const haito     = read('bunri_shotoku_jojo_kabuteki_haito');
-          const sakimono  = read('bunri_shotoku_sakimono');
-          const sanrinA   = read('bunri_shotoku_sanrin');     // 山林
-          const taishokuA = read('bunri_shotoku_taishoku');   // 退職
-
-          if (tax === 'shotoku') {
-            // 所得税の控除配賦順：総合 → 山林 → 退職（千円切捨ては課税所得金額の確定時のみ）
-            // 総合に充当した後の控除残
-            const kojoTotal = read('kojo_gokei');
-            const sogoTotal = read('bunri_sogo_gokeigaku');
-            const residualAfterSogo = Math.max(0, kojoTotal - sogoTotal);
-
-            // 山林（after_3 と同値の表示値 sanrinA）にまず充当
-            const sanrinConsumed = Math.min(residualAfterSogo, Math.max(0, sanrinA));
-            const sanrinTaxable  = Math.max(0, sanrinA - residualAfterSogo);
-
-            // 残りを退職へ
-            const residualAfterSanrin = Math.max(0, residualAfterSogo - sanrinConsumed);
-            const taishokuTaxable     = Math.max(0, taishokuA - residualAfterSanrin);
-            return;
-          }
-
-          // ② 住民税：控除残（総合に当てた後の残り）を分離内へ順序配賦
-          //    順序：短期 → 長期 → 配当 → 一般株式譲渡 → 上場株式譲渡 → 先物 → 山林 → 退職
-          let residual = Math.max(0, read('kojo_gokei') - read('bunri_sogo_gokeigaku'));
-          const consume = (amt) => {
-            const use = Math.min(Math.max(0, amt), residual);
-            residual -= use;
-            return amt - use;
-          };
-
-          // 分離内の各カテゴリーに順次ぶつける
-          const tankiAdj   = consume(tanki);
-          const chokiAdj   = consume(choki);
-          const haitoAdj   = consume(haito);
-          const kabuIppAdj = consume(kabuIppan);
-          const kabuJjAdj  = consume(kabuJojo);
-          const sakiAdj    = consume(sakimono);
-          const sanrinAdj  = consume(sanrinA);
-          const taishokuAdj= consume(taishokuA);
-        };
-
-        taxTypes.forEach(calcForTax);
-      });
-    };
-
     const recalcTaxPipeline = () => {
       periods.forEach((period) => {
         // 税額（tax_zeigaku_* / bunri_zeigaku_gokei_*）はサーバ値を維持（readonly化のみ）
@@ -3608,12 +3428,7 @@
       recalcBunriSashihikiGokei();
       recalcBunriKazeishotokuSogo();
       recalcShotokuTaxFromMaster();
-      // bunri_zeigaku_* / bunri_zeigaku_gokei_* はサーバ計算専用に変更
-      // recalcBunriZeigakuShotokuAll();
-      // recalcBunriZeigakuJuminAll();
-      // recalcZeigakuGokeiAll();
       recalcTaxPipeline();
-      recalcBunriKazeishotokuGroup();
       enforceServerLocks();
       dashBunriColumnsForDisabledPeriods();
     };
@@ -3728,9 +3543,6 @@
     });
 
     runFullRecalcChain();
-    // ▼ bunri_zeigaku_* はサーバSoTに統一済みのため、JSで再計算しない（混入源を潰す）
-    // recalcBunriZeigakuJuminAll();
-    // recalcZeigakuGokeiAll();
     recalcTaxPipeline();
     dashBunriColumnsForDisabledPeriods();
     // ============================

@@ -36,6 +36,12 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             // 総合（課税総合所得金額）
             $out[] = "tb_sogo_shotoku_{$p}";
             $out[] = "tb_sogo_jumin_{$p}";
+            // ▼ 所得税側も区分別 tb を持つ（控除配賦順を厳密化するため）
+            $out[] = "tb_joto_tanki_ippan_shotoku_{$p}";
+            $out[] = "tb_joto_tanki_keigen_shotoku_{$p}";
+            $out[] = "tb_joto_choki_ippan_shotoku_{$p}";
+            $out[] = "tb_joto_choki_tokutei_shotoku_{$p}";
+            $out[] = "tb_joto_choki_keika_shotoku_{$p}";
             // 分離（第三表）— 税目別に露出（個人控除配賦後の課税標準）
             foreach (['shotoku','jumin'] as $tax) {
                 $out[] = "tb_joto_tanki_{$tax}_{$p}";
@@ -96,30 +102,63 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             $baseTaiShotoku = $this->pos($payload["shotoku_taishoku_{$p}"] ?? null);
             $baseTaiJumin   = 0;
 
-            // ===== 所得税（総合→山林→退職）控除配賦 =====
+            // ===== 所得税（達人順）控除配賦 =====
+            // 総合所得
+            // → 短期譲渡一般
+            // → 短期譲渡軽減
+            // → 長期譲渡一般
+            // → 一般株式譲渡
+            // → 上場株式譲渡
+            // → 上場株式配当
+            // → 先物
+            // → 長期譲渡特例
+            // → 長期譲渡軽課
+            // → 山林
+            // → 退職
             $aS   = max(0, $sumA);
             $useA = min($kojoS, $aS);
             $tb_sogo_shotoku = $this->floorToThousands($aS - $useA);
             $remS = $kojoS - $useA;
 
-            // 山林へ
-            $useSan = min($remS, $baseSan);
-            $tb_sanrin_shotoku = $this->floorToThousands($baseSan - $useSan);
-            $remS -= $useSan;
-            // 退職へ
-            $useTai = min($remS, $baseTaiShotoku);
-            $tb_taishoku_shotoku = $this->floorToThousands($baseTaiShotoku - $useTai);
-            $remS -= $useTai; // ここで 0 のはず
+            $allocS = function (int $base) use (&$remS): int {
+                $use = min($remS, max(0, $base));
+                $remS -= $use;
+                return $this->floorToThousands(max(0, $base - $use));
+            };
 
-            // 分離（個人控除は配賦しない）— 既存自己基礎をそのまま丸め
-            $tb_joto_tanki_shotoku      = $this->floorToThousands($baseST);
-            $tb_joto_choki_shotoku      = $this->floorToThousands($baseLT);
-            $tb_ippan_kabuteki_joto_sho = $this->floorToThousands($baseJG);
-            $tb_jojo_kabuteki_joto_sho  = $this->floorToThousands($baseJL);
-            $tb_jojo_kabuteki_haito_sho = $this->floorToThousands($baseH);
-            $tb_sakimono_shotoku        = $this->floorToThousands($baseSX);
+            $tb_joto_tanki_ippan_shotoku   = $allocS($baseSTI);
+            $tb_joto_tanki_keigen_shotoku  = $allocS($baseSTK);
+            $tb_joto_choki_ippan_shotoku   = $allocS($baseLTI);
+            $tb_ippan_kabuteki_joto_sho    = $allocS($baseJG);
+            $tb_jojo_kabuteki_joto_sho     = $allocS($baseJL);
+            $tb_jojo_kabuteki_haito_sho    = $allocS($baseH);
+            $tb_sakimono_shotoku           = $allocS($baseSX);
+            $tb_joto_choki_tokutei_shotoku = $allocS($baseLTT);
+            $tb_joto_choki_keika_shotoku   = $allocS($baseLTK);
+            $tb_sanrin_shotoku             = $allocS($baseSan);
+            $tb_taishoku_shotoku           = $allocS($baseTaiShotoku);
 
-            // ===== 住民税（総合→短期→長期→上場配当→一般譲渡→上場譲渡→先物→山林→退職）配賦 =====
+            // 互換：短期/長期 合算 tb（表示・既存参照用）
+            $tb_joto_tanki_shotoku = $this->floorToThousands(
+                $tb_joto_tanki_ippan_shotoku + $tb_joto_tanki_keigen_shotoku
+            );
+            $tb_joto_choki_shotoku = $this->floorToThousands(
+                $tb_joto_choki_ippan_shotoku + $tb_joto_choki_tokutei_shotoku + $tb_joto_choki_keika_shotoku
+            );
+
+            // ===== 住民税（達人順）配賦 =====
+            // 総合所得
+            // → 短期譲渡一般
+            // → 短期譲渡軽減
+            // → 長期譲渡一般
+            // → 一般株式譲渡
+            // → 上場株式譲渡
+            // → 上場株式配当
+            // → 先物
+            // → 長期譲渡特例
+            // → 長期譲渡軽課
+            // → 山林
+            // → 退職
              /**
               * ▼住民税の tb_sogo_jumin は「総合課税（A）」のみを課税標準として確定する。
               *   山林・退職は tb_sanrin_jumin / tb_taishoku_jumin に別立てで表示するため、
@@ -144,22 +183,21 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
             //   - 分離所得が無い場合は base が 0 なので自動的に 0 になる
             //   - これにより「bunri_flag が 0 だと第三表が強制 0 化される」事故を防ぐ
             // ▼ B案：短期/長期を区分別に控除配賦して課税標準(tb_*)を確定
-            $tb_joto_tanki_ippan_jumin  = $alloc($baseSTI);
-            $tb_joto_tanki_keigen_jumin = $alloc($baseSTK);
-            $tb_joto_choki_ippan_jumin  = $alloc($baseLTI);
-            $tb_joto_choki_tokutei_jumin= $alloc($baseLTT);
-            $tb_joto_choki_keika_jumin  = $alloc($baseLTK);
+            $tb_joto_tanki_ippan_jumin   = $alloc($baseSTI);
+            $tb_joto_tanki_keigen_jumin  = $alloc($baseSTK);
+            $tb_joto_choki_ippan_jumin   = $alloc($baseLTI);
+            $tb_ippan_kabuteki_joto_j    = $alloc($baseJG);
+            $tb_jojo_kabuteki_joto_j     = $alloc($baseJL);
+            $tb_jojo_kabuteki_haito_j    = $alloc($baseH);
+            $tb_sakimono_jumin           = $alloc($baseSX);
+            $tb_joto_choki_tokutei_jumin = $alloc($baseLTT);
+            $tb_joto_choki_keika_jumin   = $alloc($baseLTK);
+            $tb_sanrin_jumin             = $alloc($baseSan);
+            $tb_taishoku_jumin           = $alloc($baseTaiJumin);
 
             // 互換：短期/長期 合算 tb（表示・既存参照用）
             $tb_joto_tanki_jumin      = $this->floorToThousands($tb_joto_tanki_ippan_jumin + $tb_joto_tanki_keigen_jumin);
             $tb_joto_choki_jumin      = $this->floorToThousands($tb_joto_choki_ippan_jumin + $tb_joto_choki_tokutei_jumin + $tb_joto_choki_keika_jumin);
-
-            $tb_jojo_kabuteki_haito_j = $alloc($baseH);
-            $tb_ippan_kabuteki_joto_j = $alloc($baseJG);
-            $tb_jojo_kabuteki_joto_j  = $alloc($baseJL);
-            $tb_sakimono_jumin        = $alloc($baseSX);
-            $tb_sanrin_jumin          = $alloc($baseSan);
-            $tb_taishoku_jumin        = $alloc($baseTaiJumin);
 
             // ===== 書き戻し =====
             $payload["tb_sogo_shotoku_{$p}"] = $tb_sogo_shotoku;
@@ -167,6 +205,11 @@ class CommonTaxableBaseCalculator implements ProvidesKeys
 
             $payload["tb_joto_tanki_shotoku_{$p}"]       = $tb_joto_tanki_shotoku;
             $payload["tb_joto_choki_shotoku_{$p}"]       = $tb_joto_choki_shotoku;
+            $payload["tb_joto_tanki_ippan_shotoku_{$p}"]   = $tb_joto_tanki_ippan_shotoku;
+            $payload["tb_joto_tanki_keigen_shotoku_{$p}"]  = $tb_joto_tanki_keigen_shotoku;
+            $payload["tb_joto_choki_ippan_shotoku_{$p}"]   = $tb_joto_choki_ippan_shotoku;
+            $payload["tb_joto_choki_tokutei_shotoku_{$p}"] = $tb_joto_choki_tokutei_shotoku;
+            $payload["tb_joto_choki_keika_shotoku_{$p}"]   = $tb_joto_choki_keika_shotoku;
             $payload["tb_ippan_kabuteki_joto_shotoku_{$p}"] = $tb_ippan_kabuteki_joto_sho;
             $payload["tb_jojo_kabuteki_joto_shotoku_{$p}"]  = $tb_jojo_kabuteki_joto_sho;
             $payload["tb_jojo_kabuteki_haito_shotoku_{$p}"] = $tb_jojo_kabuteki_haito_sho;

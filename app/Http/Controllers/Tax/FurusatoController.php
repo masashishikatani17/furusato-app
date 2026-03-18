@@ -145,6 +145,46 @@ final class FurusatoController extends Controller
         $context = $this->makeInputContext($req, $dataId);
         $inputsForView = $context['outInputs'] ?? $context['savedInputs'];
         $context['out'] = ['inputs' => $inputsForView];
+
+        \Log::debug('furusato.index.after_out_assignment', [
+            'route' => __METHOD__,
+            'outInputs' => [
+                'kojo_shakaihoken_shotoku_curr' => $context['outInputs']['kojo_shakaihoken_shotoku_curr'] ?? null,
+                'kojo_shakaihoken_jumin_curr'   => $context['outInputs']['kojo_shakaihoken_jumin_curr'] ?? null,
+                'kojo_shokibo_shotoku_curr'     => $context['outInputs']['kojo_shokibo_shotoku_curr'] ?? null,
+                'kojo_shokibo_jumin_curr'       => $context['outInputs']['kojo_shokibo_jumin_curr'] ?? null,
+                'shotokuzei_kojo_kiso_curr'     => $context['outInputs']['shotokuzei_kojo_kiso_curr'] ?? null,
+                'juminzei_kojo_kiso_curr'       => $context['outInputs']['juminzei_kojo_kiso_curr'] ?? null,
+                'kojo_shokei_shotoku_curr'      => $context['outInputs']['kojo_shokei_shotoku_curr'] ?? null,
+                'kojo_shokei_jumin_curr'        => $context['outInputs']['kojo_shokei_jumin_curr'] ?? null,
+                'kojo_gokei_shotoku_curr'       => $context['outInputs']['kojo_gokei_shotoku_curr'] ?? null,
+                'kojo_gokei_jumin_curr'         => $context['outInputs']['kojo_gokei_jumin_curr'] ?? null,
+            ],
+            'out.inputs' => [
+                'kojo_shakaihoken_shotoku_curr' => $context['out']['inputs']['kojo_shakaihoken_shotoku_curr'] ?? null,
+                'kojo_shakaihoken_jumin_curr'   => $context['out']['inputs']['kojo_shakaihoken_jumin_curr'] ?? null,
+                'kojo_shokibo_shotoku_curr'     => $context['out']['inputs']['kojo_shokibo_shotoku_curr'] ?? null,
+                'kojo_shokibo_jumin_curr'       => $context['out']['inputs']['kojo_shokibo_jumin_curr'] ?? null,
+                'shotokuzei_kojo_kiso_curr'     => $context['out']['inputs']['shotokuzei_kojo_kiso_curr'] ?? null,
+                'juminzei_kojo_kiso_curr'       => $context['out']['inputs']['juminzei_kojo_kiso_curr'] ?? null,
+                'kojo_shokei_shotoku_curr'      => $context['out']['inputs']['kojo_shokei_shotoku_curr'] ?? null,
+                'kojo_shokei_jumin_curr'        => $context['out']['inputs']['kojo_shokei_jumin_curr'] ?? null,
+                'kojo_gokei_shotoku_curr'       => $context['out']['inputs']['kojo_gokei_shotoku_curr'] ?? null,
+                'kojo_gokei_jumin_curr'         => $context['out']['inputs']['kojo_gokei_jumin_curr'] ?? null,
+            ],
+            'savedInputs' => [
+                'kojo_shakaihoken_shotoku_curr' => $context['savedInputs']['kojo_shakaihoken_shotoku_curr'] ?? null,
+                'kojo_shakaihoken_jumin_curr'   => $context['savedInputs']['kojo_shakaihoken_jumin_curr'] ?? null,
+                'kojo_shokibo_shotoku_curr'     => $context['savedInputs']['kojo_shokibo_shotoku_curr'] ?? null,
+                'kojo_shokibo_jumin_curr'       => $context['savedInputs']['kojo_shokibo_jumin_curr'] ?? null,
+                'shotokuzei_kojo_kiso_curr'     => $context['savedInputs']['shotokuzei_kojo_kiso_curr'] ?? null,
+                'juminzei_kojo_kiso_curr'       => $context['savedInputs']['juminzei_kojo_kiso_curr'] ?? null,
+                'kojo_shokei_shotoku_curr'      => $context['savedInputs']['kojo_shokei_shotoku_curr'] ?? null,
+                'kojo_shokei_jumin_curr'        => $context['savedInputs']['kojo_shokei_jumin_curr'] ?? null,
+                'kojo_gokei_shotoku_curr'       => $context['savedInputs']['kojo_gokei_shotoku_curr'] ?? null,
+                'kojo_gokei_jumin_curr'         => $context['savedInputs']['kojo_gokei_jumin_curr'] ?? null,
+            ],
+        ]);
         unset($context['outInputs']);
 
         $session = session();
@@ -169,6 +209,34 @@ final class FurusatoController extends Controller
         }
 
         $context = $this->attachOneStopPdfGuardContext($context);
+
+        \Log::debug('furusato.input.context_spotcheck.before_view', [
+            'route' => __METHOD__,
+            'inputs' => [
+                'kojo_shakaihoken_shotoku_curr' => data_get($context, 'inputs.kojo_shakaihoken_shotoku_curr'),
+                'kojo_shakaihoken_jumin_curr'   => data_get($context, 'inputs.kojo_shakaihoken_jumin_curr'),
+                'kojo_shokibo_shotoku_curr'     => data_get($context, 'inputs.kojo_shokibo_shotoku_curr'),
+                'kojo_shokibo_jumin_curr'       => data_get($context, 'inputs.kojo_shokibo_jumin_curr'),
+                'shotokuzei_kojo_kiso_curr'     => data_get($context, 'inputs.shotokuzei_kojo_kiso_curr'),
+                'juminzei_kojo_kiso_curr'       => data_get($context, 'inputs.juminzei_kojo_kiso_curr'),
+                'kojo_shokei_shotoku_curr'      => data_get($context, 'inputs.kojo_shokei_shotoku_curr'),
+                'kojo_shokei_jumin_curr'        => data_get($context, 'inputs.kojo_shokei_jumin_curr'),
+                'kojo_gokei_shotoku_curr'       => data_get($context, 'inputs.kojo_gokei_shotoku_curr'),
+                'kojo_gokei_jumin_curr'         => data_get($context, 'inputs.kojo_gokei_jumin_curr'),
+            ],
+            'results' => [
+                'kojo_shakaihoken_shotoku_curr' => data_get($context, 'results.kojo_shakaihoken_shotoku_curr'),
+                'kojo_shakaihoken_jumin_curr'   => data_get($context, 'results.kojo_shakaihoken_jumin_curr'),
+                'kojo_shokibo_shotoku_curr'     => data_get($context, 'results.kojo_shokibo_shotoku_curr'),
+                'kojo_shokibo_jumin_curr'       => data_get($context, 'results.kojo_shokibo_jumin_curr'),
+                'shotokuzei_kojo_kiso_curr'     => data_get($context, 'results.shotokuzei_kojo_kiso_curr'),
+                'juminzei_kojo_kiso_curr'       => data_get($context, 'results.juminzei_kojo_kiso_curr'),
+                'kojo_shokei_shotoku_curr'      => data_get($context, 'results.kojo_shokei_shotoku_curr'),
+                'kojo_shokei_jumin_curr'        => data_get($context, 'results.kojo_shokei_jumin_curr'),
+                'kojo_gokei_shotoku_curr'       => data_get($context, 'results.kojo_gokei_shotoku_curr'),
+                'kojo_gokei_jumin_curr'         => data_get($context, 'results.kojo_gokei_jumin_curr'),
+            ],
+        ]);
 
         return view('tax.furusato.input', $context);
     }
@@ -204,6 +272,34 @@ final class FurusatoController extends Controller
         }
 
         $context = $this->attachOneStopPdfGuardContext($context);
+
+        \Log::debug('furusato.input.context_spotcheck.before_view', [
+            'route' => __METHOD__,
+            'inputs' => [
+                'kojo_shakaihoken_shotoku_curr' => data_get($context, 'inputs.kojo_shakaihoken_shotoku_curr'),
+                'kojo_shakaihoken_jumin_curr'   => data_get($context, 'inputs.kojo_shakaihoken_jumin_curr'),
+                'kojo_shokibo_shotoku_curr'     => data_get($context, 'inputs.kojo_shokibo_shotoku_curr'),
+                'kojo_shokibo_jumin_curr'       => data_get($context, 'inputs.kojo_shokibo_jumin_curr'),
+                'shotokuzei_kojo_kiso_curr'     => data_get($context, 'inputs.shotokuzei_kojo_kiso_curr'),
+                'juminzei_kojo_kiso_curr'       => data_get($context, 'inputs.juminzei_kojo_kiso_curr'),
+                'kojo_shokei_shotoku_curr'      => data_get($context, 'inputs.kojo_shokei_shotoku_curr'),
+                'kojo_shokei_jumin_curr'        => data_get($context, 'inputs.kojo_shokei_jumin_curr'),
+                'kojo_gokei_shotoku_curr'       => data_get($context, 'inputs.kojo_gokei_shotoku_curr'),
+                'kojo_gokei_jumin_curr'         => data_get($context, 'inputs.kojo_gokei_jumin_curr'),
+            ],
+            'results' => [
+                'kojo_shakaihoken_shotoku_curr' => data_get($context, 'results.kojo_shakaihoken_shotoku_curr'),
+                'kojo_shakaihoken_jumin_curr'   => data_get($context, 'results.kojo_shakaihoken_jumin_curr'),
+                'kojo_shokibo_shotoku_curr'     => data_get($context, 'results.kojo_shokibo_shotoku_curr'),
+                'kojo_shokibo_jumin_curr'       => data_get($context, 'results.kojo_shokibo_jumin_curr'),
+                'shotokuzei_kojo_kiso_curr'     => data_get($context, 'results.shotokuzei_kojo_kiso_curr'),
+                'juminzei_kojo_kiso_curr'       => data_get($context, 'results.juminzei_kojo_kiso_curr'),
+                'kojo_shokei_shotoku_curr'      => data_get($context, 'results.kojo_shokei_shotoku_curr'),
+                'kojo_shokei_jumin_curr'        => data_get($context, 'results.kojo_shokei_jumin_curr'),
+                'kojo_gokei_shotoku_curr'       => data_get($context, 'results.kojo_gokei_shotoku_curr'),
+                'kojo_gokei_jumin_curr'         => data_get($context, 'results.kojo_gokei_jumin_curr'),
+            ],
+        ]);
 
         return view('tax.furusato.input', $context);
     }
@@ -661,6 +757,45 @@ final class FurusatoController extends Controller
             ],
         ];
 
+        \Log::debug('furusato.context.after_build_spotcheck', [
+            'route' => __METHOD__,
+            'outInputs' => [
+                'kojo_shakaihoken_shotoku_curr' => data_get($context, 'outInputs.kojo_shakaihoken_shotoku_curr'),
+                'kojo_shakaihoken_jumin_curr'   => data_get($context, 'outInputs.kojo_shakaihoken_jumin_curr'),
+                'kojo_shokibo_shotoku_curr'     => data_get($context, 'outInputs.kojo_shokibo_shotoku_curr'),
+                'kojo_shokibo_jumin_curr'       => data_get($context, 'outInputs.kojo_shokibo_jumin_curr'),
+                'shotokuzei_kojo_kiso_curr'     => data_get($context, 'outInputs.shotokuzei_kojo_kiso_curr'),
+                'juminzei_kojo_kiso_curr'       => data_get($context, 'outInputs.juminzei_kojo_kiso_curr'),
+                'kojo_shokei_shotoku_curr'      => data_get($context, 'outInputs.kojo_shokei_shotoku_curr'),
+                'kojo_shokei_jumin_curr'        => data_get($context, 'outInputs.kojo_shokei_jumin_curr'),
+                'kojo_gokei_shotoku_curr'       => data_get($context, 'outInputs.kojo_gokei_shotoku_curr'),
+                'kojo_gokei_jumin_curr'         => data_get($context, 'outInputs.kojo_gokei_jumin_curr'),
+            ],
+            'out_inputs' => [
+                'kojo_shakaihoken_shotoku_curr' => data_get($context, 'out.inputs.kojo_shakaihoken_shotoku_curr'),
+                'kojo_shakaihoken_jumin_curr'   => data_get($context, 'out.inputs.kojo_shakaihoken_jumin_curr'),
+                'kojo_shokibo_shotoku_curr'     => data_get($context, 'out.inputs.kojo_shokibo_shotoku_curr'),
+                'kojo_shokibo_jumin_curr'       => data_get($context, 'out.inputs.kojo_shokibo_jumin_curr'),
+                'shotokuzei_kojo_kiso_curr'     => data_get($context, 'out.inputs.shotokuzei_kojo_kiso_curr'),
+                'juminzei_kojo_kiso_curr'       => data_get($context, 'out.inputs.juminzei_kojo_kiso_curr'),
+                'kojo_shokei_shotoku_curr'      => data_get($context, 'out.inputs.kojo_shokei_shotoku_curr'),
+                'kojo_shokei_jumin_curr'        => data_get($context, 'out.inputs.kojo_shokei_jumin_curr'),
+                'kojo_gokei_shotoku_curr'       => data_get($context, 'out.inputs.kojo_gokei_shotoku_curr'),
+                'kojo_gokei_jumin_curr'         => data_get($context, 'out.inputs.kojo_gokei_jumin_curr'),
+            ],
+            'savedInputs' => [
+                'kojo_shakaihoken_shotoku_curr' => data_get($context, 'savedInputs.kojo_shakaihoken_shotoku_curr'),
+                'kojo_shakaihoken_jumin_curr'   => data_get($context, 'savedInputs.kojo_shakaihoken_jumin_curr'),
+                'kojo_shokibo_shotoku_curr'     => data_get($context, 'savedInputs.kojo_shokibo_shotoku_curr'),
+                'kojo_shokibo_jumin_curr'       => data_get($context, 'savedInputs.kojo_shokibo_jumin_curr'),
+                'shotokuzei_kojo_kiso_curr'     => data_get($context, 'savedInputs.shotokuzei_kojo_kiso_curr'),
+                'juminzei_kojo_kiso_curr'       => data_get($context, 'savedInputs.juminzei_kojo_kiso_curr'),
+                'kojo_shokei_shotoku_curr'      => data_get($context, 'savedInputs.kojo_shokei_shotoku_curr'),
+                'kojo_shokei_jumin_curr'        => data_get($context, 'savedInputs.kojo_shokei_jumin_curr'),
+                'kojo_gokei_shotoku_curr'       => data_get($context, 'savedInputs.kojo_gokei_shotoku_curr'),
+                'kojo_gokei_jumin_curr'         => data_get($context, 'savedInputs.kojo_gokei_jumin_curr'),
+            ],
+        ]);
         $session = session();
         if ($session->has('furusato_results')) {
             $context['results'] = (array) $session->get('furusato_results');
@@ -2141,6 +2276,22 @@ final class FurusatoController extends Controller
             }
         }
 
+        \Log::debug('furusato.inputsForView.final_spotcheck', [
+            'route' => __METHOD__,
+            'values' => [
+                'kojo_shakaihoken_shotoku_curr' => $inputsForView['kojo_shakaihoken_shotoku_curr'] ?? null,
+                'kojo_shakaihoken_jumin_curr'   => $inputsForView['kojo_shakaihoken_jumin_curr'] ?? null,
+                'kojo_shokibo_shotoku_curr'     => $inputsForView['kojo_shokibo_shotoku_curr'] ?? null,
+                'kojo_shokibo_jumin_curr'       => $inputsForView['kojo_shokibo_jumin_curr'] ?? null,
+                'shotokuzei_kojo_kiso_curr'     => $inputsForView['shotokuzei_kojo_kiso_curr'] ?? null,
+                'juminzei_kojo_kiso_curr'       => $inputsForView['juminzei_kojo_kiso_curr'] ?? null,
+                'kojo_shokei_shotoku_curr'      => $inputsForView['kojo_shokei_shotoku_curr'] ?? null,
+                'kojo_shokei_jumin_curr'        => $inputsForView['kojo_shokei_jumin_curr'] ?? null,
+                'kojo_gokei_shotoku_curr'       => $inputsForView['kojo_gokei_shotoku_curr'] ?? null,
+                'kojo_gokei_jumin_curr'         => $inputsForView['kojo_gokei_jumin_curr'] ?? null,
+            ],
+        ]);
+
         return $inputsForView;
     }
 
@@ -2270,6 +2421,7 @@ final class FurusatoController extends Controller
                 'recalc_all',
                 'pdf_prepare',
             ]);
+            $updates = $this->mirrorMainInputJuminKojoFields($updates);
 
             // 分離長期所得（tokutei/keika）＋退職（第三表手入力分）の整数正規化
             $this->normalizeIntegerFieldsFromRequest(
@@ -2300,6 +2452,7 @@ final class FurusatoController extends Controller
             'recalc_all',
             'pdf_prepare',
         ]);
+        $updates = $this->mirrorMainInputJuminKojoFields($updates);
         // 分離長期所得（tokutei/keika）＋退職（第三表手入力分）の整数正規化
         $this->normalizeIntegerFieldsFromRequest(
             $request,
@@ -4794,7 +4947,39 @@ final class FurusatoController extends Controller
         }
         return $payload;
     }
-    
+
+    /**
+     * main input 画面で「所得税側入力を住民税側へそのまま使う」控除を
+     * サーバ側で必ず補完する。
+     *
+     * 理由:
+     * - 画面JSの見た目ミラーだけだと、readonly側が未反映のまま保存されることがある
+     * - 保存の正本はサーバなので、ここで明示的に補完する
+     *
+     * 対象:
+     * - 社会保険料控除
+     * - 小規模企業共済等掛金控除
+     *
+     * @param  array<string,mixed>  $updates
+     * @return array<string,mixed>
+     */
+    private function mirrorMainInputJuminKojoFields(array $updates): array
+    {
+        foreach (['prev', 'curr'] as $period) {
+            $shotokuShakai = $this->toNullableInt($updates["kojo_shakaihoken_shotoku_{$period}"] ?? null);
+            if ($shotokuShakai !== null) {
+                $updates["kojo_shakaihoken_jumin_{$period}"] = $shotokuShakai;
+            }
+
+            $shotokuShokibo = $this->toNullableInt($updates["kojo_shokibo_shotoku_{$period}"] ?? null);
+            if ($shotokuShokibo !== null) {
+                $updates["kojo_shokibo_jumin_{$period}"] = $shotokuShokibo;
+            }
+        }
+
+        return $updates;
+    }
+
     /**
      * ふるさと納税の理論上限額 Kmax を算出する。
      *

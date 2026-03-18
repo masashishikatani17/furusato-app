@@ -61,6 +61,7 @@ class SyotokukinKojyosokuReport implements ReportInterface
         /** @var PayloadNormalizer $normalizer */
         $normalizer = app(PayloadNormalizer::class);
         $payload = $normalizer->normalize($payload);
+        $payload = $this->forceJuminTaishokuZero($payload);
 
         // ------------------------------
         // 2) ctx（syori_settings + master year + company/data）
@@ -112,10 +113,12 @@ class SyotokukinKojyosokuReport implements ReportInterface
                 //   - 所得税側が 0 でも、住民税側（pref/muni）に入力があれば“その額”で計算・表示したい
                 //   - ただし current では「所得税側まで勝手に同額コピーしない」（ワンストップを壊すため）
                 $payloadAt = $this->withFurusatoCurrent($payload);
+                $payloadAt = $this->forceJuminTaishokuZero($payloadAt);
                 $yCurrent = $this->resolveCurrentFurusatoDonationCurr($payloadAt);
                 $yMaxTotalRaw = $yCurrent;
                 $yMaxTotalDisplay = $yCurrent;
                 $out = $runner->run($payloadAt, $ctx);
+                $out = $this->forceJuminTaishokuZero($out);
             } else {
                 /** @var FurusatoPracticalUpperLimitService $upperSvc */
                 $upperSvc = app(FurusatoPracticalUpperLimitService::class);
@@ -125,15 +128,30 @@ class SyotokukinKojyosokuReport implements ReportInterface
 
                 // ▼ 計算は「生値」で注入（控除額を正確にする）
                 $payloadAtMax = $this->withFurusatoMax($payload, $yMaxTotalRaw);
+                $payloadAtMax = $this->forceJuminTaishokuZero($payloadAtMax);
                 $out = $runner->run($payloadAtMax, $ctx);
+                $out = $this->forceJuminTaishokuZero($out);
             }
         } catch (\Throwable $e) {
             // 帳票生成は落とさない（0扱いで続行）
             $yMaxTotalRaw = 0;
             $yMaxTotalDisplay = 0;
-            $out = $runner->run($payload, $ctx);
+            $safePayload = $this->forceJuminTaishokuZero($payload);
+            $out = $runner->run($safePayload, $ctx);
+            $out = $this->forceJuminTaishokuZero($out);
         }
-
+\Log::debug('syotokukin.report.taishoku_jumin_spotcheck', [
+    'data_id' => (int) $data->id,
+    'mode' => $mode,
+    'payload_before_run' => [
+        'bunri_shotoku_taishoku_jumin_curr' => $payload['bunri_shotoku_taishoku_jumin_curr'] ?? null,
+        'tb_taishoku_jumin_curr' => $payload['tb_taishoku_jumin_curr'] ?? null,
+    ],
+    'out_after_run' => [
+        'bunri_shotoku_taishoku_jumin_curr' => $out['bunri_shotoku_taishoku_jumin_curr'] ?? null,
+        'tb_taishoku_jumin_curr' => $out['tb_taishoku_jumin_curr'] ?? null,
+    ],
+]);
         // ------------------------------
         // 4) 帳票（2ページ）用：所得金額等（当年）と所得控除額（当年）を組み立て
         // ------------------------------
@@ -334,6 +352,24 @@ class SyotokukinKojyosokuReport implements ReportInterface
         return (int) (floor($v / 1000) * 1000);
     }
 
+    /**
+     * 住民税側の退職分離キーを帳票経路で0固定する。
+     *
+     * @param  array<string,mixed>  $payload
+     * @return array<string,mixed>
+     */
+    private function forceJuminTaishokuZero(array $payload): array
+    {
+        $payload['bunri_syunyu_taishoku_jumin_prev'] = 0;
+        $payload['bunri_syunyu_taishoku_jumin_curr'] = 0;
+        $payload['bunri_shotoku_taishoku_jumin_prev'] = 0;
+        $payload['bunri_shotoku_taishoku_jumin_curr'] = 0;
+        $payload['tb_taishoku_jumin_prev'] = 0;
+        $payload['tb_taishoku_jumin_curr'] = 0;
+
+        return $payload;
+    }
+
     private function toWarekiYear(int $year): string
     {
         if ($year >= 2019) {
@@ -348,4 +384,3 @@ class SyotokukinKojyosokuReport implements ReportInterface
         return (string) $year;
     }
 }
-

@@ -229,7 +229,7 @@ final class JuminzeiKifukinCalculator implements ProvidesKeys
             $kihonPrefRate = $this->juminRate($rateRows, '基本控除', null, $shitei, 'pref');
             $kihonMuniRate = $this->juminRate($rateRows, '基本控除', null, $shitei, 'city');
 
-            $mother = $this->n($payload[sprintf('sum_for_sogoshotoku_etc_%s', $period)] ?? null);
+            $mother = max(0, $this->n($payload[sprintf('sum_for_sogoshotoku_etc_jumin_%s', $period)] ?? 0));
             $guardedCap = $this->mulRate($mother, 0.3);
 
             // ▼ 基本控除の基礎は「ふるさと+other（各カテゴリmaxで1回）」の合算に対して 1回だけ作る。

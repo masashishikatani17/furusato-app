@@ -137,7 +137,7 @@ class JuminKeigengakuOnestopReport implements ReportInterface
         $sumPref = $this->sumJuminDonationSide($payloadAtMax, 'pref', $p);
         $sumMuni = $this->sumJuminDonationSide($payloadAtMax, 'muni', $p);
         $kifuTotal = max(0, $this->n($outAtMax["kifu_gaku_{$p}"] ?? 0));
-        $mother = max(0, $this->n($outAtMax["sum_for_sogoshotoku_etc_{$p}"] ?? 0));
+        $mother = max(0, $this->n($outAtMax["sum_for_sogoshotoku_etc_jumin_{$p}"] ?? 0));
         $cap30  = (int) floor($mother * 0.3);
         $eligiblePref = ($sumPref > 2_000) ? max(min($sumPref, $cap30) - 2_000, 0) : 0;
         $eligibleMuni = ($sumMuni > 2_000) ? max(min($sumMuni, $cap30) - 2_000, 0) : 0;

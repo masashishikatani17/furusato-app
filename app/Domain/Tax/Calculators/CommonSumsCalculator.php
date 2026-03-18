@@ -70,11 +70,9 @@ class CommonSumsCalculator implements ProvidesKeys
                 ?? $payload[sprintf('shotoku_taishoku_%s', $period)]
                 ?? null
             ));
-            $taishokuJumin = max(0, $this->n(
-                $payload[sprintf('bunri_shotoku_taishoku_jumin_%s', $period)]
-                ?? $payload[sprintf('shotoku_taishoku_jumin_%s', $period)]
-                ?? null
-            ));
+            // 本仕様：住民税側の分離退職は通常入力対象外（0・readonly）として扱い、
+            // CommonSums の住民税側集計には関与させない。
+            $taishokuJumin = 0;
             $sanrin = max(0, $this->n($payload[sprintf('shotoku_sanrin_%s', $period)] ?? null));
 
             $BpShotoku = $taishokuShotoku + $sanrin;

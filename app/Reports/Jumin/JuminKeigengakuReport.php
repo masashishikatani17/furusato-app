@@ -150,7 +150,7 @@ class JuminKeigengakuReport implements ReportInterface
         $sumMuni = $this->sumJuminDonationSide($payloadAtMax, 'muni', $p);
         $kifuTotal = max(0, $this->n($outAtMax["kifu_gaku_{$p}"] ?? 0)); // 参考（表示は 1ページ合計）
 
-        $mother = max(0, $this->n($outAtMax["sum_for_sogoshotoku_etc_{$p}"] ?? 0));
+        $mother = max(0, $this->n($outAtMax["sum_for_sogoshotoku_etc_jumin_{$p}"] ?? 0));
         $cap30  = (int) floor($mother * 0.3);
 
         $eligiblePref = 0;

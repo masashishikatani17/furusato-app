@@ -212,7 +212,7 @@ final class FurusatoSonntokuSimulationService
             $burden = $y - $savedTotal;
 
             // ④ 返礼品額（将来）= y × 30%（推定・帳票前提）
-            $gift = (int) floor($y * 0.30);
+            $gift = (int) floor($y * 0.25);
 
             // ⑤ 実質負担 = ③ - ④
             $net = $burden - $gift;

@@ -338,7 +338,7 @@ final class FurusatoAdjustedTaxableTest extends TestCase
             $this->assertSame(732_000, $inputs['tb_sogo_shotoku_curr']);
             $this->assertSame(481_000, $inputs['tb_sogo_jumin_curr']);
             $this->assertSame(70_000, $inputs['bunri_shotoku_taishoku_shotoku_curr']);
-            $this->assertSame(70_000, $inputs['bunri_shotoku_taishoku_jumin_curr']);
+            $this->assertSame(0, $inputs['bunri_shotoku_taishoku_jumin_curr']);
             $this->assertSame(880_000, $inputs['shotoku_gokei_shotoku_curr']);
         } finally {
             app()->forgetInstance(TokureiRateCalculator::class);

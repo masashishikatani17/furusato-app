@@ -472,7 +472,8 @@
                     foreach ($periods as $period) {
                         $format = $kojoFieldOverrides[$base][$tax] ?? null;
                         $name = $format ? sprintf($format, $period) : sprintf('%s_%s_%s', $base, $tax, $period);
-                        // ▼ 退職（bunri_*_taishoku_*）だけは第三表でもユーザー任意入力を許可する
+                        // ▼ 分離・第三表（bunri_*/tb_*）は server 計算値を表示する運用。
+                        //    退職（bunri_*_taishoku_*）も手入力は許可せず、住民税側は 0・readonly 前提。
                         $allowRetirementManual = false;
                         $isBunriThird =
                             ! $allowRetirementManual && (
@@ -481,7 +482,6 @@
                                 str_starts_with($base, 'tb_')
                             );
                         // 分離・第三表 または server-only base は server 計算値のみ表示（old()は採用しない）
-                        // ただし退職（bunri_*_taishoku_*）は allowRetirementManual によって isBunriThird から除外される
                         if ($isBunriThird || isset($serverOnlyBases[$base])) {
                             $value = $inputs[$name] ?? null;
                         } else {
@@ -568,7 +568,7 @@
                                 $class .= ' bg-light';
                             }
                             // 分離・第三表／server-only は data-server-lock＋（可能なら）data-server-raw を付与
-                            // 退職（bunri_*_taishoku_*）は isBunriThird=false なのでロックされず、ユーザー編集を許可する
+                            // 退職（bunri_*_taishoku_*）も分離・第三表としてロック対象
                             $isLocked = $isBunriThird || isset($serverOnlyBases[$base]);
                             $lockAttr = $isLocked ? ' data-server-lock="1"' : '';
                             $rawAttr  = ($isLocked && $valueRaw !== null) ? ' data-server-raw="' . e($valueRaw) . '"' : '';

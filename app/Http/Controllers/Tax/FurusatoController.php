@@ -3569,29 +3569,22 @@ final class FurusatoController extends Controller
         $payload['kojo_iryo_shotoku_gokei_prev'] = $shotokuGokeiPrev;
         $payload['kojo_iryo_shotoku_gokei_curr'] = $shotokuGokeiCurr;
   
-         // ============================================================
-         // ▼ 医療費控除（表示用の派生値）をサーバで確定
-         //   方針：
-         //     - SoTはサーバ（保存はA/Bのみ）
-         //     - 表示（ⒸⒺⒻⒼ）もサーバ計算値をそのまま表示する（JSで再計算しない）
-         //   制度（所得控除）：
-         //     C = max(A - B, 0)
-         //     threshold = min(100,000, floor(max(0,D)*0.05))
-         //     G = min( max(C - threshold, 0), 2,000,000 )
-         //     ※上限2,000,000は「最後」に適用
-         // ============================================================
+        // ============================================================
+        // ▼ 医療費控除（表示用の派生値）をサーバで確定
+        //   方針：
+        //     - SoTはサーバ（保存はA/Bのみ）
+        //     - D は sum_for_sogoshotoku_etc_*（無い場合は shotoku_gokei_* をフォールバック）
+        //     - C は制度どおり max(A-B, 0)
+        // ============================================================
          foreach (['prev', 'curr'] as $p) {
              $a = $this->valueOrZero($this->toNullableInt($payload["kojo_iryo_shiharai_{$p}"] ?? null));
              $b = $this->valueOrZero($this->toNullableInt($payload["kojo_iryo_hotengaku_{$p}"] ?? null));
              $d = $this->valueOrZero($this->toNullableInt($payload["kojo_iryo_shotoku_gokei_{$p}"] ?? null));
              $d = max(0, (int) $d);
  
-             // 表示用：差引金額（Ⓐ－Ⓑ）は生の差（マイナスも表示し得る）
-             $cRaw = (int) $a - (int) $b;
-             $payload["kojo_iryo_sashihiki_{$p}"] = $cRaw;
- 
-             // 制度上：対象額は 0 下限（医療費控除の対象となる自己負担分）
-             $c = max(0, $cRaw);
+             // 制度上：差引金額（Ⓒ）は 0 下限
+             $c = max(0, (int) $a - (int) $b);
+             $payload["kojo_iryo_sashihiki_{$p}"] = $c;
              $e = (int) floor($d * 0.05);          // Ⓔ（円単位）
              $f = (int) min($e, 100_000);          // Ⓕ
              $g = (int) min(max($c - $f, 0), 2_000_000); // Ⓖ（上限は最後）
@@ -4079,13 +4072,8 @@ final class FurusatoController extends Controller
             }
         }
 
-        $prev = $this->valueOrZero($this->toNullableInt($payload['shotoku_gokei_shotoku_prev'] ?? null));
-        $curr = $this->valueOrZero($this->toNullableInt($payload['shotoku_gokei_shotoku_curr'] ?? null));
-
-        if ($this->resolveBunriFlag($dataId) === 1) {
-            $prev += $this->valueOrZero($this->toNullableInt($payload['bunri_sogo_gokeigaku_shotoku_prev'] ?? null));
-            $curr += $this->valueOrZero($this->toNullableInt($payload['bunri_sogo_gokeigaku_shotoku_curr'] ?? null));
-        }
+        $prev = $this->valueOrZero($this->toNullableInt($payload['sum_for_sogoshotoku_etc_prev'] ?? null));
+        $curr = $this->valueOrZero($this->toNullableInt($payload['sum_for_sogoshotoku_etc_curr'] ?? null));
 
         return [$prev, $curr];
     }

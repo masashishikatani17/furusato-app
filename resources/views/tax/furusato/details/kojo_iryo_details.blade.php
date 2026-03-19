@@ -270,21 +270,19 @@
         if (d) d.value = fmt(raw);
       };
 
-      // ===== 再計算 =====
+      // ===== 再計算（サーバ計算式と整合） =====
       const recalcCol = (period) => {
         const a = V(`kojo_iryo_shiharai_${period}`);
         const b = V(`kojo_iryo_hotengaku_${period}`);
         const d = V(`kojo_iryo_shotoku_gokei_${period}`); // サーバ渡しの読み取り専用
         // 総所得金額等は負にならない前提で5%を計算（負の場合は0として扱う）
         const dPos = Math.max(d, 0);
-        // 差引金額（A-B）…表示のⒸは従来どおり生の差引を表示
-        const c = a - b;
-        // 医療費控除の対象額には200万円の上限（A-B を 0〜2,000,000 に丸め）
-        const cCapped = Math.min(Math.max(c, 0), 2000000);
+        // 差引金額（A-B）は制度どおり 0 下限
+        const c = Math.max(a - b, 0);
         const e = Math.floor(dPos * 0.05);
         const f = Math.min(e, 100000);
-        // 控除額は「上限適用後のC」から足切り額を引いたもの（0未満は0）
-        const g = Math.max(cCapped - f, 0);
+        // 控除額は C-F の 0 下限後に 200万円上限を適用
+        const g = Math.min(Math.max(c - f, 0), 2000000);
 
         S(`kojo_iryo_sashihiki_${period}`, c);
         S(`kojo_iryo_shotoku_5pct_${period}`, e);

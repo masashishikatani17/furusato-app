@@ -75,13 +75,12 @@ final class KojoIryoCalculator implements ProvidesKeys
             }
             $d = max(0, $d);
 
-            // 表示用：差引金額（Ⓐ－Ⓑ）は生の差（マイナスも保持）
             $cRaw = $a - $b;
-            $updates["kojo_iryo_sashihiki_{$p}"] = $cRaw;
+            // 表示用のⒸも制度どおり 0 下限に揃える
+            $c = max(0, $cRaw);
+            $updates["kojo_iryo_sashihiki_{$p}"] = $c;
             $updates["kojo_iryo_shotoku_gokei_{$p}"] = $d;
 
-            // 制度上：対象額は 0 下限
-            $c = max(0, $cRaw);
             $e = (int) floor($d * 0.05);      // Ⓔ
             $f = (int) min($e, 100_000);      // Ⓕ
             $gRaw = (int) max(0, $c - $f);    // Ⓒ−Ⓕ（0下限）

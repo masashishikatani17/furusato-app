@@ -138,7 +138,7 @@ class JuminKeigengakuOnestopReport implements ReportInterface
         $sumMuni = $this->sumJuminDonationSide($payloadAtMax, 'muni', $p);
         $kifuTotal = max(0, $this->n($outAtMax["kifu_gaku_{$p}"] ?? 0));
         $mother = max(0, $this->n($outAtMax["sum_for_sogoshotoku_etc_jumin_{$p}"] ?? 0));
-        $cap30  = (int) floor($mother * 0.3);
+        $cap30  = (int) ceil($mother * 0.3);
         $eligiblePref = ($sumPref > 2_000) ? max(min($sumPref, $cap30) - 2_000, 0) : 0;
         $eligibleMuni = ($sumMuni > 2_000) ? max(min($sumMuni, $cap30) - 2_000, 0) : 0;
         [$basicPrefRate, $basicMuniRate, $basicPrefPct, $basicMuniPct] = $this->resolveKihonRates($masterYear, $ctx, $syoriSettings);
@@ -224,20 +224,20 @@ class JuminKeigengakuOnestopReport implements ReportInterface
         $otherMuni = (int) ceil($eligibleOtherMuni * $basicMuniRate);
         $otherGokei = max(0, $otherPref + $otherMuni);
 
-        // final（天井後のふるさと分）
-        $furuPostGokei = max(0, $kifukinPostGokei - $otherGokei);
-        $furuPostPref  = (int) floor($furuPostGokei * $sharePref);
-        $furuPostMuni  = max(0, $furuPostGokei - $furuPostPref);
+        // final（天井後のふるさと分）= SoT(天井後 県/市) - other(県/市)
+        $furuPostPref  = max(0, $kifukinPostPref - $otherPref);
+        $furuPostMuni  = max(0, $kifukinPostMuni - $otherMuni);
+        $furuPostGokei = $furuPostPref + $furuPostMuni;
 
-        // furusato_only（天井前）
-        $furuPreGokei = max(0, $kifukinPreGokei - $otherGokei);
-        $furuPrePref  = (int) floor($furuPreGokei * $sharePref);
-        $furuPreMuni  = max(0, $furuPreGokei - $furuPrePref);
+        // furusato_only（天井前）= 表示(天井前 県/市) - other(県/市)
+        $furuPrePref  = max(0, $kifukinPrePref - $otherPref);
+        $furuPreMuni  = max(0, $kifukinPreMuni - $otherMuni);
+        $furuPreGokei = $furuPrePref + $furuPreMuni;
 
-        // unable（★）
-        $unableGokei = max(0, $furuPreGokei - $furuPostGokei);
-        $unablePref  = (int) floor($unableGokei * $sharePref);
-        $unableMuni  = max(0, $unableGokei - $unablePref);
+        // unable（★）= furu_pre(県/市) - furu_post(県/市)
+        $unablePref  = max(0, $furuPrePref - $furuPostPref);
+        $unableMuni  = max(0, $furuPreMuni - $furuPostMuni);
+        $unableGokei = $unablePref + $unableMuni;
 
         return [
             'title'      => '住民税の軽減額（ワンストップ特例）',
@@ -417,5 +417,3 @@ class JuminKeigengakuOnestopReport implements ReportInterface
         return 0.0;
     }
 }
-
-

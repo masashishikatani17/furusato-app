@@ -151,7 +151,7 @@ class JuminKeigengakuReport implements ReportInterface
         $kifuTotal = max(0, $this->n($outAtMax["kifu_gaku_{$p}"] ?? 0)); // 参考（表示は 1ページ合計）
 
         $mother = max(0, $this->n($outAtMax["sum_for_sogoshotoku_etc_jumin_{$p}"] ?? 0));
-        $cap30  = (int) floor($mother * 0.3);
+        $cap30  = (int) ceil($mother * 0.3);
 
         $eligiblePref = 0;
         if ($sumPref > 2_000) {
@@ -238,21 +238,20 @@ class JuminKeigengakuReport implements ReportInterface
         $otherMuni = (int) ceil($eligibleOtherMuni * $basicMuniRate);
         $otherGokei = max(0, $otherPref + $otherMuni);
 
-        // furu（天井後）= SoT(天井後合計) - other
-        $furuPostGokei = max(0, $kifukinPostGokei - $otherGokei);
-        // 県/市の配賦（特例控除の按分比）
-        $furuPostPref = (int) floor($furuPostGokei * $sharePref);
-        $furuPostMuni = max(0, $furuPostGokei - $furuPostPref);
+        // furu（天井後）= SoT(天井後 県/市) - other(県/市)
+        $furuPostPref = max(0, $kifukinPostPref - $otherPref);
+        $furuPostMuni = max(0, $kifukinPostMuni - $otherMuni);
+        $furuPostGokei = $furuPostPref + $furuPostMuni;
 
-        // furu（天井前）= 表示合計(天井前) - other
-        $furuPreGokei = max(0, $kifukinPreGokei - $otherGokei);
-        $furuPrePref = (int) floor($furuPreGokei * $sharePref);
-        $furuPreMuni = max(0, $furuPreGokei - $furuPrePref);
+        // furu（天井前）= 表示(天井前 県/市) - other(県/市)
+        $furuPrePref = max(0, $kifukinPrePref - $otherPref);
+        $furuPreMuni = max(0, $kifukinPreMuni - $otherMuni);
+        $furuPreGokei = $furuPrePref + $furuPreMuni;
 
-        // unable（★）= furu_pre - furu_post
-        $unableGokei = max(0, $furuPreGokei - $furuPostGokei);
-        $unablePref = (int) floor($unableGokei * $sharePref);
-        $unableMuni = max(0, $unableGokei - $unablePref);
+        // unable（★）= furu_pre(県/市) - furu_post(県/市)
+        $unablePref = max(0, $furuPrePref - $furuPostPref);
+        $unableMuni = max(0, $furuPreMuni - $furuPostMuni);
+        $unableGokei = $unablePref + $unableMuni;
 
         // ------------------------------------------------------------
         // ▼ 右上「減税額」：帳票定義に固定
@@ -468,5 +467,3 @@ class JuminKeigengakuReport implements ReportInterface
         return (string) $year;
     }
 }
-
-

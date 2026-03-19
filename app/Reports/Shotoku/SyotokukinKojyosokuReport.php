@@ -98,6 +98,47 @@ class SyotokukinKojyosokuReport implements ReportInterface
         /** @var FurusatoDryRunCalculatorRunner $runner */
         $runner = app(FurusatoDryRunCalculatorRunner::class);
         $out = $payload; // 失敗時でも後続が壊れないように初期化
+        $bunriSpotcheckKeys = [
+            'bunri_shotoku_tanki_ippan_shotoku_curr',
+            'bunri_shotoku_tanki_ippan_jumin_curr',
+            'bunri_shotoku_tanki_keigen_shotoku_curr',
+            'bunri_shotoku_tanki_keigen_jumin_curr',
+            'bunri_shotoku_choki_ippan_shotoku_curr',
+            'bunri_shotoku_choki_ippan_jumin_curr',
+            'bunri_shotoku_choki_tokutei_shotoku_curr',
+            'bunri_shotoku_choki_tokutei_jumin_curr',
+            'bunri_shotoku_choki_keika_shotoku_curr',
+            'bunri_shotoku_choki_keika_jumin_curr',
+            'bunri_shotoku_ippan_kabuteki_joto_shotoku_curr',
+            'bunri_shotoku_ippan_kabuteki_joto_jumin_curr',
+            'bunri_shotoku_jojo_kabuteki_joto_shotoku_curr',
+            'bunri_shotoku_jojo_kabuteki_joto_jumin_curr',
+            'bunri_shotoku_jojo_kabuteki_haito_shotoku_curr',
+            'bunri_shotoku_jojo_kabuteki_haito_jumin_curr',
+            'bunri_shotoku_sanrin_shotoku_curr',
+            'bunri_shotoku_sanrin_jumin_curr',
+            'shotoku_after_kurikoshi_ippan_joto_curr',
+            'shotoku_after_kurikoshi_jojo_joto_curr',
+            'shotoku_after_kurikoshi_jojo_haito_curr',
+            'shotoku_sanrin_curr',
+            'joto_shotoku_tanki_ippan_curr',
+            'joto_shotoku_tanki_keigen_curr',
+            'joto_shotoku_choki_ippan_curr',
+            'joto_shotoku_choki_tokutei_curr',
+            'joto_shotoku_choki_keika_curr',
+        ];
+        $collectSpotcheck = static function (array $src, array $keys): array {
+            $values = [];
+            $exists = [];
+            foreach ($keys as $key) {
+                $exists[$key] = array_key_exists($key, $src);
+                $values[$key] = $exists[$key] ? $src[$key] : null;
+            }
+            return [
+                'values' => $values,
+                'exists' => $exists,
+            ];
+        };
 
         // --------------------------------------------
         // ★出力モード判定
@@ -119,6 +160,13 @@ class SyotokukinKojyosokuReport implements ReportInterface
                 $yMaxTotalDisplay = $yCurrent;
                 $out = $runner->run($payloadAt, $ctx);
                 $out = $this->forceJuminTaishokuZero($out);
+                \Log::debug('syotokukin.report.bunri_left_table_spotcheck', [
+                    'data_id' => (int) $data->id,
+                    'branch' => 'current',
+                    'mode' => $mode,
+                    'payloadAt' => $collectSpotcheck($payloadAt, $bunriSpotcheckKeys),
+                    'out' => $collectSpotcheck($out, $bunriSpotcheckKeys),
+                ]);
             } else {
                 /** @var FurusatoPracticalUpperLimitService $upperSvc */
                 $upperSvc = app(FurusatoPracticalUpperLimitService::class);
@@ -131,6 +179,13 @@ class SyotokukinKojyosokuReport implements ReportInterface
                 $payloadAtMax = $this->forceJuminTaishokuZero($payloadAtMax);
                 $out = $runner->run($payloadAtMax, $ctx);
                 $out = $this->forceJuminTaishokuZero($out);
+                \Log::debug('syotokukin.report.bunri_left_table_spotcheck', [
+                    'data_id' => (int) $data->id,
+                    'branch' => 'max',
+                    'mode' => $mode,
+                    'payloadAtMax' => $collectSpotcheck($payloadAtMax, $bunriSpotcheckKeys),
+                    'out' => $collectSpotcheck($out, $bunriSpotcheckKeys),
+                ]);
             }
         } catch (\Throwable $e) {
             // 帳票生成は落とさない（0扱いで続行）
@@ -139,18 +194,25 @@ class SyotokukinKojyosokuReport implements ReportInterface
             $safePayload = $this->forceJuminTaishokuZero($payload);
             $out = $runner->run($safePayload, $ctx);
             $out = $this->forceJuminTaishokuZero($out);
+            \Log::debug('syotokukin.report.bunri_left_table_spotcheck', [
+                'data_id' => (int) $data->id,
+                'branch' => 'catch',
+                'mode' => $mode,
+                'error' => $e->getMessage(),
+                'out' => $collectSpotcheck($out, $bunriSpotcheckKeys),
+            ]);
         }
 \Log::debug('syotokukin.report.taishoku_jumin_spotcheck', [
     'data_id' => (int) $data->id,
     'mode' => $mode,
-    'payload_before_run' => [
-        'bunri_shotoku_taishoku_jumin_curr' => $payload['bunri_shotoku_taishoku_jumin_curr'] ?? null,
-        'tb_taishoku_jumin_curr' => $payload['tb_taishoku_jumin_curr'] ?? null,
-    ],
-    'out_after_run' => [
-        'bunri_shotoku_taishoku_jumin_curr' => $out['bunri_shotoku_taishoku_jumin_curr'] ?? null,
-        'tb_taishoku_jumin_curr' => $out['tb_taishoku_jumin_curr'] ?? null,
-    ],
+    'payload_before_run' => $collectSpotcheck($payload, [
+        'bunri_shotoku_taishoku_jumin_curr',
+        'tb_taishoku_jumin_curr',
+    ]),
+    'out_after_run' => $collectSpotcheck($out, [
+        'bunri_shotoku_taishoku_jumin_curr',
+        'tb_taishoku_jumin_curr',
+    ]),
 ]);
         // ------------------------------
         // 4) 帳票（2ページ）用：所得金額等（当年）と所得控除額（当年）を組み立て

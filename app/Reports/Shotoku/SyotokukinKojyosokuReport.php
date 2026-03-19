@@ -127,6 +127,24 @@ class SyotokukinKojyosokuReport implements ReportInterface
             'joto_shotoku_choki_tokutei_curr',
             'joto_shotoku_choki_keika_curr',
         ];
+        $sogoSpotcheckKeys = [
+            'shotoku_jigyo_eigyo_shotoku_prev',
+            'shotoku_jigyo_eigyo_jumin_prev',
+            'shotoku_fudosan_shotoku_prev',
+            'shotoku_fudosan_jumin_prev',
+            'shotoku_rishi_shotoku_prev',
+            'shotoku_rishi_jumin_prev',
+            'shotoku_haito_shotoku_prev',
+            'shotoku_haito_jumin_prev',
+            'shotoku_jigyo_eigyo_shotoku_curr',
+            'shotoku_jigyo_eigyo_jumin_curr',
+            'shotoku_fudosan_shotoku_curr',
+            'shotoku_fudosan_jumin_curr',
+            'shotoku_rishi_shotoku_curr',
+            'shotoku_rishi_jumin_curr',
+            'shotoku_haito_shotoku_curr',
+            'shotoku_haito_jumin_curr',
+        ];
         $collectSpotcheck = static function (array $src, array $keys): array {
             $values = [];
             $exists = [];
@@ -167,6 +185,13 @@ class SyotokukinKojyosokuReport implements ReportInterface
                     'payloadAt' => $collectSpotcheck($payloadAt, $bunriSpotcheckKeys),
                     'out' => $collectSpotcheck($out, $bunriSpotcheckKeys),
                 ]);
+                \Log::debug('syotokukin.report.sogo_left_table_spotcheck', [
+                    'data_id' => (int) $data->id,
+                    'branch' => 'current',
+                    'mode' => $mode,
+                    'payloadAt' => $collectSpotcheck($payloadAt, $sogoSpotcheckKeys),
+                    'out' => $collectSpotcheck($out, $sogoSpotcheckKeys),
+                ]);
             } else {
                 /** @var FurusatoPracticalUpperLimitService $upperSvc */
                 $upperSvc = app(FurusatoPracticalUpperLimitService::class);
@@ -186,6 +211,13 @@ class SyotokukinKojyosokuReport implements ReportInterface
                     'payloadAtMax' => $collectSpotcheck($payloadAtMax, $bunriSpotcheckKeys),
                     'out' => $collectSpotcheck($out, $bunriSpotcheckKeys),
                 ]);
+                \Log::debug('syotokukin.report.sogo_left_table_spotcheck', [
+                    'data_id' => (int) $data->id,
+                    'branch' => 'max',
+                    'mode' => $mode,
+                    'payloadAtMax' => $collectSpotcheck($payloadAtMax, $sogoSpotcheckKeys),
+                    'out' => $collectSpotcheck($out, $sogoSpotcheckKeys),
+                ]);
             }
         } catch (\Throwable $e) {
             // 帳票生成は落とさない（0扱いで続行）
@@ -200,6 +232,13 @@ class SyotokukinKojyosokuReport implements ReportInterface
                 'mode' => $mode,
                 'error' => $e->getMessage(),
                 'out' => $collectSpotcheck($out, $bunriSpotcheckKeys),
+            ]);
+            \Log::debug('syotokukin.report.sogo_left_table_spotcheck', [
+                'data_id' => (int) $data->id,
+                'branch' => 'catch',
+                'mode' => $mode,
+                'error' => $e->getMessage(),
+                'out' => $collectSpotcheck($out, $sogoSpotcheckKeys),
             ]);
         }
         \Log::debug('syotokukin.report.taishoku_jumin_spotcheck', [
@@ -219,6 +258,11 @@ class SyotokukinKojyosokuReport implements ReportInterface
             'data_id' => (int) $data->id,
             'mode' => $mode,
             'out' => $collectSpotcheck($out, $bunriSpotcheckKeys),
+        ]);
+        \Log::debug('syotokukin.report.sogo_left_table_spotcheck_after_bridge', [
+            'data_id' => (int) $data->id,
+            'mode' => $mode,
+            'out' => $collectSpotcheck($out, $sogoSpotcheckKeys),
         ]);
         // ------------------------------
         // 4) 帳票（2ページ）用：所得金額等（当年）と所得控除額（当年）を組み立て

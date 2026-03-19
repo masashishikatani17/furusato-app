@@ -202,18 +202,24 @@ class SyotokukinKojyosokuReport implements ReportInterface
                 'out' => $collectSpotcheck($out, $bunriSpotcheckKeys),
             ]);
         }
-\Log::debug('syotokukin.report.taishoku_jumin_spotcheck', [
-    'data_id' => (int) $data->id,
-    'mode' => $mode,
-    'payload_before_run' => $collectSpotcheck($payload, [
-        'bunri_shotoku_taishoku_jumin_curr',
-        'tb_taishoku_jumin_curr',
-    ]),
-    'out_after_run' => $collectSpotcheck($out, [
-        'bunri_shotoku_taishoku_jumin_curr',
-        'tb_taishoku_jumin_curr',
-    ]),
-]);
+        \Log::debug('syotokukin.report.taishoku_jumin_spotcheck', [
+            'data_id' => (int) $data->id,
+            'mode' => $mode,
+            'payload_before_run' => $collectSpotcheck($payload, [
+                'bunri_shotoku_taishoku_jumin_curr',
+                'tb_taishoku_jumin_curr',
+            ]),
+            'out_after_run' => $collectSpotcheck($out, [
+                'bunri_shotoku_taishoku_jumin_curr',
+                'tb_taishoku_jumin_curr',
+            ]),
+        ]);
+        $out = $this->bridgeBunriLeftTableKeys($out);
+        \Log::debug('syotokukin.report.bunri_left_table_spotcheck_after_bridge', [
+            'data_id' => (int) $data->id,
+            'mode' => $mode,
+            'out' => $collectSpotcheck($out, $bunriSpotcheckKeys),
+        ]);
         // ------------------------------
         // 4) 帳票（2ページ）用：所得金額等（当年）と所得控除額（当年）を組み立て
         // ------------------------------
@@ -430,6 +436,69 @@ class SyotokukinKojyosokuReport implements ReportInterface
         $payload['tb_taishoku_jumin_curr'] = 0;
 
         return $payload;
+    }
+
+    /**
+     * 2ページ左表の分離所得キーを、dry-run出力のsourceキーから補完する。
+     *
+     * @param  array<string,mixed>  $out
+     * @return array<string,mixed>
+     */
+    private function bridgeBunriLeftTableKeys(array $out): array
+    {
+        foreach (['prev', 'curr'] as $period) {
+            $mappings = [
+                "joto_shotoku_tanki_ippan_{$period}" => [
+                    "bunri_shotoku_tanki_ippan_shotoku_{$period}",
+                    "bunri_shotoku_tanki_ippan_jumin_{$period}",
+                ],
+                "joto_shotoku_tanki_keigen_{$period}" => [
+                    "bunri_shotoku_tanki_keigen_shotoku_{$period}",
+                    "bunri_shotoku_tanki_keigen_jumin_{$period}",
+                ],
+                "joto_shotoku_choki_ippan_{$period}" => [
+                    "bunri_shotoku_choki_ippan_shotoku_{$period}",
+                    "bunri_shotoku_choki_ippan_jumin_{$period}",
+                ],
+                "joto_shotoku_choki_tokutei_{$period}" => [
+                    "bunri_shotoku_choki_tokutei_shotoku_{$period}",
+                    "bunri_shotoku_choki_tokutei_jumin_{$period}",
+                ],
+                "joto_shotoku_choki_keika_{$period}" => [
+                    "bunri_shotoku_choki_keika_shotoku_{$period}",
+                    "bunri_shotoku_choki_keika_jumin_{$period}",
+                ],
+                "shotoku_after_kurikoshi_ippan_joto_{$period}" => [
+                    "bunri_shotoku_ippan_kabuteki_joto_shotoku_{$period}",
+                    "bunri_shotoku_ippan_kabuteki_joto_jumin_{$period}",
+                ],
+                "shotoku_after_kurikoshi_jojo_joto_{$period}" => [
+                    "bunri_shotoku_jojo_kabuteki_joto_shotoku_{$period}",
+                    "bunri_shotoku_jojo_kabuteki_joto_jumin_{$period}",
+                ],
+                "shotoku_after_kurikoshi_jojo_haito_{$period}" => [
+                    "bunri_shotoku_jojo_kabuteki_haito_shotoku_{$period}",
+                    "bunri_shotoku_jojo_kabuteki_haito_jumin_{$period}",
+                ],
+                "shotoku_sanrin_{$period}" => [
+                    "bunri_shotoku_sanrin_shotoku_{$period}",
+                    "bunri_shotoku_sanrin_jumin_{$period}",
+                ],
+            ];
+
+            foreach ($mappings as $source => $destinations) {
+                if (!array_key_exists($source, $out)) {
+                    continue;
+                }
+
+                $value = $this->n($out[$source]);
+                foreach ($destinations as $destination) {
+                    $out[$destination] = $value;
+                }
+            }
+        }
+
+        return $out;
     }
 
     private function toWarekiYear(int $year): string

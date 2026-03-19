@@ -131,6 +131,95 @@ final class SyotokukinKojyosokuReportTest extends TestCase
         }
     }
 
+    #[Test]
+    public function it_bridges_bunri_left_table_keys_from_source_values(): void
+    {
+        $data = $this->createData();
+
+        FurusatoResult::query()->create([
+            'data_id' => $data->id,
+            'company_id' => $data->company_id,
+            'group_id' => $data->group_id,
+            'payload' => [
+                'payload' => [],
+            ],
+        ]);
+
+        $runner = new class() {
+            /** @param array<string,mixed> $payload @param array<string,mixed> $ctx @return array<string,mixed> */
+            public function run(array $payload, array $ctx): array
+            {
+                unset($payload, $ctx);
+
+                return [
+                    'joto_shotoku_tanki_ippan_curr' => 2_000_000,
+                    'joto_shotoku_tanki_keigen_curr' => 2_000_000,
+                    'joto_shotoku_choki_ippan_curr' => 2_000_000,
+                    'joto_shotoku_choki_tokutei_curr' => 2_000_000,
+                    'joto_shotoku_choki_keika_curr' => 2_000_000,
+                    'shotoku_after_kurikoshi_ippan_joto_curr' => 2_000_000,
+                    'shotoku_after_kurikoshi_jojo_joto_curr' => 2_000_000,
+                    'shotoku_after_kurikoshi_jojo_haito_curr' => 2_000_000,
+                    'shotoku_sanrin_curr' => 2_000_000,
+                    'bunri_shotoku_tanki_ippan_shotoku_curr' => 0,
+                    'bunri_shotoku_tanki_ippan_jumin_curr' => 0,
+                    'bunri_shotoku_tanki_keigen_shotoku_curr' => 0,
+                    'bunri_shotoku_tanki_keigen_jumin_curr' => 0,
+                    'bunri_shotoku_choki_ippan_shotoku_curr' => 0,
+                    'bunri_shotoku_choki_ippan_jumin_curr' => 0,
+                    'bunri_shotoku_choki_tokutei_shotoku_curr' => 0,
+                    'bunri_shotoku_choki_tokutei_jumin_curr' => 0,
+                    'bunri_shotoku_choki_keika_shotoku_curr' => 0,
+                    'bunri_shotoku_choki_keika_jumin_curr' => 0,
+                    'bunri_shotoku_ippan_kabuteki_joto_shotoku_curr' => 0,
+                    'bunri_shotoku_ippan_kabuteki_joto_jumin_curr' => 0,
+                    'bunri_shotoku_jojo_kabuteki_joto_shotoku_curr' => 0,
+                    'bunri_shotoku_jojo_kabuteki_joto_jumin_curr' => 0,
+                    'bunri_shotoku_jojo_kabuteki_haito_shotoku_curr' => 0,
+                    'bunri_shotoku_jojo_kabuteki_haito_jumin_curr' => 0,
+                    'bunri_shotoku_sanrin_shotoku_curr' => 0,
+                    'bunri_shotoku_sanrin_jumin_curr' => 0,
+                ];
+            }
+        };
+
+        $upperSvc = new class() {
+            /** @param array<string,mixed> $payload @param array<string,mixed> $ctx @return array<string,mixed> */
+            public function compute(array $payload, array $ctx): array
+            {
+                unset($payload, $ctx);
+
+                return ['y_max_total' => 123_456];
+            }
+        };
+
+        app()->instance(FurusatoDryRunCalculatorRunner::class, $runner);
+        app()->instance(FurusatoPracticalUpperLimitService::class, $upperSvc);
+
+        try {
+            $report = app(SyotokukinKojyosokuReport::class);
+            $viewData = $report->buildViewDataWithContext($data, ['report_key' => 'syotokukinkojyosoku']);
+
+            foreach ([
+                'tanki_ippan',
+                'tanki_keigen',
+                'choki_ippan',
+                'choki_tokutei',
+                'choki_keika',
+                'ippan_kabu',
+                'jojo_kabu',
+                'jojo_haito',
+                'sanrin',
+            ] as $key) {
+                $this->assertSame(2_000_000, $viewData['income_table_curr']['bunri'][$key]['itax'] ?? null);
+                $this->assertSame(2_000_000, $viewData['income_table_curr']['bunri'][$key]['rtax'] ?? null);
+            }
+        } finally {
+            app()->forgetInstance(FurusatoDryRunCalculatorRunner::class);
+            app()->forgetInstance(FurusatoPracticalUpperLimitService::class);
+        }
+    }
+
     private function createData(): Data
     {
         $user = User::factory()->create([

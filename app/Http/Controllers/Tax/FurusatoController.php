@@ -820,6 +820,35 @@ final class FurusatoController extends Controller
         if ($resultsPayload === [] && $resultsUpper === [] && $context['results'] !== []) {
             $resultsPayload = is_array($context['results']) ? $context['results'] : [];
         }
+        $previewSpotcheckKeys = [
+            'joto_shotoku_tanki_ippan_curr',
+            'joto_shotoku_tanki_keigen_curr',
+            'joto_shotoku_choki_ippan_curr',
+            'joto_shotoku_choki_tokutei_curr',
+            'joto_shotoku_choki_keika_curr',
+            'shotoku_after_kurikoshi_ippan_joto_curr',
+            'shotoku_after_kurikoshi_jojo_joto_curr',
+            'shotoku_after_kurikoshi_jojo_haito_curr',
+            'shotoku_sanrin_curr',
+            'tb_ippan_kabuteki_joto_curr',
+            'tb_jojo_kabuteki_joto_curr',
+            'tb_jojo_kabuteki_haito_curr',
+        ];
+        $collectPreviewSpotcheck = static function (array $src, array $keys): array {
+            $values = [];
+            $exists = [];
+            foreach ($keys as $key) {
+                $exists[$key] = array_key_exists($key, $src);
+                $values[$key] = $exists[$key] ? $src[$key] : null;
+            }
+            return [
+                'values' => $values,
+                'exists' => $exists,
+            ];
+        };
+        \Log::debug('furusato.makeInputContext.preview_bunri_source_spotcheck', [
+            'previewPayload' => $collectPreviewSpotcheck($previewPayload, $previewSpotcheckKeys),
+        ]);
 
         $context['outInputs'] = $this->buildInputsForView(
             $savedInputs,
@@ -974,6 +1003,41 @@ final class FurusatoController extends Controller
     ): array
     {
         $inputsForView = $savedInputs;
+        $entrySpotcheckKeys = [
+            'joto_shotoku_tanki_ippan_curr',
+            'joto_shotoku_tanki_keigen_curr',
+            'joto_shotoku_choki_ippan_curr',
+            'joto_shotoku_choki_tokutei_curr',
+            'joto_shotoku_choki_keika_curr',
+            'shotoku_after_kurikoshi_ippan_joto_curr',
+            'shotoku_after_kurikoshi_jojo_joto_curr',
+            'shotoku_after_kurikoshi_jojo_haito_curr',
+            'shotoku_sanrin_curr',
+            'bunri_shotoku_tanki_ippan_shotoku_curr',
+            'bunri_shotoku_tanki_ippan_jumin_curr',
+            'bunri_shotoku_ippan_kabuteki_joto_shotoku_curr',
+            'bunri_shotoku_ippan_kabuteki_joto_jumin_curr',
+            'bunri_shotoku_sanrin_shotoku_curr',
+            'bunri_shotoku_sanrin_jumin_curr',
+        ];
+        $collectSpotcheck = static function (array $src, array $keys): array {
+            $values = [];
+            $exists = [];
+            foreach ($keys as $key) {
+                $exists[$key] = array_key_exists($key, $src);
+                $values[$key] = $exists[$key] ? $src[$key] : null;
+            }
+            return [
+                'values' => $values,
+                'exists' => $exists,
+            ];
+        };
+        \Log::debug('furusato.buildInputsForView.bunri_entry_spotcheck', [
+            'savedInputs' => $collectSpotcheck($savedInputs, $entrySpotcheckKeys),
+            'previewPayload' => $collectSpotcheck($previewPayload, $entrySpotcheckKeys),
+            'resultsPayload' => $collectSpotcheck($resultsPayload, $entrySpotcheckKeys),
+            'resultsUpper' => $collectSpotcheck($resultsUpper, $entrySpotcheckKeys),
+        ]);
 
         $lookup = function (array $candidates, bool $previewOnly = false, bool $allowSaved = true) use ($resultsPayload, $resultsUpper, $previewPayload, $savedInputs): ?int {
             foreach ($candidates as $key) {
@@ -2290,6 +2354,28 @@ final class FurusatoController extends Controller
                 'kojo_gokei_shotoku_curr'       => $inputsForView['kojo_gokei_shotoku_curr'] ?? null,
                 'kojo_gokei_jumin_curr'         => $inputsForView['kojo_gokei_jumin_curr'] ?? null,
             ],
+        ]);
+        \Log::debug('furusato.buildInputsForView.bunri_final_spotcheck', [
+            'bunri' => $collectSpotcheck($inputsForView, [
+                'bunri_shotoku_tanki_ippan_shotoku_curr',
+                'bunri_shotoku_tanki_ippan_jumin_curr',
+                'bunri_shotoku_tanki_keigen_shotoku_curr',
+                'bunri_shotoku_tanki_keigen_jumin_curr',
+                'bunri_shotoku_choki_ippan_shotoku_curr',
+                'bunri_shotoku_choki_ippan_jumin_curr',
+                'bunri_shotoku_choki_tokutei_shotoku_curr',
+                'bunri_shotoku_choki_tokutei_jumin_curr',
+                'bunri_shotoku_choki_keika_shotoku_curr',
+                'bunri_shotoku_choki_keika_jumin_curr',
+                'bunri_shotoku_ippan_kabuteki_joto_shotoku_curr',
+                'bunri_shotoku_ippan_kabuteki_joto_jumin_curr',
+                'bunri_shotoku_jojo_kabuteki_joto_shotoku_curr',
+                'bunri_shotoku_jojo_kabuteki_joto_jumin_curr',
+                'bunri_shotoku_jojo_kabuteki_haito_shotoku_curr',
+                'bunri_shotoku_jojo_kabuteki_haito_jumin_curr',
+                'bunri_shotoku_sanrin_shotoku_curr',
+                'bunri_shotoku_sanrin_jumin_curr',
+            ]),
         ]);
 
         return $inputsForView;

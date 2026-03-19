@@ -547,7 +547,7 @@ class SyotokukinKojyosokuReport implements ReportInterface
     }
 
     /**
-     * 2ページ左表の総合課税（営業等/不動産）の住民税キーを最小補完する。
+     * 2ページ左表の総合課税の住民税キーを最小補完する。
      *
      * - source: shotoku_*_shotoku_{prev,curr}
      * - dest  : shotoku_*_jumin_{prev,curr}
@@ -561,7 +561,10 @@ class SyotokukinKojyosokuReport implements ReportInterface
         foreach (['prev', 'curr'] as $period) {
             $mappings = [
                 "shotoku_jigyo_eigyo_shotoku_{$period}" => "shotoku_jigyo_eigyo_jumin_{$period}",
+                "shotoku_jigyo_nogyo_shotoku_{$period}" => "shotoku_jigyo_nogyo_jumin_{$period}",
                 "shotoku_fudosan_shotoku_{$period}" => "shotoku_fudosan_jumin_{$period}",
+                "shotoku_rishi_shotoku_{$period}" => "shotoku_rishi_jumin_{$period}",
+                "shotoku_haito_shotoku_{$period}" => "shotoku_haito_jumin_{$period}",
             ];
 
             foreach ($mappings as $source => $destination) {

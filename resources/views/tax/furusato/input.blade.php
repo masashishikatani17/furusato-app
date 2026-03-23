@@ -1305,8 +1305,12 @@
                 </tr>
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">配当</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                 <td class="text-center align-middle">
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="haitou"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                   {!! $renderInputs('syunyu_haito') !!}
                 </tr>
@@ -1378,7 +1382,11 @@
                 <tr>
                   <th class="text-start align-middle th-ddd ps-1">農業</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="nogyo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                   {!! $renderInputs('shotoku_jigyo_nogyo') !!}
                 </tr>
@@ -1404,7 +1412,11 @@
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">配当</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="haitou"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                   {!! $renderInputs('shotoku_haito') !!}
                 </tr>

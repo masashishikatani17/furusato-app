@@ -24,6 +24,8 @@ use Throwable;
  */
 class IssueInvoiceService
 {
+    private const BANK_TRANSFER_PAYMENT_METHOD = 0;
+    private const CREDIT_PAYMENT_METHOD = 1;
     private const RP_PAYMENT_METHOD = 3;
 
     public function __construct(private BillingRoboClient $client)
@@ -272,55 +274,54 @@ class IssueInvoiceService
                 $billingSetting->save();
             }
 
-            if ($paymentMethod === 'debit') {
-                $billingSetting = $this->requireDebitBillingSetting($companyId);
-                $deterministicPaymentCode = $this->makeDeterministicPaymentCode($billingCode);
+            $deterministicPaymentCode = $this->makeDeterministicPaymentCode($billingCode);
+            $paymentPayload = $this->buildInitialPaymentPayload(
+                companyId: $companyId,
+                paymentMethod: $paymentMethod,
+                deterministicPaymentCode: $deterministicPaymentCode
+            );
 
-                // 4) payment 作成（RP口座振替）
-                try {
-                    $paymentRes = $this->client->billingBulkUpsert([[
-                        'code' => $billingCode,
-                        'name' => $billingPayload['billing_name'],
-                        'payment' => [[
-                            'code' => $deterministicPaymentCode,
-                            'name' => 'RP口座振替',
-                            'payment_method' => self::RP_PAYMENT_METHOD,
-                            'bank_account_type' => (int)$billingSetting->bank_account_type,
-                            'bank_code' => (string)$billingSetting->bank_code,
-                            'branch_code' => (string)$billingSetting->branch_code,
-                            'bank_account_number' => (string)$billingSetting->bank_account_number,
-                            'bank_account_name' => (string)$billingSetting->bank_account_name,
-                        ]],
-                    ]]);
-                    $paymentMethodCode = $this->extractPaymentMethodCode($paymentRes, $deterministicPaymentCode);
-                } catch (Throwable $e) {
-                    throw new RuntimeException('payment作成失敗', previous: $e);
-                }
-
-                if ($paymentMethodCode === '') {
-                    throw new RuntimeException('payment作成失敗: payment_method_code が取得できませんでした。');
-                }
-
-                // 5) individual へ既定決済を紐付け
-                try {
-                    $this->client->billingBulkUpsert([[
-                        'code' => $billingCode,
-                        'name' => $billingPayload['billing_name'],
-                        'individual' => [[
-                            'code' => $billingIndividualCode,
-                            'name' => $billingPayload['individual_name'],
-                            'payment_method_code' => $paymentMethodCode,
-                        ]],
-                    ]]);
-                } catch (Throwable $e) {
-                    throw new RuntimeException('individualへのpayment_method_code関連付け失敗', previous: $e);
-                }
-
-                $billingSetting->payment_method_code = $paymentMethodCode;
-                $billingSetting->save();
+            // 4) payment 作成（credit/bank_transfer/debit 共通）
+            try {
+                $paymentRes = $this->client->billingBulkUpsert([[
+                    'code' => $billingCode,
+                    'name' => $billingPayload['billing_name'],
+                    'payment' => [$paymentPayload],
+                ]]);
+                $paymentMethodCode = $this->extractPaymentMethodCode($paymentRes, $deterministicPaymentCode);
+            } catch (Throwable $e) {
+                throw new RuntimeException('payment作成失敗', previous: $e);
             }
-        }
 
+            if ($paymentMethodCode === '') {
+                throw new RuntimeException('payment作成失敗: payment_method_code が取得できませんでした。');
+            }
+
+            // 5) individual へ既定決済を紐付け
+            try {
+                $this->client->billingBulkUpsert([[
+                    'code' => $billingCode,
+                    'name' => $billingPayload['billing_name'],
+                    'individual' => [[
+                        'code' => $billingIndividualCode,
+                        'name' => $billingPayload['individual_name'],
+                        'payment_method_code' => $paymentMethodCode,
+                    ]],
+                ]]);
+            } catch (Throwable $e) {
+                throw new RuntimeException('individualへのpayment_method_code関連付け失敗', previous: $e);
+            }
+
+            $billingSetting = CompanyBillingSetting::query()->firstOrNew([
+                'company_id' => $companyId,
+            ]);
+            $billingSetting->payment_method = $paymentMethod;
+            $billingSetting->billing_code = $billingCode;
+            $billingSetting->billing_individual_code = $billingIndividualCode;
+            $billingSetting->payment_method_code = $paymentMethodCode;
+            $billingSetting->save();
+
+        }
             // 4) demand/bulk_upsert
             // - issue_month/day と deadline_month/day は月跨ぎがあり得るので、invoiceで確定した日付から算出
             // month offset（0=当月, 1=翌月, -1=前月）
@@ -357,7 +358,7 @@ class IssueInvoiceService
             $demand['billing_individual_code'] = $billingIndividualCode;
         }
 
-        if ($attachBillingIndividual && $paymentMethod === 'debit') {
+        if ($attachBillingIndividual) {
             if (!is_string($paymentMethodCode) || $paymentMethodCode === '') {
                 throw new RuntimeException('demand作成失敗: payment_method_code が未確定です。');
             }
@@ -410,6 +411,51 @@ class IssueInvoiceService
     }
 
     /**
+     * @return array<string,mixed>
+     */
+    private function buildInitialPaymentPayload(int $companyId, string $paymentMethod, string $deterministicPaymentCode): array
+    {
+        $payload = [
+            'code' => $deterministicPaymentCode,
+            'name' => match ($paymentMethod) {
+                'credit' => 'クレジットカード',
+                'bank_transfer' => '銀行振込',
+                'debit' => 'RP口座振替',
+                default => throw new RuntimeException("Unsupported payment method for initial billing payment payload: {$paymentMethod}"),
+            },
+            'payment_method' => $this->resolveRoboPaymentMethod($paymentMethod),
+        ];
+
+        if ($paymentMethod === 'bank_transfer') {
+            $payload['bank_transfer_pattern_code'] = (string) config('billing_robo.bank_transfer_pattern_code', '01');
+            return $payload;
+        }
+
+        if ($paymentMethod !== 'debit') {
+            return $payload;
+        }
+
+        $billingSetting = $this->requireDebitBillingSetting($companyId);
+        $payload['bank_account_type'] = (int)$billingSetting->bank_account_type;
+        $payload['bank_code'] = (string)$billingSetting->bank_code;
+        $payload['branch_code'] = (string)$billingSetting->branch_code;
+        $payload['bank_account_number'] = (string)$billingSetting->bank_account_number;
+        $payload['bank_account_name'] = (string)$billingSetting->bank_account_name;
+
+        return $payload;
+    }
+
+    private function resolveRoboPaymentMethod(string $paymentMethod): int
+    {
+        return match ($paymentMethod) {
+            'bank_transfer' => self::BANK_TRANSFER_PAYMENT_METHOD,
+            'credit' => self::CREDIT_PAYMENT_METHOD,
+            'debit' => self::RP_PAYMENT_METHOD,
+            default => throw new RuntimeException("Unsupported payment method for initial billing payment: {$paymentMethod}"),
+        };
+    }
+
+    /**
      * @param array<string,mixed> $response
      */
     private function extractPaymentMethodCode(array $response, string $fallbackCode = ''): string
@@ -432,7 +478,7 @@ class IssueInvoiceService
                 if (!is_array($payment)) {
                     continue;
                 }
-                $code = $payment['code'] ?? $payment['payment_method_code'] ?? null;
+                $code = $payment['payment_method_code'] ?? $payment['code'] ?? null;
                 if (is_scalar($code) && (string)$code !== '') {
                     return (string)$code;
                 }

@@ -137,7 +137,7 @@ class SignupInitialBillingFlowTest extends TestCase
         $this->assertSame('bank_transfer', $setting->payment_method);
     }
 
-    public function test_issue_initial_sets_billing_individual_code_on_demand(): void
+    public function test_issue_initial_credit_creates_payment_then_assigns_individual_and_demand_payment_method_code(): void
     {
         $company = Company::query()->create([
             'name' => '株式会社テスト',
@@ -162,17 +162,45 @@ class SignupInitialBillingFlowTest extends TestCase
         $company->save();
 
         $mock = \Mockery::mock(BillingRoboClient::class);
-        $mock->shouldReceive('billingBulkUpsert')->once()->withArgs(function (array $billings): bool {
-            $individual = $billings[0]['individual'][0] ?? [];
+        $mock->shouldReceive('billingBulkUpsert')->times(3)
+            ->withArgs(function (array $billings): bool {
+                $billing = $billings[0] ?? [];
 
-            return ($individual['code'] ?? null) === 'FURU-TEST-01'
-                && ($individual['name'] ?? null) === '東京支店'
-                && ($individual['address1'] ?? null) === '株式会社テスト 山田 太郎 御中'
-                && ($individual['email'] ?? null) === 'owner@example.com';
-        })->andReturn(['billing' => [['error_code' => 0]]]);
+                if (isset($billing['payment'])) {
+                    return (int)($billing['payment'][0]['payment_method'] ?? -1) === 1
+                        && (string)($billing['payment'][0]['code'] ?? '') === 'FURU-TEST-PM01'
+                        && (string)($billing['payment'][0]['name'] ?? '') === 'クレジットカード';
+                }
+
+                if (isset($billing['individual'][0]['payment_method_code'])) {
+                    return (string)$billing['individual'][0]['payment_method_code'] === 'FURU-TEST-PM01';
+                }
+
+                $individual = $billing['individual'][0] ?? [];
+                return ($individual['code'] ?? null) === 'FURU-TEST-01'
+                    && ($individual['name'] ?? null) === '東京支店'
+                    && ($individual['address1'] ?? null) === '株式会社テスト 山田 太郎 御中'
+                    && ($individual['email'] ?? null) === 'owner@example.com';
+            })
+            ->andReturnUsing(function (array $billings): array {
+                $billing = $billings[0] ?? [];
+                if (isset($billing['payment'])) {
+                    return [
+                        'billing' => [[
+                            'error_code' => 0,
+                            'payment' => [[
+                                'error_code' => 0,
+                            ]],
+                        ]],
+                    ];
+                }
+
+                return ['billing' => [['error_code' => 0]]];
+            });
 
         $mock->shouldReceive('demandBulkUpsert')->once()->withArgs(function (array $demands): bool {
-            return ($demands[0]['billing_individual_code'] ?? null) === 'FURU-TEST-01';
+            return ($demands[0]['billing_individual_code'] ?? null) === 'FURU-TEST-01'
+                && ($demands[0]['payment_method_code'] ?? null) === 'FURU-TEST-PM01';
         })->andReturn(['demand' => [['error_code' => 0]]]);
 
         $mock->shouldReceive('demandBulkIssueBillSelect')->once()->andReturn([
@@ -184,6 +212,162 @@ class SignupInitialBillingFlowTest extends TestCase
 
         $this->assertSame('issued', $invoice->status);
         $this->assertSame('BILL-TEST-1', $invoice->bill_number);
+
+        $setting = CompanyBillingSetting::query()->where('company_id', (int)$company->id)->firstOrFail();
+        $this->assertSame('FURU-TEST-PM01', $setting->payment_method_code);
+    }
+
+    public function test_issue_initial_bank_transfer_creates_payment_then_assigns_individual_and_demand_payment_method_code(): void
+    {
+        config()->set('billing_robo.bank_transfer_pattern_code', '77');
+
+        $company = Company::query()->create([
+            'name' => '株式会社テスト',
+            'branch_name' => '大阪支店',
+        ]);
+
+        CompanyBillingSetting::query()->create([
+            'company_id' => (int)$company->id,
+            'payment_method' => 'bank_transfer',
+            'billing_code' => 'FURU-BANK',
+        ]);
+
+        $owner = User::query()->create([
+            'company_id' => (int)$company->id,
+            'name' => '佐藤 花子',
+            'email' => 'owner-bank-transfer@example.com',
+            'password' => bcrypt('password123'),
+            'role' => 'owner',
+            'is_active' => true,
+        ]);
+        $company->owner_user_id = (int)$owner->id;
+        $company->save();
+
+        $mock = \Mockery::mock(BillingRoboClient::class);
+        $mock->shouldReceive('billingBulkUpsert')->times(3)
+            ->withArgs(function (array $billings): bool {
+                $billing = $billings[0] ?? [];
+
+                if (isset($billing['payment'])) {
+                    return (int)($billing['payment'][0]['payment_method'] ?? -1) === 0
+                        && (string)($billing['payment'][0]['code'] ?? '') === 'FURU-BANK-PM01'
+                        && (string)($billing['payment'][0]['bank_transfer_pattern_code'] ?? '') === '77';
+                }
+
+                if (isset($billing['individual'][0]['payment_method_code'])) {
+                    return (string)$billing['individual'][0]['payment_method_code'] === 'FURU-BANK-PM01';
+                }
+
+                return isset($billing['individual'][0]['code']);
+            })
+            ->andReturnUsing(function (array $billings): array {
+                $billing = $billings[0] ?? [];
+                if (isset($billing['payment'])) {
+                    return [
+                        'billing' => [[
+                            'error_code' => 0,
+                            'payment' => [[
+                                'error_code' => 0,
+                            ]],
+                        ]],
+                    ];
+                }
+
+                return ['billing' => [['error_code' => 0]]];
+            });
+
+        $mock->shouldReceive('demandBulkUpsert')->once()->withArgs(function (array $demands): bool {
+            return ($demands[0]['payment_method_code'] ?? null) === 'FURU-BANK-PM01'
+                && ($demands[0]['billing_individual_code'] ?? null) === 'FURU-BANK-01';
+        })->andReturn(['demand' => [['error_code' => 0]]]);
+
+        $mock->shouldReceive('demandBulkIssueBillSelect')->once()->andReturn([
+            'bill' => [['number' => 'BILL-BANK-1']],
+        ]);
+
+        $service = new IssueInvoiceService($mock);
+        $invoice = $service->issueInitial($company, 'FURU-BANK', 'bank_transfer', 1);
+
+        $this->assertSame('issued', $invoice->status);
+        $this->assertSame('BILL-BANK-1', $invoice->bill_number);
+
+        $setting = CompanyBillingSetting::query()->where('company_id', (int)$company->id)->firstOrFail();
+        $this->assertSame('FURU-BANK-PM01', $setting->payment_method_code);
+    }
+
+    public function test_issue_initial_prefers_payment_method_code_from_payment_response_over_request_code(): void
+    {
+        $company = Company::query()->create([
+            'name' => '株式会社テスト',
+            'branch_name' => '名古屋支店',
+        ]);
+
+        CompanyBillingSetting::query()->create([
+            'company_id' => (int)$company->id,
+            'payment_method' => 'credit',
+            'billing_code' => 'FURU-PMCODE',
+        ]);
+
+        $owner = User::query()->create([
+            'company_id' => (int)$company->id,
+            'name' => '田中 一郎',
+            'email' => 'owner-pmcode@example.com',
+            'password' => bcrypt('password123'),
+            'role' => 'owner',
+            'is_active' => true,
+        ]);
+        $company->owner_user_id = (int)$owner->id;
+        $company->save();
+
+        $mock = \Mockery::mock(BillingRoboClient::class);
+        $mock->shouldReceive('billingBulkUpsert')->times(3)
+            ->withArgs(function (array $billings): bool {
+                $billing = $billings[0] ?? [];
+
+                if (isset($billing['payment'])) {
+                    return (string)($billing['payment'][0]['code'] ?? '') === 'FURU-PMCODE-PM01';
+                }
+
+                if (isset($billing['individual'][0]['payment_method_code'])) {
+                    return (string)$billing['individual'][0]['payment_method_code'] === 'ROBO-PM-CODE-999';
+                }
+
+                return isset($billing['individual'][0]['code']);
+            })
+            ->andReturnUsing(function (array $billings): array {
+                $billing = $billings[0] ?? [];
+                if (isset($billing['payment'])) {
+                    return [
+                        'billing' => [[
+                            'error_code' => 0,
+                            'payment' => [[
+                                'error_code' => 0,
+                                'code' => 'FURU-PMCODE-PM01',
+                                'payment_method_code' => 'ROBO-PM-CODE-999',
+                            ]],
+                        ]],
+                    ];
+                }
+
+                return ['billing' => [['error_code' => 0]]];
+            });
+
+        $mock->shouldReceive('demandBulkUpsert')->once()->withArgs(function (array $demands): bool {
+            return ($demands[0]['payment_method_code'] ?? null) === 'ROBO-PM-CODE-999';
+        })->andReturn(['demand' => [['error_code' => 0]]]);
+
+        $mock->shouldReceive('demandBulkIssueBillSelect')->once()->andReturn([
+            'bill' => [['number' => 'BILL-PMCODE-1']],
+        ]);
+
+        $service = new IssueInvoiceService($mock);
+        $invoice = $service->issueInitial($company, 'FURU-PMCODE', 'credit', 1);
+
+        $this->assertSame('issued', $invoice->status);
+        $this->assertSame('BILL-PMCODE-1', $invoice->bill_number);
+
+        $setting = CompanyBillingSetting::query()->where('company_id', (int)$company->id)->firstOrFail();
+        $this->assertSame('ROBO-PM-CODE-999', $setting->payment_method_code);
     }
 
     public function test_issue_initial_debit_creates_payment_and_assigns_payment_method_code_to_demand(): void
@@ -299,6 +483,161 @@ class SignupInitialBillingFlowTest extends TestCase
 
         $this->assertNotNull($invoice);
         $this->assertSame('issued', $invoice->status);
+    }
+
+    public function test_issue_initial_throws_runtime_exception_and_does_not_continue_to_demand_when_payment_creation_fails(): void
+    {
+        $company = Company::query()->create([
+            'name' => '株式会社テスト',
+            'branch_name' => '東京支店',
+        ]);
+
+        CompanyBillingSetting::query()->create([
+            'company_id' => (int)$company->id,
+            'payment_method' => 'credit',
+            'billing_code' => 'FURU-FAIL-PAYMENT',
+        ]);
+
+        $owner = User::query()->create([
+            'company_id' => (int)$company->id,
+            'name' => '山田 太郎',
+            'email' => 'owner-fail-payment@example.com',
+            'password' => bcrypt('password123'),
+            'role' => 'owner',
+            'is_active' => true,
+        ]);
+        $company->owner_user_id = (int)$owner->id;
+        $company->save();
+
+        $mock = \Mockery::mock(BillingRoboClient::class);
+        $mock->shouldReceive('billingBulkUpsert')->twice()
+            ->andReturnUsing(function (array $billings): array {
+                $billing = $billings[0] ?? [];
+                if (isset($billing['payment'])) {
+                    throw new RuntimeException('payment endpoint failed');
+                }
+
+                return ['billing' => [['error_code' => 0]]];
+            });
+        $mock->shouldReceive('demandBulkUpsert')->never();
+        $mock->shouldReceive('demandBulkIssueBillSelect')->never();
+
+        $service = new IssueInvoiceService($mock);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('payment作成失敗');
+        $service->issueInitial($company, 'FURU-FAIL-PAYMENT', 'credit', 1);
+    }
+
+    public function test_issue_initial_throws_runtime_exception_and_does_not_continue_to_demand_when_individual_link_fails(): void
+    {
+        $company = Company::query()->create([
+            'name' => '株式会社テスト',
+            'branch_name' => '東京支店',
+        ]);
+
+        CompanyBillingSetting::query()->create([
+            'company_id' => (int)$company->id,
+            'payment_method' => 'credit',
+            'billing_code' => 'FURU-FAIL-IND',
+        ]);
+
+        $owner = User::query()->create([
+            'company_id' => (int)$company->id,
+            'name' => '山田 太郎',
+            'email' => 'owner-fail-ind@example.com',
+            'password' => bcrypt('password123'),
+            'role' => 'owner',
+            'is_active' => true,
+        ]);
+        $company->owner_user_id = (int)$owner->id;
+        $company->save();
+
+        $mock = \Mockery::mock(BillingRoboClient::class);
+        $mock->shouldReceive('billingBulkUpsert')->times(3)
+            ->andReturnUsing(function (array $billings): array {
+                $billing = $billings[0] ?? [];
+                if (isset($billing['payment'])) {
+                    return [
+                        'billing' => [[
+                            'error_code' => 0,
+                            'payment' => [[
+                                'error_code' => 0,
+                            ]],
+                        ]],
+                    ];
+                }
+                if (isset($billing['individual'][0]['payment_method_code'])) {
+                    throw new RuntimeException('individual link failed');
+                }
+
+                return ['billing' => [['error_code' => 0]]];
+            });
+        $mock->shouldReceive('demandBulkUpsert')->never();
+        $mock->shouldReceive('demandBulkIssueBillSelect')->never();
+
+        $service = new IssueInvoiceService($mock);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('individualへのpayment_method_code関連付け失敗');
+        $service->issueInitial($company, 'FURU-FAIL-IND', 'credit', 1);
+    }
+
+    public function test_issue_initial_wraps_demand_failure_with_context(): void
+    {
+        $company = Company::query()->create([
+            'name' => '株式会社テスト',
+            'branch_name' => '東京支店',
+        ]);
+
+        CompanyBillingSetting::query()->create([
+            'company_id' => (int)$company->id,
+            'payment_method' => 'credit',
+            'billing_code' => 'FURU-FAIL-DEMAND',
+        ]);
+
+        $owner = User::query()->create([
+            'company_id' => (int)$company->id,
+            'name' => '山田 太郎',
+            'email' => 'owner-fail-demand@example.com',
+            'password' => bcrypt('password123'),
+            'role' => 'owner',
+            'is_active' => true,
+        ]);
+        $company->owner_user_id = (int)$owner->id;
+        $company->save();
+
+        $mock = \Mockery::mock(BillingRoboClient::class);
+        $mock->shouldReceive('billingBulkUpsert')->times(3)
+            ->andReturnUsing(function (array $billings): array {
+                $billing = $billings[0] ?? [];
+                if (isset($billing['payment'])) {
+                    return [
+                        'billing' => [[
+                            'error_code' => 0,
+                            'payment' => [[
+                                'error_code' => 0,
+                            ]],
+                        ]],
+                    ];
+                }
+
+                return ['billing' => [['error_code' => 0]]];
+            });
+
+        $mock->shouldReceive('demandBulkUpsert')->once()->andThrow(new RuntimeException('api 1340'));
+        $mock->shouldReceive('demandBulkIssueBillSelect')->never();
+
+        $service = new IssueInvoiceService($mock);
+
+        try {
+            $service->issueInitial($company, 'FURU-FAIL-DEMAND', 'credit', 1);
+            $this->fail('RuntimeException was not thrown.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('demand作成失敗', $e->getMessage());
+            $this->assertInstanceOf(RuntimeException::class, $e->getPrevious());
+            $this->assertSame('api 1340', $e->getPrevious()?->getMessage());
+        }
     }
 
 }

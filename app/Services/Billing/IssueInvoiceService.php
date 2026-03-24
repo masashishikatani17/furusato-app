@@ -449,7 +449,7 @@ class IssueInvoiceService
         ];
 
         if ($paymentMethod === 'bank_transfer') {
-            $payload['bank_transfer_pattern_code'] = (string) config('billing_robo.bank_transfer_pattern_code', '01');
+            $payload['bank_transfer_pattern_code'] = (string) config('billing_robo.bank_transfer_pattern_code');
             $payload['source_bank_account_name'] = '';
             return $payload;
         }

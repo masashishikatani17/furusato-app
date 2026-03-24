@@ -220,7 +220,7 @@ class SignupInitialBillingFlowTest extends TestCase
 
     public function test_issue_initial_bank_transfer_creates_payment_then_assigns_individual_and_demand_payment_method_code(): void
     {
-        config()->set('billing_robo.bank_transfer_pattern_code', '77');
+        config()->set('billing_robo.bank_transfer_pattern_code', '1');
 
         $company = Company::query()->create([
             'name' => '株式会社テスト',
@@ -252,7 +252,7 @@ class SignupInitialBillingFlowTest extends TestCase
                 if (isset($billing['payment'])) {
                     return (int)($billing['payment'][0]['payment_method'] ?? -1) === 0
                         && (string)($billing['payment'][0]['code'] ?? '') === 'FURU-BANK-PM01'
-                        && (string)($billing['payment'][0]['bank_transfer_pattern_code'] ?? '') === '77'
+                        && (string)($billing['payment'][0]['bank_transfer_pattern_code'] ?? '') === '1'
                         && array_key_exists('source_bank_account_name', $billing['payment'][0])
                         && (string)($billing['payment'][0]['source_bank_account_name'] ?? '__not-empty__') === '';
                 }

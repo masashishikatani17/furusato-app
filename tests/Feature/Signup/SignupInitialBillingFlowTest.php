@@ -169,7 +169,8 @@ class SignupInitialBillingFlowTest extends TestCase
                 if (isset($billing['payment'])) {
                     return (int)($billing['payment'][0]['payment_method'] ?? -1) === 1
                         && (string)($billing['payment'][0]['code'] ?? '') === 'FURU-TEST-PM01'
-                        && (string)($billing['payment'][0]['name'] ?? '') === 'クレジットカード';
+                        && (string)($billing['payment'][0]['name'] ?? '') === 'クレジットカード'
+                        && (int)($billing['payment'][0]['credit_card_regist_kind'] ?? -1) === 1;
                 }
 
                 if (isset($billing['individual'][0]['payment_method_code'])) {
@@ -251,7 +252,9 @@ class SignupInitialBillingFlowTest extends TestCase
                 if (isset($billing['payment'])) {
                     return (int)($billing['payment'][0]['payment_method'] ?? -1) === 0
                         && (string)($billing['payment'][0]['code'] ?? '') === 'FURU-BANK-PM01'
-                        && (string)($billing['payment'][0]['bank_transfer_pattern_code'] ?? '') === '77';
+                        && (string)($billing['payment'][0]['bank_transfer_pattern_code'] ?? '') === '77'
+                        && array_key_exists('source_bank_account_name', $billing['payment'][0])
+                        && (string)($billing['payment'][0]['source_bank_account_name'] ?? '__not-empty__') === '';
                 }
 
                 if (isset($billing['individual'][0]['payment_method_code'])) {

@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\BillingRobo\BillingRoboClient;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RuntimeException;
 use Throwable;
@@ -283,13 +284,34 @@ class IssueInvoiceService
 
             // 4) payment 作成（credit/bank_transfer/debit 共通）
             try {
+                Log::info('BillingRobo payment create request', [
+                    'company_id' => $companyId,
+                    'billing_code' => $billingCode,
+                    'payment_method' => $paymentMethod,
+                    'payment_payload' => $paymentPayload,
+                ]);
                 $paymentRes = $this->client->billingBulkUpsert([[
                     'code' => $billingCode,
                     'name' => $billingPayload['billing_name'],
                     'payment' => [$paymentPayload],
                 ]]);
+                Log::info('BillingRobo payment create response', [
+                    'company_id' => $companyId,
+                    'billing_code' => $billingCode,
+                    'payment_method' => $paymentMethod,
+                    'payment_payload' => $paymentPayload,
+                    'raw_response' => $paymentRes,
+                ]);
                 $paymentMethodCode = $this->extractPaymentMethodCode($paymentRes, $deterministicPaymentCode);
             } catch (Throwable $e) {
+                Log::error('BillingRobo payment create failed', [
+                    'company_id' => $companyId,
+                    'billing_code' => $billingCode,
+                    'payment_method' => $paymentMethod,
+                    'payment_payload' => $paymentPayload,
+                    'exception_message' => $e->getMessage(),
+                    'exception' => $this->extractThrowableContext($e),
+                ]);
                 throw new RuntimeException('payment作成失敗', previous: $e);
             }
 
@@ -428,6 +450,12 @@ class IssueInvoiceService
 
         if ($paymentMethod === 'bank_transfer') {
             $payload['bank_transfer_pattern_code'] = (string) config('billing_robo.bank_transfer_pattern_code', '01');
+            $payload['source_bank_account_name'] = '';
+            return $payload;
+        }
+
+        if ($paymentMethod === 'credit') {
+            $payload['credit_card_regist_kind'] = 1;
             return $payload;
         }
 
@@ -443,6 +471,43 @@ class IssueInvoiceService
         $payload['bank_account_name'] = (string)$billingSetting->bank_account_name;
 
         return $payload;
+    }
+
+    /**
+     * @return array<string,mixed>
+     */
+    private function extractThrowableContext(Throwable $e): array
+    {
+        $context = [
+            'class' => $e::class,
+            'message' => $e->getMessage(),
+        ];
+
+        $previous = $e->getPrevious();
+        if ($previous instanceof Throwable) {
+            $context['previous'] = [
+                'class' => $previous::class,
+                'message' => $previous->getMessage(),
+            ];
+        }
+
+        if (method_exists($e, 'getResponse')) {
+            try {
+                $response = $e->getResponse();
+                if (is_object($response) && method_exists($response, 'getBody')) {
+                    $body = $response->getBody();
+                    if (is_object($body) && method_exists($body, '__toString')) {
+                        $context['response_body'] = (string) $body;
+                    } elseif (is_scalar($body)) {
+                        $context['response_body'] = (string) $body;
+                    }
+                }
+            } catch (Throwable) {
+                // ignore response extraction errors
+            }
+        }
+
+        return $context;
     }
 
     private function resolveRoboPaymentMethod(string $paymentMethod): int

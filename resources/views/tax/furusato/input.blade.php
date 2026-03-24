@@ -157,14 +157,9 @@
           padding-right: 2rem;
         }
         
-        /* 通常幅 */
+        /* 横幅：最大幅550px */
         #helpModalCommon .modal-dialog {
           max-width: 550px;
-        }
-        
-        /* 大きい表用 */
-        #helpModalCommon .modal-dialog.help-modal-wide {
-          max-width: 760px;
         }
         
         /* HELP本文の強調 */
@@ -189,7 +184,6 @@
           background: #fff;
         }
         
-        /* 表セル */
         #helpModalCommon #helpModalBody .help-tax-table th,
         #helpModalCommon #helpModalBody .help-tax-table td {
           border: 1px solid #777;
@@ -197,16 +191,14 @@
           text-align: center;
           vertical-align: middle;
           line-height: 1.3;
-          white-space: nowrap;
+          word-break: break-word;
         }
         
-        /* 見出し行 */
         #helpModalCommon #helpModalBody .help-tax-table thead th {
           background: #e9eff7;
           font-weight: 700;
         }
         
-        /* 左側見出し列 */
         #helpModalCommon #helpModalBody .help-tax-table tbody th {
           background: #F7F9FB;
           font-weight: 700;
@@ -1351,7 +1343,7 @@
                 </tr>
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">配当</th>
-                 <td class="text-center align-middle">
+                  <td class="text-center align-middle">
                     <button type="button"
                             class="btn-base-low-blue js-help-btn"
                             data-help-key="haitou"
@@ -1464,7 +1456,7 @@
                             data-bs-toggle="modal"
                             data-bs-target="#helpModalCommon">HELP</button>
                   </td>
-                  {!! $renderInputs('shotoku_haito') !!}
+                  {!! $renderInputs('shotoku_haitou') !!}
                 </tr>
                 <tr id="shotoku_row_kyuyo" data-anchor>
                   <th colspan="2" class="text-start align-middle ps-1">給与</th>
@@ -1794,7 +1786,7 @@
   {{-- 共通HELPモーダル（このページで1個だけ） --}}
   <div class="modal fade" id="helpModalCommon" tabindex="-1" aria-hidden="true">
     {{-- サイズ統一：最大幅550px --}}
-    <div class="modal-dialog">
+    <div class="modal-dialog" style="max-width: 550px;">
       <div class="modal-content">
         <div class="modal-header mb-0">
           <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitle">HELP</h15>
@@ -1812,8 +1804,8 @@
 
   {{-- HELP辞書をJSへ渡す（ページ専用） --}}
   <script>
-    window.__PAGE_HELP_TEXTS__ = @json($HELP_TEXTS, JSON_UNESCAPED_UNICODE);
-  </script>
+    window.__PAGE_HELP_TEXTS__ = @json($HELP_TEXTS, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+   </script>
   
   
 @endsection
@@ -3460,69 +3452,67 @@
        }
 </style>
 @endpush
-    {{-- モーダル--}}
+{{-- モーダル--}}
 @push('scripts')
 　<script>
-      document.addEventListener('click', function (e) {
-        const btn = e.target.closest('.js-help-btn');
-        if (!btn) return;
-      
-        const key  = btn.getAttribute('data-help-key') || '';
-        const dict = window.__PAGE_HELP_TEXTS__ || {};
-        const item = dict[key] || {};
-      
-        const title    = item.title || 'HELP';
-        const htmlBody = (typeof item.html === 'string') ? item.html : '';
-        const body     = (typeof item.body === 'string') ? item.body : '';
-        const image    = (typeof item.image === 'string') ? item.image : '';
-      
-        const titleEl  = document.getElementById('helpModalTitle');
-        const bodyEl   = document.getElementById('helpModalBody');
-        const modalEl  = document.getElementById('helpModalCommon');
-        const dialogEl = modalEl ? modalEl.querySelector('.modal-dialog') : null;
-      
-        if (titleEl) {
-          titleEl.textContent = title;
-        }
-        if (!bodyEl) return;
-      
-        if (dialogEl) {
-          dialogEl.classList.toggle('help-modal-wide', key === 'kisokojo');
-        }
-      
-        if (htmlBody) {
-          bodyEl.innerHTML = htmlBody;
-          return;
-        }
-      
-        const escapeHtml = function (str) {
-          return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-        };
-      
-        let html = '';
-      
-        if (image) {
-          html += ''
-            + '<div style="text-align:center; margin:0 0 12px 0;">'
-            +   '<img src="' + image + '"'
-            +        ' alt="' + escapeHtml(title) + '"'
-            +        ' style="max-width:100%; height:auto; border:1px solid #ccc;">'
-            + '</div>';
-        }
-      
-        html += escapeHtml(body)
-          .replace(/^○([^\n\r]+)/gm, '<strong>○$1</strong>')
-          .replace(/\n/g, '<br>');
-      
-        bodyEl.innerHTML = html;
-      });
+        document.addEventListener('click', function (e) {
+          const btn = e.target.closest('.js-help-btn');
+          if (!btn) return;
+        
+          const key  = btn.getAttribute('data-help-key') || '';
+          const dict = window.__PAGE_HELP_TEXTS__ || {};
+          const item = dict[key] || {};
+        
+          const title    = item.title || 'HELP';
+          const htmlBody = (typeof item.html === 'string') ? item.html : '';
+          const body     = (typeof item.body === 'string') ? item.body : '';
+          const image    = (typeof item.image === 'string') ? item.image : '';
+        
+          const titleEl  = document.getElementById('helpModalTitle');
+          const bodyEl   = document.getElementById('helpModalBody');
+          const modalEl  = document.getElementById('helpModalCommon');
+          const dialogEl = modalEl ? modalEl.querySelector('.modal-dialog') : null;
+        
+          if (titleEl) {
+            titleEl.textContent = title;
+          }
+          if (!bodyEl) return;
+        
+          if (dialogEl) {
+            dialogEl.style.maxWidth = (key === 'kisokojo') ? '720px' : '550px';
+          }
+        
+          if (htmlBody) {
+            bodyEl.innerHTML = htmlBody;
+            return;
+          }
+        
+          const escapeHtml = function (str) {
+            return String(str)
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+          };
+        
+          let html = '';
+        
+          if (image) {
+            html += ''
+              + '<div style="text-align:center; margin:0 0 12px 0;">'
+              +   '<img src="' + image + '"'
+              +        ' alt="' + escapeHtml(title) + '"'
+              +        ' style="max-width:100%; height:auto; border:1px solid #ccc;">'
+              + '</div>';
+          }
+        
+          html += escapeHtml(body)
+            .replace(/^○([^\n\r]+)/gm, '<strong>○$1</strong>')
+            .replace(/\n/g, '<br>');
+        
+          bodyEl.innerHTML = html;
+        });
 　</script>
 @endpush
-
-
  {{-- モーダルここまで--}}

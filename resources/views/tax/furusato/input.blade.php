@@ -143,34 +143,76 @@
     }
     @keyframes furusatoSpin { to { transform: rotate(360deg); } }
 
-  /* helpModalCommon（他モーダルに影響させない） */
+/* helpModalCommon（他モーダルに影響させない） */
 
-    /* 全体：フォントを本文に寄せる（サイズ15px） */
-    #helpModalCommon .modal-content {
-      font-family: inherit;
-      font-size: 15px;
-    }
-    
-    /* 本文だけ：左右余白を追加（上下は触らない） */
-    #helpModalCommon .modal-body {
-      padding-left: 2rem;
-      padding-right: 2rem;
-    }
-    
-    /* 横幅：最大幅550px */
-    #helpModalCommon .modal-dialog {
-      max-width: 550px;
-    }
-    /* このHELPモーダル内の強調表示（○〜 のラベル） */
-    #helpModalCommon #helpModalBody strong {
-      font-weight: 700;
-      /* 色を付けたい場合はここ（例） */
-       color: #192C4B; 
-  }
-    /* 「(1)」など：太字のみ（色は変更しない＝継承） */
-    #helpModalZatsu #helpModalBodyZatsu strong.help-num {
-      font-weight: 700;
-  }
+        /* 全体：フォントを本文に寄せる（サイズ15px） */
+        #helpModalCommon .modal-content {
+          font-family: inherit;
+          font-size: 15px;
+        }
+        
+        /* 本文だけ：左右余白を追加（上下は触らない） */
+        #helpModalCommon .modal-body {
+          padding-left: 2rem;
+          padding-right: 2rem;
+        }
+        
+        /* 横幅：最大幅550px */
+        #helpModalCommon .modal-dialog {
+          max-width: 550px;
+        }
+        
+        #helpModalCommon .modal-dialog.help-modal-wide {
+          max-width: 760px;
+        }
+        
+        /* HELP本文の強調 */
+        #helpModalCommon #helpModalBody strong {
+          font-weight: 700;
+          color: #192C4B;
+        }
+        
+        /* HELP本文の通常テキスト */
+        #helpModalCommon #helpModalBody .help-text {
+          margin: 0 0 12px 0;
+          line-height: 1.8;
+        }
+        
+        /* HELP本文の表 */
+        #helpModalCommon #helpModalBody .help-tax-table {
+          width: 100%;
+          margin: 0 0 12px 0;
+          border-collapse: collapse;
+          table-layout: fixed;
+          font-size: 13px;
+          background: #fff;
+        }
+        
+        #helpModalCommon #helpModalBody .help-tax-table th,
+        #helpModalCommon #helpModalBody .help-tax-table td {
+          border: 1px solid #777;
+          padding: 4px 6px;
+          text-align: center;
+          vertical-align: middle;
+          line-height: 1.3;
+          word-break: break-word;
+        }
+        
+        #helpModalCommon #helpModalBody .help-tax-table thead th {
+          background: #e9eff7;
+          font-weight: 700;
+        }
+        
+        #helpModalCommon #helpModalBody .help-tax-table tbody th {
+          background: #F7F9FB;
+          font-weight: 700;
+          width: 72px;
+        }
+        
+        /* 「(1)」など：太字のみ（色は変更しない＝継承） */
+        #helpModalZatsu #helpModalBodyZatsu strong.help-num {
+          font-weight: 700;
+        }
   </style>
 @endpush
 
@@ -1305,7 +1347,7 @@
                 </tr>
                 <tr>
                   <th colspan="2" class="text-start align-middle ps-1">配当</th>
-                 <td class="text-center align-middle">
+                  <td class="text-center align-middle">
                     <button type="button"
                             class="btn-base-low-blue js-help-btn"
                             data-help-key="haitou"
@@ -1418,7 +1460,7 @@
                             data-bs-toggle="modal"
                             data-bs-target="#helpModalCommon">HELP</button>
                   </td>
-                  {!! $renderInputs('shotoku_haito') !!}
+                  {!! $renderInputs('shotoku_haitou') !!}
                 </tr>
                 <tr id="shotoku_row_kyuyo" data-anchor>
                   <th colspan="2" class="text-start align-middle ps-1">給与</th>
@@ -1550,7 +1592,11 @@
                 <tr>
                   <th colspan="3" class="text-start align-middle ps-1">基礎控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="kisokojo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                   {!! $renderInputs('kojo_kiso') !!}
                 </tr>
@@ -1762,8 +1808,8 @@
 
   {{-- HELP辞書をJSへ渡す（ページ専用） --}}
   <script>
-    window.__PAGE_HELP_TEXTS__ = @json($HELP_TEXTS, JSON_UNESCAPED_UNICODE);
-  </script>
+    window.__PAGE_HELP_TEXTS__ = @json($HELP_TEXTS, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+   </script>
   
   
 @endsection
@@ -3410,53 +3456,67 @@
        }
 </style>
 @endpush
-    {{-- モーダル--}}
+{{-- モーダル--}}
 @push('scripts')
- <script>
-  // 共通ルール：HELPボタン(.js-help-btn)クリック時に辞書から本文を差し替える
-  document.addEventListener('click', function (e) {
-    const btn = e.target.closest('.js-help-btn');
-    if (!btn) return;
-
-    const key = btn.getAttribute('data-help-key') || '';
-    const dict = window.__PAGE_HELP_TEXTS__ || {};
-    const item = dict[key];
-
-    const title = item?.title ?? 'HELP';
-    const body  = item?.body  ?? '（この項目のHELPは未登録です）';
-
-    const titleEl = document.getElementById('helpModalTitle');
-    const bodyEl  = document.getElementById('helpModalBody');
-    if (titleEl) titleEl.textContent = title;
-    if (bodyEl) {
-      // body はテキスト。行ごとに処理して「○〜」の先頭ラベルだけ太字にする
-      const escapeHtml = (s) => String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-
-      const html = String(body)
-        .split('\n')
-        .map((line) => {
-          // 空行はそのまま改行にする
-          if (line === '') return '';
-
-          // 「○〜」行：先頭の見出し（○〜）部分を太字にする（全角スペースやタブも許容）
-          const m = line.match(/^(\s*○\s*[^・…：:　]+?)(\s*・・・\s*.*)?$/);
-          if (m) {
-            const head = escapeHtml(m[1]);
-            const rest = escapeHtml(m[2] ?? '');
-            return `<strong>${head}</strong>${rest}`;
+　<script>
+        document.addEventListener('click', function (e) {
+          const btn = e.target.closest('.js-help-btn');
+          if (!btn) return;
+        
+          const key  = btn.getAttribute('data-help-key') || '';
+          const dict = window.__PAGE_HELP_TEXTS__ || {};
+          const item = dict[key] || {};
+        
+          const title    = item.title || 'HELP';
+          const htmlBody = (typeof item.html === 'string') ? item.html : '';
+          const body     = (typeof item.body === 'string') ? item.body : '';
+          const image    = (typeof item.image === 'string') ? item.image : '';
+        
+          const titleEl  = document.getElementById('helpModalTitle');
+          const bodyEl   = document.getElementById('helpModalBody');
+          const modalEl  = document.getElementById('helpModalCommon');
+          const dialogEl = modalEl ? modalEl.querySelector('.modal-dialog') : null;
+        
+          if (titleEl) {
+            titleEl.textContent = title;
           }
-          return escapeHtml(line);
-        })
-        .join('<br>');
-
-      bodyEl.innerHTML = html;
-    }
-  });
- </script>
- @endpush
+          if (!bodyEl) return;
+        
+          if (dialogEl) {
+            dialogEl.classList.toggle('help-modal-wide', key === 'kisokojo');
+          }
+        
+          if (htmlBody) {
+            bodyEl.innerHTML = htmlBody;
+            return;
+          }
+        
+          const escapeHtml = function (str) {
+            return String(str)
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+          };
+        
+          let html = '';
+        
+          if (image) {
+            html += ''
+              + '<div style="text-align:center; margin:0 0 12px 0;">'
+              +   '<img src="' + image + '"'
+              +        ' alt="' + escapeHtml(title) + '"'
+              +        ' style="max-width:100%; height:auto; border:1px solid #ccc;">'
+              + '</div>';
+          }
+        
+          html += escapeHtml(body)
+            .replace(/^○([^\n\r]+)/gm, '<strong>○$1</strong>')
+            .replace(/\n/g, '<br>');
+        
+          bodyEl.innerHTML = html;
+        });
+　</script>
+@endpush
  {{-- モーダルここまで--}}

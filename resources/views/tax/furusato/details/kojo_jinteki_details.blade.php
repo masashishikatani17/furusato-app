@@ -727,14 +727,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const body     = (typeof item.body === 'string') ? item.body : '';
     const image    = (typeof item.image === 'string') ? item.image : '';
   
-    const titleEl = document.getElementById('helpModalTitle');
-    const bodyEl  = document.getElementById('helpModalBody');
+    const titleEl  = document.getElementById('helpModalTitle');
+const bodyEl   = document.getElementById('helpModalBody');
+const modalEl  = document.getElementById('helpModalCommon');
+const dialogEl = modalEl ? modalEl.querySelector('.modal-dialog') : null;
   
     if (titleEl) {
       titleEl.textContent = title;
     }
     if (!bodyEl) return;
-  
+    if (dialogEl) {
+    const wideKeys = ['kafu_hitorioya'];
+    dialogEl.style.maxWidth = wideKeys.includes(key) ? '780px' : '550px';
+  }
     if (htmlBody) {
       bodyEl.innerHTML = htmlBody;
       return;

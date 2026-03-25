@@ -300,7 +300,6 @@
       h15b{ font-size: 15px; font-weight: bold; color: #000; }
       h14 { font-size: 14px; font-weight: bold; color: #000; }
       h14u{ font-size: 14px; color: #000; }
-      h14ur{ font-size: 14px; color: #d90000; }
       h13 { font-size: 13px; color: #000; }
       h12 { font-size: 12px; color: #000; }
       h11 { font-size: 11px; color: #000; }
@@ -1346,6 +1345,69 @@
           height: calc(1em + 4px) !important;
           box-sizing: border-box !important;
         }
+ 
+/* --- HELPモーダル共通 --- */
+        #helpModalCommon .modal-content {
+          font-family: inherit;
+          font-size: 15px;
+        }
+        
+        #helpModalCommon .modal-title {
+          font-size: inherit;
+          font-weight: 700;
+          line-height: 1.2;
+        }
+        
+        #helpModalCommon .modal-body {
+          padding-left: 2rem;
+          padding-right: 2rem;
+        }
+        
+        #helpModalCommon .modal-dialog {
+          max-width: 550px;
+        }
+        
+        #helpModalCommon #helpModalBody strong {
+          font-weight: 700;
+          color: #192C4B;
+        }
+        
+        #helpModalCommon #helpModalBody .help-text {
+          margin: 0 0 12px 0;
+          line-height: 1.5;
+        }
+        
+        #helpModalCommon #helpModalBody .help-tax-table {
+          width: 100%;
+          margin: 0 0 12px 0;
+          border-collapse: collapse;
+          table-layout: auto;
+          font-size: 13px;
+          background: #fff;
+        }
+        
+        #helpModalCommon #helpModalBody .help-tax-table th,
+        #helpModalCommon #helpModalBody .help-tax-table td {
+          border: 1px solid #777;
+          padding: 4px 6px;
+          text-align: center;
+          vertical-align: middle;
+          line-height: 1.3;
+          white-space: nowrap;
+        }
+        
+        #helpModalCommon #helpModalBody .help-tax-table thead th {
+          background: #e9eff7;
+          font-weight: 700;
+        }
+        
+        #helpModalCommon #helpModalBody .help-tax-table tbody th {
+          background: #F7F9FB;
+          font-weight: 700;
+          width: 72px;
+        } 
+ 
+ 
   
   /* --- 罫線をセル単位で透明化する --- */
         .b-none   { border: none !important; }

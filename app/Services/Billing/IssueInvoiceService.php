@@ -213,6 +213,8 @@ class IssueInvoiceService
 
         $billingIndividualCode = $billingCode . '-01';
         $paymentMethodCode = null;
+        $paymentRegisterStatus = null;
+        $paymentCod = null;
 
         $inv = new SubscriptionInvoice();
         $inv->company_id = $companyId;
@@ -290,6 +292,8 @@ class IssueInvoiceService
                 ]);
 
                 $paymentMethodCode = $this->extractPaymentMethodCode($paymentRes, $deterministicPaymentCode);
+                $paymentRegisterStatus = $this->extractPaymentRegisterStatus($paymentRes);
+                $paymentCod = $this->extractPaymentCod($paymentRes);
             } catch (Throwable $e) {
                 Log::error('BillingRobo payment create failed', [
                     'company_id' => $companyId,
@@ -306,7 +310,29 @@ class IssueInvoiceService
             if ($paymentMethodCode === '') {
                 throw new RuntimeException('payment作成失敗: payment_method_code が取得できませんでした。');
             }
+            $billingSetting = CompanyBillingSetting::query()->firstOrNew([
+                'company_id' => $companyId,
+            ]);
+            $billingSetting->payment_method = $paymentMethod;
+            $billingSetting->billing_code = $billingCode;
+            $billingSetting->billing_individual_code = $billingIndividualCode;
+            $billingSetting->payment_method_code = $paymentMethodCode;
+            $billingSetting->save();
 
+            if ($paymentMethod === 'credit' && (int) $paymentRegisterStatus !== 5) {
+                Log::info('BillingRobo credit payment registration is pending. Skip demand issue for now.', [
+                    'company_id' => $companyId,
+                    'billing_code' => $billingCode,
+                    'billing_individual_code' => $billingIndividualCode,
+                    'payment_method_code' => $paymentMethodCode,
+                    'payment_register_status' => $paymentRegisterStatus,
+                    'cod' => $paymentCod,
+                ]);
+
+                return $inv;
+            }
+
+            // 5) individual へ既定決済を紐付け
             try {
                 $this->client->billingBulkUpsert([[
                     'code' => $billingCode,
@@ -320,20 +346,15 @@ class IssueInvoiceService
             } catch (Throwable $e) {
                 throw new RuntimeException('individualへのpayment_method_code関連付け失敗', previous: $e);
             }
-
-            $billingSetting = CompanyBillingSetting::query()->firstOrNew([
-                'company_id' => $companyId,
-            ]);
-            $billingSetting->payment_method = $paymentMethod;
-            $billingSetting->billing_code = $billingCode;
-            $billingSetting->billing_individual_code = $billingIndividualCode;
-            $billingSetting->payment_method_code = $paymentMethodCode;
-            $billingSetting->save();
         }
 
-        $deadlineMonthOffset = ((int) $dueDate->format('Y') - (int) $issueDate->format('Y')) * 12
-            + ((int) $dueDate->format('n') - (int) $issueDate->format('n'));
-
+        $baseMonthDate = Carbon::now('Asia/Tokyo')->startOfDay();
+        $issueMonthOffset = $this->calculateMonthOffset($baseMonthDate, $issueDate);
+        $sendingDate = $issueDate->copy();
+        $sendingMonthOffset = $this->calculateMonthOffset($baseMonthDate, $sendingDate);
+        $deadlineMonthOffset = $this->calculateMonthOffset($baseMonthDate, $dueDate);
+        $billingMethod = $this->resolveDemandBillingMethod();
+        $billTemplateCode = $this->resolveDemandBillTemplateCode((string) $inv->item_code);
         $demand = [
             'code' => $inv->demand_code,
             'billing_code' => $billingCode,
@@ -343,11 +364,16 @@ class IssueInvoiceService
             'quantity' => (int) $inv->quantity,
             'tax_category' => (int) config('billing_robo.tax_category'),
             'tax' => (int) config('billing_robo.tax'),
+            'billing_method' => $billingMethod,
             'start_date' => Carbon::parse($periodStart, 'Asia/Tokyo')->format('Y/m/d'),
-            'issue_month' => 0,
-            'issue_day' => (int) $issueDate->format('j'),
+            'period_format' => 0,
+            'issue_month' => $issueMonthOffset,
+            'issue_day' => $this->normalizeRoboDay($issueDate),
+            'sending_month' => $sendingMonthOffset,
+            'sending_day' => $this->normalizeRoboDay($sendingDate),
             'deadline_month' => $deadlineMonthOffset,
-            'deadline_day' => (int) $dueDate->format('j'),
+            'deadline_day' => $this->normalizeRoboDay($dueDate),
+            'bill_template_code' => $billTemplateCode,
         ];
 
         if ($attachBillingIndividual) {
@@ -362,7 +388,17 @@ class IssueInvoiceService
         }
 
         try {
-            $this->client->demandBulkUpsert([$demand]);
+            Log::info('BillingRobo demand create request', [
+                'company_id' => $companyId,
+                'billing_code' => $billingCode,
+                'demand_payload' => $demand,
+            ]);
+            $demandRes = $this->client->demandBulkUpsert([$demand]);
+            Log::info('BillingRobo demand create response', [
+                'company_id' => $companyId,
+                'billing_code' => $billingCode,
+                'raw_response' => $demandRes,
+            ]);
         } catch (Throwable $e) {
             throw new RuntimeException('demand作成失敗', previous: $e);
         }
@@ -494,6 +530,139 @@ class IssueInvoiceService
         $base = substr($billingCode, 0, $maxLength - strlen($suffix));
 
         return $base . $suffix;
+    }
+
+    private function extractPaymentRegisterStatus(array $response): ?int
+    {
+        $billings = $response['billing'] ?? null;
+        if (!is_array($billings)) {
+            return null;
+        }
+
+        foreach ($billings as $billing) {
+            if (!is_array($billing)) {
+                continue;
+            }
+            $payments = $billing['payment'] ?? null;
+            if (!is_array($payments)) {
+                continue;
+            }
+
+            foreach ($payments as $payment) {
+                if (!is_array($payment)) {
+                    continue;
+                }
+                if (isset($payment['register_status']) && $payment['register_status'] !== null && $payment['register_status'] !== '') {
+                    return (int) $payment['register_status'];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function extractPaymentCod(array $response): ?string
+    {
+        $billings = $response['billing'] ?? null;
+        if (!is_array($billings)) {
+            return null;
+        }
+
+        foreach ($billings as $billing) {
+            if (!is_array($billing)) {
+                continue;
+            }
+            $payments = $billing['payment'] ?? null;
+            if (!is_array($payments)) {
+                continue;
+            }
+
+            foreach ($payments as $payment) {
+                if (!is_array($payment)) {
+                    continue;
+                }
+                $cod = $payment['cod'] ?? null;
+                if (is_scalar($cod) && (string) $cod !== '') {
+                    return (string) $cod;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveDemandBillTemplateCode(string $itemCode): int
+    {
+        $envTemplateCode = (int) config('billing_robo.bill_template_code', 0);
+
+        try {
+            $goodsRes = $this->client->goodsSearchByItemCode($itemCode);
+            $goodsRows = $goodsRes['goods'] ?? null;
+
+            if (is_array($goodsRows) && isset($goodsRows[0]) && is_array($goodsRows[0])) {
+                $goods = $goodsRows[0];
+                $goodsTemplateCode = (int) ($goods['bill_template_code'] ?? 0);
+                $goodsTemplateName = (string) ($goods['bill_template_name'] ?? '');
+
+                Log::info('BillingRobo goods search template resolved', [
+                    'item_code' => $itemCode,
+                    'goods_bill_template_code' => $goodsTemplateCode,
+                    'goods_bill_template_name' => $goodsTemplateName,
+                    'env_bill_template_code' => $envTemplateCode,
+                ]);
+
+                if ($goodsTemplateCode > 0) {
+                    return $goodsTemplateCode;
+                }
+            } else {
+                Log::warning('BillingRobo goods search returned no rows', [
+                    'item_code' => $itemCode,
+                    'raw_response' => $goodsRes,
+                    'env_bill_template_code' => $envTemplateCode,
+                ]);
+            }
+        } catch (Throwable $e) {
+            Log::warning('BillingRobo goods search failed. Fallback to env bill_template_code.', [
+                'item_code' => $itemCode,
+                'env_bill_template_code' => $envTemplateCode,
+                'exception_message' => $e->getMessage(),
+                'exception' => $this->extractThrowableContext($e),
+            ]);
+        }
+
+        if ($envTemplateCode <= 0) {
+            throw new RuntimeException("billing_robo.bill_template_code is invalid: {$envTemplateCode}");
+        }
+
+        return $envTemplateCode;
+    }
+    private function resolveDemandBillingMethod(): int
+    {
+        $billingMethod = (int) config('billing_robo.billing_method', 2);
+
+        if (!in_array($billingMethod, [0, 1, 2, 3, 4, 5, 6, 7, 8], true)) {
+            throw new RuntimeException("billing_robo.billing_method is invalid: {$billingMethod}");
+        }
+
+        return $billingMethod;
+    }
+
+    private function calculateMonthOffset(Carbon $baseDate, Carbon $targetDate): int
+    {
+        return ((int) $targetDate->format('Y') - (int) $baseDate->format('Y')) * 12
+            + ((int) $targetDate->format('n') - (int) $baseDate->format('n'));
+    }
+
+    private function normalizeRoboDay(Carbon $date): int
+    {
+        $day = (int) $date->format('j');
+        $lastDay = (int) $date->copy()->endOfMonth()->format('j');
+
+        if ($day === $lastDay) {
+            return 99;
+        }
+
+        return min($day, 30);
     }
 
     /**

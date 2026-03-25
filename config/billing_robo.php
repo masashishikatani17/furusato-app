@@ -18,6 +18,14 @@ return [
     // 省略時は請求管理ロボ画面の実機確認値に合わせて「1」を使用する。
     'bank_transfer_pattern_code' => (string) env('BILLING_ROBO_BANK_TRANSFER_PATTERN_CODE', '1'),
 
+    // 請求方法
+    // 0:送付なし 1:自動メール 2:手動メール 3:自動郵送 4:手動郵送
+    // 5:自動メール+自動郵送 6:手動メール+手動郵送 7:自動マイページ 8:手動マイページ
+    // 初期は approval 依存を避けるため 2（手動メール）を既定にする
+    'billing_method' => (int) env('BILLING_ROBO_BILLING_METHOD', 2),
+
+    'bill_template_code' => (int) env('BILLING_ROBO_BILL_TEMPLATE_CODE', 10000),
+
     // 税（運用に合わせて後で調整）
     // tax_category: 0/1 等（ロボ仕様に合わせる）
     // tax: 10/8 等（ロボ仕様に合わせる）

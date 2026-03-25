@@ -18,7 +18,7 @@ return [
         . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em;">★<span style="color:#701616">ひとり親</span><br>原則としてその年の12月31日の現況で、本人の合計所得金額が500万円以下で、婚姻をしていないこと、または配偶者の生死の明らかでない一定の人のうち、その者と生計を一にする子（その年分の総所得金額等が58万円以下で、他の人の同一生計配偶者や扶養親族になっていない子）がいる人をいいます（事実上婚姻関係と同様の事情にあると認められる一定の人がいる場合を除く。）。</div>'
         . '<div class="help-text">　具体的には次の「寡婦控除・ひとり親控除の判定」で行います。より詳しくは令和２年５月に国税庁が公表した「ひとり親控除及び寡婦控除に関するＱ＆Ａ」を参照してください。</div>'
         . '<div><strong>○寡婦控除・ひとり親控除の判定</strong></div>'
-       . '<table class="help-tax-table">'
+       . '<table class="help-tax-table mx-auto" style="width:660px;">'
         . '  <thead>'
         . '    <tr>'
         . '      <th colspan="6">寡婦控除・ひとり親控除の判定</th>'
@@ -28,12 +28,12 @@ return [
         . '  </thead>'
         . '  <tbody>'
         . '    <tr>'
-        . '      <th rowspan="10">本人の合計<br>所得金額が<br>500万円以下</th>'
-        . '      <th rowspan="9">婚姻なし<br>（※３）</th>'
+        . '      <th rowspan="10" style="width:100px;">本人の合計<br>所得金額が<br>500万円以下</th>'
+        . '      <th rowspan="9" style="width:80px;">婚姻なし<br>（※３）</th>'
         . '      <th rowspan="2" colspan="2">男性</th>'
         . '      <td colspan="2" class="text-start nowrap">扶養する子あり（※２）</td>'
-        . '      <td>ひとり親控除</td>'
-        . '      <td>35万円</td>'
+        . '      <td style="width:110px;">ひとり親控除</td>'
+        . '      <td style="width:80px;">35万円</td>'
         . '    </tr>'
         . '    <tr>'
         . '      <td colspan="2" class="text-start nowrap">扶養する子なし</td>'
@@ -42,7 +42,7 @@ return [
         . '    </tr>'
         . '    <tr>'
         . '      <th rowspan="7" style="width:44px;">女性</th>'
-        . '      <th rowspan="2" style="width:48px;">死別<br>（※１）</th>'
+        . '      <th rowspan="2" style="width:46px;">死別<br>（※１）</th>'
         . '      <td colspan="2" class="text-start nowrap">扶養する子あり（※２）</td>'
         . '      <td>ひとり親控除</td>'
         . '      <td>35万円</td>'
@@ -59,8 +59,8 @@ return [
         . '      <td>35万円</td>'
         . '    </tr>'
         . '    <tr>'
-        . '      <td rowspan="2" class="text-start nowrap">扶養する子なし</td>'
-        . '      <td class="text-start nowrap">扶養親族あり</td>'
+        . '      <td rowspan="2" class="text-start nowrap" style="width:100px;">扶養する子なし</td>'
+        . '      <td class="text-start nowrap" style="width:100px;">扶養親族あり</td>'
         . '      <td>寡婦控除</td>'
         . '      <td>27万円</td>'
         . '    </tr>'
@@ -92,48 +92,182 @@ return [
         . '    </tr>'
         . '  </tbody>'
         . '</table>'
-        . '<div class="help-text"><h14u>※１：死別・生死不明を含む。</br>
-         ※２：総所得金額等が58万円以下の生計を一にする子であること。なお、扶養親族には事業専従者は含まれない<br>　　　が、上記の生計を一にする子には事業専従者である場合を含む。<br>
-         ※３：婚姻の判定に関する細かな取扱いは、国税庁公表のＱ＆Ａも併せて確認してください。</h14u></div>',
+        . '<div class="help-text" style="padding-left:2.6em; text-indent:-2.6em; line-height:1.3; margin-bottom:0;">※１：死別・生死不明を含む。</div>'
+        . '<div class="help-text" style="padding-left:2.6em; text-indent:-2.6em; line-height:1.3; margin-bottom:0;">※２：総所得金額等が58万円以下の生計を一にする子であること。なお、扶養親族には事業専従者は含まれないが、上記の生計を一にする子には事業専従者である場合を含む。</div>'
+        . '<div class="help-text" style="padding-left:2.6em; text-indent:-2.6em; line-height:1.3;">※３：婚姻の判定に関する細かな取扱いは、国税庁公表のＱ＆Ａも併せて確認してください。</div>',
     ],
 
     'kinrogakusei' => [
         'title' => '勤労学生控除',
         'html'  => ''
         . '<div class="help-text">　納税者がその年の12月31日の現況上で<span style="color:#701616;">勤労学生</span>（★）であるときは、27万円を勤労学生控除として所得金額から控除できます。</div>'
-        . '<div class="help-text"><span style="color:#701616;">★勤労学生</span><br>'
-        . '①合計所得金額が85万円（給与収入で150万円）以下<br>'
-        . '②勤労によらない所得が10万円以下<br>'
-        . '③<span style="color:#701616;">特定の学校</span>（★）の学生や生徒<br>'
-        . 'である者をいう。</div>'
-        . '<div class="help-text"><span style="color:#701616;">★特定の学校</span><br>'
-        . '・学校教育法に規定する小学校、中学校、高等学校、大学（大学院を含む）、高等専門学校など<br>'
-        . '・国、地方公共団体、学校法人等により設置された専修学校等のうち一定の要件に当てはまる課程を履修させるもの<br>'
-        . '・認定教育訓練を行う職業訓練法人等で一定の要件に当てはまる課程を履修させるもの</div>',
+        . '<div class="help-text">★<span style="color:#701616;">勤労学生</span><br>'
+        . '　　①合計所得金額が85万円（給与収入で150万円）以下<br>'
+        . '　　②勤労によらない所得が10万円以下<br>'
+        . '　　③<span style="color:#701616;">特定の学校</span>（★）の学生や生徒<br>'
+        . '　　である者をいう。</div>'
+        . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em; margin-bottom:4px;">★<span style="color:#701616;">特定の学校</span></div>'
+        . '<div class="help-text" style="padding-left:2em; text-indent:-0.5em; line-height:1.35; margin-bottom:0;">・学校教育法に規定する小学校、中学校、高等学校、大学（大学院を含む）、高等専門学校など</div>'
+        . '<div class="help-text" style="padding-left:2em; text-indent:-0.5em; line-height:1.35; margin-bottom:0;">・国、地方公共団体、学校法人等により設置された専修学校等のうち一定の要件に当てはまる課程を履修させるもの</div>'
+        . '<div class="help-text" style="padding-left:2em; text-indent:-0.5em; line-height:1.35;">・認定教育訓練を行う職業訓練法人等で一定の要件に当てはまる課程を履修させるもの</div>',
+       
     ],
 
     'shogaisha' => [
         'title' => '障害者控除',
-        'body'  => "準備中です。",
+      'html'  => ''
+        . '<div class="help-text">　納税者自身または同一生計配偶者および扶養親族がその年の12月31日の現況で障害者である場合には、障害者控除として障害者1人につき27万円を所得金額から控除できます(特別障害者の場合は40万円、同居特別障害者の場合は75万円)。</div>'
+        . '<div class="help-text">　ここでは障害者控除に関しては結論部分しか書いていませんが、様々な要件がありますので適用に当たってはネット等で確認するようにしてください。</div>'
     ],
 
-    'haigusha' => [
-        'title' => '配偶者控除',
-        'body'  => "準備中です。",
-    ],
+'haigusha' => [
+    'title' => '配偶者控除',
+    'html'  => ''
+        . '<div class="help-text">　納税者に<span style="color:#701616;">控除対象配偶者</span>（★）がいる場合には、配偶者控除として一定の金額を所得金額から控除できます。</div>'
 
-    'haigusha_tokubetsu' => [
-        'title' => '配偶者特別控除',
-        'body'  => "準備中です。",
-    ],
+        . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em; margin-bottom:4px;">★<span style="color:#701616;">控除対象配偶者</span></div>'
+        . '<div class="help-text" style="padding-left:2.5em;">納税者本人の合計所得金額が1,000万円以下である場合の「<span style="color:#701616;">同一生計配偶者</span>（★）」をいう。</div>'
 
-    'fuyo' => [
-        'title' => '扶養控除',
-        'body'  => "準備中です。",
-    ],
+        . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em; margin-bottom:4px;">★<span style="color:#701616;">同一生計配偶者</span></div>'
+        . '<div class="help-text" style="padding-left:2.5em; margin-bottom:4px;">その年の12月31日の現況で、次の全ての要件に当てはまる人をいう。</div>'
+        . '<div class="help-text" style="padding-left:4.0em; text-indent:-1.5em; line-height:1.25; margin-bottom:0;">①民法の規定による配偶者であること（内縁関係の人は該当しない）</div>'
+        . '<div class="help-text" style="padding-left:4.0em; text-indent:-1.5em; line-height:1.25; margin-bottom:0;">②納税者と生計を一にしていること</div>'
+        . '<div class="help-text" style="padding-left:4.0em; text-indent:-1.5em; line-height:1.25; margin-bottom:0;">③合計所得金額が58万円（給与収入で123万円）以下であること</div>'
+        . '<div class="help-text" style="padding-left:4.0em; text-indent:-1.5em; line-height:1.25; margin-bottom:0;">④青色申告者の青色事業専従者または白色申告者の事業専従者でないこと</div>'
+        . '<div class="help-text" style="padding-left:4.0em; text-indent:-1.5em; line-height:1.25;">⑤他の人の扶養親族となっていないこと</div>'
 
-    'tokutei_shinzoku_tokubetsu' => [
-        'title' => '特定親族特別控除',
-        'body'  => "準備中です。",
-    ],
+        . '<div><strong>○配偶者控除の金額</strong></div>'
+        . '<table class="help-tax-table mx-auto" style="width:340px;">'
+        . '  <thead>'
+        . '    <tr>'
+        . '      <th rowspan="2" style="width:180px;">納税者の合計所得金額</th>'
+        . '      <th colspan="2">配偶者控除の金額</th>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <th style="width:80px; background:#F7F9FB;">一般</th>'
+        . '      <th style="width:80px; background:#F7F9FB;">老人</th>'
+        . '    </tr>'
+        . '  </thead>'
+        . '  <tbody>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap">900万円以下</td>'
+        . '      <td class="text-center nowrap">38万円</td>'
+        . '      <td class="text-center nowrap">48万円</td>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap">900万円超　950万円以下</td>'
+        . '      <td class="text-center nowrap">26万円</td>'
+        . '      <td class="text-center nowrap">32万円</td>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap">950万円超　1,000万円以下</td>'
+        . '      <td class="text-center nowrap">13万円</td>'
+        . '      <td class="text-center nowrap">16万円</td>'
+        . '    </tr>'
+        . '  </tbody>'
+        . '</table>'
+
+        . '<div class="help-text" style="padding-left:2em; text-indent:-2em;">※「老人（控除対象配偶者）」とは、12月31日現在で70歳以上の人です。</div>',
+],
+    
+'haigusha_tokubetsu' => [
+    'title' => '配偶者特別控除',
+    'html'  => ''
+        . '<div class="help-text">　納税者に<span style="color:#701616;">控除対象配偶者</span>（★）がいる場合には、配偶者特別控除として一定の金額を所得金額から控除できます。</div>'
+
+        . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em; margin-bottom:4px;">★<span style="color:#701616;">控除対象配偶者</span></div>'
+        . '<div class="help-text" style="padding-left:2em;">納税者本人の合計所得金額が1,000万円以下である場合の「<span style="color:#701616;">同一生計配偶者</span>（★）」をいう。</div>'
+
+        . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em; margin-bottom:4px;">★<span style="color:#701616;">同一生計配偶者</span></div>'
+        . '<div class="help-text" style="padding-left:2.5em; margin-bottom:4px;">その年の12月31日の現況で、次の全ての要件に当てはまる人をいう。</div>'
+        . '<div class="help-text" style="padding-left:4.0em; text-indent:-1em; line-height:1.25; margin-bottom:0;">①民法の規定による配偶者であること（内縁関係の人は該当しない）</div>'
+        . '<div class="help-text" style="padding-left:4.0em; text-indent:-1em; line-height:1.25; margin-bottom:0;">②納税者と生計を一にしていること</div>'
+        . '<div class="help-text" style="padding-left:4.0em; text-indent:-1em; line-height:1.25; margin-bottom:0;">③合計所得金額が58万円超133万円以下（給与収入で123万円超201.6万円未満）であること</div>'
+        . '<div class="help-text" style="padding-left:4.0em; text-indent:-1em; line-height:1.25; margin-bottom:0;">④青色申告者の青色事業専従者または白色申告者の事業専従者でないこと</div>'
+        . '<div class="help-text" style="padding-left:4.0em; text-indent:-1em;">⑤他の人の扶養親族となっていないこと</div>'
+
+        . '<div><strong>○配偶者特別控除の金額</strong></div>'
+        . '<table class="help-tax-table">'
+        . '  <thead>'
+        . '    <tr>'
+        . '      <th colspan="2" rowspan="2">配偶者の合計所得金額</th>'
+        . '      <th colspan="3">納税者の合計所得金額</th>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <th style="background:#F7F9FB;">900万円以下</th>'
+        . '      <th style="background:#F7F9FB;">900万円超<br>950万円以下</th>'
+        . '      <th style="background:#F7F9FB;">950万円超<br>1,000万円以下</th>'
+        . '    </tr>'
+        . '  </thead>'
+        . '  <tbody>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap b-r-no">58万円超</td>'
+        . '      <td class="text-end nowrap b-l-no">95万円以下</td>'
+        . '      <td class="text-center nowrap">38万円</td>'
+        . '      <td class="text-center nowrap">26万円</td>'
+        . '      <td class="text-center nowrap">13万円</td>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap b-r-no">95万円超</td>'
+        . '      <td class="text-end nowrap b-l-no">100万円以下</td>'
+        . '      <td class="text-center nowrap">36万円</td>'
+        . '      <td class="text-center nowrap">24万円</td>'
+        . '      <td class="text-center nowrap">12万円</td>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap b-r-no">100万円超</td>'
+        . '      <td class="text-end nowrap b-l-no">105万円以下</td>'
+        . '      <td class="text-center nowrap">31万円</td>'
+        . '      <td class="text-center nowrap">21万円</td>'
+        . '      <td class="text-center nowrap">11万円</td>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap b-r-no">105万円超</td>'
+        . '      <td class="text-end nowrap b-l-no">110万円以下</td>'
+        . '      <td class="text-center nowrap">26万円</td>'
+        . '      <td class="text-center nowrap">18万円</td>'
+        . '      <td class="text-center nowrap">9万円</td>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap b-r-no">110万円超</td>'
+        . '      <td class="text-end nowrap b-l-no">115万円以下</td>'
+        . '      <td class="text-center nowrap">21万円</td>'
+        . '      <td class="text-center nowrap">14万円</td>'
+        . '      <td class="text-center nowrap">7万円</td>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap b-r-no">115万円超</td>'
+        . '      <td class="text-end nowrap b-l-no">120万円以下</td>'
+        . '      <td class="text-center nowrap">16万円</td>'
+        . '      <td class="text-center nowrap">11万円</td>'
+        . '      <td class="text-center nowrap">6万円</td>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap b-r-no">120万円超</td>'
+        . '      <td class="text-end nowrap b-l-no">125万円以下</td>'
+        . '      <td class="text-center nowrap">11万円</td>'
+        . '      <td class="text-center nowrap">8万円</td>'
+        . '      <td class="text-center nowrap">4万円</td>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap b-r-no">125万円超</td>'
+        . '      <td class="text-end nowrap b-l-no">130万円以下</td>'
+        . '      <td class="text-center nowrap">6万円</td>'
+        . '      <td class="text-center nowrap">4万円</td>'
+        . '      <td class="text-center nowrap">2万円</td>'
+        . '    </tr>'
+        . '    <tr>'
+        . '      <td class="text-start nowrap b-r-no">130万円超</td>'
+        . '      <td class="text-end nowrap b-l-no">133万円以下</td>'
+        . '      <td class="text-center nowrap">3万円</td>'
+        . '      <td class="text-center nowrap">2万円</td>'
+        . '      <td class="text-center nowrap">1万円</td>'
+        . '    </tr>'
+        . '  </tbody>'
+        . '</table>',
+],    
+    
+    
+    
+    
 ];

@@ -83,12 +83,13 @@
             <tbody>
               <tr>
                 <th colspan="3" class="text-start ps-1">寡婦控除</th>
-                 <td rowspan="2" class="text-center align-middle">
-                    <button type="button"
-                            class="btn-base-free-blue js-help-btn" style="height:40px;"
-                            data-help-key="kafu_hitorioya"
-                            data-bs-toggle="modal"
-                            data-bs-target="#helpModalCommon">HELP</button>
+                <td rowspan="2" class="text-center align-middle">
+                  <button type="button"
+                          class="btn-base-free-blue js-help-btn"
+                          style="height:40px;"
+                          data-help-key="kafu_hitorioya"
+                          data-bs-toggle="modal"
+                          data-bs-target="#helpModalCommon">HELP</button>
                 </td>
                 <td>
                   <select name="kojo_kafu_applicable_prev" class="form-select sel4" aria-label="{{ $warekiPrevLabel }}の寡婦控除の適用状況">
@@ -125,12 +126,12 @@
               </tr>
               <tr>
                 <th colspan="3" class="text-start ps-1">勤労学生控除</th>
-                 <td class="text-center align-middle">
-                    <button type="button"
-                            class="btn-base-low-blue js-help-btn"
-                            data-help-key="kinrogakusei"
-                            data-bs-toggle="modal"
-                            data-bs-target="#helpModalCommon">HELP</button>
+                <td class="text-center align-middle">
+                  <button type="button"
+                          class="btn-base-low-blue js-help-btn"
+                          data-help-key="kinrogakusei"
+                          data-bs-toggle="modal"
+                          data-bs-target="#helpModalCommon">HELP</button>
                 </td>
                 <td>
                   <select name="kojo_kinrogakusei_applicable_prev" class="form-select sel4" aria-label="{{ $warekiPrevLabel }}の勤労学生控除の適用状況">
@@ -150,11 +151,12 @@
                 <th rowspan="3" class="text-center align-middle lh-1">障<br>害<br>者<br>控<br>除</th>
                 <th colspan="2" class="text-start ps-1 th-ddd">障害者</th>
                 <td rowspan="3" class="text-center align-middle">
-                    <button type="button"
-                            class="btn-base-free-blue js-help-btn" style="height:60px;"
-                            data-help-key="shogaisha"
-                            data-bs-toggle="modal"
-                            data-bs-target="#helpModalCommon">HELP</button>
+                  <button type="button"
+                          class="btn-base-free-blue js-help-btn"
+                          style="height:60px;"
+                          data-help-key="shogaisha"
+                          data-bs-toggle="modal"
+                          data-bs-target="#helpModalCommon">HELP</button>
                 </td>
                 <td class="text-center">
                   @php($shogaishaPrev = old('kojo_shogaisha_count_prev', $inputs['kojo_shogaisha_count_prev'] ?? null))
@@ -217,11 +219,11 @@
               <tr>
                 <th colspan="3" class="text-start ps-1">配偶者控除</th>
                 <td class="text-center align-middle">
-                    <button type="button"
-                            class="btn-base-low-blue js-help-btn"
-                            data-help-key="haigusha"
-                            data-bs-toggle="modal"
-                            data-bs-target="#helpModalCommon">HELP</button>
+                  <button type="button"
+                          class="btn-base-low-blue js-help-btn"
+                          data-help-key="haigusha"
+                          data-bs-toggle="modal"
+                          data-bs-target="#helpModalCommon">HELP</button>
                 </td>
                 <td>
                   <select name="kojo_haigusha_category_prev" class="form-select form-select-sm" style="width:120px;" aria-label="{{ $warekiPrevLabel }}の配偶者控除区分">
@@ -242,11 +244,11 @@
               <tr>
                 <th colspan="3" class="text-start ps-1">配偶者特別控除</th>
                 <td class="text-center align-middle">
-                    <button type="button"
-                            class="btn-base-low-blue js-help-btn"
-                            data-help-key="haigusha_tokubetsu"
-                            data-bs-toggle="modal"
-                            data-bs-target="#helpModalCommon">HELP</button>
+                  <button type="button"
+                          class="btn-base-low-blue js-help-btn"
+                          data-help-key="haigusha_tokubetsu"
+                          data-bs-toggle="modal"
+                          data-bs-target="#helpModalCommon">HELP</button>
                 </td>
                 <td nowrap="nowrap" class="text-start">
                   @php($haigushaTokubetsuPrev = old('kojo_haigusha_tokubetsu_gokeishotoku_prev', $inputs['kojo_haigusha_tokubetsu_gokeishotoku_prev'] ?? null))
@@ -272,11 +274,12 @@
                 <th rowspan="4" class="text-center align-middle">扶<br>養<br>控<br>除</th>
                 <th colspan="2" class="text-start ps-1 th-ddd">一般</th>
                 <td rowspan="4" class="text-center align-middle">
-                    <button type="button"
-                            class="btn-base-free-blue js-help-btn" style="height:82px;"
-                            data-help-key="fuyo"
-                            data-bs-toggle="modal"
-                            data-bs-target="#helpModalCommon">HELP</button>
+                  <button type="button"
+                          class="btn-base-free-blue js-help-btn"
+                          style="height:82px;"
+                          data-help-key="fuyo"
+                          data-bs-toggle="modal"
+                          data-bs-target="#helpModalCommon">HELP</button>
                 </td>
                 <td>
                   @php($fuyoIppanPrev = old('kojo_fuyo_ippan_count_prev', $inputs['kojo_fuyo_ippan_count_prev'] ?? null))
@@ -369,11 +372,12 @@
                 <th rowspan="3" colspan="2" class="text-start ps-1 align-middle">特定親族<br>特別控除</th>
                 <th class="text-start ps-1 th-ddd">1人目</th>
                 <td rowspan="3" class="text-center align-middle">
-                    <button type="button"
-                            class="btn-base-free-blue js-help-btn" style="height:60px;"
-                            data-help-key="tokutei_shinzoku_tokubetsu"
-                            data-bs-toggle="modal"
-                            data-bs-target="#helpModalCommon">HELP</button>
+                  <button type="button"
+                          class="btn-base-free-blue js-help-btn"
+                          style="height:60px;"
+                          data-help-key="tokutei_shinzoku_tokubetsu"
+                          data-bs-toggle="modal"
+                          data-bs-target="#helpModalCommon">HELP</button>
                 </td>
                 <td nowrap="nowrap" class="text-start">
                   @php($tokutei1Prev = old('kojo_tokutei_shinzoku_1_shotoku_prev', $inputs['kojo_tokutei_shinzoku_1_shotoku_prev'] ?? null))
@@ -460,20 +464,19 @@
 {{-- ============================
    help出力モーダル（共通）
    ============================ --}}
-      <div class="modal fade" id="helpModalCommon" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header mb-0">
-              <button type="button" class="btn btn-vp me-2">HELP</button>
-              <h15 class="modal-title mb-0" id="helpModalTitle">HELP</h15>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-start mt-0 ms-2 mb-2">
-              <div id="helpModalBody"></div>
-            </div>
-          </div>
-        </div>
+<div class="modal fade" id="helpModalCommon" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header mb-0">
+        <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitle">HELP</h15>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+      <div class="modal-body text-start mt-0 ms-2 mb-2">
+        <div id="helpModalBody" class="small" style="white-space: pre-wrap;"></div>
+      </div>
+    </div>
+  </div>
+</div>
 @endsection
 
 @push('styles')
@@ -488,63 +491,73 @@
     }
   </style>
 @endpush
-@push('styles')
-    <style>
-      #helpModalCommon .modal-content {
-        font-family: inherit;
-        font-size: 15px;
-      }
-    
-      #helpModalCommon .modal-body {
-        padding-left: 2rem;
-        padding-right: 2rem;
-      }
-    
-      #helpModalCommon .modal-dialog {
-        max-width: 550px;
-      }
-    
-      #helpModalCommon #helpModalBody strong {
-        font-weight: 700;
-        color: #192C4B;
-      }
-    
-      #helpModalCommon #helpModalBody .help-text {
-        margin: 0 0 12px 0;
-        line-height: 1.8;
-      }
-    
-      #helpModalCommon #helpModalBody .help-tax-table {
-        width: 100%;
-        margin: 0 0 12px 0;
-        border-collapse: collapse;
-        table-layout: auto;
-        font-size: 13px;
-        background: #fff;
-      }
-    
-      #helpModalCommon #helpModalBody .help-tax-table th,
-      #helpModalCommon #helpModalBody .help-tax-table td {
-        border: 1px solid #777;
-        padding: 4px 6px;
-        text-align: center;
-        vertical-align: middle;
-        line-height: 1.3;
-        white-space: nowrap;
-      }
-    
-      #helpModalCommon #helpModalBody .help-tax-table thead th {
-        background: #e9eff7;
-        font-weight: 700;
-      }
-    
-      #helpModalCommon #helpModalBody .help-tax-table tbody th {
-        background: #F7F9FB;
-        font-weight: 700;
-        width: 72px;
-      }
-</style>
+
+@push('scripts')
+<script>
+window.__PAGE_HELP_TEXTS__ = @json($HELP_TEXTS, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+document.addEventListener('click', function (e) {
+  const btn = e.target.closest('.js-help-btn');
+  if (!btn) return;
+
+  const key  = btn.getAttribute('data-help-key') || '';
+  const dict = window.__PAGE_HELP_TEXTS__ || {};
+  const item = dict[key] || {};
+
+  const title    = item.title || 'HELP';
+  const htmlBody = (typeof item.html === 'string') ? item.html : '';
+  const body     = (typeof item.body === 'string') ? item.body : '';
+  const image    = (typeof item.image === 'string') ? item.image : '';
+
+  const titleEl  = document.getElementById('helpModalTitle');
+  const bodyEl   = document.getElementById('helpModalBody');
+  const modalEl  = document.getElementById('helpModalCommon');
+  const dialogEl = modalEl ? modalEl.querySelector('.modal-dialog') : null;
+
+  if (titleEl) {
+    titleEl.textContent = title;
+  }
+  if (!bodyEl) return;
+
+  if (dialogEl) {
+    const wideKeys = ['kafu_hitorioya'];
+    dialogEl.style.maxWidth = wideKeys.includes(key) ? '750px' : '550px';
+  }
+
+  if (htmlBody) {
+    bodyEl.innerHTML = htmlBody;
+    return;
+  }
+
+  const escapeHtml = function (str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  let html = '';
+
+  if (image) {
+    html += ''
+      + '<div style="text-align:center; margin:0 0 12px 0;">'
+      +   '<img src="' + image + '"'
+      +        ' alt="' + escapeHtml(title) + '"'
+      +        ' style="max-width:100%; height:auto; border:1px solid #ccc;">'
+      + '</div>';
+  }
+
+  html += escapeHtml(body)
+    .replace(/^○([^\n\r]+)/gm, '<strong>○$1</strong>')
+    .replace(/\n/g, '<br>');
+
+  bodyEl.innerHTML = html;
+});
+</script>
 @endpush
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -708,69 +721,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   })();
 });
-</script>
-@endpush
-@push('scripts')
-  <script>
-  window.__PAGE_HELP_TEXTS__ = @json($HELP_TEXTS, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-  
-  document.addEventListener('click', function (e) {
-    const btn = e.target.closest('.js-help-btn');
-    if (!btn) return;
-  
-    const key  = btn.getAttribute('data-help-key') || '';
-    const dict = window.__PAGE_HELP_TEXTS__ || {};
-    const item = dict[key] || {};
-  
-    const title    = item.title || 'HELP';
-    const htmlBody = (typeof item.html === 'string') ? item.html : '';
-    const body     = (typeof item.body === 'string') ? item.body : '';
-    const image    = (typeof item.image === 'string') ? item.image : '';
-  
-    const titleEl  = document.getElementById('helpModalTitle');
-const bodyEl   = document.getElementById('helpModalBody');
-const modalEl  = document.getElementById('helpModalCommon');
-const dialogEl = modalEl ? modalEl.querySelector('.modal-dialog') : null;
-  
-    if (titleEl) {
-      titleEl.textContent = title;
-    }
-    if (!bodyEl) return;
-    if (dialogEl) {
-    const wideKeys = ['kafu_hitorioya'];
-    dialogEl.style.maxWidth = wideKeys.includes(key) ? '780px' : '550px';
-  }
-    if (htmlBody) {
-      bodyEl.innerHTML = htmlBody;
-      return;
-    }
-  
-    const escapeHtml = function (str) {
-      return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    };
-  
-    let html = '';
-  
-    if (image) {
-      html += ''
-        + '<div style="text-align:center; margin:0 0 12px 0;">'
-        +   '<img src="' + image + '"'
-        +        ' alt="' + escapeHtml(title) + '"'
-        +        ' style="max-width:100%; height:auto; border:1px solid #ccc;">'
-        + '</div>';
-    }
-  
-    html += escapeHtml(body)
-      .replace(/^○([^\n\r]+)/gm, '<strong>○$1</strong>')
-      .replace(/\n/g, '<br>');
-  
-    bodyEl.innerHTML = html;
-  });
 </script>
 @endpush
  

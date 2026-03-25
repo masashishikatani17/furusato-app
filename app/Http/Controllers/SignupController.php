@@ -16,9 +16,6 @@ use Throwable;
 
 class SignupController extends Controller
 {
-    private const PAYMENT_METHOD_DEBIT_LABEL = 'キャッシュカード';
-    private const YUCHO_BANK_CODE = '9900';
-
     public function show(Request $request)
     {
         $paymentUrl = (string) config('billing_robo.payment_url', '');
@@ -38,53 +35,6 @@ class SignupController extends Controller
             'password'     => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
             'payment_method' => ['required', 'string', Rule::in(['クレジットカード', '銀行振込'])],
             'quantity' => ['required', 'integer', 'min:1', 'max:999'],
-            'bank_account_type' => ['nullable', 'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL, Rule::in(['1', '2'])],
-            'bank_code' => ['nullable', 'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL, 'digits:4'],
-            'branch_code' => [
-                'nullable',
-                'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL,
-                'regex:/^\d+$/',
-                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
-                    if ((string)$request->input('payment_method') !== self::PAYMENT_METHOD_DEBIT_LABEL) {
-                        return;
-                    }
-
-                    $branch = (string)$value;
-                    $bankCode = (string)$request->input('bank_code');
-                    $expected = $bankCode === self::YUCHO_BANK_CODE ? 5 : 3;
-                    if (strlen($branch) !== $expected) {
-                        $fail($bankCode === self::YUCHO_BANK_CODE
-                            ? 'ゆうちょ銀行の支店コードは5桁で入力してください。'
-                            : '支店コードは3桁で入力してください。');
-                    }
-                },
-            ],
-            'bank_account_number' => [
-                'nullable',
-                'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL,
-                'regex:/^\d+$/',
-                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
-                    if ((string)$request->input('payment_method') !== self::PAYMENT_METHOD_DEBIT_LABEL) {
-                        return;
-                    }
-
-                    $number = (string)$value;
-                    $bankCode = (string)$request->input('bank_code');
-                    $expected = $bankCode === self::YUCHO_BANK_CODE ? 8 : 7;
-                    if (strlen($number) !== $expected) {
-                        $fail($bankCode === self::YUCHO_BANK_CODE
-                            ? 'ゆうちょ銀行の口座番号は8桁で入力してください。'
-                            : '口座番号は7桁で入力してください。');
-                    }
-                },
-            ],
-            'bank_account_name' => [
-                'nullable',
-                'required_if:payment_method,' . self::PAYMENT_METHOD_DEBIT_LABEL,
-                'string',
-                'max:30',
-                'regex:/^[A-Z0-9\x{FF66}-\x{FF9F}\s\-\.\/\(\)&]+$/u',
-            ],
         ], [
             'company_name.required' => '会社名を入力してください。',
             'branch_name.required'  => '支店名を入力してください。',
@@ -101,17 +51,6 @@ class SignupController extends Controller
             'quantity.integer' => '口数は整数で入力してください。',
             'quantity.min' => '口数は1以上で入力してください。',
             'quantity.max' => '口数は999以下で入力してください。',
-            'bank_account_type.required_if' => '口座種別を選択してください。',
-            'bank_account_type.in' => '口座種別の指定が不正です。',
-            'bank_code.required_if' => '銀行コードを入力してください。',
-            'bank_code.digits' => '銀行コードは4桁の数字で入力してください。',
-            'branch_code.required_if' => '支店コードを入力してください。',
-            'branch_code.regex' => '支店コードは数字のみで入力してください。',
-            'bank_account_number.required_if' => '口座番号を入力してください。',
-            'bank_account_number.regex' => '口座番号は数字のみで入力してください。',
-            'bank_account_name.required_if' => '口座名義を入力してください。',
-            'bank_account_name.max' => '口座名義は30文字以内で入力してください。',
-            'bank_account_name.regex' => '口座名義は半角英大文字・半角カナ（ｰ含む）・数字・空白・記号（- . / ( ) &）のみ入力できます。',
         ]);
 
         $companyName = trim((string) $validated['company_name']);
@@ -129,7 +68,6 @@ class SignupController extends Controller
 
         $paymentMethod = match ($paymentUi) {
             'クレジットカード' => 'credit',
-            self::PAYMENT_METHOD_DEBIT_LABEL => 'debit',
             '銀行振込' => 'bank_transfer',
         };
 
@@ -177,11 +115,11 @@ class SignupController extends Controller
                     [
                         'payment_method' => $paymentMethod,
                         'billing_code' => $billingCode,
-                        'bank_account_type' => $paymentMethod === 'debit' ? (int)$validated['bank_account_type'] : null,
-                        'bank_code' => $paymentMethod === 'debit' ? (string)$validated['bank_code'] : null,
-                        'branch_code' => $paymentMethod === 'debit' ? (string)$validated['branch_code'] : null,
-                        'bank_account_number' => $paymentMethod === 'debit' ? (string)$validated['bank_account_number'] : null,
-                        'bank_account_name' => $paymentMethod === 'debit' ? $this->normalizeBankAccountName((string)$validated['bank_account_name']) : null,
+                        'bank_account_type' => null,
+                        'bank_code' => null,
+                        'branch_code' => null,
+                        'bank_account_number' => null,
+                        'bank_account_name' => null,
                     ]
                 );
 
@@ -212,16 +150,6 @@ class SignupController extends Controller
         return redirect()
             ->route('login')
             ->with('status', 'お申し込み情報を登録しました。続いてお支払い手続きを行ってください（支払いURLが未設定のためログインへ戻りました）。');
-    }
-
-    /**
-     * 口座名義の保存前処理。
-     * - trim は必ず実施する
-     * - 文字種の正規化（全角→半角 等）は行わない（入力値をそのまま保持）
-     */
-    private function normalizeBankAccountName(string $value): string
-    {
-        return trim($value);
     }
 
     private function makeBillingCode(string $companyName, string $branchName, int $companyId): string

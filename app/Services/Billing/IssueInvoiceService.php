@@ -411,12 +411,22 @@ class IssueInvoiceService
 
         try {
             $issueRes = $this->client->demandBulkIssueBillSelect([$inv->demand_code]);
+            Log::info('BillingRobo issue bill response', [
+                'company_id' => $companyId,
+                'billing_code' => $billingCode,
+                'demand_code' => $inv->demand_code,
+                'raw_response' => $issueRes,
+            ]);
         } catch (Throwable $e) {
             throw new RuntimeException('請求書発行失敗', previous: $e);
         }
 
         $billNumber = $this->extractBillNumberFromIssueResponse($issueRes);
         if ($billNumber === '') {
+            $issueError = $this->extractIssueBillErrorFromResponse($issueRes);
+            if ($issueError !== '') {
+                throw new RuntimeException("請求書発行失敗: {$issueError}");
+            }
             throw new RuntimeException('bulk_issue_bill_select did not return bill.number.');
         }
 
@@ -711,6 +721,36 @@ class IssueInvoiceService
 
     private function extractBillNumberFromIssueResponse(array $res): string
     {
+        if (isset($res['demand']) && is_array($res['demand'])) {
+            foreach ($res['demand'] as $demand) {
+                if (!is_array($demand)) {
+                    continue;
+                }
+
+                $salesList = $demand['sales'] ?? null;
+                if (!is_array($salesList)) {
+                    continue;
+                }
+
+                foreach ($salesList as $sales) {
+                    if (!is_array($sales)) {
+                        continue;
+                    }
+
+                    $bills = $sales['bill'] ?? null;
+                    if (!is_array($bills)) {
+                        continue;
+                    }
+
+                    foreach ($bills as $bill) {
+                        if (is_array($bill) && isset($bill['number']) && (string) $bill['number'] !== '') {
+                            return (string) $bill['number'];
+                        }
+                    }
+                }
+            }
+        }
+
         if (isset($res['bill']) && is_array($res['bill'])) {
             $first = $res['bill'][0] ?? null;
             if (is_array($first) && isset($first['number'])) {
@@ -727,6 +767,32 @@ class IssueInvoiceService
 
         if (isset($res['bill']) && is_array($res['bill']) && isset($res['bill']['number'])) {
             return (string) $res['bill']['number'];
+        }
+
+        return '';
+    }
+
+    private function extractIssueBillErrorFromResponse(array $res): string
+    {
+        $demands = $res['demand'] ?? null;
+        if (!is_array($demands)) {
+            return '';
+        }
+
+        foreach ($demands as $demand) {
+            if (!is_array($demand)) {
+                continue;
+            }
+
+            $errorCode = $demand['error_code'] ?? null;
+            if ($errorCode === null || $errorCode === '' || (string) $errorCode === '0') {
+                continue;
+            }
+
+            $errorMessage = (string) ($demand['error_message'] ?? '');
+            $code = (string) ($demand['code'] ?? '');
+
+            return "demand.code={$code} error_code={$errorCode} message={$errorMessage}";
         }
 
         return '';

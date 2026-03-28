@@ -228,7 +228,6 @@ class IssueInvoiceService
         $inv->save();
 
         $defaultBillingMethod = $this->resolveDemandBillingMethod();
-        $defaultBillTemplateCode = $this->resolveDemandBillTemplateCode((string) $inv->item_code);
 
         if ($attachBillingIndividual) {
             $billingPayload = $this->buildInitialBillingPayload($companyId, $billingCode, $billingIndividualCode);
@@ -246,7 +245,6 @@ class IssueInvoiceService
                         'city_address' => '千代田区千代田1-1',
                         'email' => $billingPayload['individual_email'],
                         'billing_method' => $defaultBillingMethod,
-                        'bill_template_code' => $defaultBillTemplateCode,
                     ]],
                 ]]);
             } catch (Throwable $e) {
@@ -351,7 +349,7 @@ class IssueInvoiceService
         $sendingMonthOffset = $this->calculateMonthOffset($baseMonthDate, $sendingDate);
         $deadlineMonthOffset = $this->calculateMonthOffset($baseMonthDate, $dueDate);
         $billingMethod = $defaultBillingMethod;
-        $billTemplateCode = $defaultBillTemplateCode;
+        $billTemplateCode = $this->resolveDemandBillTemplateCode((string) $inv->item_code);
 
         $demand = [
             'code' => $inv->demand_code,

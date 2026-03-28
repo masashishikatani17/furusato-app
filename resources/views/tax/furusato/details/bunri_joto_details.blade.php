@@ -489,7 +489,7 @@ document.addEventListener('DOMContentLoaded', function () {
 @push('styles')
 <style>
   /* 分離譲渡ページのHELPモーダルだけ */
-  #helpModalBunriJoto .modal-dialog { max-width: 550px; }
+  #helpModalBunriJoto .modal-dialog { max-width: 750px; }
   #helpModalBunriJoto .modal-content { font-family: inherit; font-size: 15px; }
   #helpModalBunriJoto .modal-body { padding-left: 2rem; padding-right: 2rem; }
 
@@ -518,8 +518,8 @@ document.addEventListener('DOMContentLoaded', function () {
         <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitleBunriJoto">HELP</h15>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body text-start">
-        <div id="helpModalBodyBunriJoto" style="white-space: normal;"></div>
+      <div class="modal-body text-start mt-0 ms-2 mb-2">
+        <div id="helpModalBodyBunriJoto" class="small" style="white-space: normal;"></div>
       </div>
     </div>
   </div>

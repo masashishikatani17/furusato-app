@@ -13,7 +13,7 @@
 @push('styles')
 <style>
   /* このページのHELPモーダルだけ：横幅・フォント・左右余白 */
-  #helpModalZatsu .modal-dialog { max-width: 550px; }
+  #helpModalZatsu .modal-dialog { max-width: 750px; }
   #helpModalZatsu .modal-content { font-family: inherit; font-size: 15px; }
   #helpModalZatsu .modal-body { padding-left: 2rem; padding-right: 2rem; }
 
@@ -464,14 +464,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 {{-- 共通HELPモーダル（雑所得ページ専用） --}}
 <div class="modal fade" id="helpModalZatsu" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog" style="max-width: 550px;">
+  <div class="modal-dialog" style="max-width: 750px;">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitleZatsu">HELP</h15>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body text-start">
-        <div id="helpModalBodyZatsu" style="white-space: normal;"></div>
+      <div class="modal-body text-start mt-0 ms-2 mb-2">
+        <div id="helpModalBodyZatsu" class="small" style="white-space: normal;"></div>
       </div>
     </div>
   </div>

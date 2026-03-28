@@ -157,9 +157,9 @@
           padding-right: 2rem;
         }
         
-        /* 横幅：最大幅550px */
+        /* 横幅：最大幅650px */
         #helpModalCommon .modal-dialog {
-          max-width: 550px;
+          max-width: 650px;
         }
         
         /* HELP本文の強調 */
@@ -938,8 +938,10 @@
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">短期譲渡</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                  <td class="text-center align-middle" rowspan="2">
+                    <button type="button" 
+                            class="btn-base-free-blue"
+                            style="height:32px;">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -953,9 +955,6 @@
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">長期譲渡</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
-                  </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                       foreach ($periods as $period) {
@@ -968,16 +967,15 @@
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1 pe-1" nowrap="nowrap">一般・上場株式の譲渡</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                  <td class="text-center align-middle" rowspan="2">
+                    <button type="button" 
+                            class="btn-base-free-blue"
+                            style="height:32px;">HELP</button>
                   </td>
                 {!! $renderSeparatedTb(['tb_ippan_kabuteki_joto','tb_jojo_kabuteki_joto'], $inputs) !!}
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">上場株式の配当等</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
-                  </td>
                 {!! $renderSeparatedTb('tb_jojo_kabuteki_haito', $inputs) !!}
               </tr>
               <tr>
@@ -1022,8 +1020,10 @@
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">短期譲渡</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                 <td class="text-center align-middle" rowspan="2">
+                    <button type="button" 
+                            class="btn-base-free-blue"
+                            style="height:32px;">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -1037,9 +1037,6 @@
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">長期譲渡</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
-                  </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                       foreach ($periods as $period) {
@@ -1052,8 +1049,10 @@
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">一般・上場株式の譲渡</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                  <td class="text-center align-middle" rowspan="2">
+                    <button type="button" 
+                            class="btn-base-free-blue"
+                            style="height:32px;">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -1067,9 +1066,6 @@
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">上場株式の配当等</th>
-                  <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
-                  </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                       foreach ($periods as $period) {
@@ -1354,19 +1350,27 @@
                 </tr>
                 <tr id="syunyu_row_kyuyo" data-anchor>
                   <th colspan="2" class="text-start align-middle ps-1">給与</th>
-                  <td class="text-center align-middle" rowspan="4">
+                  <td class="text-center align-middle">
                     <button type="button"
-                            class="btn-base-free-green js-open-details"
-                            style="height:67px;"
-                            data-redirect-to="kyuyo_zatsu"
-                            data-origin-subtab="sogo"
-                            data-origin-anchor="syunyu_row_kyuyo">内 訳</button>
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="kyuyo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
+                 
                   {!! $renderInputs('syunyu_kyuyo') !!}
                 </tr>
                 <tr>
                   <th rowspan="3" class="text-start align-middle ps-1">雑</th>
                   <th class="text-start align-middle th-ddd ps-1">公的年金等</th>
+                   <td class="text-center align-middle" rowspan="3">
+                    <button type="button"
+                            class="btn-base-free-green js-open-details"
+                            style="height:50px;"
+                            data-redirect-to="kyuyo_zatsu"
+                            data-origin-subtab="sogo"
+                            data-origin-anchor="syunyu_row_kyuyo">内 訳</button>
+                  </td>
                   {!! $renderInputs('syunyu_zatsu_nenkin') !!}
                 </tr>
                 <tr>
@@ -1460,19 +1464,26 @@
                 </tr>
                 <tr id="shotoku_row_kyuyo" data-anchor>
                   <th colspan="2" class="text-start align-middle ps-1">給与</th>
-                  <td class="text-center align-middle" rowspan="4">
+                  <td class="text-center align-middle">
                     <button type="button"
-                            class="btn-base-free-green js-open-details"
-                            style="height:68px;"
-                            data-redirect-to="kyuyo_zatsu"
-                            data-origin-subtab="sogo"
-                            data-origin-anchor="shotoku_row_kyuyo">内 訳</button>
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="kyuyo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                   {!! $renderInputs('shotoku_kyuyo') !!}
                 </tr>
                 <tr>
                   <th rowspan="3" class="text-start align-middle ps-1">雑</th>
                   <th class="text-start align-middle th-ddd ps-1">公的年金等</th>
+                  <td class="text-center align-middle" rowspan="3">
+                    <button type="button"
+                            class="btn-base-free-green js-open-details"
+                            style="height:50px;"
+                            data-redirect-to="kyuyo_zatsu"
+                            data-origin-subtab="sogo"
+                            data-origin-anchor="shotoku_row_kyuyo">内 訳</button>
+                  </td>
                   {!! $renderInputs('shotoku_zatsu_nenkin') !!}
                 </tr>
                 <tr>
@@ -3479,7 +3490,7 @@
           if (!bodyEl) return;
         
           if (dialogEl) {
-            dialogEl.style.maxWidth = (key === 'kisokojo') ? '720px' : '550px';
+            dialogEl.style.maxWidth = (key === 'kisokojo') ? '800px' : '650px';
           }
         
           if (htmlBody) {

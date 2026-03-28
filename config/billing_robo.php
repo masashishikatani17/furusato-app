@@ -7,7 +7,7 @@ return [
     // 支払手続きURL（画面に表示するだけ：ロボ側のURLに誘導）
     'payment_url' => (string) env('BILLING_ROBO_PAYMENT_URL', ''),
 
-    // API共通認証（ロボ仕様：user_id + access_key）
+    // API共通認証（ロボ仕様：user_id  access_key）
     'user_id' => (string) env('BILLING_ROBO_USER_ID', ''),
     'access_key' => (string) env('BILLING_ROBO_ACCESS_KEY', ''),
 
@@ -19,11 +19,19 @@ return [
     'bank_transfer_pattern_code' => (string) env('BILLING_ROBO_BANK_TRANSFER_PATTERN_CODE', '1'),
 
     // 請求方法
-    // 0:送付なし 1:自動メール 2:手動メール 3:自動郵送 4:手動郵送
-    // 5:自動メール+自動郵送 6:手動メール+手動郵送 7:自動マイページ 8:手動マイページ
-    // 初期は approval 依存を避けるため 2（手動メール）を既定にする
+    // 0:送付なし
+    // 1:自動メール
+    // 2:手動メール
+    // 3:自動郵送
+    // 4:手動郵送
+    // 5:自動メール+自動郵送
+    // 6:手動メール+手動郵送
+    // 7:自動マイページ
+    // 8:手動マイページ
+    // 初期は 2(手動メール) にしておく
     'billing_method' => (int) env('BILLING_ROBO_BILLING_METHOD', 2),
 
+    // 請求書テンプレートコード
     'bill_template_code' => (int) env('BILLING_ROBO_BILL_TEMPLATE_CODE', 10000),
 
     // 税（運用に合わせて後で調整）

@@ -51,10 +51,6 @@ class BillingRoboClient
             if ($this->hasApiError($errorCode)) {
                 $message = (string)($row['error_message'] ?? 'unknown billing error');
                 $code = (string)($row['code'] ?? '');
-                $nested = $this->collectNestedBillingErrors($row);
-                if ($nested !== '') {
-                    $message .= ' nested=' . $nested;
-                }
                 throw new RuntimeException("BillingRobo billingBulkUpsert failed: billing.code={$code} error_code={$errorCode} message={$message}");
             }
 
@@ -119,11 +115,7 @@ class BillingRoboClient
             if ($this->hasApiError($errorCode)) {
                 $message = (string)($row['error_message'] ?? 'unknown demand error');
                 $code = (string)($row['code'] ?? '');
-                $billingCode = (string)($row['billing_code'] ?? '');
-                $billingIndividualCode = (string)($row['billing_individual_code'] ?? '');
-                throw new RuntimeException(
-                    "BillingRobo demandBulkUpsert failed: billing_code={$billingCode} billing_individual_code={$billingIndividualCode} demand.code={$code} error_code={$errorCode} message={$message}"
-                );
+                throw new RuntimeException("BillingRobo demandBulkUpsert failed: demand.code={$code} error_code={$errorCode} message={$message}");
             }
         }
 
@@ -240,38 +232,5 @@ class BillingRoboClient
 
         $value = trim((string) $errorCode);
         return $value !== '' && $value !== '0';
-    }
-
-    private function collectNestedBillingErrors(array $row): string
-    {
-        $messages = [];
-
-        foreach (['individual' => 'billing.individual', 'payment' => 'billing.payment'] as $key => $label) {
-            $children = $row[$key] ?? null;
-            if (!is_array($children)) {
-                continue;
-            }
-
-            foreach ($children as $child) {
-                if (!is_array($child)) {
-                    continue;
-                }
-
-                $errorCode = $child['error_code'] ?? null;
-                if (!$this->hasApiError($errorCode)) {
-                    continue;
-                }
-
-                $messages[] = sprintf(
-                    '%s.code=%s error_code=%s message=%s',
-                    $label,
-                    (string) ($child['code'] ?? ''),
-                    (string) $errorCode,
-                    (string) ($child['error_message'] ?? 'unknown child error')
-                );
-            }
-        }
-
-        return implode(' | ', $messages);
     }
 }

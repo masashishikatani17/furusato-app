@@ -569,7 +569,7 @@
   /* このページのHELPモーダルだけ（2つ共通） */
   #helpModalSogoJoto, #helpModalIchiji { }
   #helpModalSogoJoto .modal-dialog,
-  #helpModalIchiji  .modal-dialog { max-width: 550px; }
+  #helpModalIchiji  .modal-dialog { max-width: 750px; }
   #helpModalSogoJoto .modal-content,
   #helpModalIchiji  .modal-content { font-family: inherit; font-size: 15px; }
   #helpModalSogoJoto .modal-body,
@@ -602,8 +602,8 @@
         <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitleSogoJoto">HELP</h15>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body text-start">
-        <div id="helpModalBodySogoJoto"></div>
+      <div class="modal-body text-start mt-0 ms-2 mb-2">
+        <div id="helpModalBodySogoJoto" class="small" style="white-space: normal;"></div>
       </div>
     </div>
   </div>
@@ -617,8 +617,8 @@
         <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitleIchiji">HELP</h15>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body text-start">
-        <div id="helpModalBodyIchiji"></div>
+      <div class="modal-body text-start mt-0 ms-2 mb-2">
+        <div id="helpModalBodyIchiji" class="small" style="white-space: normal;"></div>
       </div>
     </div>
   </div>

@@ -93,10 +93,6 @@ class IssueInvoiceService
         });
     }
 
-    /**
-     * 更新請求（renewal）を作成・発行する。
-     * 同一 subscription_id + 同一期間 に未取消の renewal がある場合は作成しない。
-     */
     public function issueRenewal(Subscription $sub, Carbon $issueDate): ?SubscriptionInvoice
     {
         $issueDate = $issueDate->copy()->tz('Asia/Tokyo')->startOfDay();
@@ -146,10 +142,6 @@ class IssueInvoiceService
         });
     }
 
-    /**
-     * 追加請求（add_quantity）を作成・発行する。
-     * subscriptions.quantity は入金確認後にのみ反映するため、ここでは変更しない。
-     */
     public function issueAddQuantity(Subscription $sub, int $addQuantity, Carbon $requestedAt): ?SubscriptionInvoice
     {
         $addQuantity = max(1, $addQuantity);
@@ -310,6 +302,7 @@ class IssueInvoiceService
             if ($paymentMethodCode === '') {
                 throw new RuntimeException('payment作成失敗: payment_method_code が取得できませんでした。');
             }
+
             $billingSetting = CompanyBillingSetting::query()->firstOrNew([
                 'company_id' => $companyId,
             ]);
@@ -332,7 +325,6 @@ class IssueInvoiceService
                 return $inv;
             }
 
-            // 5) individual へ既定決済を紐付け
             try {
                 $this->client->billingBulkUpsert([[
                     'code' => $billingCode,
@@ -355,6 +347,7 @@ class IssueInvoiceService
         $deadlineMonthOffset = $this->calculateMonthOffset($baseMonthDate, $dueDate);
         $billingMethod = $this->resolveDemandBillingMethod();
         $billTemplateCode = $this->resolveDemandBillTemplateCode((string) $inv->item_code);
+
         $demand = [
             'code' => $inv->demand_code,
             'billing_code' => $billingCode,
@@ -393,13 +386,23 @@ class IssueInvoiceService
                 'billing_code' => $billingCode,
                 'demand_payload' => $demand,
             ]);
+
             $demandRes = $this->client->demandBulkUpsert([$demand]);
+
             Log::info('BillingRobo demand create response', [
                 'company_id' => $companyId,
                 'billing_code' => $billingCode,
                 'raw_response' => $demandRes,
             ]);
         } catch (Throwable $e) {
+            $message = $e->getMessage();
+            if (str_contains($message, 'error_code=1334')) {
+                throw new RuntimeException(
+                    "ロボ側の商品/請求先部署の請求書テンプレート設定が不正です。item_code={$inv->item_code} の bill_template_code をロボ管理画面で確認してください。",
+                    previous: $e
+                );
+            }
+
             throw new RuntimeException('demand作成失敗', previous: $e);
         }
 
@@ -636,6 +639,7 @@ class IssueInvoiceService
 
         return $envTemplateCode;
     }
+
     private function resolveDemandBillingMethod(): int
     {
         $billingMethod = (int) config('billing_robo.billing_method', 2);
@@ -702,10 +706,6 @@ class IssueInvoiceService
         ];
     }
 
-    /**
-     * bulk_issue_bill_select のレスポンスから請求書番号を抽出
-     * 仕様差分に耐えるため複数パターンで見る。
-     */
     private function extractBillNumberFromIssueResponse(array $res): string
     {
         if (isset($res['bill']) && is_array($res['bill'])) {

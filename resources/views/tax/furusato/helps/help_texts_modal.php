@@ -23,6 +23,59 @@ return [
             . "\n"
             . "　このようなことから住民税のふるさと納税上限額を算定する場合は、上記のような様々な税額控除の有無を考慮する必要があるのです。\n",
     ],
+
+    'zasson_kojo' => [
+        'title' => '雑損控除',
+        'html'  => ''
+            . '<div class="help-text furu-help-line">　災害、盗難または横領によって資産に損害を受けた場合や、災害等に関連してやむを得ない支出をした場合に一定の金額を雑損控除して所得金額から控除できます。</div>'
+            . "\n"
+            . '<div class="help-text furu-help-line">　ここではこれ以上の解説はしませんが、該当する方はご自分で計算の上、雑損控除額を入力して下さい。</div>',
+    ],
+     
+    'kazei_shotoku_sogo' => [
+        'title' => '課税所得金額(総合課税)',
+        'html'  => ''
+            . '<div class="help-text furu-help-line">　所得金額等のうち最初に総合課税の所得から所得控除の額(所得から差し引かれる金額)を控除します。ここに表示されている課税所得金額(総合課税)は所得控除の額を控除した後の金額です。</div>'
+            . "\n"
+            . '<div class="help-text furu-help-line">　総合課税の所得より所得控除の額が大きくて控除しきれない場合には分離課税のうち税率の高い所得から控除するようになっています。</div>'
+            . '<div class="help-text furu-help-line">　ただし山林所得と退職所得に関しては所得金額に応じて適用税率が異なりますので、このシステムでは最後に適用するようになっています。</div>',
+    ],
+    
+    'gokei_chosei_mae_shotokuwari' => [
+        'title' => '合計(調整控除前所得割額)',
+        'html'  => ''
+            . '<div class="help-text furu-help-line">　総合課税所得に係る税額から退職所得に係る税額までの合計です。住民税については調整控除前所得割額という名称を使います。この額から一つ下にある調整控除の額を差し引きます。</div>'
+            . "\n"
+            . '<div class="help-text furu-help-line">内容については調整控除のヘルプに詳しい解説がありますので参考にして下さい。</div>',
+    ],
+    
+    'kijun_shotokuzei_gaku_shotokuwari' => [
+        'title' => '基準所得税額(所得割額)',
+        'html'  => ''
+            . '<div class="help-text furu-help-line">　上記、「合計(調整控除前所得割額)」から税額控除の額を差し引いた後の金額です。所得税では基準所得税額と言い、住民税では所得割額と言います。</div>',
+    ],
+
+    'fukkou_tokubetsu_shotokuzei_gaku' => [
+        'title' => '復興特別所得税額',
+        'html'  => ''
+            . '<div class="help-text furu-help-line">　所得税では上記、東日本大震災からの復興のための復興特別所得税として基準所得税額の2.1％が加算されます。令和19年12月31日までです。</div>',
+    ],
+
+    'zeigaku_gokei' => [
+        'title' => '合計',
+        'html'  => ''
+            . '<div class="help-text furu-help-line">　この「ふるさと名人」はふるさと納税の上限額を求めることがメインなので税額計算はここまでです。実際の申告書では源泉徴収税額や予定納税額を控除して納付税額まで計算します。</div>'
+            . "\n"
+            . '<div class="help-text furu-help-line">　また住民税では、ここで計算した所得割以外に均等割や森林環境税(国税)があります。</div>',
+    ],
+     
+
+
+
+
+
+
+
     
     'haitou_koujo' => [
         'title' => '配当控除',
@@ -84,7 +137,69 @@ return [
             . "　この農業については「営業等」や「不動産」のように入力するための別画面は用意していません。その理由は一部の大規模農家以外は規模がそれほど大きくはないこと、規模が大きい場合には農業法人を設立してそこから給与をもらっているところが多いことから収入金額や所得金額を直接入力するようにしました。\n"
             . "　規模がそれほど大きくないのに別画面でデータを入力するというのは面倒ではないかと考えた次第です。なお所得が赤字の場合には他の所得と損益通算できますので、数値の先頭にマイナス「－」を入れて下さい。\n"
     ],
-    
+
+
+    'taishoku' => [
+        'title' => '退職所得',
+        'html'  => ''
+            . '<div class="help-text furu-help-line">　ふるさと納税上限額を計算する場合、退職所得に関して所得税と住民税では次のように取り扱いが異なります。</div>'
+            . "\n"
+            . '<div class="furu-help-head">○税種別</div>'
+            . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">所得税</span></div>'
+            . '<div class="help-text furu-help-body">退職所得については通常、退職時点で課税関係が終了しますのでそれ以降は原則として登場することはないのですが、寄附金控除を受ける場合には登場してもらう必要があります。</div>'
+            . '<div class="help-text furu-help-body-last">というのも寄附金控除の上限額は総所得金額等の40％となっているのですが、この総所得金額等に退職所得も含まれるからです。これは医療費控除を受ける場合も同じです。</div>'
+            . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">住民税</span></div>'
+            . '<div class="help-text furu-help-body">所得税と同様、住民税でも退職所得については現年分離課税と言って退職時点で課税関係が終了します。ところが住民税の場合は寄附金税額控除の計算で分離課税の退職所得は含めません。</div>'
+            . '<div class="help-text furu-help-body-last">つまり所得税では退職所得に関する収入金額や所得金額を入力しますが、住民税ではゼロ(０)または空白とします。</div>'
+            . "\n"
+            . '<div class="help-text furu-help-line">　なお同じく退職所得でも下記の２つのケースは源泉分離課税ではなく総合課税の対象となります。これらについては事例が極めて少ないことから次回のバージョンアップ時に対応予定です。</div>'
+            . '<div class="help-text furu-help-item">　①所得税の源泉徴収義務のない事業主が支払う退職手当等の場合</div>'
+            . '<div class="help-text furu-help-item-last">　②退職手当等の支払を受けるべき日の属する年の１月１日現在、国内に住所を有しない場合</div>'
+            . "\n"
+            . '<div class="furu-help-head">○税額計算</div>'
+            . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">所得税</span></div>'
+            . '<div class="help-text furu-help-item mb-1">①「退職所得の受給に関する申告書」を提出した場合</div>'
+            . '<div class="help-text furu-help-formula-last">(収入金額 －退職所得控除額)×１/２×税額表の税率</div>'
+            . '<div class="help-text furu-help-item mb-1">②「退職所得の受給に関する届出書」を提出しなかった場合</div>'
+            . '<div class="help-text furu-help-formula">退職金×20.42%</div>'
+            . '<div class="help-text furu-help-note">※退職所得控除額は適用されませんし、２分の１をかけることもしません。退職金そのものに対して税率をかけて計算します。<br>　しかし、これはあくまで源泉徴収税額の計算方法であって確定申告するときは上記①で計算します。</div>'
+            . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">住民税</span></div>'
+            . '<div class="help-text furu-help-body-last">上記で説明したように住民税は関係ありませんので省略します。計算式自体は所得税の①と同じです。</div>'
+            . "\n"
+            . '<div class="furu-help-head">○インプット表に入力する金額</div>'
+            . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">収入金額等</span></div>'
+            . '<div class="help-text furu-help-body">所得税の欄に退職金そのものを入力します。寄附金控除を受けるためには上限額を計算する必要上、必ず入力して下さい。</div>'
+            . '<div class="help-text furu-help-body-last">上記で説明したように住民税の場合はゼロ(０)または空白とします。</div>'
+            . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">所得金額等</span></div>'
+            . '<div class="help-text furu-help-body-last">上記①で計算した所得を入力します。住民税の場合はゼロ(０)または空白とします。</div>'
+            . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">課税所得金額</span></div>'
+            . '<div class="help-text furu-help-body-last">所得金額等(総所得金額等)から所得控除の額(所得から差し引かれる金額)を差し引いて計算しますが、所定の順序に従ってコンピュータで自動計算します。</div>'
+            . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">税額計算</span></div>'
+            . '<div class="help-text furu-help-body">所得税の税額表に基づいてコンピュータで自動計算します。</div>',
+    ],
+     
+    'shakaihoken_kojo' => [
+        'title' => '社会保険料控除',
+        'html'  => ''
+            . '<div class="help-text furu-help-line">　自己または自己と生計を一にしている配偶者その他の親族の負担すべき社会保険料を支払った場合、または納税者の給与等から差し引かれた金額は全て所得から控除されます。</div>'
+            . '<div class="help-text furu-help-line">　給与等の額にあまり変動がない場合には前年度と同じ額を入力すればいいでしょう。</div>'
+            . "\n"
+            . '<div class="furu-help-head">○入力に当たってのポイント</div>'
+            . '<div class="help-text furu-help-item">①社会保険料控除の対象となるのは納税者本人が支払ったものに限ります。配偶者等の年金から控除されている介護保険料等は配偶者本人の所得からでしか控除できません。</div>'
+            . "\n"
+            . '<div class="help-text furu-help-item-last">②本年中に実際に支払った金額だけが対象となります。未納の社会保険料は対象となりません。</div>',
+    ],
+         
+
+    'shokibo_kyosai_kakekin_kojo' => [
+        'title' => '小規模企業共済等掛金控除',
+        'html'  => ''
+            . '<div class="help-text furu-help-line">　小規模企業共済等掛金を支払った場合、全額が所得から控除されます。取りあえず前年度と同じ額を入力すればいいでしょう。</div>'
+            . "\n"
+            . '<div class="furu-help-head">○入力に当たってのポイント</div>'
+            . '<div class="help-text furu-help-body">　社会保険料控除とは異なり小規模企業共済等掛金控除を受けられるのは共済契約者本人に限られます。</div>',
+    ],
+       
 'haitou' => [
     'title' => '配当（収入金額等）',
     'html'  => ''

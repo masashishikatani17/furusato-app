@@ -27,6 +27,11 @@ class IssueInvoiceService
 {
     private const BANK_TRANSFER_PAYMENT_METHOD = 0;
     private const CREDIT_PAYMENT_METHOD = 1;
+    private const ROBO_DEMAND_TYPE_ONE_TIME = 0;
+    private const ROBO_DEMAND_TYPE_RECURRING_FIXED = 1;
+    private const ROBO_REPETITION_PERIOD_NUMBER_ANNUAL = 12;
+    private const ROBO_REPETITION_PERIOD_UNIT_MONTH = 1;
+    private const ROBO_REPEAT_COUNT_UNLIMITED = 0;
 
     public function __construct(private BillingRoboClient $client)
     {
@@ -100,6 +105,18 @@ class IssueInvoiceService
         return DB::transaction(function () use ($sub, $issueDate) {
             $sub = Subscription::query()->lockForUpdate()->find((int) $sub->id);
             if (!$sub || empty($sub->term_end) || empty($sub->billing_code) || empty($sub->payment_method)) {
+                return null;
+            }
+
+            if ($this->isRoboManagedRecurringSubscription($sub)) {
+                Log::info('Skip local renewal because subscription is managed by BillingRobo recurring demand.', [
+                    'subscription_id' => (int) $sub->id,
+                    'company_id' => (int) $sub->company_id,
+                    'billing_code' => (string) $sub->billing_code,
+                    'payment_method' => (string) $sub->payment_method,
+                    'billing_robo_master_demand_code' => (string) ($sub->billing_robo_master_demand_code ?? ''),
+                ]);
+
                 return null;
             }
 
@@ -202,6 +219,7 @@ class IssueInvoiceService
         bool $attachBillingIndividual = false,
     ): SubscriptionInvoice {
         $this->assertSupportedPaymentMethod($paymentMethod);
+        $useRoboRecurringDemand = $this->shouldUseRoboRecurringDemand($kind, $paymentMethod);
 
         $billingIndividualCode = $billingCode . '-01';
         $paymentMethodCode = null;
@@ -355,14 +373,15 @@ class IssueInvoiceService
             'code' => $inv->demand_code,
             'billing_code' => $billingCode,
             'item_code' => $inv->item_code,
-            'type' => 0,
+            'type' => $useRoboRecurringDemand
+                ? self::ROBO_DEMAND_TYPE_RECURRING_FIXED
+                : self::ROBO_DEMAND_TYPE_ONE_TIME,
             'price' => (int) $inv->unit_price_yen,
             'quantity' => (int) $inv->quantity,
             'tax_category' => (int) config('billing_robo.tax_category'),
             'tax' => (int) config('billing_robo.tax'),
             'billing_method' => $billingMethod,
             'start_date' => Carbon::parse($periodStart, 'Asia/Tokyo')->format('Y/m/d'),
-            'period_format' => 0,
             'issue_month' => $issueMonthOffset,
             'issue_day' => $this->normalizeRoboDay($issueDate),
             'sending_month' => $sendingMonthOffset,
@@ -371,6 +390,14 @@ class IssueInvoiceService
             'deadline_day' => $this->normalizeRoboDay($dueDate),
             'bill_template_code' => $billTemplateCode,
         ];
+
+        if ($useRoboRecurringDemand) {
+            $demand['repetition_period_number'] = self::ROBO_REPETITION_PERIOD_NUMBER_ANNUAL;
+            $demand['repetition_period_unit'] = self::ROBO_REPETITION_PERIOD_UNIT_MONTH;
+            $demand['repeat_count'] = self::ROBO_REPEAT_COUNT_UNLIMITED;
+        } else {
+            $demand['period_format'] = 0;
+        }
 
         if ($attachBillingIndividual) {
             $demand['billing_individual_code'] = $billingIndividualCode;
@@ -397,6 +424,13 @@ class IssueInvoiceService
                 'billing_code' => $billingCode,
                 'raw_response' => $demandRes,
             ]);
+
+            if ($useRoboRecurringDemand) {
+                $this->markSubscriptionAsRoboManagedRecurring(
+                    subscriptionId: $subscriptionId,
+                    demandCode: $inv->demand_code,
+                );
+            }
         } catch (Throwable $e) {
             $message = $e->getMessage();
             if (str_contains($message, 'error_code=1334')) {
@@ -433,6 +467,25 @@ class IssueInvoiceService
         $inv->bill_number = $billNumber;
         $inv->status = 'issued';
         $inv->save();
+
+        try {
+            $billRes = $this->client->billSearchByNumber($billNumber);
+            Log::info('BillingRobo bill search response', [
+                'company_id' => $companyId,
+                'billing_code' => $billingCode,
+                'demand_code' => $inv->demand_code,
+                'bill_number' => $billNumber,
+                'raw_response' => $billRes,
+            ]);
+        } catch (Throwable $e) {
+            Log::warning('BillingRobo bill search failed after issue', [
+                'company_id' => $companyId,
+                'billing_code' => $billingCode,
+                'demand_code' => $inv->demand_code,
+                'bill_number' => $billNumber,
+                'exception_message' => $e->getMessage(),
+            ]);
+        }
 
         return $inv;
     }
@@ -662,6 +715,34 @@ class IssueInvoiceService
         }
 
         return $billingMethod;
+    }
+
+    private function shouldUseRoboRecurringDemand(string $kind, string $paymentMethod): bool
+    {
+        return $kind === 'initial' && $paymentMethod === 'bank_transfer';
+    }
+
+    private function markSubscriptionAsRoboManagedRecurring(int $subscriptionId, string $demandCode): void
+    {
+        $updated = Subscription::query()
+            ->whereKey($subscriptionId)
+            ->update([
+                'billing_robo_managed_recurring' => true,
+                'billing_robo_master_demand_code' => $demandCode,
+            ]);
+
+        if ($updated !== 1) {
+            Log::warning('Failed to mark subscription as BillingRobo recurring managed.', [
+                'subscription_id' => $subscriptionId,
+                'billing_robo_master_demand_code' => $demandCode,
+            ]);
+        }
+    }
+
+    private function isRoboManagedRecurringSubscription(Subscription $sub): bool
+    {
+        return (bool) ($sub->billing_robo_managed_recurring ?? false)
+            && trim((string) ($sub->billing_robo_master_demand_code ?? '')) !== '';
     }
 
     private function calculateMonthOffset(Carbon $baseDate, Carbon $targetDate): int

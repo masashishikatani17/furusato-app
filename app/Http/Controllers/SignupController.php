@@ -10,8 +10,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use Throwable;
 
 class SignupController extends Controller
@@ -32,6 +34,18 @@ class SignupController extends Controller
             'branch_name'  => ['required', 'string', 'max:255'],
             'owner_name'   => ['required', 'string', 'max:255'],
             'email'        => ['required', 'string', 'email:rfc,filter', 'regex:/^[^@\s]+@[^@\s]+\.[^@\s]+$/', 'max:255', 'unique:users,email'],
+            'tel' => [
+                'nullable',
+                'required_if:payment_method,クレジットカード',
+                'string',
+                'max:15',
+                function (string $attribute, mixed $value, \Closure $fail): void {
+                    $digits = preg_replace('/\D+/', '', (string) $value);
+                    if ($digits === null || !preg_match('/^\d{10,11}$/', $digits)) {
+                        $fail('電話番号は10桁または11桁の数字で入力してください。');
+                    }
+                },
+            ],
             'password'     => ['required', 'string', 'min:8', 'max:255', 'confirmed'],
             'payment_method' => ['required', 'string', Rule::in(['クレジットカード', '銀行振込'])],
             'quantity' => ['required', 'integer', 'min:1', 'max:999'],
@@ -43,6 +57,7 @@ class SignupController extends Controller
             'email.email'           => 'メールアドレスの形式が不正です。',
             'email.regex'           => 'メールアドレスの形式が不正です。',
             'email.unique'          => 'このメールアドレスは既に登録されています。',
+            'tel.required_if'       => 'クレジットカード登録には電話番号が必要です。',
             'password.required'     => 'パスワードを入力してください。',
             'password.confirmed'    => 'パスワード（確認）が一致しません。',
             'payment_method.required' => '支払方法を選択してください。',
@@ -57,6 +72,7 @@ class SignupController extends Controller
         $branchName  = trim((string) $validated['branch_name']);
         $ownerName   = trim((string) $validated['owner_name']);
         $email       = trim((string) $validated['email']);
+        $billingTel  = $this->normalizeTel((string) ($validated['tel'] ?? ''));
         $paymentUi   = trim((string) $validated['payment_method']);
         $quantity    = (int) ($validated['quantity'] ?? 1);
 
@@ -72,6 +88,7 @@ class SignupController extends Controller
         };
 
         $initialQuantity = max(1, min(999, (int)$quantity));
+        $createdCompanyId = null;
 
         try {
             DB::transaction(function () use (
@@ -79,10 +96,12 @@ class SignupController extends Controller
                 $branchName,
                 $ownerName,
                 $email,
+                $billingTel,
                 $validated,
                 $paymentMethod,
                 $initialQuantity,
-                $issuer
+                $issuer,
+                &$createdCompanyId
             ) {
                 $company = Company::create([
                     'name' => $companyName,
@@ -115,6 +134,11 @@ class SignupController extends Controller
                     [
                         'payment_method' => $paymentMethod,
                         'billing_code' => $billingCode,
+                        'billing_tel' => $billingTel !== '' ? $billingTel : null,
+                        'credit_register_status' => null,
+                        'credit_registered_at' => null,
+                        'credit_last_error_code' => null,
+                        'credit_last_error_message' => null,
                         'bank_account_type' => null,
                         'bank_code' => null,
                         'branch_code' => null,
@@ -124,6 +148,7 @@ class SignupController extends Controller
                 );
 
                 $issuer->issueInitial($company, $billingCode, $paymentMethod, $initialQuantity);
+                $createdCompanyId = (int) $company->id;
             });
         } catch (Throwable $e) {
             Log::error('Signup submit failed during initial billing flow.', [
@@ -141,6 +166,19 @@ class SignupController extends Controller
                     'signup' => 'お申し込み処理中にエラーが発生しました。入力内容をご確認のうえ、再度お試しください。',
                 ]);
         }
+        if ($paymentMethod === 'credit') {
+            if (!is_int($createdCompanyId) || $createdCompanyId <= 0) {
+                throw new RuntimeException('クレジットカード登録画面への遷移に必要な company_id が取得できませんでした。');
+            }
+
+            $creditRegistrationUrl = URL::temporarySignedRoute(
+                'billing.credit-card.show',
+                now()->addMinutes((int) config('billing_robo.credit_registration_link_expire_minutes', 1440)),
+                ['company' => $createdCompanyId]
+            );
+
+            return redirect()->to($creditRegistrationUrl);
+        }
 
         $paymentUrl = (string) config('billing_robo.payment_url', '');
         if ($paymentUrl !== '') {
@@ -157,5 +195,11 @@ class SignupController extends Controller
         $base = trim($companyName) . '|' . trim($branchName) . '|' . $companyId;
         $hash = strtoupper(substr(hash('sha256', $base), 0, 12));
         return 'FURU-' . $hash;
+    }
+
+    private function normalizeTel(string $value): string
+    {
+        $digits = preg_replace('/\D+/', '', trim($value));
+        return is_string($digits) ? $digits : '';
     }
 }

@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\BillingReceiptsController;
 use App\Http\Controllers\Admin\OwnerTransferController;
 use App\Http\Controllers\Admin\DataDownloadController;
 use App\Http\Controllers\Billing\SetupController;
+use App\Http\Controllers\Billing\CreditCardRegistrationController;
 use App\Http\Controllers\Admin\AuditLogsController;
 use App\Http\Controllers\Admin\InvitationsController;
 use App\Http\Controllers\SignupController;
@@ -58,6 +59,15 @@ Route::middleware([
 Route::middleware('guest')->group(function () {
     Route::get('/signup', [SignupController::class, 'show'])->name('signup.show');
     Route::post('/signup/submit', [SignupController::class, 'submit'])->name('signup.submit');
+
+Route::get('/billing/credit-card/register/{company}', [CreditCardRegistrationController::class, 'show'])
+    ->name('billing.credit-card.show')
+    ->middleware('signed');
+
+Route::post('/billing/credit-card/register/{company}', [CreditCardRegistrationController::class, 'store'])
+    ->name('billing.credit-card.store')
+    ->middleware('signed');
+
 });
 
 // ご利用停止中（subscription.active 保護外）

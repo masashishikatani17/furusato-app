@@ -524,3 +524,11 @@
           margin-bottom: 4px !important;
           line-height: 1.2 !important;
         }
+        
+        /* ※注記用（2行目以降をぶら下がり） */
+        #helpModalCommon #helpModalBody .help-text.furu-help-note-hanging {
+          padding-left: 2.5em !important;
+          text-indent: -1em !important;
+          margin-bottom: 4px !important;
+          line-height: 1.2 !important;
+        }

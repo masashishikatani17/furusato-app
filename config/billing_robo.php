@@ -34,6 +34,14 @@ return [
     // 請求書テンプレートコード
     'bill_template_code' => (int) env('BILLING_ROBO_BILL_TEMPLATE_CODE', 10000),
 
+    // クレジットカード登録（web決済フォーム）
+    // 契約時に発行された決済システムの店舗ID
+    'credit_aid' => (string) env('BILLING_ROBO_CREDIT_AID', ''),
+    'credit_registration_link_expire_minutes' => (int) env('BILLING_ROBO_CREDIT_REGISTRATION_LINK_EXPIRE_MINUTES', 1440),
+    'credit_jquery_js_url' => (string) env('BILLING_ROBO_CREDIT_JQUERY_JS_URL', 'https://credit.j-payment.co.jp/gateway/js/jquery.js'),
+    'credit_token_js_url' => (string) env('BILLING_ROBO_CREDIT_TOKEN_JS_URL', 'https://credit.j-payment.co.jp/gateway/js/CPToken.js'),
+    'credit_emv3ds_js_url' => (string) env('BILLING_ROBO_CREDIT_EMV3DS_JS_URL', 'https://credit.j-payment.co.jp/gateway/js/EMV3DSAdapter.js'),
+ 
     // 税（運用に合わせて後で調整）
     // tax_category: 0/1 等（ロボ仕様に合わせる）
     // tax: 10/8 等（ロボ仕様に合わせる）

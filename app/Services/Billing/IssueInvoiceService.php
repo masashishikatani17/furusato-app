@@ -98,6 +98,65 @@ class IssueInvoiceService
         });
     }
 
+    public function issueInitialCreditRecurringAfterRegistration(int $companyId): SubscriptionInvoice
+    {
+        return DB::transaction(function () use ($companyId) {
+            $sub = Subscription::query()
+                ->where('company_id', $companyId)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$sub || (string) $sub->payment_method !== 'credit' || empty($sub->billing_code) || empty($sub->term_start) || empty($sub->term_end)) {
+                throw new RuntimeException("クレジットカード登録後の請求作成対象 subscription が見つかりません。 company_id={$companyId}");
+            }
+
+            if ($this->isRoboManagedRecurringSubscription($sub)) {
+                $issued = SubscriptionInvoice::query()
+                    ->where('subscription_id', (int) $sub->id)
+                    ->where('kind', 'initial')
+                    ->where('status', 'issued')
+                    ->latest('id')
+                    ->first();
+
+                if ($issued instanceof SubscriptionInvoice) {
+                    return $issued;
+                }
+
+                throw new RuntimeException("既にBillingRobo管理の定期請求へ移行済みですが、issued invoice が見つかりません。 subscription_id={$sub->id}");
+            }
+
+            SubscriptionInvoice::query()
+                ->where('subscription_id', (int) $sub->id)
+                ->where('kind', 'initial')
+                ->where('status', 'pending')
+                ->whereNull('bill_number')
+                ->update([
+                    'status' => 'canceled',
+                ]);
+
+            $quantity = max(1, (int) $sub->quantity);
+            $issueDate = Carbon::now('Asia/Tokyo')->startOfDay();
+            $dueDate = $issueDate->copy()->addDays(7);
+
+            return $this->createAndIssueInvoice(
+                companyId: (int) $sub->company_id,
+                subscriptionId: (int) $sub->id,
+                kind: 'initial',
+                billingCode: (string) $sub->billing_code,
+                paymentMethod: 'credit',
+                quantity: $quantity,
+                unitPriceYen: 30000,
+                monthsCharged: 12,
+                amountYen: 30000 * $quantity,
+                periodStart: (string) $sub->term_start,
+                periodEnd: (string) $sub->term_end,
+                issueDate: $issueDate,
+                dueDate: $dueDate,
+                attachBillingIndividual: false,
+            );
+        });
+    }
+
     public function issueRenewal(Subscription $sub, Carbon $issueDate): ?SubscriptionInvoice
     {
         $issueDate = $issueDate->copy()->tz('Asia/Tokyo')->startOfDay();

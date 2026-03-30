@@ -63,6 +63,15 @@
               </td>
             </tr>
             <tr>
+              <th class="text-start ps-2 bg-ccc">電話番号</th>
+              <td class="text-start">
+                <input type="text" name="tel" class="form-control kana25 text-start"
+                       value="{{ old('tel') }}" maxlength="15" inputmode="tel" autocomplete="tel"
+                       placeholder="例）0312345678">
+                <div class="text-muted small mt-1">※ クレジットカードを選択する場合は必須です（10桁または11桁）</div>
+              </td>
+            </tr>
+            <tr>
               <th class="text-start ps-2 bg-ccc">パスワード</th>
               <td class="text-start">
                 <input type="password" name="password" class="form-control kana20 text-start"
@@ -112,43 +121,9 @@
                   <option value="クレジットカード" @selected(old('payment_method')==='クレジットカード')>クレジットカード</option>
                   <option value="銀行振込" @selected(old('payment_method')==='銀行振込')>銀行振込</option>
                 </select>
-              </td>
-            </tr>
-            <tr class="debit-field d-none">
-              <th class="bg-ccc">口座種別</th>
-              <td class="text-start">
-                <select name="bank_account_type" class="form-select" style="width: 200px;">
-                  <option value="">（選択してください）</option>
-                  <option value="1" @selected(old('bank_account_type')==='1')>普通</option>
-                  <option value="2" @selected(old('bank_account_type')==='2')>当座</option>
-                </select>
-              </td>
-            </tr>
-            <tr class="debit-field d-none">
-              <th class="bg-ccc">銀行コード</th>
-              <td class="text-start">
-                <input type="text" name="bank_code" class="form-control text-start" value="{{ old('bank_code') }}" inputmode="numeric" maxlength="4" style="width: 200px;">
-              </td>
-            </tr>
-            <tr class="debit-field d-none">
-              <th class="bg-ccc">支店コード</th>
-              <td class="text-start">
-                <input type="text" name="branch_code" class="form-control text-start" value="{{ old('branch_code') }}" inputmode="numeric" maxlength="5" style="width: 200px;">
-                <div class="text-muted small">通常銀行:3桁 / ゆうちょ銀行(9900):5桁</div>
-              </td>
-            </tr>
-            <tr class="debit-field d-none">
-              <th class="bg-ccc">口座番号</th>
-              <td class="text-start">
-                <input type="text" name="bank_account_number" class="form-control text-start" value="{{ old('bank_account_number') }}" inputmode="numeric" maxlength="8" style="width: 200px;">
-                <div class="text-muted small">通常銀行:7桁 / ゆうちょ銀行(9900):8桁</div>
-              </td>
-            </tr>
-            <tr class="debit-field d-none">
-              <th class="bg-ccc">口座名義</th>
-              <td class="text-start">
-                <input type="text" name="bank_account_name" class="form-control text-start" value="{{ old('bank_account_name') }}" maxlength="30" style="width: 300px;">
-                <div class="text-muted small">半角英大文字 / 半角カナ / 数字 / 空白 / 記号(- . / ( ) &)</div>
+                <div class="text-muted small mt-1">
+                  クレジットカードを選択した場合は、申込後にカード登録画面へ進みます。
+                </div>
               </td>
             </tr>
           </tbody>
@@ -168,6 +143,7 @@
             <tr><th class="text-start ps-2 bg-ccc">支店名</th><td id="confirm-branch" class="text-start ps-2"></td></tr>
             <tr><th class="text-start ps-2 bg-ccc">代表者名</th><td id="confirm-owner" class="text-start ps-2"></td></tr>
             <tr><th class="text-start ps-2 bg-ccc">メールアドレス</th><td id="confirm-email" class="text-start ps-2"></td></tr>
+            <tr><th class="text-start ps-2 bg-ccc">電話番号</th><td id="confirm-tel" class="text-start ps-2"></td></tr>
             <tr><th class="text-start ps-2 bg-ccc">申込内容</th><td id="confirm-plan" class="text-start ps-2"></td></tr>
             <tr><th class="text-start ps-2 bg-ccc">口数</th><td id="confirm-quantity" class="text-start ps-2"></td></tr>
             <tr><th class="text-start ps-2 bg-ccc">利用人数（席数）</th><td id="confirm-seats" class="text-start ps-2"></td></tr>
@@ -176,14 +152,7 @@
           </tbody>
         </table>
 
-        <div class="alert alert-info">
-          お支払い手続きURL：
-          @if (!empty($paymentUrl))
-            <a href="{{ $paymentUrl }}" target="_blank" rel="noopener noreferrer">{{ $paymentUrl }}</a>
-          @else
-            <span class="text-muted">（未設定：.env に BILLING_ROBO_PAYMENT_URL を設定してください）</span>
-          @endif
-        </div>
+        <div id="confirm-payment-guide" class="alert alert-info"></div>
       </div>
 
       <hr>
@@ -209,6 +178,7 @@
   (function () {
     const steps = [1,2,3];
     let current = 1;
+    const paymentUrl = @json($paymentUrl ?? '');
 
     const elStep = (n) => document.getElementById(`step-${n}`);
     const btnPrev = document.getElementById('btn-prev');
@@ -218,20 +188,8 @@
     const form = document.getElementById('signup-form');
     const paymentMethodEl = document.getElementById('payment-method');
 
-    const isDebit = () => (paymentMethodEl?.value || '') === 'キャッシュカード';
-
-    const syncDebitFieldVisibility = () => {
-      const debitRows = form.querySelectorAll('.debit-field');
-      const show = isDebit();
-      debitRows.forEach((row) => row.classList.toggle('d-none', !show));
-
-      const requiredNames = ['bank_account_type', 'bank_code', 'branch_code', 'bank_account_number', 'bank_account_name'];
-      requiredNames.forEach((name) => {
-        const el = form.querySelector(`[name="${name}"]`);
-        if (!el) return;
-        el.toggleAttribute('required', show);
-      });
-    };
+    const isCredit = () => (paymentMethodEl?.value || '') === 'クレジットカード';
+    const normalizeTel = (value) => String(value || '').replace(/\D+/g, '');
 
     // 指定step内の「最初に invalid な要素」を返す（なければnull）
     const firstInvalidInStep = (stepNo) => {
@@ -243,9 +201,7 @@
       for (const el of fields) {
         if (!el) continue;
         if (el.type === 'hidden') continue;
-        // disabled は対象外
         if (el.disabled) continue;
-        // required/minlength/type=email など HTML属性の妥当性チェックを利用
         if (typeof el.checkValidity === 'function' && !el.checkValidity()) {
           return el;
         }
@@ -258,7 +214,6 @@
       const inv = firstInvalidInStep(1);
       if (inv) {
         show(1);
-        // reportValidity でブラウザのメッセージを表示
         if (typeof inv.reportValidity === 'function') inv.reportValidity();
         inv.focus();
         return false;
@@ -292,9 +247,8 @@
       return true;
     };
 
-    // Step2の追加検証（quantity範囲）
+    // Step2の追加検証（quantity範囲 + クレカ時の電話番号）
     const validateStep2OrFocus = () => {
-      syncDebitFieldVisibility();
       const inv = firstInvalidInStep(2);
       if (inv) {
         show(2);
@@ -315,28 +269,17 @@
         return false;
       }
 
-      if (isDebit()) {
-        const bankCode = String((form.querySelector('[name="bank_code"]')?.value || '')).trim();
-        const branchCode = String((form.querySelector('[name="branch_code"]')?.value || '')).trim();
-        const accountNumber = String((form.querySelector('[name="bank_account_number"]')?.value || '')).trim();
-        const expectedBranch = bankCode === '9900' ? 5 : 3;
-        const expectedAccount = bankCode === '9900' ? 8 : 7;
-
-        if (branchCode.length !== expectedBranch) {
-          const el = form.querySelector('[name="branch_code"]');
-          el?.setCustomValidity(bankCode === '9900' ? 'ゆうちょ銀行の支店コードは5桁で入力してください。' : '支店コードは3桁で入力してください。');
-          el?.reportValidity?.();
-          el?.focus?.();
-          el?.setCustomValidity('');
-          return false;
-        }
-
-        if (accountNumber.length !== expectedAccount) {
-          const el = form.querySelector('[name="bank_account_number"]');
-          el?.setCustomValidity(bankCode === '9900' ? 'ゆうちょ銀行の口座番号は8桁で入力してください。' : '口座番号は7桁で入力してください。');
-          el?.reportValidity?.();
-          el?.focus?.();
-          el?.setCustomValidity('');
+      if (isCredit()) {
+        const telEl = form.querySelector('[name="tel"]');
+        const tel = normalizeTel(telEl ? telEl.value : '');
+        if (!/^\d{10,11}$/.test(tel)) {
+          show(1);
+          if (telEl) {
+            telEl.setCustomValidity('電話番号は10桁または11桁の数字で入力してください。');
+            telEl.reportValidity?.();
+            telEl.focus();
+            telEl.setCustomValidity('');
+          }
           return false;
         }
       }
@@ -370,7 +313,6 @@
       btnSubmit.classList.toggle('d-none', n !== 3);
 
       if (n === 3) {
-        // confirm 表示
         const get = (name) => {
           const el = form.querySelector(`[name="${name}"]`);
           return el ? (el.value || '') : '';
@@ -379,59 +321,41 @@
         document.getElementById('confirm-branch').textContent = get('branch_name');
         document.getElementById('confirm-owner').textContent = get('owner_name');
         document.getElementById('confirm-email').textContent = get('email');
+        document.getElementById('confirm-tel').textContent = get('tel');
         document.getElementById('confirm-plan').textContent = '5人プラン（年額30,000円）';
         const q = Number(get('quantity') || 0);
         const quantity = (!Number.isFinite(q) || q < 1) ? 1 : Math.min(999, Math.floor(q));
         document.getElementById('confirm-quantity').textContent = String(quantity);
         document.getElementById('confirm-seats').textContent = yen(quantity * 5);
         document.getElementById('confirm-price').textContent = yen(quantity * 30000) + '円';
-        document.getElementById('confirm-payment').textContent = get('payment_method');
-      }
-    };
+        const payment = get('payment_method');
+        document.getElementById('confirm-payment').textContent = payment;
 
-    const validateStep1 = () => {
-      const required = ['company_name','branch_name','owner_name','email','password','password_confirmation'];
-      for (const k of required) {
-        const el = form.querySelector(`[name="${k}"]`);
-        if (!el || !el.value) return false;
-      }
-      if (form.querySelector('[name="password"]').value !== form.querySelector('[name="password_confirmation"]').value) {
-        return false;
-      }
-      return true;
-    };
-
-    const validateStep2 = () => {
-      const required = ['quantity','payment_method'];
-      for (const k of required) {
-        const el = form.querySelector(`[name="${k}"]`);
-        if (!el || !el.value) return false;
-      }
-      const qEl = form.querySelector('[name="quantity"]');
-      const q = qEl ? Number(qEl.value || 0) : 0;
-      if (!Number.isFinite(q) || q < 1 || q > 999) return false;
-
-      if (isDebit()) {
-        const debitRequired = ['bank_account_type', 'bank_code', 'branch_code', 'bank_account_number', 'bank_account_name'];
-        for (const key of debitRequired) {
-          const el = form.querySelector(`[name="${key}"]`);
-          if (!el || !el.value) return false;
+        const guideEl = document.getElementById('confirm-payment-guide');
+        if (guideEl) {
+          if (payment === 'クレジットカード') {
+            guideEl.innerHTML = 'お申し込み後、クレジットカード登録画面へ進みます。<br>カード登録完了後に年次定期の請求情報を作成します。';
+          } else if (payment === '銀行振込') {
+            guideEl.innerHTML = paymentUrl
+              ? `お申し込み後、銀行振込の年次定期請求情報を作成します。<br>参考URL：<a href="${paymentUrl}" target="_blank" rel="noopener noreferrer">${paymentUrl}</a>`
+              : 'お申し込み後、銀行振込の年次定期請求情報を作成します。';
+          } else {
+            guideEl.textContent = '';
+          }
         }
       }
-
-      return true;
     };
 
     btnPrev.addEventListener('click', () => show(Math.max(1, current - 1)));
     btnNext.addEventListener('click', () => {
-      if (current === 1 && !validateStep1()) return;
-      if (current === 2 && !validateStep2()) return;
+      if (current === 1 && !validateStep1OrFocus()) return;
+      if (current === 2 && !validateStep2OrFocus()) return;
       show(Math.min(3, current + 1));
     });
 
     // 初期表示
-    syncDebitFieldVisibility();
     show(1);
+
     // 口数プレビュー
     const qEl = form.querySelector('[name="quantity"]');
     if (qEl) {
@@ -439,12 +363,9 @@
       updatePreview();
     }
 
-    paymentMethodEl?.addEventListener('change', syncDebitFieldVisibility);
-
     // submit時：ブラウザ標準バリデーション（focus不可エラー）を避けるために
     // ここで必ず Step1/2 を検証し、NGなら該当stepへ戻してフォーカスする
     form.addEventListener('submit', (e) => {
-      // 送信直前に自前検証
       if (!validateStep1OrFocus()) {
         e.preventDefault();
         return;
@@ -453,7 +374,6 @@
         e.preventDefault();
         return;
       }
-      // ここまで来たらOK（novalidateなので form.submit() は通常通り進む）
     });
   })();
 </script>

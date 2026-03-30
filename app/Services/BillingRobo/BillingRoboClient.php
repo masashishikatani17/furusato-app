@@ -184,6 +184,71 @@ class BillingRoboClient
     }
 
     /**
+     * billing_payment_method/search
+     * @param array<string,mixed> $criteria
+     * @return array<string,mixed>
+     */
+    public function billingPaymentMethodSearch(array $criteria): array
+    {
+        $res = $this->postJson('/api/v1.0/billing_payment_method/search', [
+            'limit_count' => 20,
+            'page_count' => 0,
+            'billing_payment_method' => $criteria,
+        ]);
+
+        $rows = $res['billing_payment_method'] ?? null;
+        if (!is_array($rows)) {
+            throw new RuntimeException('BillingRobo billingPaymentMethodSearch response does not contain billing_payment_method array.');
+        }
+
+        foreach ($rows as $idx => $row) {
+            if (!is_array($row)) {
+                throw new RuntimeException("BillingRobo billingPaymentMethodSearch response billing_payment_method[{$idx}] is invalid.");
+            }
+
+            $errorCode = $row['error_code'] ?? null;
+            if ($this->hasApiError($errorCode)) {
+                $message = (string) ($row['error_message'] ?? 'unknown billing payment method error');
+                $code = (string) ($row['code'] ?? '');
+                throw new RuntimeException("BillingRobo billingPaymentMethodSearch failed: billing_payment_method.code={$code} error_code={$errorCode} message={$message}");
+            }
+        }
+
+        return $res;
+    }
+
+    /**
+     * billing_payment_method/credit_card_token
+     * @return array<string,mixed>
+     */
+    public function creditCardTokenRegister(
+        string $billingCode,
+        string $billingPaymentMethodCode,
+        string $token,
+        string $email,
+        string $tel
+    ): array {
+        $res = $this->postJson('/api/v1.0/billing_payment_method/credit_card_token', [
+            'billing_code' => $billingCode,
+            'billing_payment_method_code' => $billingPaymentMethodCode,
+            'token' => $token,
+            'email' => $email,
+            'tel' => $tel,
+        ]);
+
+        $error = $res['error'] ?? null;
+        if (is_array($error)) {
+            $code = trim((string) ($error['code'] ?? ''));
+            $message = trim((string) ($error['message'] ?? ''));
+            if ($code !== '' || $message !== '') {
+                throw new RuntimeException("BillingRobo creditCardTokenRegister failed: code={$code} message={$message}");
+            }
+        }
+
+        return $res;
+    }
+
+    /**
      * 共通POST（JSON）
      * @param string $path
      * @param array<string,mixed> $payload

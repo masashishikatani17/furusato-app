@@ -25,6 +25,8 @@ class Subscription extends Model
         'quantity_next',
         'cancel_at_term_end',
         'requested_at',
+        'billing_robo_managed_recurring',
+        'billing_robo_master_demand_code',
     ];
 
     protected $casts = [
@@ -35,6 +37,7 @@ class Subscription extends Model
         'last_synced_at' => 'datetime',
         'requested_at' => 'datetime',
         'cancel_at_term_end' => 'boolean',
+        'billing_robo_managed_recurring' => 'boolean',
     ];
 
     public function company(): BelongsTo

@@ -439,5 +439,88 @@
       .pe-10 { padding-right: 48px !important; }
       .pe-11 { padding-right: 52px !important; }
       
-      
-  
+/* ======================================
+ * ふるさとHELPモーダル専用
+ * - 退職所得などの長文HELP用
+ * ====================================== */
+
+        /* HELP本文の基本行間 */
+        #helpModalCommon #helpModalBody .help-text.furu-help-line {
+          line-height: 1.2 !important;
+          margin-bottom: 4px !important;
+        }
+        
+        /* ○見出し（紺色・太字） */
+        #helpModalCommon #helpModalBody .furu-help-head {
+          margin-left: 0 !important;
+          margin-bottom: 2px !important;
+          line-height: 1.2 !important;
+          font-weight: 700 !important;
+          color: #192C4B !important;
+        }
+        
+        /* ★見出しの行全体（○見出しより一段右へ） */
+        #helpModalCommon #helpModalBody .help-text.furu-help-star {
+          padding-left: 1.5em !important;
+          margin-top: 5px !important;
+          margin-bottom: 2px !important;
+          line-height: 1.2 !important;
+        }
+        
+        /* ★の後ろの赤文字 */
+        #helpModalCommon #helpModalBody .furu-help-star-label {
+          color: #701616 !important;
+          font-weight: 700 !important;
+        }
+        
+        /* 1段下げ本文 */
+        #helpModalCommon #helpModalBody .help-text.furu-help-body {
+          padding-left: 2.5em !important;
+          margin-bottom: 2px !important;
+          line-height: 1.2 !important;
+        }
+        
+        /* 1段下げ本文（段落末尾を少し広め） */
+        #helpModalCommon #helpModalBody .help-text.furu-help-body-last {
+          padding-left: 2.5em !important;
+          margin-bottom: 4px !important;
+          line-height: 1.2 !important;
+        }
+        
+        /* 番号付き行（①②など） */
+        #helpModalCommon #helpModalBody .help-text.furu-help-item {
+          padding-left: 4em !important;
+          text-indent: -1em !important;
+          margin-top: 2px !important;
+          margin-bottom: 1px !important;
+          line-height: 1.2 !important;
+        }
+        
+        /* 番号付き行の末尾 */
+        #helpModalCommon #helpModalBody .help-text.furu-help-item-last {
+          padding-left: 4em !important;
+          text-indent: -1em !important;
+          margin-bottom: 4px !important;
+          line-height: 1.2 !important;
+        }
+        
+        /* 数式・補足のさらに下げた行 */
+        #helpModalCommon #helpModalBody .help-text.furu-help-formula {
+          padding-left: 5em !important;
+          margin-bottom: 2px !important;
+          line-height: 1.2 !important;
+        }
+        
+        /* 数式・補足の末尾 */
+        #helpModalCommon #helpModalBody .help-text.furu-help-formula-last {
+          padding-left: 5em !important;
+          margin-bottom: 4px !important;
+          line-height: 1.2 !important;
+        }
+        
+        /* 長めの補足注記 */
+        #helpModalCommon #helpModalBody .help-text.furu-help-note {
+          padding-left: 5em !important;
+          margin-bottom: 4px !important;
+          line-height: 1.2 !important;
+        }

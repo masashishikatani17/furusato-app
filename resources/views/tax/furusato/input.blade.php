@@ -783,7 +783,11 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="taishoku"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {!! $renderInputs('bunri_syunyu_taishoku') !!}
               </tr>
@@ -873,7 +877,11 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="taishoku"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {!! $renderInputs('bunri_shotoku_taishoku') !!}
               </tr>
@@ -924,7 +932,11 @@
                 </th>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">総合課税</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                   <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="kazei_shotoku_sogo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -995,7 +1007,11 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                   <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="taishoku"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {!! $renderSeparatedTb('tb_taishoku', $inputs) !!}
               </tr>
@@ -1109,7 +1125,11 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">退職</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="taishoku"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -1122,7 +1142,14 @@
                 @endphp
               </tr>
               <tr class="js-bold-row">
-                <th scope="row" colspan="4" class="align-middle text-center th-cream">合計(調整控除前所得割額)</th>
+                <th scope="row" colspan="3" class="align-middle text-center th-cream">合計(調整控除前所得割額)</th>
+                <td class="text-center align-middle">
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="gokei_chosei_mae_shotokuwari"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
+                  </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
                       foreach ($periods as $period) {
@@ -1260,19 +1287,34 @@
                 </th>
                 <th colspan="2" class="text-start align-middle ps-1">基準所得税額(所得割額)</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="kijun_shotokuzei_gaku_shotokuwari"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {!! $renderInputs('tax_kijun') !!}
               </tr>
               <tr>
                 <th colspan="2" class="text-start align-middle ps-1">復興特別所得税額</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="fukkou_tokubetsu_shotokuzei_gaku"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {!! $renderInputs('tax_fukkou') !!}
               </tr>
               <tr class="js-bold-row">
-                <th colspan="3" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
+                <th colspan="2" class="align-middle th-cream">合&nbsp;&nbsp;&nbsp;&nbsp;計</th>
+                <td class="text-center align-middle">
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="zeigaku_gokei"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
+                  </td>
                 {!! $renderInputs('tax_gokei') !!}
               </tr>
             @endif
@@ -1529,14 +1571,22 @@
                   </th>
                   <th colspan="3" class="text-start align-middle ps-1">社会保険料控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="shakaihoken_kojo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                   {!! $renderInputs('kojo_shakaihoken') !!}
                 </tr>
                 <tr>
                   <th colspan="3" class="text-start align-middle ps-1 pe-1" nowrap="nowrap">小規模企業共済等掛金控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="shokibo_kyosai_kakekin_kojo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                   {!! $renderInputs('kojo_shokibo') !!}
                 </tr>
@@ -1614,7 +1664,11 @@
                 <tr>
                   <th colspan="3" class="text-start align-middle ps-1">雑損控除</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                     <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="zasson_kojo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                   {!! $renderInputs('kojo_zasson') !!}
                 </tr>
@@ -3490,7 +3544,7 @@
           if (!bodyEl) return;
         
           if (dialogEl) {
-            dialogEl.style.maxWidth = (key === 'kisokojo') ? '800px' : '650px';
+            dialogEl.style.maxWidth = (key === 'kisokojo' || key === 'taishoku') ? '800px' : '650px';
           }
         
           if (htmlBody) {

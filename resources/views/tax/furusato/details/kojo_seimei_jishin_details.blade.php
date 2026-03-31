@@ -25,7 +25,7 @@
       </ul>
     </div>
   @endif
-　 <div class="card-body mx-3 mb-3 mt-2">
+　 <div class="card-body mx-3 mb-2 mt-2">
       <form method="POST" action="{{ route('furusato.details.kojo_seimei_jishin.save') }}">
         @csrf
         <input type="hidden" name="data_id" value="{{ $dataId }}">

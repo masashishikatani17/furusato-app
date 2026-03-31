@@ -28,8 +28,15 @@ return [
     // 6:手動メール+手動郵送
     // 7:自動マイページ
     // 8:手動マイページ
-    // 初期は 2(手動メール) にしておく
-    'billing_method' => (int) env('BILLING_ROBO_BILLING_METHOD', 2),
+    // 初期は 1(自動メール)
+    'billing_method' => (int) env('BILLING_ROBO_BILLING_METHOD', 1),
+
+    // 年次定期契約の基準設定
+    'fiscal_year_start_month' => (int) env('BILLING_ROBO_FISCAL_YEAR_START_MONTH', 4),
+    'bank_transfer_recurring_issue_day' => (int) env('BILLING_ROBO_BANK_TRANSFER_RECURRING_ISSUE_DAY', 15),
+    'credit_recurring_issue_day' => (int) env('BILLING_ROBO_CREDIT_RECURRING_ISSUE_DAY', 25),
+    'recurring_deadline_day' => (int) env('BILLING_ROBO_RECURRING_DEADLINE_DAY', 99),
+    'payment_grace_period_days' => (int) env('BILLING_ROBO_PAYMENT_GRACE_PERIOD_DAYS', 7),
 
     // 請求書テンプレートコード
     'bill_template_code' => (int) env('BILLING_ROBO_BILL_TEMPLATE_CODE', 10000),

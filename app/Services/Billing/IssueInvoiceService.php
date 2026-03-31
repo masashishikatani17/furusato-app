@@ -285,6 +285,29 @@ class IssueInvoiceService
         $paymentRegisterStatus = null;
         $paymentCod = null;
 
+        $shouldUseSavedBillingReference = !$attachBillingIndividual
+            && $kind === 'initial'
+            && $paymentMethod === 'credit';
+
+        if ($shouldUseSavedBillingReference) {
+            $existingBillingSetting = CompanyBillingSetting::query()
+                ->where('company_id', $companyId)
+                ->first();
+
+            if ($existingBillingSetting instanceof CompanyBillingSetting) {
+                $savedBillingIndividualCode = trim((string) ($existingBillingSetting->billing_individual_code ?? ''));
+                $savedPaymentMethodCode = trim((string) ($existingBillingSetting->payment_method_code ?? ''));
+
+                if ($savedBillingIndividualCode !== '') {
+                    $billingIndividualCode = $savedBillingIndividualCode;
+                }
+
+                if ($savedPaymentMethodCode !== '') {
+                    $paymentMethodCode = $savedPaymentMethodCode;
+                }
+            }
+        }
+
         $inv = new SubscriptionInvoice();
         $inv->company_id = $companyId;
         $inv->subscription_id = $subscriptionId;
@@ -458,12 +481,15 @@ class IssueInvoiceService
             $demand['period_format'] = 0;
         }
 
-        if ($attachBillingIndividual) {
+        if ($attachBillingIndividual || $shouldUseSavedBillingReference) {
+            if (trim((string) $billingIndividualCode) === '') {
+                throw new RuntimeException('demand作成失敗: billing_individual_code が未確定です。');
+            }
             $demand['billing_individual_code'] = $billingIndividualCode;
         }
 
-        if ($attachBillingIndividual) {
-            if (!is_string($paymentMethodCode) || $paymentMethodCode === '') {
+        if ($attachBillingIndividual || $shouldUseSavedBillingReference) {
+            if (!is_string($paymentMethodCode) || trim($paymentMethodCode) === '') {
                 throw new RuntimeException('demand作成失敗: payment_method_code が未確定です。');
             }
             $demand['payment_method_code'] = $paymentMethodCode;
@@ -778,7 +804,8 @@ class IssueInvoiceService
 
     private function shouldUseRoboRecurringDemand(string $kind, string $paymentMethod): bool
     {
-        return $kind === 'initial' && $paymentMethod === 'bank_transfer';
+        return $kind === 'initial'
+            && in_array($paymentMethod, ['bank_transfer', 'credit'], true);
     }
 
     private function markSubscriptionAsRoboManagedRecurring(int $subscriptionId, string $demandCode): void

@@ -455,6 +455,11 @@
                       data-disable-on-submit>再計算</button>
             </div>
             <div class="d-flex">
+             <button type="button"
+                      class="btn-base-blue me-2 js-help-btn"
+                      data-help-key="jinteki_hikaku"
+                      data-bs-toggle="modal"
+                      data-bs-target="#helpModalCommon">所得税と住民税の人的控除額の比較</button>
               <button type="submit" class="btn-base-blue" id="btn-back">戻 る</button>
             </div>
           </div>
@@ -520,7 +525,7 @@ document.addEventListener('click', function (e) {
   if (!bodyEl) return;
 
   if (dialogEl) {
-    const wideKeys = ['kafu_hitorioya', 'fuyo', 'tokutei_shinzoku_tokubetsu'];
+    const wideKeys = ['kafu_hitorioya', 'fuyo', 'tokutei_shinzoku_tokubetsu', 'jinteki_hikaku'];
     dialogEl.style.maxWidth = wideKeys.includes(key) ? '800px' : '650px';
   }
 

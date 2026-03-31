@@ -7,6 +7,8 @@
   $inputs = $out['inputs'] ?? [];
   $warekiPrevLabel = $warekiPrev ?? '前年';
   $warekiCurrLabel = $warekiCurr ?? '当年';
+  $helpPath = resource_path('views/tax/furusato/helps/help_kojo_tokubetsu_jutaku_loan_modal.php');
+  $HELP_TEXTS = file_exists($helpPath) ? require $helpPath : [];
   // 画面表示値はサーバ側 inputs のみを参照（old() は使用しない）
   $sv = function (string $key, $default = '') use ($inputs) {
       $v = $inputs[$key] ?? null;
@@ -133,7 +135,11 @@
                     onclick="document.getElementById('stay-on-details').value='1'">再計算</button>
           </div>
           <div class="d-flex">       
-          {{-- 戻る：input に遷移（第一表 #tax_jutaku） --}}
+            <button type="button"
+                  class="btn-base-blue me-2 js-help-btn"
+                  data-help-key="jutaku_loan_tokubetsu_kojo"
+                  data-bs-toggle="modal"
+                  data-bs-target="#helpModalCommon">HELP</button>
             <button type="submit"
                     class="btn-base-blue"
                     name="redirect_to"
@@ -144,6 +150,27 @@
       </form>
   </div>
 </div>
+
+{{-- ============================
+   HELP出力モーダル（住宅借入金等特別控除画面専用）
+   ============================ --}}
+<div class="modal fade" id="helpModalCommon" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog" style="max-width: 650px;">
+    <div class="modal-content">
+      <div class="modal-header mb-0">
+        <button type="button" class="btn btn-vp me-2">HELP</button><h15 class="modal-title" id="helpModalTitle">HELP</h15>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-start mt-0 ms-2 mb-2">
+        <div id="helpModalBody" class="small" style="white-space: pre-wrap;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.__PAGE_HELP_TEXTS__ = @json($HELP_TEXTS, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+</script>
 @endsection
 
 @push('scripts')
@@ -191,8 +218,91 @@
     });
   });
 </script>
+<script>
+document.addEventListener('click', function (e) {
+  const btn = e.target.closest('.js-help-btn');
+  if (!btn) return;
+
+  const key  = btn.getAttribute('data-help-key') || '';
+  const dict = window.__PAGE_HELP_TEXTS__ || {};
+  const item = dict[key] || {};
+
+  const title    = item.title || 'HELP';
+  const htmlBody = (typeof item.html === 'string') ? item.html : '';
+  const body     = (typeof item.body === 'string') ? item.body : '';
+  const image    = (typeof item.image === 'string') ? item.image : '';
+
+  const titleEl  = document.getElementById('helpModalTitle');
+  const bodyEl   = document.getElementById('helpModalBody');
+  const modalEl  = document.getElementById('helpModalCommon');
+  const dialogEl = modalEl ? modalEl.querySelector('.modal-dialog') : null;
+
+  if (titleEl) {
+    titleEl.textContent = title;
+  }
+  if (!bodyEl) return;
+
+  if (dialogEl) {
+    dialogEl.style.maxWidth = '650px';
+  }
+
+  if (htmlBody) {
+    bodyEl.innerHTML = htmlBody;
+    return;
+  }
+
+  const escapeHtml = function (str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  let html = '';
+
+  if (image) {
+    html += ''
+      + '<div style="text-align:center; margin:0 0 12px 0;">'
+      +   '<img src="' + image + '"'
+      +        ' alt="' + escapeHtml(title) + '"'
+      +        ' style="max-width:100%; height:auto; border:1px solid #ccc;">'
+      + '</div>';
+  }
+
+  html += escapeHtml(body)
+    .replace(/^○([^\n\r]+)/gm, '<strong>○$1</strong>')
+    .replace(/\n/g, '<br>');
+
+  bodyEl.innerHTML = html;
+});
+</script>
 @endpush
  
 {{-- Enter移動（ふるさと全画面共通） --}}
 @include('tax.furusato.partials.enter_nav')
 
+@push('styles')
+<style>
+  #helpModalCommon .modal-content {
+    font-family: inherit;
+    font-size: 15px;
+  }
+
+  #helpModalCommon .modal-body {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+
+  #helpModalCommon #helpModalBody strong {
+    font-weight: 700;
+    color: #192C4B;
+  }
+
+  #helpModalCommon #helpModalBody .help-text {
+    margin: 0 0 12px 0;
+    line-height: 1.8;
+  }
+</style>
+@endpush

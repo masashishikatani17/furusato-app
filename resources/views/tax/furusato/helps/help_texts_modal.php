@@ -69,14 +69,6 @@ return [
             . '<div class="help-text furu-help-line">　また住民税では、ここで計算した所得割以外に均等割や森林環境税(国税)があります。</div>',
     ],
      
-
-
-
-
-
-
-
-    
     'haitou_koujo' => [
         'title' => '配当控除',
         'body'  => ''
@@ -246,7 +238,12 @@ return [
     'title' => '基礎控除',
     'html'  => ''
         . '<div class="help-text">　基礎控除は、基礎控除（原則部分）と基礎控除の特例（令和７年分以降、所得税のみ）からなり、納税者の合計所得金額に応じて所得金額から控除できます。</div>'
-        . '<div class="help-text">　以下の基礎控除額は基礎控除（原則部分）と基礎控除の特例の合計です。なお住民税の基礎控除額は「所得税と住民税の人的控除額の比較」をご覧下さい。</div>'
+        . '<div class="help-text">　以下の基礎控除額は基礎控除（原則部分）と基礎控除の特例の合計です。なお住民税の基礎控除額は'
+        . '<button type="button"'
+        . ' class="btn btn-link p-0 align-baseline js-help-btn"'
+        . ' data-help-key="jinteki_hikaku"'
+        . ' style="font-size:inherit; line-height:inherit; vertical-align:baseline; text-decoration:underline;">所得税と住民税の人的控除額の比較</button>'
+        . 'をご覧下さい。</div>'       
         . '<div class="ms-5 mb-1"><strong>○基礎控除額</strong></div>'
         . '<table class="help-tax-table mx-auto" style="width:520px;">'
         . '  <thead>'

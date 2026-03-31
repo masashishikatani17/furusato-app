@@ -27,6 +27,8 @@ class IssueInvoiceService
 {
     private const BANK_TRANSFER_PAYMENT_METHOD = 0;
     private const CREDIT_PAYMENT_METHOD = 1;
+    private const PLAN_UNIT_PRICE_YEN = 30000;
+    private const PLAN_MONTHLY_PRICE_YEN = 2500;
     private const ROBO_DEMAND_TYPE_ONE_TIME = 0;
     private const ROBO_DEMAND_TYPE_RECURRING_FIXED = 1;
     private const ROBO_REPETITION_PERIOD_NUMBER_ANNUAL = 12;
@@ -61,16 +63,15 @@ class IssueInvoiceService
                 $sub->company_id = (int) $company->id;
             }
 
-            $termStart = Carbon::now('Asia/Tokyo')->startOfMonth()->toDateString();
-            $termEnd = Carbon::parse($termStart, 'Asia/Tokyo')->addYear()->subDay()->toDateString();
+            $contractWindow = $this->resolveInitialContractWindow(Carbon::now('Asia/Tokyo'));
 
             $sub->status = 'pending';
             if (empty($sub->applied_at)) {
                 $sub->applied_at = Carbon::now('Asia/Tokyo');
             }
             $sub->quantity = $quantity;
-            $sub->term_start = $termStart;
-            $sub->term_end = $termEnd;
+            $sub->term_start = $contractWindow['period_start']->toDateString();
+            $sub->term_end = $contractWindow['period_end']->toDateString();
             $sub->paid_through = null;
             $sub->payment_method = $paymentMethod;
             $sub->billing_code = $billingCode;
@@ -79,22 +80,39 @@ class IssueInvoiceService
             $issueDate = Carbon::now('Asia/Tokyo')->startOfDay();
             $dueDate = $issueDate->copy()->addDays(7);
 
-            return $this->createAndIssueInvoice(
+            $invoice = $this->createAndIssueInvoice(
                 companyId: (int) $company->id,
                 subscriptionId: (int) $sub->id,
                 kind: 'initial',
                 billingCode: $billingCode,
                 paymentMethod: $paymentMethod,
                 quantity: $quantity,
-                unitPriceYen: 30000,
-                monthsCharged: 12,
-                amountYen: 30000 * $quantity,
-                periodStart: $termStart,
-                periodEnd: $termEnd,
+                unitPriceYen: self::PLAN_UNIT_PRICE_YEN,
+                monthsCharged: $contractWindow['months_charged'],
+                amountYen: $contractWindow['per_seat_amount_yen'] * $quantity,
+                periodStart: $contractWindow['period_start']->toDateString(),
+                periodEnd: $contractWindow['period_end']->toDateString(),
                 issueDate: $issueDate,
                 dueDate: $dueDate,
                 attachBillingIndividual: true,
+                demandUnitPriceYen: $contractWindow['per_seat_amount_yen'],
             );
+
+            if (
+                $paymentMethod === 'bank_transfer'
+                && $invoice->status === 'issued'
+            ) {
+                $this->upsertRoboRecurringDemandForNextFiscalYear(
+                    subscriptionId: (int) $sub->id,
+                    companyId: (int) $sub->company_id,
+                    billingCode: (string) $sub->billing_code,
+                    paymentMethod: $paymentMethod,
+                    quantity: $quantity,
+                    recurringStart: $contractWindow['next_recurring_start'],
+                );
+            }
+
+            return $invoice;
         });
     }
 
@@ -135,25 +153,43 @@ class IssueInvoiceService
                 ]);
 
             $quantity = max(1, (int) $sub->quantity);
+            $periodStart = Carbon::parse((string) $sub->term_start, 'Asia/Tokyo')->startOfDay();
+            $periodEnd = Carbon::parse((string) $sub->term_end, 'Asia/Tokyo')->startOfDay();
+            $monthsCharged = $this->calculateInclusiveMonths($periodStart, $periodEnd);
             $issueDate = Carbon::now('Asia/Tokyo')->startOfDay();
             $dueDate = $issueDate->copy()->addDays(7);
+            $perSeatAmountYen = $this->calculatePerSeatAmountForMonths($monthsCharged);
 
-            return $this->createAndIssueInvoice(
+            $invoice = $this->createAndIssueInvoice(
                 companyId: (int) $sub->company_id,
                 subscriptionId: (int) $sub->id,
                 kind: 'initial',
                 billingCode: (string) $sub->billing_code,
                 paymentMethod: 'credit',
                 quantity: $quantity,
-                unitPriceYen: 30000,
-                monthsCharged: 12,
-                amountYen: 30000 * $quantity,
-                periodStart: (string) $sub->term_start,
-                periodEnd: (string) $sub->term_end,
+                unitPriceYen: self::PLAN_UNIT_PRICE_YEN,
+                monthsCharged: $monthsCharged,
+                amountYen: $perSeatAmountYen * $quantity,
+                periodStart: $periodStart->toDateString(),
+                periodEnd: $periodEnd->toDateString(),
                 issueDate: $issueDate,
                 dueDate: $dueDate,
                 attachBillingIndividual: false,
+                demandUnitPriceYen: $perSeatAmountYen,
             );
+
+            if ($invoice->status === 'issued') {
+                $this->upsertRoboRecurringDemandForNextFiscalYear(
+                    subscriptionId: (int) $sub->id,
+                    companyId: (int) $sub->company_id,
+                    billingCode: (string) $sub->billing_code,
+                    paymentMethod: 'credit',
+                    quantity: $quantity,
+                    recurringStart: $periodEnd->copy()->addDay()->startOfDay(),
+                );
+            }
+
+            return $invoice;
         });
     }
 
@@ -235,11 +271,9 @@ class IssueInvoiceService
                 return null;
             }
 
-            $monthsCharged = (($termEnd->year - $periodStart->year) * 12) + ($termEnd->month - $periodStart->month) + 1;
-            $monthsCharged = max(1, min(12, $monthsCharged));
-
-            $unitPerMonth = intdiv(30000, 12);
-            $amountYen = $unitPerMonth * $monthsCharged * $addQuantity;
+            $monthsCharged = $this->calculateInclusiveMonths($periodStart, $termEnd);
+            $perSeatAmountYen = $this->calculatePerSeatAmountForMonths($monthsCharged);
+            $amountYen = $perSeatAmountYen * $addQuantity;
 
             $dueDate = $requestedAt->copy()->addDays(7);
 
@@ -250,13 +284,14 @@ class IssueInvoiceService
                 billingCode: (string) $sub->billing_code,
                 paymentMethod: (string) $sub->payment_method,
                 quantity: $addQuantity,
-                unitPriceYen: 30000,
+                unitPriceYen: self::PLAN_UNIT_PRICE_YEN,
                 monthsCharged: $monthsCharged,
                 amountYen: $amountYen,
                 periodStart: $periodStart->toDateString(),
                 periodEnd: $termEnd->toDateString(),
                 issueDate: $requestedAt,
                 dueDate: $dueDate,
+                demandUnitPriceYen: $perSeatAmountYen,
             );
         });
     }
@@ -276,9 +311,9 @@ class IssueInvoiceService
         Carbon $issueDate,
         Carbon $dueDate,
         bool $attachBillingIndividual = false,
+        ?int $demandUnitPriceYen = null,
     ): SubscriptionInvoice {
         $this->assertSupportedPaymentMethod($paymentMethod);
-        $useRoboRecurringDemand = $this->shouldUseRoboRecurringDemand($kind, $paymentMethod);
 
         $billingIndividualCode = $billingCode . '-01';
         $paymentMethodCode = null;
@@ -443,27 +478,32 @@ class IssueInvoiceService
             }
         }
 
-        $baseMonthDate = Carbon::now('Asia/Tokyo')->startOfDay();
-        $issueMonthOffset = $this->calculateMonthOffset($baseMonthDate, $issueDate);
+        $periodStartDate = Carbon::parse($periodStart, 'Asia/Tokyo')->startOfDay();
+        $issueMonthOffset = $this->calculateMonthOffset($periodStartDate, $issueDate);
         $sendingDate = $issueDate->copy();
-        $sendingMonthOffset = $this->calculateMonthOffset($baseMonthDate, $sendingDate);
-        $deadlineMonthOffset = $this->calculateMonthOffset($baseMonthDate, $dueDate);
+        $sendingMonthOffset = $this->calculateMonthOffset($periodStartDate, $sendingDate);
+        $deadlineMonthOffset = $this->calculateMonthOffset($periodStartDate, $dueDate);
         $billingMethod = $defaultBillingMethod;
         $billTemplateCode = $this->resolveDemandBillTemplateCode((string) $inv->item_code);
+        $demandPriceYen = $demandUnitPriceYen ?? $unitPriceYen;
 
         $demand = [
             'code' => $inv->demand_code,
             'billing_code' => $billingCode,
             'item_code' => $inv->item_code,
-            'type' => $useRoboRecurringDemand
-                ? self::ROBO_DEMAND_TYPE_RECURRING_FIXED
-                : self::ROBO_DEMAND_TYPE_ONE_TIME,
-            'price' => (int) $inv->unit_price_yen,
+            'type' => self::ROBO_DEMAND_TYPE_ONE_TIME,
+            'price' => $demandPriceYen,
             'quantity' => (int) $inv->quantity,
             'tax_category' => (int) config('billing_robo.tax_category'),
             'tax' => (int) config('billing_robo.tax'),
             'billing_method' => $billingMethod,
-            'start_date' => Carbon::parse($periodStart, 'Asia/Tokyo')->format('Y/m/d'),
+            'start_date' => $periodStartDate->format('Y/m/d'),
+            'sales_recorded_month' => 0,
+            'sales_recorded_day' => 1,
+            'period_format' => 3,
+            'period_value' => max(1, $monthsCharged),
+            'period_unit' => self::ROBO_REPETITION_PERIOD_UNIT_MONTH,
+            'period_criterion' => 0,
             'issue_month' => $issueMonthOffset,
             'issue_day' => $this->normalizeRoboDay($issueDate),
             'sending_month' => $sendingMonthOffset,
@@ -472,14 +512,6 @@ class IssueInvoiceService
             'deadline_day' => $this->normalizeRoboDay($dueDate),
             'bill_template_code' => $billTemplateCode,
         ];
-
-        if ($useRoboRecurringDemand) {
-            $demand['repetition_period_number'] = self::ROBO_REPETITION_PERIOD_NUMBER_ANNUAL;
-            $demand['repetition_period_unit'] = self::ROBO_REPETITION_PERIOD_UNIT_MONTH;
-            $demand['repeat_count'] = self::ROBO_REPEAT_COUNT_UNLIMITED;
-        } else {
-            $demand['period_format'] = 0;
-        }
 
         if ($attachBillingIndividual || $shouldUseSavedBillingReference) {
             if (trim((string) $billingIndividualCode) === '') {
@@ -510,12 +542,6 @@ class IssueInvoiceService
                 'raw_response' => $demandRes,
             ]);
 
-            if ($useRoboRecurringDemand) {
-                $this->markSubscriptionAsRoboManagedRecurring(
-                    subscriptionId: $subscriptionId,
-                    demandCode: $inv->demand_code,
-                );
-            }
         } catch (Throwable $e) {
             $message = $e->getMessage();
             if (str_contains($message, 'error_code=1334')) {
@@ -793,7 +819,7 @@ class IssueInvoiceService
 
     private function resolveDemandBillingMethod(): int
     {
-        $billingMethod = (int) config('billing_robo.billing_method', 2);
+        $billingMethod = (int) config('billing_robo.billing_method', 1);
 
         if (!in_array($billingMethod, [0, 1, 2, 3, 4, 5, 6, 7, 8], true)) {
             throw new RuntimeException("billing_robo.billing_method is invalid: {$billingMethod}");
@@ -802,10 +828,104 @@ class IssueInvoiceService
         return $billingMethod;
     }
 
-    private function shouldUseRoboRecurringDemand(string $kind, string $paymentMethod): bool
+    private function upsertRoboRecurringDemandForNextFiscalYear(
+        int $subscriptionId,
+        int $companyId,
+        string $billingCode,
+        string $paymentMethod,
+        int $quantity,
+        Carbon $recurringStart
+    ): void {
+        $billingSetting = CompanyBillingSetting::query()
+            ->where('company_id', $companyId)
+            ->first();
+
+        if (!$billingSetting instanceof CompanyBillingSetting) {
+            throw new RuntimeException("CompanyBillingSetting が見つかりません。 company_id={$companyId}");
+        }
+
+        $billingIndividualCode = trim((string) ($billingSetting->billing_individual_code ?? ''));
+        $paymentMethodCode = trim((string) ($billingSetting->payment_method_code ?? ''));
+
+        if ($billingIndividualCode === '' || $paymentMethodCode === '') {
+            throw new RuntimeException("定期請求作成に必要な billing_individual_code / payment_method_code が不足しています。 company_id={$companyId}");
+        }
+
+        $subscription = Subscription::query()->find($subscriptionId);
+        $masterDemandCode = trim((string) ($subscription?->billing_robo_master_demand_code ?? ''));
+        if ($masterDemandCode === '') {
+            $masterDemandCode = 'FURR' . strtoupper(Str::random(16));
+        }
+
+        [$issueDay, $deadlineDay] = $this->resolveAnnualRecurringSchedule($paymentMethod);
+        $billTemplateCode = $this->resolveDemandBillTemplateCode((string) config('billing_robo.item_code_5seats'));
+
+        $demand = [
+            'code' => $masterDemandCode,
+            'billing_code' => $billingCode,
+            'item_code' => (string) config('billing_robo.item_code_5seats'),
+            'type' => self::ROBO_DEMAND_TYPE_RECURRING_FIXED,
+            'price' => self::PLAN_UNIT_PRICE_YEN,
+            'quantity' => $quantity,
+            'tax_category' => (int) config('billing_robo.tax_category'),
+            'tax' => (int) config('billing_robo.tax'),
+            'billing_method' => $this->resolveDemandBillingMethod(),
+            'start_date' => $recurringStart->format('Y/m/d'),
+            'sales_recorded_month' => 0,
+            'sales_recorded_day' => 1,
+            'period_format' => 3,
+            'period_value' => 12,
+            'period_unit' => self::ROBO_REPETITION_PERIOD_UNIT_MONTH,
+            'period_criterion' => 0,
+            'issue_month' => -1,
+            'issue_day' => $issueDay,
+            'sending_month' => -1,
+            'sending_day' => $issueDay,
+            'deadline_month' => -1,
+            'deadline_day' => $deadlineDay,
+            'bill_template_code' => $billTemplateCode,
+            'repetition_period_number' => self::ROBO_REPETITION_PERIOD_NUMBER_ANNUAL,
+            'repetition_period_unit' => self::ROBO_REPETITION_PERIOD_UNIT_MONTH,
+            'repeat_count' => self::ROBO_REPEAT_COUNT_UNLIMITED,
+            'billing_individual_code' => $billingIndividualCode,
+            'payment_method_code' => $paymentMethodCode,
+        ];
+
+        Log::info('BillingRobo recurring demand upsert request', [
+            'company_id' => $companyId,
+            'billing_code' => $billingCode,
+            'subscription_id' => $subscriptionId,
+            'demand_payload' => $demand,
+        ]);
+
+        $response = $this->client->demandBulkUpsert([$demand]);
+
+        Log::info('BillingRobo recurring demand upsert response', [
+            'company_id' => $companyId,
+            'billing_code' => $billingCode,
+            'subscription_id' => $subscriptionId,
+            'raw_response' => $response,
+        ]);
+
+        $this->markSubscriptionAsRoboManagedRecurring(
+            subscriptionId: $subscriptionId,
+            demandCode: $masterDemandCode,
+        );
+    }
+
+    private function resolveAnnualRecurringSchedule(string $paymentMethod): array
     {
-        return $kind === 'initial'
-            && in_array($paymentMethod, ['bank_transfer', 'credit'], true);
+        return match ($paymentMethod) {
+            'bank_transfer' => [
+                (int) config('billing_robo.bank_transfer_recurring_issue_day', 15),
+                (int) config('billing_robo.recurring_deadline_day', 99),
+            ],
+            'credit' => [
+                (int) config('billing_robo.credit_recurring_issue_day', 25),
+                (int) config('billing_robo.recurring_deadline_day', 99),
+            ],
+            default => throw new RuntimeException("Unsupported payment method for annual recurring schedule: {$paymentMethod}"),
+        };
     }
 
     private function markSubscriptionAsRoboManagedRecurring(int $subscriptionId, string $demandCode): void
@@ -829,6 +949,52 @@ class IssueInvoiceService
     {
         return (bool) ($sub->billing_robo_managed_recurring ?? false)
             && trim((string) ($sub->billing_robo_master_demand_code ?? '')) !== '';
+    }
+    
+    private function resolveInitialContractWindow(Carbon $requestedAt): array
+    {
+        $requestedAt = $requestedAt->copy()->tz('Asia/Tokyo')->startOfDay();
+        $currentFiscalStart = $this->resolveFiscalYearStartDate($requestedAt);
+        $currentFiscalEnd = $currentFiscalStart->copy()->addYear()->subDay()->startOfDay();
+
+        if ((int) $requestedAt->format('n') === (int) $currentFiscalEnd->format('n')) {
+            $periodStart = $currentFiscalEnd->copy()->addDay()->startOfDay();
+            $periodEnd = $periodStart->copy()->addYear()->subDay()->startOfDay();
+            $monthsCharged = 12;
+        } else {
+            $periodStart = $requestedAt->copy()->startOfMonth();
+            $periodEnd = $currentFiscalEnd;
+            $monthsCharged = $this->calculateInclusiveMonths($periodStart, $periodEnd);
+        }
+
+        return [
+            'period_start' => $periodStart,
+            'period_end' => $periodEnd,
+            'months_charged' => $monthsCharged,
+            'per_seat_amount_yen' => $this->calculatePerSeatAmountForMonths($monthsCharged),
+            'next_recurring_start' => $periodEnd->copy()->addDay()->startOfDay(),
+        ];
+    }
+
+    private function resolveFiscalYearStartDate(Carbon $date): Carbon
+    {
+        $startMonth = (int) config('billing_robo.fiscal_year_start_month', 4);
+        $year = (int) $date->format('Y');
+        if ((int) $date->format('n') < $startMonth) {
+            $year--;
+        }
+
+        return Carbon::create($year, $startMonth, 1, 0, 0, 0, 'Asia/Tokyo')->startOfDay();
+    }
+
+    private function calculateInclusiveMonths(Carbon $startDate, Carbon $endDate): int
+    {
+        return (($endDate->year - $startDate->year) * 12) + ($endDate->month - $startDate->month) + 1;
+    }
+
+    private function calculatePerSeatAmountForMonths(int $monthsCharged): int
+    {
+        return self::PLAN_MONTHLY_PRICE_YEN * max(1, min(12, $monthsCharged));
     }
 
     private function calculateMonthOffset(Carbon $baseDate, Carbon $targetDate): int

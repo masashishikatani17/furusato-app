@@ -525,7 +525,7 @@ document.addEventListener('click', function (e) {
   if (!bodyEl) return;
 
   if (dialogEl) {
-    const wideKeys = ['kafu_hitorioya', 'fuyo', 'tokutei_shinzoku_tokubetsu', 'jinteki_hikaku'];
+    const wideKeys = ['kafu_hitorioya', 'fuyo', 'tokutei_shinzoku_tokubetsu'];
     dialogEl.style.maxWidth = wideKeys.includes(key) ? '800px' : '650px';
   }
 

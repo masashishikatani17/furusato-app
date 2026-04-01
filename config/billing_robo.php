@@ -35,9 +35,6 @@ return [
     // デモ/開発で未設定の場合は署名検証をスキップする
     'webhook_signature_key' => (string) env('BILLING_ROBO_WEBHOOK_SIGNATURE_KEY', ''),
 
-    // 初回クレカ請求の未払い猶予日数
-    'credit_initial_grace_days' => (int) env('BILLING_ROBO_CREDIT_INITIAL_GRACE_DAYS', 7),
-
     // 年次定期契約の基準設定
     'fiscal_year_start_month' => (int) env('BILLING_ROBO_FISCAL_YEAR_START_MONTH', 4),
     'bank_transfer_recurring_issue_day' => (int) env('BILLING_ROBO_BANK_TRANSFER_RECURRING_ISSUE_DAY', 15),
@@ -55,7 +52,10 @@ return [
     'credit_jquery_js_url' => (string) env('BILLING_ROBO_CREDIT_JQUERY_JS_URL', 'https://credit.j-payment.co.jp/gateway/js/jquery.js'),
     'credit_token_js_url' => (string) env('BILLING_ROBO_CREDIT_TOKEN_JS_URL', 'https://credit.j-payment.co.jp/gateway/js/CPToken.js'),
     'credit_emv3ds_js_url' => (string) env('BILLING_ROBO_CREDIT_EMV3DS_JS_URL', 'https://credit.j-payment.co.jp/gateway/js/EMV3DSAdapter.js'),
- 
+    'webhook_signature_key' => (string) env('BILLING_ROBO_WEBHOOK_SIGNATURE_KEY', ''),
+    // 初回クレカ請求の未払い猶予日数
+    'credit_initial_grace_days' => (int) env('BILLING_ROBO_CREDIT_INITIAL_GRACE_DAYS', 7),
+    
     // 税（運用に合わせて後で調整）
     // tax_category: 0/1 等（ロボ仕様に合わせる）
     // tax: 10/8 等（ロボ仕様に合わせる）

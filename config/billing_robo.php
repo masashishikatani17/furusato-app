@@ -31,6 +31,13 @@ return [
     // 初期は 1(自動メール)
     'billing_method' => (int) env('BILLING_ROBO_BILLING_METHOD', 1),
 
+    // Webhook管理画面に表示される BillingRoboSignaturekey
+    // デモ/開発で未設定の場合は署名検証をスキップする
+    'webhook_signature_key' => (string) env('BILLING_ROBO_WEBHOOK_SIGNATURE_KEY', ''),
+
+    // 初回クレカ請求の未払い猶予日数
+    'credit_initial_grace_days' => (int) env('BILLING_ROBO_CREDIT_INITIAL_GRACE_DAYS', 7),
+
     // 年次定期契約の基準設定
     'fiscal_year_start_month' => (int) env('BILLING_ROBO_FISCAL_YEAR_START_MONTH', 4),
     'bank_transfer_recurring_issue_day' => (int) env('BILLING_ROBO_BANK_TRANSFER_RECURRING_ISSUE_DAY', 15),

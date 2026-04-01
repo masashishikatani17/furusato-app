@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use App\Http\Controllers\Pdf\SamplePdfController;
 use App\Http\Controllers\Pdf\PdfOutputController;
 use App\Http\Controllers\UploadController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Admin\OwnerTransferController;
 use App\Http\Controllers\Admin\DataDownloadController;
 use App\Http\Controllers\Billing\SetupController;
 use App\Http\Controllers\Billing\CreditCardRegistrationController;
+use App\Http\Controllers\Webhook\BillingRoboWebhookController;
 use App\Http\Controllers\Admin\AuditLogsController;
 use App\Http\Controllers\Admin\InvitationsController;
 use App\Http\Controllers\SignupController;
@@ -68,6 +70,9 @@ Route::post('/billing/credit-card/register/{company}', [CreditCardRegistrationCo
     ->name('billing.credit-card.store')
     ->middleware('signed');
 
+    Route::post('/webhooks/billing-robo/credit-status', [BillingRoboWebhookController::class, 'creditStatus'])
+        ->withoutMiddleware([VerifyCsrfToken::class])
+        ->name('webhooks.billing-robo.credit-status');
 });
 
 // ご利用停止中（subscription.active 保護外）

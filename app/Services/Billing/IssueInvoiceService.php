@@ -771,6 +771,121 @@ class IssueInvoiceService
         return null;
     }
 
+    /**
+     * 初回クレカ請求の決済結果を請求書番号単位で同期する。
+     *
+     * @return 'paid'|'pending'|'failed'|'missing'
+     */
+    public function syncInitialCreditSettlementByBillNumber(string $billNumber): string
+    {
+        $billNumber = trim($billNumber);
+        if ($billNumber === '') {
+            return 'missing';
+        }
+
+        $invoice = SubscriptionInvoice::query()
+            ->where('bill_number', $billNumber)
+            ->where('kind', 'initial')
+            ->where('payment_method', 'credit')
+            ->first();
+
+        if (!$invoice) {
+            return 'missing';
+        }
+
+        if ($invoice->status === 'paid') {
+            return 'paid';
+        }
+
+        $billSearchResponse = $this->client->billSearchByNumber($billNumber);
+        $bill = $this->extractBillRowFromBillSearchResponse($billSearchResponse);
+
+        if ($bill === null) {
+            Log::warning('BillingRobo bill search returned no bill row while syncing initial credit settlement.', [
+                'bill_number' => $billNumber,
+                'raw_response' => $billSearchResponse,
+            ]);
+
+            return 'missing';
+        }
+
+        return DB::transaction(function () use ($invoice, $bill, $billNumber): string {
+            $lockedInvoice = SubscriptionInvoice::query()
+                ->lockForUpdate()
+                ->find((int) $invoice->id);
+
+            if (!$lockedInvoice) {
+                return 'missing';
+            }
+
+            if ($lockedInvoice->status === 'paid') {
+                return 'paid';
+            }
+
+            $settlementResult = (int) ($bill['settlement_result'] ?? -1);
+
+            if ($settlementResult === 2) {
+                $this->markInitialCreditInvoicePaid($lockedInvoice);
+
+                Log::info('BillingRobo initial credit settlement marked invoice as paid.', [
+                    'company_id' => (int) $lockedInvoice->company_id,
+                    'subscription_id' => (int) $lockedInvoice->subscription_id,
+                    'invoice_id' => (int) $lockedInvoice->id,
+                    'bill_number' => $billNumber,
+                ]);
+
+                return 'paid';
+            }
+
+            if ($this->isInitialCreditSettlementGraceExpired($lockedInvoice)) {
+                $lockedInvoice->status = 'failed';
+                $lockedInvoice->save();
+
+                Log::warning('BillingRobo initial credit settlement grace expired.', [
+                    'company_id' => (int) $lockedInvoice->company_id,
+                    'subscription_id' => (int) $lockedInvoice->subscription_id,
+                    'invoice_id' => (int) $lockedInvoice->id,
+                    'bill_number' => $billNumber,
+                    'settlement_result' => $settlementResult,
+                    'due_date' => (string) $lockedInvoice->due_date,
+                    'grace_days' => (int) config('billing_robo.credit_initial_grace_days', 7),
+                ]);
+
+                return 'failed';
+            }
+
+            return 'pending';
+        });
+    }
+
+    /**
+     * @return array<string,string>
+     */
+    public function syncPendingInitialCreditSettlements(?int $companyId = null): array
+    {
+        $query = SubscriptionInvoice::query()
+            ->select(['bill_number'])
+            ->where('kind', 'initial')
+            ->where('payment_method', 'credit')
+            ->whereIn('status', ['pending', 'issued'])
+            ->whereNotNull('bill_number');
+
+        if ($companyId !== null) {
+            $query->where('company_id', $companyId);
+        }
+
+        $results = [];
+        foreach ($query->orderBy('id')->get() as $invoice) {
+            $billNumber = trim((string) $invoice->bill_number);
+            if ($billNumber === '') {
+                continue;
+            }
+            $results[$billNumber] = $this->syncInitialCreditSettlementByBillNumber($billNumber);
+        }
+
+        return $results;
+    }
+
     private function resolveDemandBillTemplateCode(string $itemCode): int
     {
         $envTemplateCode = (int) config('billing_robo.bill_template_code', 0);
@@ -1050,6 +1165,57 @@ class IssueInvoiceService
             'individual_address1' => mb_substr($companyName . ' ' . $ownerName . ' 御中', 0, 100),
             'individual_email' => mb_substr($ownerEmail, 0, 100),
         ];
+    }
+
+    private function markInitialCreditInvoicePaid(SubscriptionInvoice $invoice): void
+    {
+        if ($invoice->status !== 'paid') {
+            $invoice->status = 'paid';
+            $invoice->save();
+        }
+
+        $subscription = Subscription::query()
+            ->lockForUpdate()
+            ->find((int) $invoice->subscription_id);
+
+        if (!$subscription) {
+            return;
+        }
+
+        $subscription->status = 'active';
+        $subscription->term_start = (string) $invoice->period_start;
+        $subscription->term_end = (string) $invoice->period_end;
+        $subscription->paid_through = (string) $invoice->period_end;
+        $subscription->save();
+    }
+
+    private function isInitialCreditSettlementGraceExpired(SubscriptionInvoice $invoice): bool
+    {
+        $graceDays = max(0, (int) config('billing_robo.credit_initial_grace_days', 7));
+        $graceDeadline = Carbon::parse((string) $invoice->due_date, 'Asia/Tokyo')
+            ->endOfDay()
+            ->addDays($graceDays);
+
+        return Carbon::now('Asia/Tokyo')->gt($graceDeadline);
+    }
+
+    /**
+     * @param array<string,mixed> $res
+     * @return array<string,mixed>|null
+     */
+    private function extractBillRowFromBillSearchResponse(array $res): ?array
+    {
+        $bills = $res['bill'] ?? null;
+        if (!is_array($bills)) {
+            return null;
+        }
+
+        $first = $bills[0] ?? null;
+        if (!is_array($first)) {
+            return null;
+        }
+
+        return $first;
     }
 
     private function extractBillNumberFromIssueResponse(array $res): string

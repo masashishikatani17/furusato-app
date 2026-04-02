@@ -462,10 +462,7 @@ document.addEventListener('click', function (e) {
     color: #192C4B;
   }
 
-  #helpModalCommon #helpModalBody .help-text {
-    margin: 0 0 12px 0;
-    line-height: 1.8;
-  }
+
 </style>
 @endpush
 @endsection

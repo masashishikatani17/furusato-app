@@ -116,7 +116,7 @@ class IssueInvoiceService
         });
     }
 
-    public function issueInitialCreditRecurringAfterRegistration(int $companyId): SubscriptionInvoice
+    public function issueInitialCreditAfterRegistration(int $companyId): SubscriptionInvoice
     {
         return DB::transaction(function () use ($companyId) {
             $sub = Subscription::query()
@@ -128,19 +128,16 @@ class IssueInvoiceService
                 throw new RuntimeException("クレジットカード登録後の請求作成対象 subscription が見つかりません。 company_id={$companyId}");
             }
 
-            if ($this->isRoboManagedRecurringSubscription($sub)) {
-                $issued = SubscriptionInvoice::query()
-                    ->where('subscription_id', (int) $sub->id)
-                    ->where('kind', 'initial')
-                    ->where('status', 'issued')
-                    ->latest('id')
-                    ->first();
+            $alreadyIssued = SubscriptionInvoice::query()
+                ->where('subscription_id', (int) $sub->id)
+                ->where('kind', 'initial')
+                ->whereIn('status', ['issued', 'paid'])
+                ->whereNotNull('bill_number')
+                ->latest('id')
+                ->first();
 
-                if ($issued instanceof SubscriptionInvoice) {
-                    return $issued;
-                }
-
-                throw new RuntimeException("既にBillingRobo管理の定期請求へ移行済みですが、issued invoice が見つかりません。 subscription_id={$sub->id}");
+            if ($alreadyIssued instanceof SubscriptionInvoice) {
+                return $alreadyIssued;
             }
 
             SubscriptionInvoice::query()
@@ -160,7 +157,7 @@ class IssueInvoiceService
             $dueDate = $issueDate->copy()->addDays(7);
             $perSeatAmountYen = $this->calculatePerSeatAmountForMonths($monthsCharged);
 
-            $invoice = $this->createAndIssueInvoice(
+            return $this->createAndIssueInvoice(
                 companyId: (int) $sub->company_id,
                 subscriptionId: (int) $sub->id,
                 kind: 'initial',
@@ -177,20 +174,12 @@ class IssueInvoiceService
                 attachBillingIndividual: false,
                 demandUnitPriceYen: $perSeatAmountYen,
             );
-
-            if ($invoice->status === 'issued') {
-                $this->upsertRoboRecurringDemandForNextFiscalYear(
-                    subscriptionId: (int) $sub->id,
-                    companyId: (int) $sub->company_id,
-                    billingCode: (string) $sub->billing_code,
-                    paymentMethod: 'credit',
-                    quantity: $quantity,
-                    recurringStart: $periodEnd->copy()->addDay()->startOfDay(),
-                );
-            }
-
-            return $invoice;
         });
+    }
+ 
+    public function issueInitialCreditRecurringAfterRegistration(int $companyId): SubscriptionInvoice
+    {
+        return $this->issueInitialCreditAfterRegistration($companyId);
     }
 
     public function issueRenewal(Subscription $sub, Carbon $issueDate): ?SubscriptionInvoice
@@ -350,7 +339,7 @@ class IssueInvoiceService
         $inv->status = 'pending';
         $inv->demand_code = 'FURU' . strtoupper(Str::random(16));
         $inv->billing_code = $billingCode;
-        $inv->item_code = (string) config('billing_robo.item_code_5seats');
+        $inv->item_code = $this->resolveInvoiceItemCode($kind);
         $inv->payment_method = $paymentMethod;
         $inv->quantity = $quantity;
         $inv->unit_price_yen = $unitPriceYen;
@@ -712,6 +701,40 @@ class IssueInvoiceService
         return $base . $suffix;
     }
 
+    private function makeDeterministicRecurringDemandCode(int $subscriptionId): string
+    {
+        return 'FURR' . str_pad((string) max(0, $subscriptionId), 16, '0', STR_PAD_LEFT);
+    }
+
+    private function resolveInvoiceItemCode(string $kind): string
+    {
+        return match ($kind) {
+            'initial', 'add_quantity' => $this->resolveInitialDemandItemCode(),
+            'renewal' => $this->resolveRecurringDemandItemCode(),
+            default => $this->resolveInitialDemandItemCode(),
+        };
+    }
+
+    private function resolveInitialDemandItemCode(): string
+    {
+        $itemCode = trim((string) config('billing_robo.initial_item_code_5seats', config('billing_robo.item_code_5seats')));
+        if ($itemCode === '') {
+            throw new RuntimeException('billing_robo.initial_item_code_5seats is invalid.');
+        }
+
+        return $itemCode;
+    }
+
+    private function resolveRecurringDemandItemCode(): string
+    {
+        $itemCode = trim((string) config('billing_robo.recurring_item_code_5seats', config('billing_robo.item_code_5seats')));
+        if ($itemCode === '') {
+            throw new RuntimeException('billing_robo.recurring_item_code_5seats is invalid.');
+        }
+
+        return $itemCode;
+    }
+
     private function extractPaymentRegisterStatus(array $response): ?int
     {
         $billings = $response['billing'] ?? null;
@@ -794,6 +817,8 @@ class IssueInvoiceService
         }
 
         if ($invoice->status === 'paid') {
+            $this->ensureCreditRecurringDemandForPaidInitialInvoice($invoice);
+
             return 'paid';
         }
 
@@ -809,7 +834,7 @@ class IssueInvoiceService
             return 'missing';
         }
 
-        return DB::transaction(function () use ($invoice, $bill, $billNumber): string {
+        $result = DB::transaction(function () use ($invoice, $bill, $billNumber): string {
             $lockedInvoice = SubscriptionInvoice::query()
                 ->lockForUpdate()
                 ->find((int) $invoice->id);
@@ -818,7 +843,19 @@ class IssueInvoiceService
                 return 'missing';
             }
 
+            $lockedInvoice->clearing_status = isset($bill['clearing_status']) && $bill['clearing_status'] !== ''
+                ? (int) $bill['clearing_status']
+                : null;
+            $lockedInvoice->unclearing_amount = isset($bill['unclearing_amount']) && $bill['unclearing_amount'] !== ''
+                ? (int) $bill['unclearing_amount']
+                : null;
+            $lockedInvoice->transfer_date = $this->parseRoboDate((string) ($bill['transfer_date'] ?? ''));
+            $lockedInvoice->last_synced_at = now();
+            $lockedInvoice->last_sync_error = null;
+
             if ($lockedInvoice->status === 'paid') {
+                $lockedInvoice->save();
+
                 return 'paid';
             }
 
@@ -853,9 +890,19 @@ class IssueInvoiceService
 
                 return 'failed';
             }
+            $lockedInvoice->save();
 
             return 'pending';
         });
+
+        if ($result === 'paid') {
+            $freshInvoice = SubscriptionInvoice::query()->find((int) $invoice->id);
+            if ($freshInvoice instanceof SubscriptionInvoice) {
+                $this->ensureCreditRecurringDemandForPaidInitialInvoice($freshInvoice);
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -867,7 +914,7 @@ class IssueInvoiceService
             ->select(['bill_number'])
             ->where('kind', 'initial')
             ->where('payment_method', 'credit')
-            ->whereIn('status', ['pending', 'issued'])
+            ->whereIn('status', ['pending', 'issued', 'failed'])
             ->whereNotNull('bill_number');
 
         if ($companyId !== null) {
@@ -969,16 +1016,17 @@ class IssueInvoiceService
         $subscription = Subscription::query()->find($subscriptionId);
         $masterDemandCode = trim((string) ($subscription?->billing_robo_master_demand_code ?? ''));
         if ($masterDemandCode === '') {
-            $masterDemandCode = 'FURR' . strtoupper(Str::random(16));
+            $masterDemandCode = $this->makeDeterministicRecurringDemandCode($subscriptionId);
         }
 
         [$issueDay, $deadlineDay] = $this->resolveAnnualRecurringSchedule($paymentMethod);
-        $billTemplateCode = $this->resolveDemandBillTemplateCode((string) config('billing_robo.item_code_5seats'));
+        $recurringItemCode = $this->resolveRecurringDemandItemCode();
+        $billTemplateCode = $this->resolveDemandBillTemplateCode($recurringItemCode);
 
         $demand = [
             'code' => $masterDemandCode,
             'billing_code' => $billingCode,
-            'item_code' => (string) config('billing_robo.item_code_5seats'),
+            'item_code' => $recurringItemCode,
             'type' => self::ROBO_DEMAND_TYPE_RECURRING_FIXED,
             'price' => self::PLAN_UNIT_PRICE_YEN,
             'quantity' => $quantity,
@@ -1171,8 +1219,8 @@ class IssueInvoiceService
     {
         if ($invoice->status !== 'paid') {
             $invoice->status = 'paid';
-            $invoice->save();
         }
+        $invoice->save();
 
         $subscription = Subscription::query()
             ->lockForUpdate()
@@ -1186,7 +1234,54 @@ class IssueInvoiceService
         $subscription->term_start = (string) $invoice->period_start;
         $subscription->term_end = (string) $invoice->period_end;
         $subscription->paid_through = (string) $invoice->period_end;
+        $subscription->last_synced_at = now();
         $subscription->save();
+    }
+
+    private function ensureCreditRecurringDemandForPaidInitialInvoice(SubscriptionInvoice $invoice): void
+    {
+        if ((string) $invoice->kind !== 'initial' || (string) $invoice->payment_method !== 'credit') {
+            return;
+        }
+
+        $subscription = Subscription::query()->find((int) $invoice->subscription_id);
+        if (!$subscription || (string) $subscription->payment_method !== 'credit') {
+            return;
+        }
+
+        if ($this->isRoboManagedRecurringSubscription($subscription)) {
+            return;
+        }
+
+        $billingCode = trim((string) ($subscription->billing_code ?? ''));
+        if ($billingCode === '') {
+            return;
+        }
+
+        $periodEndSource = trim((string) ($invoice->period_end ?? $subscription->term_end ?? ''));
+        if ($periodEndSource === '') {
+            return;
+        }
+
+        try {
+            $this->upsertRoboRecurringDemandForNextFiscalYear(
+                subscriptionId: (int) $subscription->id,
+                companyId: (int) $subscription->company_id,
+                billingCode: $billingCode,
+                paymentMethod: 'credit',
+                quantity: max(1, (int) ($subscription->quantity ?? $invoice->quantity ?? 1)),
+                recurringStart: Carbon::parse($periodEndSource, 'Asia/Tokyo')->addDay()->startOfDay(),
+            );
+        } catch (Throwable $e) {
+            Log::error('Failed to ensure BillingRobo recurring demand after initial credit payment.', [
+                'company_id' => (int) $subscription->company_id,
+                'subscription_id' => (int) $subscription->id,
+                'invoice_id' => (int) $invoice->id,
+                'bill_number' => (string) ($invoice->bill_number ?? ''),
+                'exception_message' => $e->getMessage(),
+                'exception' => $this->extractThrowableContext($e),
+            ]);
+        }
     }
 
     private function isInitialCreditSettlementGraceExpired(SubscriptionInvoice $invoice): bool
@@ -1197,6 +1292,22 @@ class IssueInvoiceService
             ->addDays($graceDays);
 
         return Carbon::now('Asia/Tokyo')->gt($graceDeadline);
+    }
+
+    private function parseRoboDate(string $value): ?string
+    {
+        $v = trim($value);
+        if ($v === '') {
+            return null;
+        }
+
+        $v = substr($v, 0, 10);
+        $v = str_replace('-', '/', $v);
+        if (!preg_match('/^\d{4}\/\d{2}\/\d{2}$/', $v)) {
+            return null;
+        }
+
+        return str_replace('/', '-', $v);
     }
 
     /**

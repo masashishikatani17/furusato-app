@@ -4,6 +4,7 @@ namespace App\Jobs\Billing;
 
 use App\Models\Subscription;
 use App\Models\SubscriptionInvoice;
+use App\Services\Billing\IssueInvoiceService;
 use App\Services\BillingRobo\BillingRoboClient;
 use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
@@ -22,6 +23,8 @@ use Throwable;
  * 仕様：
  * - bill_number（請求書番号）で検索
  * - clearing_status in (1,2) かつ unclearing_amount == 0 を入金完了とみなす
+ * - 初回クレカ請求のみ IssueInvoiceService の専用同期を使い、
+ *   決済成功時の active 化と recurring master 作成を同じルートに寄せる
  */
 class SyncSubscriptionInvoiceJob implements ShouldQueue
 {
@@ -35,11 +38,23 @@ class SyncSubscriptionInvoiceJob implements ShouldQueue
         $this->onQueue('default');
     }
 
-    public function handle(BillingRoboClient $client): void
+    public function handle(BillingRoboClient $client, IssueInvoiceService $issuer): void
     {
         /** @var SubscriptionInvoice|null $inv */
         $inv = SubscriptionInvoice::query()->find($this->invoiceId);
         if (!$inv) {
+            return;
+        }
+
+        if ((string) $inv->kind === 'initial' && (string) $inv->payment_method === 'credit') {
+            if (!$inv->bill_number) {
+                $inv->last_synced_at = now();
+                $inv->last_sync_error = 'bill_number is empty (not issued yet).';
+                $inv->save();
+                return;
+            }
+
+            $issuer->syncInitialCreditSettlementByBillNumber((string) $inv->bill_number);
             return;
         }
 
@@ -52,7 +67,7 @@ class SyncSubscriptionInvoiceJob implements ShouldQueue
         }
 
         try {
-            $res = $client->billSearchByNumber((string)$inv->bill_number);
+            $res = $client->billSearchByNumber((string) $inv->bill_number);
 
             // レスポンス構造は契約により若干差があり得るため、防御的に取り出す
             $bills = $res['bill'] ?? $res['bills'] ?? null;
@@ -64,9 +79,9 @@ class SyncSubscriptionInvoiceJob implements ShouldQueue
                 throw new \RuntimeException('bill/search response shape is unexpected.');
             }
 
-            $clearingStatus = isset($bill['clearing_status']) ? (int)$bill['clearing_status'] : null;
-            $unclearingAmount = isset($bill['unclearing_amount']) ? (int)$bill['unclearing_amount'] : null;
-            $transferDateRaw = (string)($bill['transfer_date'] ?? '');
+            $clearingStatus = isset($bill['clearing_status']) ? (int) $bill['clearing_status'] : null;
+            $unclearingAmount = isset($bill['unclearing_amount']) ? (int) $bill['unclearing_amount'] : null;
+            $transferDateRaw = (string) ($bill['transfer_date'] ?? '');
 
             $inv->clearing_status = $clearingStatus;
             $inv->unclearing_amount = $unclearingAmount;
@@ -94,12 +109,12 @@ class SyncSubscriptionInvoiceJob implements ShouldQueue
 
                 // 追加口数（kind=add_quantity）は、入金確認後に口数反映（厳格）
                 if ((string)$inv->kind === 'add_quantity') {
-                    $sub->quantity = max(1, (int)$sub->quantity + max(0, (int)$inv->quantity));
+                    $sub->quantity = max(1, (int) $sub->quantity + max(0, (int) $inv->quantity));
                 }
 
                 // 更新（kind=renewal）は入金確認後に次期へ更新
                 if ((string)$inv->kind === 'renewal') {
-                    if (!empty($inv->period_start)) {
+                    if (!empty( $inv->period_start)) {
                         $sub->term_start = $inv->period_start;
                     }
                     if (!empty($inv->period_end)) {
@@ -133,12 +148,16 @@ class SyncSubscriptionInvoiceJob implements ShouldQueue
     private function parseYmd(string $value): ?string
     {
         $v = trim($value);
-        if ($v === '') return null;
+        if ($v === '') {
+            return null;
+        }
+
         // bill/search は yyyy/mm/dd が多い（date cast用に Y-m-d に正規化）
         $v = str_replace('-', '/', $v);
         if (!preg_match('/^\d{4}\/\d{2}\/\d{2}$/', $v)) {
             return null;
         }
+        
         return str_replace('/', '-', $v);
     }
 }

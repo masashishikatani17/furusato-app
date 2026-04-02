@@ -118,31 +118,27 @@ return [
 
     'nogyo' => [
         'title' => '事業所得「農業」',
-        'body'  => ''
-            . "　この「農業」には次のような事業から生ずる所得が含まれます。\n"
-            . "\n"
-            . "○「農業」に含まれる所得の種類\n"
-            . "　　・農産物の生産、果樹などの栽培\n"
-            . "　　・養蚕、農家が兼営する家畜・家禽の飼育\n"
-            . "　　・酪農品の生産　etc.\n"
-            . "\n"
-            . "　この農業については「営業等」や「不動産」のように入力するための別画面は用意していません。その理由は一部の大規模農家以外は規模がそれほど大きくはないこと、規模が大きい場合には農業法人を設立してそこから給与をもらっているところが多いことから収入金額や所得金額を直接入力するようにしました。\n"
-            . "　規模がそれほど大きくないのに別画面でデータを入力するというのは面倒ではないかと考えた次第です。なお所得が赤字の場合には他の所得と損益通算できますので、数値の先頭にマイナス「－」を入れて下さい。\n"
-    ],
-
+        'html'  => ''
+            . '<div class="help-text furu-help-line mb-3">　この「農業」には次のような事業から生ずる所得が含まれます。</div>'
+            . '<div class="furu-help-head mb-1">○「農業」に含まれる所得の種類</div>'
+            . '<div class="help-text furu-help-item">・農産物の生産、果樹などの栽培</div>'
+            . '<div class="help-text furu-help-item">・養蚕、農家が兼営する家畜・家禽の飼育</div>'
+            . '<div class="help-text furu-help-item-last mb-2">・酪農品の生産　etc.</div>'
+            . '<div class="help-text furu-help-line mb-2">　この農業については「営業等」や「不動産」のように入力するための別画面は用意していません。その理由は一部の大規模農家以外は規模がそれほど大きくはないこと、規模が大きい場合には農業法人を設立してそこから給与をもらっているところが多いことから収入金額や所得金額を直接入力するようにしました。</div>'
+            . '<div class="help-text furu-help-line">　規模がそれほど大きくないのに別画面でデータを入力するというのは面倒ではないかと考えた次第です。なお所得が赤字の場合には他の所得と損益通算できますので、数値の先頭にマイナス「－」を入れて下さい。</div>'
+     ],
 
     'taishoku' => [
         'title' => '退職所得',
         'html'  => ''
-            . '<div class="help-text furu-help-line">　ふるさと納税上限額を計算する場合、退職所得に関して所得税と住民税では次のように取り扱いが異なります。</div>'
-            . "\n"
+            . '<div class="help-text furu-help-line mb-4">　ふるさと納税上限額を計算する場合、退職所得に関して所得税と住民税では次のように取り扱いが異なります。</div>'
             . '<div class="furu-help-head">○税種別</div>'
             . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">所得税</span></div>'
-            . '<div class="help-text furu-help-body">退職所得については通常、退職時点で課税関係が終了しますのでそれ以降は原則として登場することはないのですが、寄附金控除を受ける場合には登場してもらう必要があります。</div>'
-            . '<div class="help-text furu-help-body-last">というのも寄附金控除の上限額は総所得金額等の40％となっているのですが、この総所得金額等に退職所得も含まれるからです。これは医療費控除を受ける場合も同じです。</div>'
+            . '<div class="help-text furu-help-body">　退職所得については通常、退職時点で課税関係が終了しますのでそれ以降は原則として登場することはないのですが、寄附金控除を受ける場合には登場してもらう必要があります。</div>'
+            . '<div class="help-text furu-help-body-last">　というのも寄附金控除の上限額は総所得金額等の40％となっているのですが、この総所得金額等に退職所得も含まれるからです。これは医療費控除を受ける場合も同じです。</div>'
             . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">住民税</span></div>'
-            . '<div class="help-text furu-help-body">所得税と同様、住民税でも退職所得については現年分離課税と言って退職時点で課税関係が終了します。ところが住民税の場合は寄附金税額控除の計算で分離課税の退職所得は含めません。</div>'
-            . '<div class="help-text furu-help-body-last">つまり所得税では退職所得に関する収入金額や所得金額を入力しますが、住民税ではゼロ(０)または空白とします。</div>'
+            . '<div class="help-text furu-help-body">　所得税と同様、住民税でも退職所得については現年分離課税と言って退職時点で課税関係が終了します。ところが住民税の場合は寄附金税額控除の計算で分離課税の退職所得は含めません。</div>'
+            . '<div class="help-text furu-help-body-last">　つまり所得税では退職所得に関する収入金額や所得金額を入力しますが、住民税ではゼロ(０)または空白とします。</div>'
             . "\n"
             . '<div class="help-text furu-help-line">　なお同じく退職所得でも下記の２つのケースは源泉分離課税ではなく総合課税の対象となります。これらについては事例が極めて少ないことから次回のバージョンアップ時に対応予定です。</div>'
             . '<div class="help-text furu-help-item">　①所得税の源泉徴収義務のない事業主が支払う退職手当等の場合</div>'
@@ -160,14 +156,14 @@ return [
             . "\n"
             . '<div class="furu-help-head">○インプット表に入力する金額</div>'
             . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">収入金額等</span></div>'
-            . '<div class="help-text furu-help-body">所得税の欄に退職金そのものを入力します。寄附金控除を受けるためには上限額を計算する必要上、必ず入力して下さい。</div>'
-            . '<div class="help-text furu-help-body-last">上記で説明したように住民税の場合はゼロ(０)または空白とします。</div>'
+            . '<div class="help-text furu-help-body">　所得税の欄に退職金そのものを入力します。寄附金控除を受けるためには上限額を計算する必要上、必ず入力して下さい。</div>'
+            . '<div class="help-text furu-help-body-last">　上記で説明したように住民税の場合はゼロ(０)または空白とします。</div>'
             . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">所得金額等</span></div>'
-            . '<div class="help-text furu-help-body-last">上記①で計算した所得を入力します。住民税の場合はゼロ(０)または空白とします。</div>'
+            . '<div class="help-text furu-help-body-last">　上記①で計算した所得を入力します。住民税の場合はゼロ(０)または空白とします。</div>'
             . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">課税所得金額</span></div>'
-            . '<div class="help-text furu-help-body-last">所得金額等(総所得金額等)から所得控除の額(所得から差し引かれる金額)を差し引いて計算しますが、所定の順序に従ってコンピュータで自動計算します。</div>'
+            . '<div class="help-text furu-help-body-last">　所得金額等(総所得金額等)から所得控除の額(所得から差し引かれる金額)を差し引いて計算しますが、所定の順序に従ってコンピュータで自動計算します。</div>'
             . '<div class="help-text furu-help-star">★<span class="furu-help-star-label">税額計算</span></div>'
-            . '<div class="help-text furu-help-body">所得税の税額表に基づいてコンピュータで自動計算します。</div>',
+            . '<div class="help-text furu-help-body">　所得税の税額表に基づいてコンピュータで自動計算します。</div>',
     ],
      
     'shakaihoken_kojo' => [
@@ -195,8 +191,8 @@ return [
 'haitou' => [
     'title' => '配当（収入金額等）',
     'html'  => ''
-        . '<div class="help-text">　配当所得に関しては所得税と住民税で下記のように若干異なった取扱いとなっています。</div>'
-        . '<div><strong>○配当所得に関する税務の取扱い</strong></div>'
+        . '<div class="help-text furu-help-line mb-3">　配当所得に関しては所得税と住民税で下記のように若干異なった取扱いとなっています。</div>'
+        . '<div class="furu-help-head mb-1">○配当所得に関する税務の取扱い</div>'
         . '<table class="help-tax-table">'
         . '  <thead>'
         . '    <tr>'
@@ -228,9 +224,10 @@ return [
         . '    </tr>'
         . '  </tbody>'
         . '</table>'
-        . '<div class="help-text">　これらのうち、ここで入力するのは上場株式、非上場株式に関わらず全て総合課税方式を採用するケースです。総合課税方式というのは給与所得、事業所得、不動産所得などの所得と合算して税額を計算する方法です。</div>'
-        . '<div class="help-text">　総合課税方式は他の総合課税所得がそれほど多くなく適用税率が低い場合に源泉徴収されている税額を還付請求する場合にメリットが発揮されます。</div>'
-        . '<div class="help-text">　例えば課税所得金額が195万円以下の場合に適用される所得税率は５％（復興特別所得税率加算後は5.105％）なので配当所得加算後の課税所得金額が195万円以下であれば差額の10％（復興特別所得税率加算後は10.210％）が還付されます。それ以外に税額控除の一種である配当控除も適用できるため、より多くの税額が還付されます。</div>',
+        . '<div class="help-text furu-help-line mb-2">　これらのうち、ここで入力するのは上場株式、非上場株式に関わらず全て総合課税方式を採用するケースです。総合課税方式というのは給与所得、事業所得、不動産所得などの所得と合算して税額を計算する方法です。</div>'
+        . '<div class="help-text furu-help-line mb-2">　総合課税方式は他の総合課税所得がそれほど多くなく適用税率が低い場合に源泉徴収されている税額を還付請求する場合にメリットが発揮されます。</div>'
+        . '<div class="help-text furu-help-line mb-2">　例えば課税所得金額が195万円以下の場合に適用される所得税率は５％（復興特別所得税率加算後は5.105％）なので配当所得加算後の課税所得金額が195万円以下であれば差額の10％（復興特別所得税率加算後は10.210％）が還付されます。それ以外に税額控除の一種である配当控除も適用できるため、より多くの税額が還付されます。</div>',
+
 ],
 
 
@@ -322,5 +319,215 @@ return [
         . '  </tbody>'
         . '</table>',
 ],
-    
+    'jinteki_hikaku' => [
+        'title' => '所得税と住民税の人的控除額の比較',
+        'html'  => ''
+            /* =========================
+             * 1段目
+             * ========================= */
+            . '<table class="help-tax-table mx-auto mb-0" style="width:520px;">'
+            . '  <thead>'
+            . '    <tr>'
+            . '      <th colspan="4">区　分</th>'
+            . '      <th style="width:70px;">所得税</th>'
+            . '      <th style="width:70px;">住民税</th>'
+            . '      <th style="width:70px;">差　額</th>'
+            . '    </tr>'
+            . '  </thead>'
+            . '  <tbody>'
+            . '    <tr>'
+            . '      <th colspan="4" class="text-center nowrap" style="background:#e9eff7;">寡婦控除</th>'
+            . '      <td class="text-center nowrap">27万円</td>'
+            . '      <td class="text-center nowrap">26万円</td>'
+            . '      <td class="text-center nowrap">1万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <th colspan="4" class="text-center nowrap" style="background:#e9eff7;">ひとり親控除</th>'
+            . '      <td class="text-center nowrap">35万円</td>'
+            . '      <td class="text-center nowrap">30万円</td>'
+            . '      <td class="text-center nowrap">5万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <th colspan="4" class="text-center nowrap" style="background:#e9eff7;">勤労学生控除</th>'
+            . '      <td class="text-center nowrap">27万円</td>'
+            . '      <td class="text-center nowrap">26万円</td>'
+            . '      <td class="text-center nowrap">1万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <th rowspan="3" colspan="2" class="text-center nowrap" style="background:#e9eff7;">障害者控除</th>'
+            . '      <td colspan="2" class="text-center nowrap" style="background:#F7F9FB;">普通</td>'
+            . '      <td class="text-center nowrap">27万円</td>'
+            . '      <td class="text-center nowrap">26万円</td>'
+            . '      <td class="text-center nowrap">1万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <td colspan="2" class="text-center nowrap" style="background:#F7F9FB;">特別</td>'
+            . '      <td class="text-center nowrap">40万円</td>'
+            . '      <td class="text-center nowrap">30万円</td>'
+            . '      <td class="text-center nowrap">10万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <td colspan="2" class="text-center nowrap" style="background:#F7F9FB;">同居特別</td>'
+            . '      <td class="text-center nowrap">75万円</td>'
+            . '      <td class="text-center nowrap">53万円</td>'
+            . '      <td class="text-center nowrap">22万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <th rowspan="6" class="text-center" style="width:30px;background:#e9eff7;">配<br>偶<br>者<br>控<br>除</th>'
+            . '      <td rowspan="6" rowspan="2" class="text-center nowrap" style="width:100px;background:#F7F9FB;">納税者の<br>合計所得金額</td>'
+            . '      <td rowspan="2" class="text-center nowrap" style="width:100px;background:#F7F9FB;">900万円以下</td>'
+            . '      <td class="text-center nowrap" style="width:80px;">一般</td>'
+            . '      <td class="text-center nowrap" style="width:70px;">38万円</td>'
+            . '      <td class="text-center nowrap" style="width:70px;">33万円</td>'
+            . '      <td class="text-center nowrap" style="width:70px;">5万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <td class="text-center nowrap">老人</td>'
+            . '      <td class="text-center nowrap">48万円</td>'
+            . '      <td class="text-center nowrap">38万円</td>'
+            . '      <td class="text-center nowrap">10万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <td rowspan="2" class="text-center nowrap" style="background:#F7F9FB;">900万円超<br>950万円以下</td>'
+            . '      <td class="text-center nowrap">一般</td>'
+            . '      <td class="text-center nowrap">26万円</td>'
+            . '      <td class="text-center nowrap">22万円</td>'
+            . '      <td class="text-center nowrap">4万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <td class="text-center nowrap">老人</td>'
+            . '      <td class="text-center nowrap">32万円</td>'
+            . '      <td class="text-center nowrap">26万円</td>'
+            . '      <td class="text-center nowrap">6万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <td rowspan="2" class="text-center nowrap" style="background:#F7F9FB;">950万円超<br>1,000万円以下</td>'
+            . '      <td class="text-center nowrap">一般</td>'
+            . '      <td class="text-center nowrap">13万円</td>'
+            . '      <td class="text-center nowrap">11万円</td>'
+            . '      <td class="text-center nowrap">2万円</td>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <td class="text-center nowrap">老人</td>'
+            . '      <td class="text-center nowrap">16万円</td>'
+            . '      <td class="text-center nowrap">13万円</td>'
+            . '      <td class="text-center nowrap">3万円</td>'
+            . '    </tr>'
+
+            . '  </tbody>'
+            . '</table>'
+            /* =========================
+             * 2段目
+             * ========================= */
+            . '<table class="help-tax-table mx-auto mb-0" style="width:520px;">'
+            . '  <tbody>'
+            . '    <tr>'
+            . '      <th rowspan="28" class="text-center nowrap" style="width:30px;background:#e9eff7;">配<br>偶<br>者<br>特<br>別<br>控<br>除</th>'
+            . '      <th class="text-center nowrap" style="width:100px;background:#e9eff7;">納税者の<br>合計所得金額</th>'
+            . '      <th class="text-center nowrap" style="width:180px;background:#e9eff7;">配偶者の合計所得金額</th>'
+            . '      <th style="width:70px;background:#e9eff7;">所得税</th>'
+            . '      <th style="width:70px;background:#e9eff7;">住民税</th>'
+            . '      <th style="width:70px;background:#e9eff7;">差　額</th>'
+            . '    </tr>'
+            . '    <tr>'
+            . '      <td rowspan="9" class="text-center nowrap" style="background:#F7F9FB;">900万円以下</td>'
+            . '      <td class="text-center nowrap"> 48万円超　95万円以下</td>'
+            . '      <td class="text-center nowrap">38万円</td>'
+            . '      <td class="text-center nowrap">33万円</td>'
+            . '      <td class="text-center nowrap">5万円</td>'
+            . '    </tr>'
+            . '    <tr><td class="text-center nowrap"> 95万円超　100万円以下</td><td class="text-center nowrap">36万円</td><td class="text-center nowrap">33万円</td><td class="text-center nowrap">3万円</td></tr>'
+            . '    <tr><td class="text-center nowrap">100万円超　105万円以下</td><td class="text-center nowrap">31万円</td><td class="text-center nowrap">31万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">105万円超　110万円以下</td><td class="text-center nowrap">26万円</td><td class="text-center nowrap">26万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">110万円超　115万円以下</td><td class="text-center nowrap">21万円</td><td class="text-center nowrap">21万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">115万円超　120万円以下</td><td class="text-center nowrap">16万円</td><td class="text-center nowrap">16万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">120万円超　125万円以下</td><td class="text-center nowrap">11万円</td><td class="text-center nowrap">11万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">125万円超　130万円以下</td><td class="text-center nowrap">6万円</td><td class="text-center nowrap">6万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">130万円超　133万円以下</td><td class="text-center nowrap">3万円</td><td class="text-center nowrap">3万円</td><td class="text-center nowrap">－</td></tr>'
+
+            . '    <tr>'
+            . '      <td rowspan="9" class="text-center nowrap" style="background:#F7F9FB;">900万円超<br>950万円以下</td>'
+            . '      <td class="text-center nowrap"> 48万円超　 95万円以下</td>'
+            . '      <td class="text-center nowrap">26万円</td>'
+            . '      <td class="text-center nowrap">22万円</td>'
+            . '      <td class="text-center nowrap">4万円</td>'
+            . '    </tr>'
+            . '    <tr><td class="text-center nowrap"> 95万円超　100万円以下</td><td class="text-center nowrap">24万円</td><td class="text-center nowrap">22万円</td><td class="text-center nowrap">2万円</td></tr>'
+            . '    <tr><td class="text-center nowrap">100万円超　105万円以下</td><td class="text-center nowrap">21万円</td><td class="text-center nowrap">21万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">105万円超　110万円以下</td><td class="text-center nowrap">18万円</td><td class="text-center nowrap">18万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">110万円超　115万円以下</td><td class="text-center nowrap">14万円</td><td class="text-center nowrap">14万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">115万円超　120万円以下</td><td class="text-center nowrap">11万円</td><td class="text-center nowrap">11万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">120万円超　125万円以下</td><td class="text-center nowrap">8万円</td><td class="text-center nowrap">8万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">125万円超　130万円以下</td><td class="text-center nowrap">4万円</td><td class="text-center nowrap">4万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">130万円超　133万円以下</td><td class="text-center nowrap">2万円</td><td class="text-center nowrap">2万円</td><td class="text-center nowrap">－</td></tr>'
+
+            . '    <tr>'
+            . '      <td rowspan="9" class="text-center nowrap" style="background:#F7F9FB;">950万円超<br>1,000万円以下</td>'
+            . '      <td class="text-center nowrap"> 48万円超　 95万円以下</td>'
+            . '      <td class="text-center nowrap">13万円</td>'
+            . '      <td class="text-center nowrap">11万円</td>'
+            . '      <td class="text-center nowrap">2万円</td>'
+            . '    </tr>'
+            . '    <tr><td class="text-center nowrap"> 95万円超　100万円以下</td><td class="text-center nowrap">12万円</td><td class="text-center nowrap">11万円</td><td class="text-center nowrap">1万円</td></tr>'
+            . '    <tr><td class="text-center nowrap">100万円超　105万円以下</td><td class="text-center nowrap">11万円</td><td class="text-center nowrap">11万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">105万円超　110万円以下</td><td class="text-center nowrap">9万円</td><td class="text-center nowrap">9万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">110万円超　115万円以下</td><td class="text-center nowrap">7万円</td><td class="text-center nowrap">7万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">115万円超　120万円以下</td><td class="text-center nowrap">6万円</td><td class="text-center nowrap">6万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">120万円超　125万円以下</td><td class="text-center nowrap">4万円</td><td class="text-center nowrap">4万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">125万円超　130万円以下</td><td class="text-center nowrap">2万円</td><td class="text-center nowrap">2万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td class="text-center nowrap">130万円超　133万円以下</td><td class="text-center nowrap">1万円</td><td class="text-center nowrap">1万円</td><td class="text-center nowrap">－</td></tr>'
+            . '  </tbody>'
+            . '</table>'
+            /* =========================
+             * 3段目
+             * ========================= */
+            . '<table class="help-tax-table mx-auto" style="width:520px;">'
+            . '  <tbody>'
+            . '    <tr>'
+            . '      <th rowspan="4" colspan="3" class="text-center nowrap" style="width:210px; background:#e9eff7;">扶養控除</th>'
+            . '      <td style="width:100px;">一般</td>'
+            . '      <td class="text-center nowrap" style="width:70px;">38万円</td>'
+            . '      <td class="text-center nowrap" style="width:70px;">33万円</td>'
+            . '      <td class="text-center nowrap" style="width:70px;">5万円</td>'
+            . '    </tr>'
+            . '    <tr><td class="text-center nowrap">特定</td><td class="text-center nowrap">63万円</td><td class="text-center nowrap">45万円</td><td class="text-center nowrap">18万円</td></tr>'
+            . '    <tr><td class="text-center nowrap">老人</td><td class="text-center nowrap">48万円</td><td class="text-center nowrap">38万円</td><td class="text-center nowrap">10万円</td></tr>'
+            . '    <tr><td class="text-center nowrap">同居老親等</td><td class="text-center nowrap">58万円</td><td class="text-center nowrap">45万円</td><td class="text-center nowrap">13万円</td></tr>'
+            . '    <tr>'
+            . '      <th rowspan="9" class="text-center nowrap" style="width:100px; background:#e9eff7;">特定親族<br>特別控除</th>'
+            . '      <td rowspan="9" class="text-center nowrap" style="width:30px;background:#F7F9FB;"">特<br>定<br>親<br>族<br>の<br>合<br>計<br>所<br>得<br>金<br>額</td>'
+            . '      <td colspan="2" class="text-center nowrap" style="width:180px;"> 58万円超　 85万円以下</td>'
+            . '      <td class="text-center nowrap">63万円</td>'
+            . '      <td rowspan="3" class="text-center nowrap">45万円</td>'
+            . '      <td class="text-center nowrap">18万円</td>'
+            . '    </tr>'
+            . '    <tr><td colspan="2" class="text-center nowrap"> 85万円超　 90万円以下</td><td class="text-center nowrap">61万円</td><td class="text-center nowrap">16万円</td></tr>'
+            . '    <tr><td colspan="2" class="text-center nowrap"> 90万円超　 95万円以下</td><td class="text-center nowrap">51万円</td><td class="text-center nowrap">6万円</td></tr>'
+            . '    <tr><td colspan="2" class="text-center nowrap"> 95万円超　100万円以下</td><td class="text-center nowrap">41万円</td><td class="text-center nowrap">41万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td colspan="2" class="text-center nowrap">100万円超　105万円以下</td><td class="text-center nowrap">31万円</td><td class="text-center nowrap">31万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td colspan="2" class="text-center nowrap">105万円超　110万円以下</td><td class="text-center nowrap">21万円</td><td class="text-center nowrap">21万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td colspan="2" class="text-center nowrap">110万円超　115万円以下</td><td class="text-center nowrap">11万円</td><td class="text-center nowrap">11万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td colspan="2" class="text-center nowrap">115万円超　120万円以下</td><td class="text-center nowrap">6万円</td><td class="text-center nowrap">6万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr><td colspan="2" class="text-center nowrap">120万円超　123万円以下</td><td class="text-center nowrap">3万円</td><td class="text-center nowrap">3万円</td><td class="text-center nowrap">－</td></tr>'
+            . '    <tr>'
+            . '      <th rowspan="5" class="text-center nowrap" style="background:#e9eff7;">基礎控除(※)</th>'
+            . '      <td rowspan="5" class="text-center nowrap" style="background:#F7F9FB;">合<br>計<br>所<br>得<br>金<br>額</td>'
+            . '      <td colspan="2" class="text-end pe-1 nowrap">2,350万円以下</td>'
+            . '      <td class="text-center nowrap">58万円</td>'
+            . '      <td rowspan="2" class="text-center nowrap">43万円</td>'
+            . '      <td class="text-center nowrap">15万円</td>'
+            . '    </tr>'
+            . '      <td colspan="2" class="text-center nowrap">2,350万円超　2,400万円以下</td>'
+            . '      <td class="text-center nowrap">48万円</td>'
+            . '      <td class="text-center nowrap">5万円</td>'
+            . '    </tr>'
+            . '    <tr><td colspan="2" class="text-center nowrap">2,400万円超　2,450万円以下</td><td class="text-center nowrap">32万円</td><td class="text-center nowrap">29万円</td><td class="text-center nowrap">3万円</td></tr>'
+            . '    <tr><td colspan="2" class="text-center nowrap">2,450万円超　2,500万円以下</td><td class="text-center nowrap">16万円</td><td class="text-center nowrap">15万円</td><td class="text-center nowrap">1万円</td></tr>'
+            . '    <tr><td colspan="2" class="text-start ps-1 nowrap">2,500万円超</td><td class="text-center nowrap">適用なし</td><td class="text-center nowrap">適用なし</td><td class="text-center nowrap">－</td></tr>'
+            . '  </tbody>'
+            . '</table>'
+            . '<div class="help-text ms-3 mt-1">※基礎控除に関する令７・８年分特例分は含んでいません。</div>',
+    ],
+
+   
 ];

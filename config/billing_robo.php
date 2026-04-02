@@ -11,8 +11,16 @@ return [
     'user_id' => (string) env('BILLING_ROBO_USER_ID', ''),
     'access_key' => (string) env('BILLING_ROBO_ACCESS_KEY', ''),
 
-    // 5人プラン（1商品）のロボ商品コード
+    // 5人プラン（既存互換用）のロボ商品コード
     'item_code_5seats' => (string) env('BILLING_ROBO_ITEM_CODE_5SEATS', '0001'),
+ 
+    // 初回申込・途中追加など単発請求の商品コード
+    // 未設定時は既存の BILLING_ROBO_ITEM_CODE_5SEATS を流用する
+    'initial_item_code_5seats' => (string) env('BILLING_ROBO_INITIAL_ITEM_CODE_5SEATS', env('BILLING_ROBO_ITEM_CODE_5SEATS', '0001')),
+
+    // 翌年度以降の定期請求マスタの商品コード
+    // 未設定時は既存の BILLING_ROBO_ITEM_CODE_5SEATS を流用する
+    'recurring_item_code_5seats' => (string) env('BILLING_ROBO_RECURRING_ITEM_CODE_5SEATS', env('BILLING_ROBO_ITEM_CODE_5SEATS', '0001')),
 
     // 銀行振込の振込パターンコード（ロボの運用設定の実値に合わせること）
     // 省略時は請求管理ロボ画面の実機確認値に合わせて「1」を使用する。
@@ -52,7 +60,6 @@ return [
     'credit_jquery_js_url' => (string) env('BILLING_ROBO_CREDIT_JQUERY_JS_URL', 'https://credit.j-payment.co.jp/gateway/js/jquery.js'),
     'credit_token_js_url' => (string) env('BILLING_ROBO_CREDIT_TOKEN_JS_URL', 'https://credit.j-payment.co.jp/gateway/js/CPToken.js'),
     'credit_emv3ds_js_url' => (string) env('BILLING_ROBO_CREDIT_EMV3DS_JS_URL', 'https://credit.j-payment.co.jp/gateway/js/EMV3DSAdapter.js'),
-    'webhook_signature_key' => (string) env('BILLING_ROBO_WEBHOOK_SIGNATURE_KEY', ''),
     // 初回クレカ請求の未払い猶予日数
     'credit_initial_grace_days' => (int) env('BILLING_ROBO_CREDIT_INITIAL_GRACE_DAYS', 7),
     

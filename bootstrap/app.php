@@ -49,7 +49,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('invitations:expire-scan')->everyMinute();
 
         // 請求管理ロボ：入金同期（10分ごと）
-        // - pending/issued/failed の invoice を対象に同期ジョブを dispatch
+        // - webhook の即時反映で取りこぼした invoice を救済する
+        // - 初回クレカで paid 済みだが recurring master 未作成のものも救済対象
         $schedule->command('billing:sync-outstanding-invoices')
             ->everyTenMinutes()
             ->withoutOverlapping();

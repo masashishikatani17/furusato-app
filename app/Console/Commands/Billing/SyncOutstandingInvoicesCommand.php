@@ -8,7 +8,8 @@ use Illuminate\Console\Command;
 
 /**
  * 定期同期用（10分ごと想定）
- * - pending/issued/failed の invoice を対象に同期ジョブを投げる
+ * - webhook で取りこぼした invoice を再同期する
+ * - 初回クレカで paid 済みだが recurring master 未作成のものも救済対象に含める
  */
 class SyncOutstandingInvoicesCommand extends Command
 {
@@ -17,20 +18,38 @@ class SyncOutstandingInvoicesCommand extends Command
 
     public function handle(): int
     {
-        $limit = (int)$this->option('limit');
+        $limit = (int) $this->option('limit');
         $limit = max(1, min(1000, $limit));
 
         $targets = SubscriptionInvoice::query()
-            ->whereIn('status', ['pending', 'issued', 'failed'])
+            ->where(function ($query) {
+                $query->whereIn('status', ['pending', 'issued', 'failed'])
+                    ->orWhere(function ($paidInitialCreditQuery) {
+                        $paidInitialCreditQuery
+                            ->where('kind', 'initial')
+                            ->where('payment_method', 'credit')
+                            ->where('status', 'paid')
+                            ->whereHas('subscription', function ($subscriptionQuery) {
+                                $subscriptionQuery->where(function ($subQuery) {
+                                    $subQuery
+                                        ->whereNull('billing_robo_managed_recurring')
+                                        ->orWhere('billing_robo_managed_recurring', false)
+                                        ->orWhereNull('billing_robo_master_demand_code')
+                                        ->orWhere('billing_robo_master_demand_code', '');
+                                });
+                            });
+                    });
+            })
             ->orderBy('id')
             ->limit($limit)
             ->get(['id']);
 
         foreach ($targets as $inv) {
-            SyncSubscriptionInvoiceJob::dispatch((int)$inv->id);
+            SyncSubscriptionInvoiceJob::dispatch((int) $inv->id);
         }
 
         $this->info('dispatched=' . $targets->count());
-        return 0;
+
+        return self::SUCCESS;
     }
 }

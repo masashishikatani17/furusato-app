@@ -167,13 +167,7 @@
           font-weight: 700;
           color: #192C4B;
         }
-        
-        /* HELP本文の通常テキスト */
-        #helpModalCommon #helpModalBody .help-text {
-          margin: 0 0 12px 0;
-          line-height: 1.8;
-        }
-        
+
         /* HELP本文の表 */
         #helpModalCommon #helpModalBody .help-tax-table {
           width: 100%;

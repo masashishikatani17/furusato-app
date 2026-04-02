@@ -114,7 +114,16 @@ class CreditCardRegistrationController extends Controller
                 'register_status' => $registerStatus,
             ]);
 
-            $issuer->issueInitialCreditRecurringAfterRegistration((int) $company->id);
+            $invoice = $issuer->issueInitialCreditAfterRegistration((int) $company->id);
+
+            Log::info('BillingRobo initial credit invoice issued after card registration.', [
+                'company_id' => (int) $company->id,
+                'billing_code' => $context['billing_code'],
+                'payment_method_code' => $context['payment_method_code'],
+                'invoice_id' => (int) $invoice->id,
+                'bill_number' => (string) ($invoice->bill_number ?? ''),
+                'invoice_status' => (string) $invoice->status,
+            ]);
         } catch (Throwable $e) {
             $setting->credit_last_error_code = 'local';
             $setting->credit_last_error_message = mb_substr($e->getMessage(), 0, 255);
@@ -135,7 +144,7 @@ class CreditCardRegistrationController extends Controller
 
         return redirect()
             ->route('login')
-            ->with('status', 'クレジットカード登録が完了し、請求情報を作成しました。ログインしてください。');
+            ->with('status', 'クレジットカード登録が完了しました。初回決済の確認後に利用開始します。ログインしてください。');
     }
 
     /**

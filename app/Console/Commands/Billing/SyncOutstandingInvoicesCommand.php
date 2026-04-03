@@ -23,8 +23,11 @@ class SyncOutstandingInvoicesCommand extends Command
 
         $targets = SubscriptionInvoice::query()
             ->where(function ($query) {
-                $query->whereIn('status', ['pending', 'issued', 'failed'])
-                    ->orWhere(function ($paidInitialCreditQuery) {
+                $query->where(function ($outstandingQuery) {
+                    $outstandingQuery
+                        ->whereIn('status', ['pending', 'issued', 'failed'])
+                        ->whereNotNull('bill_number');
+                })->orWhere(function ($paidInitialCreditQuery) {
                         $paidInitialCreditQuery
                             ->where('kind', 'initial')
                             ->where('payment_method', 'credit')

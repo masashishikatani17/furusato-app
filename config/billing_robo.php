@@ -62,6 +62,14 @@ return [
     'credit_emv3ds_js_url' => (string) env('BILLING_ROBO_CREDIT_EMV3DS_JS_URL', 'https://credit.j-payment.co.jp/gateway/js/EMV3DSAdapter.js'),
     // 初回クレカ請求の未払い猶予日数
     'credit_initial_grace_days' => (int) env('BILLING_ROBO_CREDIT_INITIAL_GRACE_DAYS', 7),
+ 
+    // 初回クレカ決済の実行方式
+    // - bulk_register: カード登録完了直後に即時決済APIで初回決済まで実行する
+    // - issue_bill: 単発請求書を発行し、bill/search 差分同期で決済結果を追う（従来方式）
+    'credit_initial_charge_mode' => (string) env('BILLING_ROBO_CREDIT_INITIAL_CHARGE_MODE', 'bulk_register'),
+
+    // 即時決済API成功時に請求書番号を bill/search で補完する探索窓
+    'credit_initial_immediate_bill_search_window_seconds' => (int) env('BILLING_ROBO_CREDIT_INITIAL_IMMEDIATE_BILL_SEARCH_WINDOW_SECONDS', 120),
 
     // 初回クレカ決済成功の差分ポーリング設定（bill/search の update_date 差分参照）
     'credit_initial_poll_lookback_minutes' => (int) env('BILLING_ROBO_CREDIT_INITIAL_POLL_LOOKBACK_MINUTES', 180),

@@ -131,8 +131,14 @@ class IssueInvoiceService
             $alreadyIssued = SubscriptionInvoice::query()
                 ->where('subscription_id', (int) $sub->id)
                 ->where('kind', 'initial')
-                ->whereIn('status', ['issued', 'paid'])
-                ->whereNotNull('bill_number')
+                ->where(function ($query) {
+                    $query->where('status', 'paid')
+                        ->orWhere(function ($issuedQuery) {
+                            $issuedQuery
+                                ->where('status', 'issued')
+                                ->whereNotNull('bill_number');
+                        });
+                })
                 ->latest('id')
                 ->first();
 
@@ -154,7 +160,10 @@ class IssueInvoiceService
             $periodEnd = Carbon::parse((string) $sub->term_end, 'Asia/Tokyo')->startOfDay();
             $monthsCharged = $this->calculateInclusiveMonths($periodStart, $periodEnd);
             $issueDate = Carbon::now('Asia/Tokyo')->startOfDay();
-            $dueDate = $issueDate->copy()->addDays(7);
+            $useImmediateCreditBulkRegister = $this->resolveCreditInitialChargeMode() === 'bulk_register';
+            $dueDate = $useImmediateCreditBulkRegister
+                ? $issueDate->copy()
+                : $issueDate->copy()->addDays(7);
             $perSeatAmountYen = $this->calculatePerSeatAmountForMonths($monthsCharged);
 
             return $this->createAndIssueInvoice(
@@ -173,6 +182,7 @@ class IssueInvoiceService
                 dueDate: $dueDate,
                 attachBillingIndividual: false,
                 demandUnitPriceYen: $perSeatAmountYen,
+                useImmediateCreditBulkRegister: $useImmediateCreditBulkRegister,
             );
         });
     }
@@ -301,6 +311,7 @@ class IssueInvoiceService
         Carbon $dueDate,
         bool $attachBillingIndividual = false,
         ?int $demandUnitPriceYen = null,
+        bool $useImmediateCreditBulkRegister = false,
     ): SubscriptionInvoice {
         $this->assertSupportedPaymentMethod($paymentMethod);
 
@@ -452,22 +463,49 @@ class IssueInvoiceService
                 return $inv;
             }
 
-            try {
-                $this->client->billingBulkUpsert([[
-                    'code' => $billingCode,
-                    'name' => $billingPayload['billing_name'],
-                    'individual' => [[
-                        'code' => $billingIndividualCode,
-                        'name' => $billingPayload['individual_name'],
-                        'payment_method_code' => $paymentMethodCode,
-                    ]],
-                ]]);
-            } catch (Throwable $e) {
-                throw new RuntimeException('individualへのpayment_method_code関連付け失敗', previous: $e);
-            }
+            $this->attachPaymentMethodCodeToBillingIndividual(
+                companyId: $companyId,
+                billingCode: $billingCode,
+                billingIndividualCode: $billingIndividualCode,
+                paymentMethodCode: $paymentMethodCode,
+            );
         }
 
         $periodStartDate = Carbon::parse($periodStart, 'Asia/Tokyo')->startOfDay();
+
+        if ($useImmediateCreditBulkRegister) {
+            if ($paymentMethod !== 'credit') {
+                throw new RuntimeException('即時決済APIはクレジットカード初回請求のみ利用できます。');
+            }
+
+            if (trim((string) $billingIndividualCode) === '') {
+                throw new RuntimeException('即時決済APIの実行に必要な billing_individual_code が未確定です。');
+            }
+
+            if (!is_string($paymentMethodCode) || trim($paymentMethodCode) === '') {
+                throw new RuntimeException('即時決済APIの実行に必要な payment_method_code が未確定です。');
+            }
+
+            $this->attachPaymentMethodCodeToBillingIndividual(
+                companyId: $companyId,
+                billingCode: $billingCode,
+                billingIndividualCode: $billingIndividualCode,
+                paymentMethodCode: $paymentMethodCode,
+            );
+
+            return $this->registerAndCaptureInitialCreditInvoiceImmediately(
+                invoice: $inv,
+                companyId: $companyId,
+                billingCode: $billingCode,
+                billingIndividualCode: $billingIndividualCode,
+                demandUnitPriceYen: $demandUnitPriceYen ?? $unitPriceYen,
+                monthsCharged: $monthsCharged,
+                periodStartDate: $periodStartDate,
+                issueDate: $issueDate,
+                dueDate: $dueDate,
+            );
+        }
+
         $issueMonthOffset = $this->calculateMonthOffset($periodStartDate, $issueDate);
         $sendingDate = $issueDate->copy();
         $sendingMonthOffset = $this->calculateMonthOffset($periodStartDate, $sendingDate);
@@ -588,6 +626,381 @@ class IssueInvoiceService
         }
 
         return $inv;
+    }
+ 
+    private function resolveCreditInitialChargeMode(): string
+    {
+        $mode = trim((string) config('billing_robo.credit_initial_charge_mode', 'bulk_register'));
+
+        if (!in_array($mode, ['bulk_register', 'issue_bill'], true)) {
+            throw new RuntimeException("billing_robo.credit_initial_charge_mode is invalid: {$mode}");
+        }
+
+        return $mode;
+    }
+
+    private function attachPaymentMethodCodeToBillingIndividual(
+        int $companyId,
+        string $billingCode,
+        string $billingIndividualCode,
+        string $paymentMethodCode,
+    ): void {
+        $billingPayload = $this->buildInitialBillingPayload($companyId, $billingCode, $billingIndividualCode);
+
+        try {
+            $this->client->billingBulkUpsert([[
+                'code' => $billingCode,
+                'name' => $billingPayload['billing_name'],
+                'individual' => [[
+                    'code' => $billingIndividualCode,
+                    'name' => $billingPayload['individual_name'],
+                    'payment_method_code' => $paymentMethodCode,
+                ]],
+            ]]);
+        } catch (Throwable $e) {
+            throw new RuntimeException('individualへのpayment_method_code関連付け失敗', previous: $e);
+        }
+    }
+
+    private function registerAndCaptureInitialCreditInvoiceImmediately(
+        SubscriptionInvoice $invoice,
+        int $companyId,
+        string $billingCode,
+        string $billingIndividualCode,
+        int $demandUnitPriceYen,
+        int $monthsCharged,
+        Carbon $periodStartDate,
+        Carbon $issueDate,
+        Carbon $dueDate,
+    ): SubscriptionInvoice {
+        $requestStartedAt = now('Asia/Tokyo');
+        $itemCode = (string) $invoice->item_code;
+        $goodsName = $this->resolveGoodsNameByItemCode($itemCode);
+        $billTemplateCode = $this->resolveDemandBillTemplateCode($itemCode);
+
+        $billPayload = [
+            'billing_code' => $billingCode,
+            'billing_individual_code' => $billingIndividualCode,
+            'billing_method' => $this->resolveDemandBillingMethod(),
+            'bill_template_code' => $billTemplateCode,
+            'tax' => (int) config('billing_robo.tax'),
+            'issue_date' => $issueDate->format('Y/m/d'),
+            'sending_date' => $issueDate->format('Y/m/d'),
+            'deadline_date' => $dueDate->format('Y/m/d'),
+            'jb' => 'CAPTURE',
+            'bill_detail' => [[
+                'demand_type' => self::ROBO_DEMAND_TYPE_ONE_TIME,
+                'item_code' => $itemCode,
+                'goods_name' => $goodsName,
+                'price' => $demandUnitPriceYen,
+                'quantity' => (int) $invoice->quantity,
+                'tax_category' => (int) config('billing_robo.tax_category'),
+                'tax' => (int) config('billing_robo.tax'),
+                'start_date' => $periodStartDate->format('Y/m/d'),
+                'period_format' => 3,
+                'period_value' => max(1, $monthsCharged),
+                'period_unit' => self::ROBO_REPETITION_PERIOD_UNIT_MONTH,
+                'period_criterion' => 0,
+                'sales_recorded_date' => $periodStartDate->format('Y/m/d'),
+            ]],
+        ];
+
+        Log::info('BillingRobo initial credit immediate settlement request', [
+            'company_id' => $companyId,
+            'billing_code' => $billingCode,
+            'invoice_id' => (int) $invoice->id,
+            'bill_payload' => $billPayload,
+        ]);
+
+        $response = $this->client->demandBulkRegister([$billPayload]);
+
+        Log::info('BillingRobo initial credit immediate settlement response', [
+            'company_id' => $companyId,
+            'billing_code' => $billingCode,
+            'invoice_id' => (int) $invoice->id,
+            'raw_response' => $response,
+        ]);
+
+        $error = $this->extractImmediateChargeErrorFromResponse($response);
+        if ($error !== null) {
+            $errorCode = trim((string) ($error['error_code'] ?? ''));
+            $errorMessage = trim((string) ($error['error_message'] ?? 'Immediate credit settlement failed.'));
+            $errorEc = trim((string) ($error['ec'] ?? ''));
+
+            if ($errorCode === '234') {
+                $invoice->status = 'failed';
+                $invoice->last_synced_at = now();
+                $invoice->last_sync_error = $this->formatImmediateChargeFailureMessage($errorCode, $errorMessage, $errorEc);
+                $invoice->save();
+
+                Log::warning('BillingRobo initial credit immediate settlement failed.', [
+                    'company_id' => $companyId,
+                    'billing_code' => $billingCode,
+                    'invoice_id' => (int) $invoice->id,
+                    'error_code' => $errorCode,
+                    'error_message' => $errorMessage,
+                    'ec' => $errorEc,
+                ]);
+
+                return $invoice;
+            }
+
+            throw new RuntimeException(sprintf(
+                'BillingRobo demandBulkRegister failed: error_code=%s message=%s ec=%s',
+                $errorCode !== '' ? $errorCode : 'unknown',
+                $errorMessage !== '' ? $errorMessage : 'unknown',
+                $errorEc !== '' ? $errorEc : 'n/a',
+            ));
+        }
+
+        $remoteDemandCode = $this->extractImmediateChargeDemandCodeFromResponse($response);
+        if ($remoteDemandCode !== '') {
+            $invoice->demand_code = $remoteDemandCode;
+        }
+
+        $billNumber = $this->extractImmediateChargeBillNumberFromResponse($response);
+        if ($billNumber === '') {
+            $billNumber = $this->findImmediateChargeBillNumber(
+                billingCode: $billingCode,
+                issueDate: $issueDate,
+                subtotalAmountYen: (int) $invoice->amount_yen,
+                requestedAt: $requestStartedAt,
+            );
+        }
+
+        if ($billNumber !== '') {
+            $invoice->bill_number = $billNumber;
+        }
+
+        $invoice->last_synced_at = now();
+        $invoice->last_sync_error = null;
+        $invoice->save();
+
+        $this->markInitialCreditInvoicePaid($invoice);
+
+        $freshInvoice = SubscriptionInvoice::query()->find((int) $invoice->id);
+        if ($freshInvoice instanceof SubscriptionInvoice) {
+            $this->ensureCreditRecurringDemandForPaidInitialInvoice($freshInvoice);
+
+            Log::info('BillingRobo initial credit immediate settlement succeeded.', [
+                'company_id' => $companyId,
+                'billing_code' => $billingCode,
+                'invoice_id' => (int) $freshInvoice->id,
+                'bill_number' => (string) ($freshInvoice->bill_number ?? ''),
+                'subscription_id' => (int) $freshInvoice->subscription_id,
+            ]);
+
+            return $freshInvoice;
+        }
+
+        return $invoice;
+    }
+
+    private function extractImmediateChargeErrorFromResponse(array $response): ?array
+    {
+        $bill = $this->extractImmediateChargeBillResponseRow($response);
+        if (!is_array($bill)) {
+            return null;
+        }
+
+        $errorCode = $bill['error_code'] ?? null;
+        $errorMessage = trim((string) ($bill['error_message'] ?? ''));
+        $ec = trim((string) ($bill['ec'] ?? ''));
+
+        if ($errorCode === null || trim((string) $errorCode) === '') {
+            return null;
+        }
+
+        return [
+            'error_code' => trim((string) $errorCode),
+            'error_message' => $errorMessage,
+            'ec' => $ec,
+        ];
+    }
+
+    private function formatImmediateChargeFailureMessage(string $errorCode, string $errorMessage, string $ec): string
+    {
+        $parts = [
+            'BillingRobo 初回クレジット即時決済に失敗しました。',
+            "error_code={$errorCode}",
+        ];
+
+        if ($errorMessage !== '') {
+            $parts[] = "message={$errorMessage}";
+        }
+
+        if ($ec !== '') {
+            $parts[] = "ec={$ec}";
+        }
+
+        return implode(' ', $parts);
+    }
+
+    private function extractImmediateChargeDemandCodeFromResponse(array $response): string
+    {
+        $demand = $this->extractImmediateChargeDemandResponseRow($response);
+        if (!is_array($demand)) {
+            return '';
+        }
+
+        $code = $demand['code'] ?? null;
+
+        return is_scalar($code) ? trim((string) $code) : '';
+    }
+
+    private function extractImmediateChargeBillNumberFromResponse(array $response): string
+    {
+        $bill = $this->extractImmediateChargeBillResponseRow($response);
+        if (!is_array($bill)) {
+            return '';
+        }
+
+        $number = $bill['number'] ?? null;
+
+        return is_scalar($number) ? trim((string) $number) : '';
+    }
+
+    private function extractImmediateChargeDemandResponseRow(array $response): ?array
+    {
+        $user = $response['user'] ?? null;
+        if (is_array($user) && isset($user['demand']) && is_array($user['demand'])) {
+            return $user['demand'];
+        }
+
+        $demands = $response['demand'] ?? null;
+        if (is_array($demands)) {
+            if (isset($demands[0]) && is_array($demands[0])) {
+                return $demands[0];
+            }
+
+            return $demands;
+        }
+
+        return null;
+    }
+
+    private function extractImmediateChargeBillResponseRow(array $response): ?array
+    {
+        $user = $response['user'] ?? null;
+        if (is_array($user)) {
+            $userBills = $user['bill'] ?? null;
+            if (is_array($userBills)) {
+                if (isset($userBills[0]) && is_array($userBills[0])) {
+                    return $userBills[0];
+                }
+
+                return $userBills;
+            }
+        }
+
+        $bills = $response['bill'] ?? null;
+        if (is_array($bills)) {
+            if (isset($bills[0]) && is_array($bills[0])) {
+                return $bills[0];
+            }
+
+            return $bills;
+        }
+
+        return null;
+    }
+
+    private function findImmediateChargeBillNumber(
+        string $billingCode,
+        Carbon $issueDate,
+        int $subtotalAmountYen,
+        Carbon $requestedAt,
+    ): string {
+        $windowSeconds = max(30, (int) config('billing_robo.credit_initial_immediate_bill_search_window_seconds', 120));
+        $from = $requestedAt->copy()->subSeconds(30);
+        $to = now('Asia/Tokyo')->addSeconds($windowSeconds);
+
+        try {
+            $response = $this->client->billSearch(
+                criteria: [
+                    'billing_code' => $billingCode,
+                    'payment_method' => self::CREDIT_PAYMENT_METHOD,
+                    'update_date_from' => $from->format('Y/m/d H:i:s'),
+                    'update_date_to' => $to->format('Y/m/d H:i:s'),
+                    'valid_flg' => 1,
+                ],
+                limitCount: 20,
+                pageCount: 0,
+                sort: [
+                    'key' => 'update_date,bill_id',
+                    'order' => 0,
+                ],
+            );
+        } catch (Throwable $e) {
+            Log::warning('BillingRobo immediate settlement bill search failed while resolving bill number.', [
+                'billing_code' => $billingCode,
+                'invoice_issue_date' => $issueDate->toDateString(),
+                'subtotal_amount_yen' => $subtotalAmountYen,
+                'exception_message' => $e->getMessage(),
+                'exception' => $this->extractThrowableContext($e),
+            ]);
+
+            return '';
+        }
+
+        $billRows = array_reverse($this->extractBillRowsFromBillSearchResponse($response));
+        foreach ($billRows as $billRow) {
+            $billNumber = trim((string) ($billRow['number'] ?? ''));
+            if ($billNumber === '') {
+                continue;
+            }
+
+            if (trim((string) ($billRow['billing_code'] ?? '')) !== $billingCode) {
+                continue;
+            }
+
+            if ((int) ($billRow['payment_method'] ?? -1) !== self::CREDIT_PAYMENT_METHOD) {
+                continue;
+            }
+
+            if ($this->parseRoboDate((string) ($billRow['issue_date'] ?? '')) !== $issueDate->toDateString()) {
+                continue;
+            }
+
+            if (isset($billRow['subtotal_amount_billed']) && (int) $billRow['subtotal_amount_billed'] !== $subtotalAmountYen) {
+                continue;
+            }
+
+            return $billNumber;
+        }
+
+        Log::warning('BillingRobo immediate settlement succeeded but bill number could not be resolved.', [
+            'billing_code' => $billingCode,
+            'invoice_issue_date' => $issueDate->toDateString(),
+            'subtotal_amount_yen' => $subtotalAmountYen,
+            'search_response' => $response,
+        ]);
+
+        return '';
+    }
+
+    private function resolveGoodsNameByItemCode(string $itemCode): string
+    {
+        try {
+            $goodsRes = $this->client->goodsSearchByItemCode($itemCode);
+            $goodsRows = $goodsRes['goods'] ?? null;
+
+            if (is_array($goodsRows) && isset($goodsRows[0]) && is_array($goodsRows[0])) {
+                $goods = $goodsRows[0];
+                $goodsName = trim((string) ($goods['name'] ?? $goods['item_name'] ?? ''));
+                if ($goodsName !== '') {
+                    return $goodsName;
+                }
+            }
+        } catch (Throwable $e) {
+            Log::warning('BillingRobo goods search failed while resolving goods name. Fallback to item_code.', [
+                'item_code' => $itemCode,
+                'exception_message' => $e->getMessage(),
+                'exception' => $this->extractThrowableContext($e),
+            ]);
+        }
+
+        return $itemCode;
     }
 
     /**

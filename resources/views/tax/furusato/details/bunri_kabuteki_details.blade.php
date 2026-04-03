@@ -402,6 +402,49 @@ document.addEventListener('DOMContentLoaded', function () {
   #helpModalBunriKabuteki #helpModalBodyBunriKabuteki u {
     text-underline-offset: 2px;
   }
+  /* html形式のHELP本文用 */
+  #helpModalBunriKabuteki .furu-help-head {
+    line-height: 1.2;
+    font-weight: 700;
+    color: #192C4B;
+  }
+
+  #helpModalBunriKabuteki .help-text.furu-help-line {
+    line-height: 1.2;
+  }
+
+  #helpModalBunriKabuteki .help-text.furu-help-body {
+    padding-left: 2.5em;
+    line-height: 1.2;
+  }
+
+  #helpModalBunriKabuteki .help-text.furu-help-item {
+    padding-left: 4em;
+    text-indent: -1em;
+    line-height: 1.2;
+  }
+
+  #helpModalBunriKabuteki .help-text.furu-help-item-last {
+    padding-left: 4em;
+    text-indent: -1em;
+    line-height: 1.2;
+  }
+
+  #helpModalBunriKabuteki .help-text.furu-help-note-hanging {
+    padding-left: 2.5em;
+    text-indent: -1em;
+    line-height: 1.2;
+  }
+
+  #helpModalBunriKabuteki .help-text.furu-help-star {
+    padding-left: 1.5em;
+    line-height: 1.2;
+  }
+
+  #helpModalBunriKabuteki .furu-help-star-label {
+    color: #701616;
+    font-weight: 700;
+  }
 </style>
 @endpush
 
@@ -433,16 +476,23 @@ document.addEventListener('click', function (e) {
 
   const key  = btn.getAttribute('data-help-key') || '';
   const dict = window.__PAGE_HELP_TEXTS_BUNRIKABUTEKI__ || {};
-  const item = dict[key];
+  
+  const item = dict[key] || {};
 
-  const title = item?.title ?? 'HELP';
-  const body  = item?.body ?? '（この項目のHELPは未登録です）';
+  const title    = item.title || 'HELP';
+  const htmlBody = (typeof item.html === 'string') ? item.html : '';
+  const body     = (typeof item.body === 'string') ? item.body : '（この項目のHELPは未登録です）';
+ 
+   const titleEl = document.getElementById('helpModalTitleBunriKabuteki');
+   const bodyEl  = document.getElementById('helpModalBodyBunriKabuteki');
+ 
+   if (titleEl) titleEl.textContent = title;
+   if (!bodyEl) return;
 
-  const titleEl = document.getElementById('helpModalTitleBunriKabuteki');
-  const bodyEl  = document.getElementById('helpModalBodyBunriKabuteki');
-
-  if (titleEl) titleEl.textContent = title;
-  if (!bodyEl) return;
+  if (htmlBody) {
+    bodyEl.innerHTML = htmlBody;
+    return;
+  }
 
   const escapeHtml = (s) => String(s)
     .replace(/&/g, '&amp;')

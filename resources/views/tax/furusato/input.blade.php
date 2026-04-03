@@ -945,8 +945,11 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">短期譲渡</th>
                   <td class="text-center align-middle" rowspan="2">
-                    <button type="button" 
-                            class="btn-base-free-blue"
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="bunri_joto_tansho_choki"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon"
                             style="height:32px;">HELP</button>
                   </td>
                 @php
@@ -974,8 +977,11 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1 pe-1" nowrap="nowrap">一般・上場株式の譲渡</th>
                   <td class="text-center align-middle" rowspan="2">
-                    <button type="button" 
-                            class="btn-base-free-blue"
+                     <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="bunri_kabuteki"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon"
                             style="height:32px;">HELP</button>
                   </td>
                 {!! $renderSeparatedTb(['tb_ippan_kabuteki_joto','tb_jojo_kabuteki_joto'], $inputs) !!}
@@ -1043,8 +1049,11 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">短期譲渡</th>
                  <td class="text-center align-middle" rowspan="2">
-                    <button type="button" 
-                            class="btn-base-free-blue"
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="bunri_joto_tansho_choki"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon"
                             style="height:32px;">HELP</button>
                   </td>
                 @php
@@ -1072,8 +1081,11 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">一般・上場株式の譲渡</th>
                   <td class="text-center align-middle" rowspan="2">
-                    <button type="button" 
-                            class="btn-base-free-blue"
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="bunri_kabuteki"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon"
                             style="height:32px;">HELP</button>
                   </td>
                 @php
@@ -3544,7 +3556,7 @@
           if (!bodyEl) return;
         
           if (dialogEl) {
-            dialogEl.style.maxWidth = (key === 'kisokojo' || key === 'taishoku') ? '800px' : '650px';
+            dialogEl.style.maxWidth = (key === 'kisokojo' || key === 'taishoku' || key === 'bunri_joto_tansho_choki') ? '800px' : '650px';
           }
         
           if (htmlBody) {

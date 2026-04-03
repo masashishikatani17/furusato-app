@@ -10,13 +10,13 @@ return [
    'kafu_hitorioya' => [
     'title' => '寡婦控除・ひとり親控除',
     'html'  => ''
-        . '<div class="help-text">　以下の控除額は全て所得税に関するものです。住民税については「所得税と住民税の人的控除額の比較」をご覧下さい。</div>'
+        . '<div class="help-text">　以下の控除額は全て所得税に関するものです。住民税については「所得税と住民税の人的控除額の比較」（前の画面の下のHELPより）をご覧下さい。</div>'
         . '<div class="help-text">　納税者が<span style="color:#701616;">寡婦</span>（★）であるときは、27万円を寡婦控除として所得金額から控除できます。<br>'
         . '　また、納税者が<span style="color:#701616">ひとり親</span>（★）であるときは、35万円をひとり親控除として所得金額から控除できます。</div>'
-        . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em;">★<span style="color:#701616">寡婦</span><br>原則としてその年の12月31日の現況で、本人の合計所得金額が500万円以下で、次の<span style="color:#701616;">いずれかに</span>当てはまる人（ひとり親に該当する人を除く）です（事実上婚姻関係と同様の事情にあると認められる場合を除く）。<br>'
+        . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em;">★<span style="color:#701616">寡婦</span><br>　原則としてその年の12月31日の現況で、本人の合計所得金額が500万円以下で、次の<span style="color:#701616;">いずれかに</span>当てはまる人（ひとり親に該当する人を除く）です（事実上婚姻関係と同様の事情にあると認められる場合を除く）。<br>'
         . '　① 夫と死別した後、婚姻をしていない人または夫の生死が明らかでない人<br>'
         . '　② 夫と離婚した後、婚姻をしておらず扶養親族がいる人</div>'
-        . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em;">★<span style="color:#701616">ひとり親</span><br>原則としてその年の12月31日の現況で、次の<span style="color:#701616;">全てに</span>当てはまる人。<br>'
+        . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em;">★<span style="color:#701616">ひとり親</span><br>　原則としてその年の12月31日の現況で、次の<span style="color:#701616;">全てに</span>当てはまる人。<br>'
         . '　① 本人の合計所得金額が500万円以下<br>'
         . '　② 婚姻をしていないこと、または配偶者の生死の明らかでない人<br>'
         . '　② 生計を一にする子（その年分の総所得金額等が58万円以下で、他の人の同一生計配偶者や扶養親族になっていない）がいる人（事実上婚姻関係と同様の事情にあると認められる場合を除く）。</div>'
@@ -92,10 +92,9 @@ return [
         . '    </tr>'
         . '  </tbody>'
         . '</table>'
-        . '<div class="help-text" style="padding-left:2.6em; text-indent:-2.6em; line-height:1.3; margin-bottom:0;">※１：生死不明を含む。</div>'
-        . '<div class="help-text" style="padding-left:2.6em; text-indent:-2.6em; line-height:1.3; margin-bottom:0;">※２：総所得金額等が58万円以下の生計を一にする子であること。なお、扶養親族には事業専従者は含まれないが、上記の生計を一にする子には事業専従者である場合を含む。</div>'
-        . '<div class="help-text" style="padding-left:2.6em; text-indent:-2.6em; line-height:1.3;">※３：婚姻には再婚、事実婚を含む。</div>',
-    ],
+        . '<div class="help-text furu-help-note-hanging mb-0">※１：生死不明を含む。</div>'
+        . '<div class="help-text furu-help-note-hanging mb-0">※２：総所得金額等が58万円以下の生計を一にする子であること。なお、扶養親族には事業専従者は含まれないが、上記の生計を<br>　　一にする子には事業専従者である場合を含む。</div>'
+        . '<div class="help-text furu-help-note-hanging">※３：婚姻には再婚、事実婚を含む。</div>',    ],
 
     'kinrogakusei' => [
         'title' => '勤労学生控除',
@@ -107,9 +106,9 @@ return [
         . '　　③<span style="color:#701616;">特定の学校</span>（★）の学生や生徒<br>'
         . '　　である者をいう。</div>'
         . '<div class="help-text" style="padding-left:2.5em; text-indent:-2.5em; margin-bottom:4px;">★<span style="color:#701616;">特定の学校</span></div>'
-        . '<div class="help-text" style="padding-left:2em; text-indent:-0.5em; line-height:1.35; margin-bottom:0;">・学校教育法に規定する小学校、中学校、高等学校、大学（大学院を含む）、高等専門学校など</div>'
-        . '<div class="help-text" style="padding-left:2em; text-indent:-0.5em; line-height:1.35; margin-bottom:0;">・国、地方公共団体、学校法人等により設置された専修学校等のうち一定の要件に当てはまる過程を履修させるもの</div>'
-        . '<div class="help-text" style="padding-left:2em; text-indent:-0.5em; line-height:1.35;">・認定教育訓練を行う職業訓練法人等で一定の要件に当てはまる過程を履修させるもの</div>',
+        . '<div class="help-text" style="padding-left:2em; text-indent:-0.5em; line-height:1.35; margin-bottom:0;">①学校教育法に規定する小学校、中学校、高等学校、大学（大学院を含む）、高等専門学校など</div>'
+        . '<div class="help-text" style="padding-left:2em; text-indent:-0.5em; line-height:1.35; margin-bottom:0;">②国、地方公共団体、学校法人等により設置された専修学校等のうち一定の要件に当てはまる過程を履修させるもの</div>'
+        . '<div class="help-text" style="padding-left:2em; text-indent:-0.5em; line-height:1.35;">③認定教育訓練を行う職業訓練法人等で一定の要件に当てはまる過程を履修させるもの</div>',
        
     ],
 
@@ -136,7 +135,7 @@ return [
         . '<div class="help-text" style="padding-left:4.0em; text-indent:-1.5em; line-height:1.25; margin-bottom:0;">④青色申告者の青色事業専従者または白色申告者の事業専従者でないこと</div>'
         . '<div class="help-text" style="padding-left:4.0em; text-indent:-1.5em; line-height:1.25;">⑤他の人の扶養親族となっていないこと</div>'
 
-        . '<div style="padding-left:4em;"><strong>○配偶者控除の金額</strong></div>'
+        . '<div style="padding-left:6em;"><strong>○配偶者控除の金額</strong></div>'
         . '<table class="help-tax-table mx-auto" style="width:340px;">'
         . '  <thead>'
         . '    <tr>'
@@ -167,7 +166,7 @@ return [
         . '  </tbody>'
         . '</table>'
 
-        . '<div class="help-text" style="padding-left:4em;">※「老人（控除対象配偶者）」とは、12月31日現在で70歳以上の人です。</div>',
+        . '<div class="help-text" style="padding-left:6em;">※「老人（控除対象配偶者）」とは、12月31日現在で70歳以上の人です。</div>',
 ],
     
 'haigusha_tokubetsu' => [

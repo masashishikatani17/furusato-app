@@ -12,39 +12,33 @@
 return [
     'bunri_joto_tansho_choki' => [
         'title' => '分離譲渡（短期・長期）',
-        'body'  => ''
-            . "　分離譲渡とはその名のとおり他の所得とは分離して単独で課税される譲渡所得のことです。\n"
-            . "\n"
-            . "○具体例\n"
-            . "　土地や建物などの譲渡から生ずる所得\n"
-            . "※「譲渡所得の内訳書（確定申告書付表兼計算明細書）【土地・建物用】」で計算し、確定申告書と一緒に提出します。\n"
-            . "　申告書（第一表・第二表）と分離用（第三表）等を使用します。\n"
-            . "　\n"
-            . "　__なお、このソフトではふるさと納税の計算の仕組みを理解しやすいように第一表と第三表を一緒にした方法を採用しています。__\n"
-            . "　__所得税や住民税の税理士試験でもこの方式を採用しています。__\n"
-            . "\n"
-            . "○短期と長期の区分\n"
-            . "　短期譲渡：譲渡した年の１月１日現在で所有期間が５年以内のもの\n"
-            . "　長期譲渡：譲渡した年の１月１日現在で所有期間が５年超のもの\n"
-            . "　※総合課税の譲渡所得は、取得した時から売った時までの保有期間によって判定しますのでご注意下さい。\n"
-            . "\n"
-            . "○計算方法\n"
-            . "　　譲渡所得の金額 ＝ 収入金額 － 必要経費 － 特別控除額\n"
-            . "\n"
-            . "○税率\n"
-            . "　__いずれも所得税について復興特別所得税が2.1%あり__\n"
-            . "　　①短期\n"
-            . "　　　一般分：所得税30%、住民税9%\n"
-            . "　　　軽減分(注1)：所得税15%、住民税5%\n"
-            . "　　②長期\n"
-            . "　　　一般分：所得税15%、住民税5%\n"
-            . "　　　特定分(注2)：所得税10%、住民税4%（2,000万円以下の部分）\n"
-            . "　　　　　　　　　所得税15%、住民税5%（2,000万円超の部分）\n"
-            . "　　　軽課分(注3)：所得税10%、住民税4%（6,000万円以下の部分）\n"
-            . "　　　　　　　　　所得税15%、住民税5%（6,000万円超の部分）\n"
-            . "\n"
-            . "(注1)譲渡先が国、地方公共団体等\n"
-            . "(注2)譲渡先が国、地方公共団体等＋優良住宅地等のための譲渡\n"
-            . "(注3)譲渡した年の１月１日現在で所有期間が10年を超える居住用財産の譲渡\n",
-    ],
+        'html'  => ''
+            . '<div class="help-text furu-help-line mb-4">　分離譲渡とはその名のとおり他の所得とは分離して単独で課税される譲渡所得のことです。</div>'
+            . '<div class="furu-help-head">○具体例</div>'
+            . '<div class="help-text furu-help-line mb-2">　土地や建物などの譲渡から生ずる所得</div>'
+            . '<div class="help-text furu-help-note-hanging mb-0">※「譲渡所得の内訳書（確定申告書付表兼計算明細書）【土地・建物用】」で計算し、確定申告書と一緒に提出します。</div>'
+            . '<div class="help-text furu-help-body mb-4">　申告書（第一表・第二表）と分離用（第三表）等を使用します。</div>'
+            . '<div class="help-text furu-help-body mb-0"><u>なお、このソフトではふるさと納税の計算の仕組みを理解しやすいように第一表と第三表を一緒にした方法を採用しています。</u></div>'
+            . '<div class="help-text furu-help-body mb-4"><u>所得税や住民税の税理士試験でもこの方式を採用しています。</u></div>'
+            . '<div class="furu-help-head">○短期と長期の区分</div>'
+            . '<div class="help-text furu-help-body mb-0">　短期譲渡：譲渡した年の１月１日現在で所有期間が５年以内のもの</div>'
+            . '<div class="help-text furu-help-body mb-0">　長期譲渡：譲渡した年の１月１日現在で所有期間が５年超のもの</div>'
+            . '<div class="help-text furu-help-note-hanging mb-4">※総合課税の譲渡所得は、取得した時から売った時までの保有期間によって判定しますのでご注意下さい。</div>'
+            . '<div class="furu-help-head">○計算方法</div>'
+            . '<div class="help-text furu-help-body mb-4">　　譲渡所得の金額 ＝ 収入金額 － 必要経費 － 特別控除額</div>'
+            . '<div class="furu-help-head">○税率</div>'
+            . '<div class="help-text furu-help-body mb-2"><u>いずれも所得税について復興特別所得税が2.1%あり</u></div>'
+            . '<div class="help-text furu-help-item mb-0">①短期</div>'
+            . '<div class="help-text furu-help-body mb-0">　　一般分：所得税30%、住民税9%</div>'
+            . '<div class="help-text furu-help-body mb-2">　　軽減分(注1)：所得税15%、住民税5%</div>'
+            . '<div class="help-text furu-help-item mb-0">②長期</div>'
+            . '<div class="help-text furu-help-body mb-0">　　一般分：所得税15%、住民税5%</div>'
+            . '<div class="help-text furu-help-body mb-0">　　特定分(注2)：所得税10%、住民税4%（2,000万円以下の部分）</div>'
+            . '<div class="help-text furu-help-body mb-0">　　　　　　　　　所得税15%、住民税5%（2,000万円超の部分）</div>'
+            . '<div class="help-text furu-help-body mb-0">　　軽課分(注3)：所得税10%、住民税4%（6,000万円以下の部分）</div>'
+            . '<div class="help-text furu-help-body mb-4">　　　　　　　　　所得税15%、住民税5%（6,000万円超の部分）</div>'
+            . '<div class="help-text furu-help-note-hanging mb-0">(注1)譲渡先が国、地方公共団体等</div>'
+            . '<div class="help-text furu-help-note-hanging mb-0">(注2)譲渡先が国、地方公共団体等＋優良住宅地等のための譲渡</div>'
+            . '<div class="help-text furu-help-note-hanging">(注3)譲渡した年の１月１日現在で所有期間が10年を超える居住用財産の譲渡</div>',
+     ],
 ];

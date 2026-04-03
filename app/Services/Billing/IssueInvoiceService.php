@@ -483,15 +483,34 @@ class IssueInvoiceService
             }
 
             if (!is_string($paymentMethodCode) || trim($paymentMethodCode) === '') {
-                throw new RuntimeException('即時決済APIの実行に必要な payment_method_code が未確定です。');
+                Log::warning('BillingRobo immediate settlement continues without explicit billing individual payment_method_code binding because payment_method_code is empty.', [
+                    'company_id' => $companyId,
+                    'subscription_id' => $subscriptionId,
+                    'billing_code' => $billingCode,
+                    'billing_individual_code' => $billingIndividualCode,
+                    'invoice_id' => (int) $inv->id,
+                ]);
+            } else {
+                try {
+                    $this->attachPaymentMethodCodeToBillingIndividual(
+                        companyId: $companyId,
+                        billingCode: $billingCode,
+                        billingIndividualCode: $billingIndividualCode,
+                        paymentMethodCode: $paymentMethodCode,
+                    );
+                } catch (Throwable $e) {
+                    Log::warning('BillingRobo immediate settlement skipped billing individual payment_method_code binding because the update was rejected.', [
+                        'company_id' => $companyId,
+                        'subscription_id' => $subscriptionId,
+                        'billing_code' => $billingCode,
+                        'billing_individual_code' => $billingIndividualCode,
+                        'payment_method_code' => $paymentMethodCode,
+                        'invoice_id' => (int) $inv->id,
+                        'exception_message' => $e->getMessage(),
+                        'exception' => $this->extractThrowableContext($e),
+                    ]);
+                }
             }
-
-            $this->attachPaymentMethodCodeToBillingIndividual(
-                companyId: $companyId,
-                billingCode: $billingCode,
-                billingIndividualCode: $billingIndividualCode,
-                paymentMethodCode: $paymentMethodCode,
-            );
 
             return $this->registerAndCaptureInitialCreditInvoiceImmediately(
                 invoice: $inv,

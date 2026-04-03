@@ -142,6 +142,21 @@ class BillingRoboClient
     }
 
     /**
+     * demand/bulk_register（即時決済）
+     * - クレジットカードの初回即時決済で使用する
+     * - /api/demand/bulk_register は v1.0 なしのエンドポイント
+     *
+     * @param array<int,array<string,mixed>> $bills
+     * @return array<string,mixed>
+     */
+    public function demandBulkRegister(array $bills): array
+    {
+        return $this->postJson('/api/demand/bulk_register', [
+            'bill' => $bills,
+        ]);
+    }
+
+    /**
      * bill/search（条件指定で検索）
      * @param array<string,mixed> $criteria
      * @param array{key:string,order:int}|null $sort

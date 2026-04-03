@@ -1406,12 +1406,13 @@
                 </tr>
                 <tr id="syunyu_row_kyuyo" data-anchor>
                   <th colspan="2" class="text-start align-middle ps-1">給与</th>
-                  <td class="text-center align-middle">
-                    <button type="button"
-                            class="btn-base-low-blue js-help-btn"
-                            data-help-key="kyuyo"
-                            data-bs-toggle="modal"
-                            data-bs-target="#helpModalCommon">HELP</button>
+                  <td class="text-center align-middle" rowspan="4">
+                   <button type="button"
+                            class="btn-base-free-green js-open-details"
+                            style="height:68px;"
+                            data-redirect-to="kyuyo_zatsu"
+                            data-origin-subtab="sogo"
+                            data-origin-anchor="syunyu_row_kyuyo">内 訳</button>
                   </td>
                  
                   {!! $renderInputs('syunyu_kyuyo') !!}
@@ -1419,14 +1420,6 @@
                 <tr>
                   <th rowspan="3" class="text-start align-middle ps-1">雑</th>
                   <th class="text-start align-middle th-ddd ps-1">公的年金等</th>
-                   <td class="text-center align-middle" rowspan="3">
-                    <button type="button"
-                            class="btn-base-free-green js-open-details"
-                            style="height:50px;"
-                            data-redirect-to="kyuyo_zatsu"
-                            data-origin-subtab="sogo"
-                            data-origin-anchor="syunyu_row_kyuyo">内 訳</button>
-                  </td>
                   {!! $renderInputs('syunyu_zatsu_nenkin') !!}
                 </tr>
                 <tr>
@@ -1443,7 +1436,7 @@
                   <td class="text-center align-middle" rowspan="3">
                     <button type="button"
                             class="btn-base-free-green js-open-details"
-                            style="height:49px;"
+                            style="height:68px;"
                             data-redirect-to="joto_ichiji"
                             data-origin-anchor="income_joto_ichiji"
                             data-return-anchor="income_joto_ichiji">内 訳</button>
@@ -1520,26 +1513,19 @@
                 </tr>
                 <tr id="shotoku_row_kyuyo" data-anchor>
                   <th colspan="2" class="text-start align-middle ps-1">給与</th>
-                  <td class="text-center align-middle">
+                  <td class="text-center align-middle" rowspan="4">
                     <button type="button"
-                            class="btn-base-low-blue js-help-btn"
-                            data-help-key="kyuyo"
-                            data-bs-toggle="modal"
-                            data-bs-target="#helpModalCommon">HELP</button>
+                            class="btn-base-free-green js-open-details"
+                            style="height:68px;"
+                            data-redirect-to="kyuyo_zatsu"
+                            data-origin-subtab="sogo"
+                            data-origin-anchor="shotoku_row_kyuyo">内 訳</button>
                   </td>
                   {!! $renderInputs('shotoku_kyuyo') !!}
                 </tr>
                 <tr>
                   <th rowspan="3" class="text-start align-middle ps-1">雑</th>
                   <th class="text-start align-middle th-ddd ps-1">公的年金等</th>
-                  <td class="text-center align-middle" rowspan="3">
-                    <button type="button"
-                            class="btn-base-free-green js-open-details"
-                            style="height:50px;"
-                            data-redirect-to="kyuyo_zatsu"
-                            data-origin-subtab="sogo"
-                            data-origin-anchor="shotoku_row_kyuyo">内 訳</button>
-                  </td>
                   {!! $renderInputs('shotoku_zatsu_nenkin') !!}
                 </tr>
                 <tr>

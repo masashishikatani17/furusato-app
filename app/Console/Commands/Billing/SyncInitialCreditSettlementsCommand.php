@@ -6,6 +6,7 @@ use App\Services\Billing\IssueInvoiceService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class SyncInitialCreditSettlementsCommand extends Command
@@ -33,14 +34,38 @@ class SyncInitialCreditSettlementsCommand extends Command
             );
         } catch (Throwable $e) {
             report($e);
+
+            Log::error('BillingRobo initial credit settlement diff sync failed.', [
+                'updated_from' => $updatedFrom->format('Y-m-d H:i:s'),
+                'updated_to' => $updatedTo->format('Y-m-d H:i:s'),
+                'lookback_minutes' => $lookbackMinutes,
+                'overlap_seconds' => $overlapSeconds,
+                'limit_count' => $limitCount,
+                'exception_message' => $e->getMessage(),
+            ]);
+
             $this->error('failed: ' . $e->getMessage());
 
             return self::FAILURE;
         }
 
-        $cursorBase = $this->resolveCursorBase((string) ($result['max_update_at'] ?? ''), $updatedTo);
-        $nextCursor = $cursorBase->copy()->subSeconds($overlapSeconds)->format('Y-m-d H:i:s');
+        // 次回カーソルは「今回の実行終了時刻」を基準に進める。
+        // max_update_at 基準にすると、更新が入っていない間ずっと同じ時刻を舐め続けることがある。
+        $nextCursor = $updatedTo->copy()->subSeconds($overlapSeconds)->format('Y-m-d H:i:s');
         Cache::put(self::CURSOR_CACHE_KEY, $nextCursor, now('Asia/Tokyo')->addDays(7));
+ 
+        Log::info('BillingRobo initial credit settlement diff sync finished.', [
+            'updated_from' => $updatedFrom->format('Y-m-d H:i:s'),
+            'updated_to' => $updatedTo->format('Y-m-d H:i:s'),
+            'matched' => (int) ($result['matched'] ?? 0),
+            'synced' => (int) ($result['synced'] ?? 0),
+            'paid' => (int) ($result['paid'] ?? 0),
+            'pending' => (int) ($result['pending'] ?? 0),
+            'failed' => (int) ($result['failed'] ?? 0),
+            'missing' => (int) ($result['missing'] ?? 0),
+            'max_update_at' => (string) ($result['max_update_at'] ?? ''),
+            'next_cursor' => $nextCursor,
+        ]);
 
         $this->info(sprintf(
             'from=%s to=%s matched=%d synced=%d paid=%d pending=%d failed=%d missing=%d next_cursor=%s',

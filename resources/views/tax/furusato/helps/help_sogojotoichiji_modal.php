@@ -40,12 +40,12 @@ return [
         'title' => '一時所得',
         'html'  => ''
             . '<div class="help-text furu-help-line mb-4">一時所得とは臨時・偶発的な所得のことです。</div>'
-            . '<div class="furu-help-head">○具体例</div>'
+            . '<div class="furu-help-head mb-2">○具体例</div>'
             . '<div class="help-text furu-help-line mb-4">　懸賞や福引の賞金・賞品、競馬・競輪などの払戻金、生命保険の一時金、損害保険の満期返戻金等、遺失物拾得者や埋蔵物発見者の報労金など</div>'
-            . '<div class="furu-help-head">○計算方法</div>'
+            . '<div class="furu-help-head mb-2">○計算方法</div>'
             . '<div class="help-text furu-help-body mb-2">　一時所得の金額 ＝ 収入金額 － 必要経費 － 50万円</div>'
             . '<div class="help-text furu-help-note-hanging mb-4">※一時所得は上記で計算した金額の２分の１が総合課税の対象になります。</div>'
-            . '<div class="help-text furu-help-star"><span class="furu-help-star-label"><u>総合課税所得内での損益通算</u></span></div>'
+            . '<div class="help-text furu-help-star">★<span class="furu-help-star-label"><u>総合課税所得内での損益通算</u></span></div>'
             . '<div class="help-text furu-help-body">　このシステムでは総合課税所得内での損益通算に対応しています。余りにも複雑なので言葉での説明は省略しますが、ソフトの上欄にある「計算結果詳細」のタブをクリックしますと損益通算の状況が画面に表示されますので間違いがないか確認して下さい。</div>',
      ],
 ];

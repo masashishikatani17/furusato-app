@@ -48,9 +48,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // 期限切れ招待の確定（最大遅延を抑えるなら everyMinute）
         $schedule->command('invitations:expire-scan')->everyMinute();
 
+        // 請求管理ロボ：初回クレカ決済成功の差分同期（1分ごと）
+        // - bill/search の update_date 差分で、初回クレカ請求の状態変化だけを拾う
+        // - 決済成功時は subscription を active にし、翌年度 recurring master を作成する
+        $schedule->command('billing:sync-initial-credit-settlements')
+            ->everyMinute()
+            ->withoutOverlapping();
+
         // 請求管理ロボ：入金同期（10分ごと）
-        // - webhook の即時反映で取りこぼした invoice を救済する
-        // - 初回クレカで paid 済みだが recurring master 未作成のものも救済対象
+        // - 上記差分同期で取りこぼした invoice を救済する
+        // - 銀行振込や初回クレカ以外も含めて invoice 単位で同期ジョブを投げる
         $schedule->command('billing:sync-outstanding-invoices')
             ->everyTenMinutes()
             ->withoutOverlapping();

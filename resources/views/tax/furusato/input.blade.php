@@ -987,14 +987,22 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">先物取引</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="sakimono_torihiki"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {!! $renderSeparatedTb('tb_sakimono', $inputs) !!}
               </tr>
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">山林</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="sanrin_shotoku"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 {!! $renderSeparatedTb('tb_sanrin', $inputs) !!}
               </tr>
@@ -1016,7 +1024,11 @@
                 </th>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">総合課税</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="kazei_shotoku_sogo"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -1089,7 +1101,11 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">先物取引</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="sakimono_torihiki"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {
@@ -1104,7 +1120,11 @@
               <tr>
                 <th scope="row" colspan="3" class="align-middle text-start ps-1">山林</th>
                   <td class="text-center align-middle">
-                    <button type="button" class="btn-base-low-blue">HELP</button>
+                    <button type="button"
+                            class="btn-base-low-blue js-help-btn"
+                            data-help-key="sanrin_shotoku"
+                            data-bs-toggle="modal"
+                            data-bs-target="#helpModalCommon">HELP</button>
                   </td>
                 @php
                   foreach (['shotoku' => ['prev', 'curr'], 'jumin' => ['prev', 'curr']] as $tax => $periods) {

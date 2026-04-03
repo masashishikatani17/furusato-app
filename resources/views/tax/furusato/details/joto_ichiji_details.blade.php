@@ -632,10 +632,12 @@
     const key = btn.getAttribute('data-help-key') || '';
     const target = btn.getAttribute('data-bs-target') || '';
     const dict = window.__PAGE_HELP_TEXTS_SOGOICHIJI__ || {};
-    const item = dict[key];
+    const item = dict[key] || {};
 
-    const title = item?.title ?? 'HELP';
-    const body  = item?.body  ?? '（この項目のHELPは未登録です）';
+    const title    = item.title || 'HELP';
+    const htmlBody = (typeof item.html === 'string') ? item.html : '';
+    const body     = (typeof item.body === 'string') ? item.body : '（この項目のHELPは未登録です）';
+
 
     // targetにより、書き込み先の要素を変える
     let titleEl = null;
@@ -652,6 +654,11 @@
 
     if (titleEl) titleEl.textContent = title;
     if (!bodyEl) return;
+
+    if (htmlBody) {
+      bodyEl.innerHTML = htmlBody;
+      return;
+    }
 
     const escapeHtml = (s) => String(s)
       .replace(/&/g, '&amp;')

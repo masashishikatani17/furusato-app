@@ -699,3 +699,60 @@
 @endpush
 {{-- Enter移動（ふるさと全画面共通） --}}
 @include('tax.furusato.partials.enter_nav')
+
+@push('styles')
+<style>
+  /* 総合譲渡・一時所得モーダルでも furu-help-* を効かせる */
+  #helpModalSogoJoto .furu-help-head,
+  #helpModalIchiji .furu-help-head {
+    line-height: 1.2;
+    font-weight: 700;
+    color: #192C4B;
+  }
+
+  #helpModalSogoJoto .help-text.furu-help-line,
+  #helpModalIchiji .help-text.furu-help-line {
+    line-height: 1.2;
+  }
+
+  #helpModalSogoJoto .help-text.furu-help-body,
+  #helpModalIchiji .help-text.furu-help-body {
+    padding-left: 2.5em;
+    line-height: 1.2;
+  }
+
+  #helpModalSogoJoto .help-text.furu-help-item,
+  #helpModalIchiji .help-text.furu-help-item {
+    padding-left: 4em;
+    text-indent: -1em;
+    line-height: 1.2;
+  }
+
+  #helpModalSogoJoto .help-text.furu-help-item-last,
+  #helpModalIchiji .help-text.furu-help-item-last {
+    padding-left: 4em;
+    text-indent: -1em;
+    line-height: 1.2;
+  }
+
+  #helpModalSogoJoto .help-text.furu-help-note-hanging,
+  #helpModalIchiji .help-text.furu-help-note-hanging {
+    padding-left: 2.5em;
+    text-indent: -1em;
+    line-height: 1.2;
+  }
+
+  #helpModalSogoJoto .help-text.furu-help-star,
+  #helpModalIchiji .help-text.furu-help-star {
+    padding-left: 1.5em;
+    line-height: 1.2;
+  }
+
+  #helpModalSogoJoto .furu-help-star-label,
+  #helpModalIchiji .furu-help-star-label {
+    color: #701616;
+    font-weight: 700;
+  }
+</style>
+@endpush
+ 

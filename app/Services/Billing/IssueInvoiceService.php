@@ -860,8 +860,15 @@ class IssueInvoiceService
             }
 
             $settlementResult = (int) ($bill['settlement_result'] ?? -1);
+            $settlementSucceeded = $settlementResult === 2
+                || (
+                    $lockedInvoice->clearing_status !== null
+                    && in_array((int) $lockedInvoice->clearing_status, [1, 2], true)
+                    && $lockedInvoice->unclearing_amount !== null
+                    && (int) $lockedInvoice->unclearing_amount === 0
+                );
 
-            if ($settlementResult === 2) {
+            if ($settlementSucceeded) {
                 $this->markInitialCreditInvoicePaid($lockedInvoice);
 
                 Log::info('BillingRobo initial credit settlement marked invoice as paid.', [
@@ -869,9 +876,26 @@ class IssueInvoiceService
                     'subscription_id' => (int) $lockedInvoice->subscription_id,
                     'invoice_id' => (int) $lockedInvoice->id,
                     'bill_number' => $billNumber,
+                    'settlement_result' => $settlementResult,
+                    'clearing_status' => $lockedInvoice->clearing_status,
+                    'unclearing_amount' => $lockedInvoice->unclearing_amount,
                 ]);
 
                 return 'paid';
+            }
+            if ($settlementResult === 3) {
+                $lockedInvoice->status = 'failed';
+                $lockedInvoice->save();
+
+                Log::warning('BillingRobo initial credit settlement failed.', [
+                    'company_id' => (int) $lockedInvoice->company_id,
+                    'subscription_id' => (int) $lockedInvoice->subscription_id,
+                    'invoice_id' => (int) $lockedInvoice->id,
+                    'bill_number' => $billNumber,
+                    'settlement_result' => $settlementResult,
+                ]);
+
+                return 'failed';
             }
 
             if ($this->isInitialCreditSettlementGraceExpired($lockedInvoice)) {
@@ -933,6 +957,98 @@ class IssueInvoiceService
         return $results;
     }
 
+    /**
+     * bill/search の update_date 差分から初回クレカ請求の状態変化だけを取り込み、
+     * local の初回請求に該当する bill_number だけを同期する。
+     *
+     * @return array{matched:int,synced:int,paid:int,pending:int,failed:int,missing:int,max_update_at:?string}
+     */
+    public function syncInitialCreditSettlementsByUpdatedWindow(Carbon $updatedFrom, Carbon $updatedTo, int $limitCount = 100): array
+    {
+        $from = $updatedFrom->copy()->tz('Asia/Tokyo');
+        $to = $updatedTo->copy()->tz('Asia/Tokyo');
+        $limitCount = max(1, min(200, $limitCount));
+        $pageCount = 0;
+
+        $stats = [
+            'matched' => 0,
+            'synced' => 0,
+            'paid' => 0,
+            'pending' => 0,
+            'failed' => 0,
+            'missing' => 0,
+            'max_update_at' => null,
+        ];
+
+        do {
+            $response = $this->client->billSearch(
+                criteria: [
+                    'payment_method' => self::CREDIT_PAYMENT_METHOD,
+                    'update_date_from' => $from->format('Y/m/d H:i:s'),
+                    'update_date_to' => $to->format('Y/m/d H:i:s'),
+                    'valid_flg' => 1,
+                ],
+                limitCount: $limitCount,
+                pageCount: $pageCount,
+                sort: [
+                    'key' => 'update_date,bill_id',
+                    'order' => 0,
+                ],
+            );
+
+            $billRows = $this->extractBillRowsFromBillSearchResponse($response);
+            if ($billRows === []) {
+                break;
+            }
+
+            $billNumbers = [];
+            foreach ($billRows as $billRow) {
+                $billNumber = trim((string) ($billRow['number'] ?? ''));
+                if ($billNumber !== '') {
+                    $billNumbers[] = $billNumber;
+                }
+
+                $updateDate = trim((string) ($billRow['update_date'] ?? ''));
+                if ($updateDate !== '' && ($stats['max_update_at'] === null || strcmp($updateDate, (string) $stats['max_update_at']) > 0)) {
+                    $stats['max_update_at'] = $updateDate;
+                }
+            }
+
+            if ($billNumbers !== []) {
+                $localBillNumbers = SubscriptionInvoice::query()
+                    ->whereIn('bill_number', array_values(array_unique($billNumbers)))
+                    ->where('kind', 'initial')
+                    ->where('payment_method', 'credit')
+                    ->pluck('bill_number')
+                    ->map(static fn ($value) => trim((string) $value))
+                    ->filter()
+                    ->all();
+
+                $localBillNumberMap = array_fill_keys($localBillNumbers, true);
+
+                foreach ($billRows as $billRow) {
+                    $billNumber = trim((string) ($billRow['number'] ?? ''));
+                    if ($billNumber === '' || !isset($localBillNumberMap[$billNumber])) {
+                        continue;
+                    }
+
+                    $stats['matched']++;
+                    $result = $this->syncInitialCreditSettlementByBillNumber($billNumber);
+                    $stats['synced']++;
+
+                    if (array_key_exists($result, $stats) && is_int($stats[$result])) {
+                        $stats[$result]++;
+                    }
+                }
+            }
+
+            $totalPageCount = max(1, (int) ($response['total_page_count'] ?? 1));
+            $pageCount++;
+        } while ($pageCount < $totalPageCount);
+
+        return $stats;
+    }
+
     private function resolveDemandBillTemplateCode(string $itemCode): int
     {
         $envTemplateCode = (int) config('billing_robo.bill_template_code', 0);
@@ -977,6 +1093,27 @@ class IssueInvoiceService
         }
 
         return $envTemplateCode;
+    }
+
+    /**
+     * @param array<string,mixed> $res
+     * @return array<int,array<string,mixed>>
+     */
+    private function extractBillRowsFromBillSearchResponse(array $res): array
+    {
+        $bills = $res['bill'] ?? null;
+        if (!is_array($bills)) {
+            return [];
+        }
+
+        $rows = [];
+        foreach ($bills as $bill) {
+            if (is_array($bill)) {
+                $rows[] = $bill;
+            }
+        }
+
+        return $rows;
     }
 
     private function resolveDemandBillingMethod(): int

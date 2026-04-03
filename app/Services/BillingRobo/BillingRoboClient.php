@@ -142,15 +142,37 @@ class BillingRoboClient
     }
 
     /**
+     * bill/search（条件指定で検索）
+     * @param array<string,mixed> $criteria
+     * @param array{key:string,order:int}|null $sort
+     * @return array<string,mixed>
+     */
+    public function billSearch(array $criteria, int $limitCount = 20, int $pageCount = 0, ?array $sort = null): array
+    {
+        $payload = [
+            'limit_count' => max(1, min(200, $limitCount)),
+            'page_count' => max(0, $pageCount),
+            'bill' => $criteria,
+        ];
+
+        if (is_array($sort) && isset($sort['key'], $sort['order'])) {
+            $payload['sort'] = [
+                'key' => (string) $sort['key'],
+                'order' => (int) $sort['order'],
+            ];
+        }
+
+        return $this->postJson('/api/v1.0/bill/search', $payload);
+    }
+
+    /**
      * bill/search（請求書番号で検索）
      * @return array<string,mixed>
      */
     public function billSearchByNumber(string $billNumber): array
     {
-        return $this->postJson('/api/v1.0/bill/search', [
-            'bill' => [
-                'number' => $billNumber,
-            ],
+        return $this->billSearch([
+            'number' => $billNumber,
         ]);
     }
 

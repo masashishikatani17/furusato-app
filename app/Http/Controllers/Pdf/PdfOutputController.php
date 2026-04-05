@@ -642,27 +642,27 @@ class PdfOutputController extends Controller
             $tplPath  = resource_path('pdf_templates/furusato/5_sonntokusimulation_bg.pdf');
             $fontPath = public_path('fonts/ipaexg.ttf');
             $writer = new FurusatoSonntokuSimulationTemplateWriter($tplPath, $fontPath);
-+            try {
-+                $pdfStr = $writer->render([
-+                    'sonntoku'   => $sonntoku,
-+                    'show_test'  => true,
-+                ]);
-+            } catch (\Throwable $e) {
-+                Log::warning('pdf.single.template_failed', [
-+                    'key' => 'sonntokusimulation',
-+                    'err' => get_class($e),
-+                    'msg' => $e->getMessage(),
-+                    'template_path' => $tplPath,
-+                    'data_id' => (int) $data->id,
-+                ]);
-+
-+                $fallbackVars = array_merge($reportObj->buildViewData($data), [
-+                    'data_id' => (int) $data->id,
-+                    'sonntoku' => $sonntoku,
-+                ]);
-+
-+                $pdfStr = $this->renderReportByBladePdf($data, $reportObj, $fallbackVars, $engine);
-+            }
+            try {
+                $pdfStr = $writer->render([
+                    'sonntoku'   => $sonntoku,
+                    'show_test'  => true,
+                ]);
+            } catch (\Throwable $e) {
+                Log::warning('pdf.single.template_failed', [
+                    'key' => 'sonntokusimulation',
+                    'err' => get_class($e),
+                    'msg' => $e->getMessage(),
+                    'template_path' => $tplPath,
+                    'data_id' => (int) $data->id,
+                ]);
+
+                $fallbackVars = array_merge($reportObj->buildViewData($data), [
+                    'data_id' => (int) $data->id,
+                    'sonntoku' => $sonntoku,
+                ]);
+
+                $pdfStr = $this->renderReportByBladePdf($data, $reportObj, $fallbackVars, $engine);
+            }
 
             $this->cache->put($cacheKey, $pdfStr);
 

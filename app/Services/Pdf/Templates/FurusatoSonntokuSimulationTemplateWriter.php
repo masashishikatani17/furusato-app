@@ -2,6 +2,7 @@
 
 namespace App\Services\Pdf\Templates;
 
+use Illuminate\Support\Facades\Log;
 use setasign\Fpdi\Tcpdf\Fpdi as TcpdfFpdi;
 
 /**
@@ -55,6 +56,15 @@ final class FurusatoSonntokuSimulationTemplateWriter
         ],
     ];
 
+    private function pdfDebugContext(array $extra = []): array
+    {
+        return array_merge([
+            'memory_limit' => ini_get('memory_limit'),
+            'memory_usage_mb' => round(memory_get_usage(true) / 1048576, 1),
+            'memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576, 1),
+        ], $extra);
+    }
+
     public function __construct(
         private readonly string $templatePdfPath,
         private readonly string $fontTtfPath,
@@ -67,6 +77,15 @@ final class FurusatoSonntokuSimulationTemplateWriter
      */
     public function render(array $vars): string
     {
+        Log::info('[sonntoku][template] render.start', $this->pdfDebugContext([
+            'template_pdf_path' => $this->templatePdfPath,
+            'template_pdf_exists' => is_file($this->templatePdfPath),
+            'template_pdf_size' => is_file($this->templatePdfPath) ? filesize($this->templatePdfPath) : null,
+            'font_ttf_path' => $this->fontTtfPath,
+            'font_ttf_exists' => is_file($this->fontTtfPath),
+            'font_ttf_size' => is_file($this->fontTtfPath) ? filesize($this->fontTtfPath) : null,
+        ]));
+
         if (!is_file($this->templatePdfPath)) {
             throw new \RuntimeException('Template PDF not found: ' . $this->templatePdfPath);
         }
@@ -89,9 +108,28 @@ final class FurusatoSonntokuSimulationTemplateWriter
             $font = 'helvetica';
         }
 
+        Log::info('[sonntoku][template] font.ready', $this->pdfDebugContext([
+            'resolved_font' => $font,
+        ]));
+
         // 背景テンプレ
         $pdf->AddPage('L', 'A4');
-        $pageCount = $pdf->setSourceFile($this->templatePdfPath);
+        Log::info('[sonntoku][template] source.open.start', $this->pdfDebugContext([
+            'template_pdf_path' => $this->templatePdfPath,
+        ]));
+        try {
+            $pageCount = $pdf->setSourceFile($this->templatePdfPath);
+        } catch (\Throwable $e) {
+            Log::warning('[sonntoku][template] source.open.failed', $this->pdfDebugContext([
+                'template_pdf_path' => $this->templatePdfPath,
+                'err' => get_class($e),
+                'msg' => $e->getMessage(),
+            ]));
+            throw $e;
+        }
+        Log::info('[sonntoku][template] source.open.done', $this->pdfDebugContext([
+            'page_count' => $pageCount,
+        ]));
         if ($pageCount < 1) {
             throw new \RuntimeException('Template PDF has no pages: ' . $this->templatePdfPath);
         }
@@ -105,6 +143,13 @@ final class FurusatoSonntokuSimulationTemplateWriter
         $rightRows = is_array($son['right']['rows'] ?? null) ? $son['right']['rows'] : [];
         $leftStep  = $this->n($son['left']['step']  ?? 0);
         $rightStep = $this->n($son['right']['step'] ?? 0);
+
+        Log::info('[sonntoku][template] rows.ready', $this->pdfDebugContext([
+            'left_rows_count' => count($leftRows),
+            'right_rows_count' => count($rightRows),
+            'left_step' => $leftStep,
+            'right_step' => $rightStep,
+        ]));
 
         // テーブル座標
         $pageX = (float)self::LAYOUT['page']['x'];
@@ -159,7 +204,22 @@ final class FurusatoSonntokuSimulationTemplateWriter
             $this->putRow($pdf, $font, $colXR, $cols, $y, $rh, $rr, $fs, $padR);
         }
 
-        return $pdf->Output('', 'S');
+        Log::info('[sonntoku][template] output.start', $this->pdfDebugContext());
+        try {
+            $out = $pdf->Output('', 'S');
+        } catch (\Throwable $e) {
+            Log::error('[sonntoku][template] output.failed', $this->pdfDebugContext([
+                'err' => get_class($e),
+                'msg' => $e->getMessage(),
+            ]));
+            throw $e;
+        }
+
+        Log::info('[sonntoku][template] output.done', $this->pdfDebugContext([
+            'pdf_bytes' => strlen($out),
+        ]));
+
+        return $out;
     }
 
     private function n(mixed $v): int

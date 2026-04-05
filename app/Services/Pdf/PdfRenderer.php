@@ -9,6 +9,15 @@ use Illuminate\Support\Str;
 
 class PdfRenderer
 {
+    private function pdfDebugContext(array $extra = []): array
+    {
+        return array_merge([
+            'memory_limit' => ini_get('memory_limit'),
+            'memory_usage_mb' => round(memory_get_usage(true) / 1048576, 1),
+            'memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576, 1),
+        ], $extra);
+    }
+
     /**
      * BladeビューをPDF化して DomPDF インスタンスを返す
      * 既定: A4縦
@@ -37,12 +46,40 @@ class PdfRenderer
     {
         // options['engine'] があればリクエスト単位で上書き可能
         $engine = (string) ($options['engine'] ?? config('pdf_renderer.engine', 'dompdf'));
+
+        Log::info('pdf.renderer.render_to_string.start', $this->pdfDebugContext([
+            'view' => $view,
+            'engine' => $engine,
+            'paper' => $options['paper'] ?? null,
+            'orient' => $options['orient'] ?? null,
+        ]));
         if ($engine === 'chrome') {
-            return $this->renderByChrome($view, $data, $options);
+            $out = $this->renderByChrome($view, $data, $options);
+            Log::info('pdf.renderer.render_to_string.done', $this->pdfDebugContext([
+                'view' => $view,
+                'engine' => $engine,
+                'pdf_bytes' => strlen($out),
+            ]));
+            return $out;
         }
         // dompdfでも、Blade側の pdf_engine を一致させるため options['engine'] を渡す
         $options['engine'] = $engine;
-        return $this->render($view, $data, $options)->output();
+        $pdf = $this->render($view, $data, $options);
+
+        Log::info('pdf.renderer.render_to_string.output.start', $this->pdfDebugContext([
+            'view' => $view,
+            'engine' => $engine,
+        ]));
+
+        $out = $pdf->output();
+
+        Log::info('pdf.renderer.render_to_string.done', $this->pdfDebugContext([
+            'view' => $view,
+            'engine' => $engine,
+            'pdf_bytes' => strlen($out),
+        ]));
+
+        return $out;
     }
 
     /**
@@ -53,15 +90,44 @@ class PdfRenderer
     public function renderHtmlToString(string $html, array $options = []): string
     {
         $engine = (string) ($options['engine'] ?? config('pdf_renderer.engine', 'dompdf'));
+
+        Log::info('pdf.renderer.render_html_to_string.start', $this->pdfDebugContext([
+            'engine' => $engine,
+            'paper' => $options['paper'] ?? null,
+            'orient' => $options['orient'] ?? null,
+            'html_bytes' => strlen($html),
+        ]));
+
         if ($engine === 'chrome') {
             // ChromeはHTMLをそのまま渡せる
-            return $this->renderHtmlByChrome($html, $options);
+            $out = $this->renderHtmlByChrome($html, $options);
+            Log::info('pdf.renderer.render_html_to_string.done', $this->pdfDebugContext([
+                'engine' => $engine,
+                'pdf_bytes' => strlen($out),
+            ]));
+            return $out;
         }
 
         $paper  = $options['paper']  ?? 'a4';
         $orient = $options['orient'] ?? 'portrait';
         $pdf = Pdf::loadHTML($html)->setPaper($paper, $orient);
-        return $pdf->output();
+
+        Log::info('pdf.renderer.render_html_to_string.output.start', $this->pdfDebugContext([
+            'engine' => $engine,
+            'paper' => $paper,
+            'orient' => $orient,
+        ]));
+
+        $out = $pdf->output();
+
+        Log::info('pdf.renderer.render_html_to_string.done', $this->pdfDebugContext([
+            'engine' => $engine,
+            'paper' => $paper,
+            'orient' => $orient,
+            'pdf_bytes' => strlen($out),
+        ]));
+
+        return $out;
     }
 
     private function renderHtmlByChrome(string $html, array $options = []): string

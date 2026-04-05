@@ -37,6 +37,14 @@
      *
      * 注入が無い場合は、PDF生成時点で data_id から SoT payload を読み取り、ここで組み立てる。
      */
+    $memSnapshot = static function (): array {
+        return [
+            'memory_limit' => ini_get('memory_limit'),
+            'memory_usage_mb' => round(memory_get_usage(true) / 1048576, 1),
+            'memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576, 1),
+        ];
+    };
+
     $sonntoku = $sonntoku ?? null;
 
     // ▼ 重要：report側が $sonntoku を「空配列」で渡してくると計算がスキップされる。
@@ -54,10 +62,10 @@
         $resolvedDataId = $dataId ?? ($dataObj?->id ?? null) ?? (isset($data_id) ? $data_id : null) ?? (int) request()->query('data_id', 0);
         $resolvedDataId = (int) $resolvedDataId;
 
-        \Log::info('[sonntoku][pdf] needsBuild=1', [
+        \Log::info('[sonntoku][pdf] needsBuild=1', array_merge([
             'given_sonntoku_is_array' => is_array($sonntoku),
             'resolved_data_id' => $resolvedDataId,
-        ]);
+        ], $memSnapshot()));
 
         if (!$dataObj && $resolvedDataId > 0) {
             $dataObj = \App\Models\Data::with('guest')->find($resolvedDataId);
@@ -87,7 +95,7 @@
                 $payload = is_array($storedInput) ? $storedInput : [];
             }
 
-            \Log::info('[sonntoku][pdf] payload snapshot', [
+            \Log::info('[sonntoku][pdf] payload snapshot', array_merge([
                 'data_id' => (int) $dataObj->id,
                 'payload_keys_count' => is_array($payload) ? count($payload) : 0,
                 'furusato_curr' => $payload['shotokuzei_shotokukojo_furusato_curr'] ?? null,
@@ -96,7 +104,7 @@
                 'tb_sogo_shotoku_curr' => $payload['tb_sogo_shotoku_curr'] ?? null,
                 'tb_sogo_jumin_curr' => $payload['tb_sogo_jumin_curr'] ?? null,
                 'sum_for_sogoshotoku_etc_curr' => $payload['sum_for_sogoshotoku_etc_curr'] ?? null,
-            ]);
+            ], $memSnapshot()));
 
             // runner ctx（必要情報をできるだけ埋める）
             $guestBirth = $dataObj?->guest?->birth_date ?? null;
@@ -125,7 +133,7 @@
             $svc = app(\App\Domain\Tax\Services\FurusatoSonntokuSimulationService::class);
             $sonntoku = $svc->build($payload, $ctx);
 
-            \Log::info('[sonntoku][pdf] built sonntoku', [
+            \Log::info('[sonntoku][pdf] built sonntoku', array_merge([
                 'data_id' => (int) $dataObj->id,
                 'y_max_total' => $sonntoku['y_max_total'] ?? null,
                 'y_center' => $sonntoku['y_center'] ?? null,
@@ -135,7 +143,9 @@
                 'right_15' => $sonntoku['right']['rows'][15]['y'] ?? null,
                 'left_15_saved_total' => $sonntoku['left']['rows'][15]['saved_total'] ?? null,
                 'right_15_saved_total' => $sonntoku['right']['rows'][15]['saved_total'] ?? null,
-            ]);
+                'left_rows_count' => is_array($sonntoku['left']['rows'] ?? null) ? count($sonntoku['left']['rows']) : 0,
+                'right_rows_count' => is_array($sonntoku['right']['rows'] ?? null) ? count($sonntoku['right']['rows']) : 0,
+            ], $memSnapshot()));
         } else {
             $sonntoku = [
                 'y_center' => 0,
@@ -149,6 +159,13 @@
     $rightRows = is_array($sonntoku['right']['rows'] ?? null) ? $sonntoku['right']['rows'] : [];
     $leftStep  = is_numeric($sonntoku['left']['step']  ?? null) ? (int)$sonntoku['left']['step']  : 0;
     $rightStep = is_numeric($sonntoku['right']['step'] ?? null) ? (int)$sonntoku['right']['step'] : 0;
+
+    \Log::info('[sonntoku][pdf] view.rows_ready', array_merge([
+        'left_rows_count' => count($leftRows),
+        'right_rows_count' => count($rightRows),
+        'left_step' => $leftStep,
+        'right_step' => $rightStep,
+    ], $memSnapshot()));
 
     $stepLabel = static function (int $step): string {
         $s = max(0, $step);

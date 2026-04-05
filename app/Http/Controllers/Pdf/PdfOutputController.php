@@ -47,6 +47,51 @@ class PdfOutputController extends Controller
         private FurusatoOneStopEligibilityService $oneStopEligibilityService,
     ) {}
 
+    private function prepareHeavyPdfRuntime(string $scope, array $extra = []): void
+    {
+        $before = ini_get('memory_limit');
+        @ini_set('memory_limit', '512M');
+        @set_time_limit(120);
+
+        Log::info('[pdf][runtime] prepared', array_merge([
+            'scope' => $scope,
+            'memory_limit_before' => $before,
+            'memory_limit_after' => ini_get('memory_limit'),
+            'memory_usage_mb' => round(memory_get_usage(true) / 1048576, 1),
+            'memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576, 1),
+        ], $extra));
+    }
+
+    private function renderReportByBladePdf(Data $data, object $reportObj, array $vars, string $engine): string
+    {
+        $view = $reportObj->viewName();
+        $options = [];
+        if (method_exists($reportObj, 'pdfOptions')) {
+            $options = (array) $reportObj->pdfOptions($data);
+        }
+        $options['engine'] = $engine;
+
+        return $this->renderer->renderToString(
+            $view,
+            array_merge($vars, ['is_pdf' => true]),
+            $options
+        );
+    }
+
+    private function pdfDebugContext(array $extra = []): array
+    {
+        return array_merge([
+            'memory_limit' => ini_get('memory_limit'),
+            'memory_usage_mb' => round(memory_get_usage(true) / 1048576, 1),
+            'memory_peak_mb' => round(memory_get_peak_usage(true) / 1048576, 1),
+        ], $extra);
+    }
+
+    private function logPdfDebug(string $message, array $extra = []): void
+    {
+        Log::info($message, $this->pdfDebugContext($extra));
+    }
+
     /**
      * PDF出力では必ず再計算してDBのSoTを最新化する（外部マスタ更新等も吸収するため）
      */
@@ -547,6 +592,12 @@ class PdfOutputController extends Controller
                 return $this->attachDownloadCookie($request, $resp);
             }
 
+            $this->prepareHeavyPdfRuntime('pdf.download.sonntokusimulation.single', [
+                'data_id' => (int) $data->id,
+                'cache_key' => (string) $cacheKey,
+                'engine' => (string) $engine,
+            ]);
+
             // SoT payload（優先：FurusatoResult.payload['payload'] → 次点：FurusatoInput.payload）
             $payload = [];
             $stored = FurusatoResult::query()->where('data_id', (int)$data->id)->value('payload');
@@ -591,10 +642,27 @@ class PdfOutputController extends Controller
             $tplPath  = resource_path('pdf_templates/furusato/5_sonntokusimulation_bg.pdf');
             $fontPath = public_path('fonts/ipaexg.ttf');
             $writer = new FurusatoSonntokuSimulationTemplateWriter($tplPath, $fontPath);
-            $pdfStr = $writer->render([
-                'sonntoku'   => $sonntoku,
-                'show_test'  => true,
-            ]);
++            try {
++                $pdfStr = $writer->render([
++                    'sonntoku'   => $sonntoku,
++                    'show_test'  => true,
++                ]);
++            } catch (\Throwable $e) {
++                Log::warning('pdf.single.template_failed', [
++                    'key' => 'sonntokusimulation',
++                    'err' => get_class($e),
++                    'msg' => $e->getMessage(),
++                    'template_path' => $tplPath,
++                    'data_id' => (int) $data->id,
++                ]);
++
++                $fallbackVars = array_merge($reportObj->buildViewData($data), [
++                    'data_id' => (int) $data->id,
++                    'sonntoku' => $sonntoku,
++                ]);
++
++                $pdfStr = $this->renderReportByBladePdf($data, $reportObj, $fallbackVars, $engine);
++            }
 
             $this->cache->put($cacheKey, $pdfStr);
 
@@ -729,6 +797,13 @@ class PdfOutputController extends Controller
                 return $this->attachDownloadCookie($request, $resp);
             }
 
+            $this->prepareHeavyPdfRuntime('pdf.download.furusato_bundle.fast', [
+                'data_id' => (int) $data->id,
+                'cache_key' => (string) $cacheKey,
+                'engine' => (string) $engine,
+                'pdf_variant' => (string) $contextBase['pdf_variant'],
+            ]);
+
             // ★bundleKeys() を唯一のSoTとして使う（pdf_variant に応じて keys が変わる）
             abort_unless($reportObj instanceof BundleReportInterface, 500, 'furusato_bundle must implement BundleReportInterface');
             $context = [
@@ -750,6 +825,17 @@ class PdfOutputController extends Controller
 
             $fontPath = public_path('fonts/ipaexg.ttf');
             $bins = [];
+
+            $this->logPdfDebug('[pdf][bundle][fast] start', [
+                'data_id' => (int)$data->id,
+                'report' => (string)$report,
+                'cache_key' => (string)$cacheKey,
+                'mode' => (string)$context['mode'],
+                'engine' => (string)$context['engine'],
+                'pdf_variant' => (string)$context['pdf_variant'],
+                'one_stop_flag_curr' => (string)$context['one_stop_flag_curr'],
+                'keys' => $keys,
+            ]);
 
             // ============================
             // ページ番号ラベル決定（表紙は付けない）
@@ -784,14 +870,13 @@ class PdfOutputController extends Controller
             };
 
             // 共通：テンプレWriterで落ちたら Blade(dompdf/chrome) にフォールバック
-            $renderByBlade = function (string $key, $obj, array $vars) use ($data, $engine) : string {
-                $view = $obj->viewName();
-                $options = [];
-                if (method_exists($obj, 'pdfOptions')) {
-                    $options = (array) $obj->pdfOptions($data);
-                }
-                $options['engine'] = $engine;
-                return $this->renderer->renderToString($view, array_merge($vars, ['is_pdf' => true]), $options);
+            $renderByBlade = function (string $key, $obj, array $vars, array $extraVars = []) use ($data, $engine) : string {
+                return $this->renderReportByBladePdf(
+                    $data,
+                    $obj,
+                    array_merge($vars, $extraVars),
+                    $engine
+                );
             };
 
             // ★ *_curr なら「今まで(ima)」の背景テンプレを使う
@@ -884,24 +969,95 @@ class PdfOutputController extends Controller
                         'guest_birth_date' => $guestBirthYmd5,
                         'taxpayer_sex'     => $taxpayerSex5,
                     ];
+                    $this->logPdfDebug('[pdf][bundle][sonntoku] build.start', [
+                        'data_id' => (int)$data->id,
+                        'page_label' => (string)$pageLabel,
+                        'payload_keys_count' => is_array($payload5) ? count($payload5) : 0,
+                    ]);
                     $svc5 = app(FurusatoSonntokuSimulationService::class);
                     $sonntoku5 = $svc5->build($payload5, $ctx5);
+                    $this->logPdfDebug('[pdf][bundle][sonntoku] build.done', [
+                        'data_id' => (int)$data->id,
+                        'page_label' => (string)$pageLabel,
+                        'left_rows_count' => is_array($sonntoku5['left']['rows'] ?? null) ? count($sonntoku5['left']['rows']) : 0,
+                        'right_rows_count' => is_array($sonntoku5['right']['rows'] ?? null) ? count($sonntoku5['right']['rows']) : 0,
+                        'left_step' => $sonntoku5['left']['step'] ?? null,
+                        'right_step' => $sonntoku5['right']['step'] ?? null,
+                    ]);
                     $tpl5 = resource_path('pdf_templates/furusato/5_sonntokusimulation_bg.pdf');
                     $writer5 = new FurusatoSonntokuSimulationTemplateWriter($tpl5, $fontPath);
                     try {
+                        $this->logPdfDebug('[pdf][bundle][sonntoku] template.render.start', [
+                            'page_label' => (string)$pageLabel,
+                            'template_path' => $tpl5,
+                            'template_exists' => is_file($tpl5),
+                            'template_size' => is_file($tpl5) ? filesize($tpl5) : null,
+                        ]);
                         $p = $writer5->render(['sonntoku' => $sonntoku5, 'show_test' => true]);
+                        $this->logPdfDebug('[pdf][bundle][sonntoku] template.render.done', [
+                            'page_label' => (string)$pageLabel,
+                            'pdf_bytes' => strlen($p),
+                        ]);
                         if ($pageLabel !== '') {
+                            $this->logPdfDebug('[pdf][bundle][sonntoku] stamp.start', [
+                                'page_label' => (string)$pageLabel,
+                                'pdf_bytes_before' => strlen($p),
+                            ]);
                             $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                            $this->logPdfDebug('[pdf][bundle][sonntoku] stamp.done', [
+                                'page_label' => (string)$pageLabel,
+                                'pdf_bytes_after' => strlen($p),
+                            ]);
                         }
                         $bins[] = $p;
+                        $this->logPdfDebug('[pdf][bundle][sonntoku] bin.appended', [
+                            'page_label' => (string)$pageLabel,
+                            'bin_count' => count($bins),
+                            'pdf_bytes' => strlen($p),
+                        ]);
                     } catch (\Throwable $e) {
-                        Log::warning('pdf.fast.bundle.template_failed', ['key'=>$k,'err'=>get_class($e),'msg'=>$e->getMessage()]);
+                        Log::warning('pdf.fast.bundle.template_failed', array_merge([
+                            'key' => $k,
+                            'err' => get_class($e),
+                            'msg' => $e->getMessage(),
+                            'page_label' => (string)$pageLabel,
+                            'template_path' => $tpl5,
+                        ], $this->pdfDebugContext()));
                         $obj = $this->reports->resolve($k);
-                        $p = $renderByBlade($k, $obj, $obj->buildViewData($data));
+                        $fallbackVars = $obj->buildViewData($data);
+                        $this->logPdfDebug('[pdf][bundle][sonntoku] blade_fallback.start', [
+                            'view' => $obj->viewName(),
+                            'page_label' => (string)$pageLabel,
+                            'engine' => (string)$engine,
+                            'has_sonntoku' => array_key_exists('sonntoku', $fallbackVars),
+                        ]);
+                        $p = $renderByBlade($k, $obj, $obj->buildViewData($data), [
+                            'data_id' => (int) $data->id,
+                            'sonntoku' => $sonntoku5,
+                        ]);
+                        $this->logPdfDebug('[pdf][bundle][sonntoku] blade_fallback.done', [
+                            'view' => $obj->viewName(),
+                            'page_label' => (string)$pageLabel,
+                            'engine' => (string)$engine,
+                            'pdf_bytes' => strlen($p),
+                        ]);
                         if ($pageLabel !== '') {
+                            $this->logPdfDebug('[pdf][bundle][sonntoku] stamp.start', [
+                                'page_label' => (string)$pageLabel,
+                                'pdf_bytes_before' => strlen($p),
+                            ]);
                             $p = $this->pageStamper->stampPerPage($p, [1 => $pageLabel], $fontPath);
+                            $this->logPdfDebug('[pdf][bundle][sonntoku] stamp.done', [
+                                'page_label' => (string)$pageLabel,
+                                'pdf_bytes_after' => strlen($p),
+                            ]);
                         }
                         $bins[] = $p;
+                        $this->logPdfDebug('[pdf][bundle][sonntoku] bin.appended', [
+                            'page_label' => (string)$pageLabel,
+                            'bin_count' => count($bins),
+                            'pdf_bytes' => strlen($p),
+                        ]);
                     }
                     continue;
                 }
@@ -999,8 +1155,22 @@ class PdfOutputController extends Controller
             $m->setPrintHeader(false);
             $m->setPrintFooter(false);
 
-            foreach ($bins as $bin) {
+            $this->logPdfDebug('[pdf][bundle][fast] merge.start', [
+                'bin_count' => count($bins),
+                'bin_bytes' => array_map(static fn(string $bin): int => strlen($bin), $bins),
+            ]);
+
+            foreach ($bins as $idx => $bin) {
+                $this->logPdfDebug('[pdf][bundle][fast] merge.part.start', [
+                    'index' => $idx + 1,
+                    'input_bytes' => strlen($bin),
+                ]);
                 $pageCount = $m->setSourceFile(StreamReader::createByString($bin));
+                $this->logPdfDebug('[pdf][bundle][fast] merge.part.loaded', [
+                    'index' => $idx + 1,
+                    'input_bytes' => strlen($bin),
+                    'page_count' => $pageCount,
+                ]);
                 for ($i = 1; $i <= $pageCount; $i++) {
                     $tpl = $m->importPage($i);
                     $size = $m->getTemplateSize($tpl);
@@ -1009,7 +1179,13 @@ class PdfOutputController extends Controller
                 }
             }
 
+            $this->logPdfDebug('[pdf][bundle][fast] merge.output.start', [
+                'bin_count' => count($bins),
+            ]);
             $merged = $m->Output('', 'S');
+            $this->logPdfDebug('[pdf][bundle][fast] merge.output.done', [
+                'merged_bytes' => strlen($merged),
+            ]);
             $this->cache->put($cacheKey, $merged);
 
             $file = $reportObj->bundleFileName($data, $context);
